@@ -181,4 +181,84 @@ class VMSServiceTest extends TestCase
         $this->assertEquals(13.04, $report['total_vat']);
         $this->assertEquals(100.00, $report['by_payment']['Cash']);
     }
+
+    public function testTaxCalculationSpecialAndZeroRates(): void
+    {
+        // Zero-rated rate 'F' (0%)
+        $calcF = $this->vmsService->calculateItemTax(200.00, 'F');
+        $this->assertEquals(0.00, $calcF['tax_rate']);
+        $this->assertEquals(0.00, $calcF['tax_amount']);
+        $this->assertEquals(200.00, $calcF['net_amount']);
+
+        // Special rate 'P' (0.25%)
+        $calcP = $this->vmsService->calculateItemTax(1000.00, 'P');
+        $this->assertEquals(0.25, $calcP['tax_rate']);
+        $this->assertEquals(2.4938, round($calcP['tax_amount'], 4));
+
+        // Custom rate loaded from settings
+        $stmt = $this->pdo->prepare("INSERT INTO clinic_settings (setting_key, setting_value) VALUES ('vms_tax_rate_a', '12.50')");
+        $stmt->execute();
+
+        $customService = new VMSService($this->pdo);
+        $calcCustom = $customService->calculateItemTax(100.00, 'A');
+        $this->assertEquals(12.50, $calcCustom['tax_rate']);
+    }
+
+    public function testBuildSDCRequestWithAllInvoiceTypesAndBuyerDetails(): void
+    {
+        $invoiceData = [
+            'invoice_type' => 'Advance',
+            'transaction_type' => 'Sale',
+            'buyer_tin' => '999888777',
+            'buyer_cost_center' => 'CC-DEPT-1',
+            'ref_no' => 'INV-2023-001',
+            'ref_time' => '2023-10-20 12:00:00',
+            'cashier' => 'Dr. Smith',
+            'pos_number' => 'POS-SUVA-01',
+            'payment_methods' => [['type' => 'Card', 'amount' => 500.00]]
+        ];
+
+        $items = [
+            [
+                'name' => 'Advance Consultation Fee',
+                'gtin' => '88001122',
+                'quantity' => 1,
+                'unit_price' => 500.00,
+                'tax_label' => 'A'
+            ]
+        ];
+
+        $sdcReq = $this->vmsService->buildSDCRequest($invoiceData, $items);
+
+        $this->assertEquals('Advance', $sdcReq['invoiceType']);
+        $this->assertEquals('Sale', $sdcReq['transactionType']);
+        $this->assertEquals('999888777', $sdcReq['buyer']['tin']);
+        $this->assertEquals('CC-DEPT-1', $sdcReq['buyer']['costCenter']);
+        $this->assertEquals('INV-2023-001', $sdcReq['referencedDocument']['number']);
+        $this->assertEquals('Dr. Smith', $sdcReq['cashier']);
+        $this->assertEquals('POS-SUVA-01', $sdcReq['posNumber']);
+    }
+
+    public function testVMSLogsAuditTrail(): void
+    {
+        $stmt = $this->pdo->prepare("
+            INSERT INTO invoices (id, invoice_number, patient_name, patient_mrn, service_date, due_date, amount, status, patient_owed)
+            VALUES ('inv-log-test', 'INV-LOG-1', 'Log Test User', 'MRN-LOG', '2023-10-25', '2023-11-25', 100.00, 'Pending', 100.00)
+        ");
+        $stmt->execute();
+
+        $stmtItem = $this->pdo->prepare("
+            INSERT INTO invoice_items (id, invoice_id, name, unit_price, quantity, total_price, tax_label, tax_rate, tax_amount)
+            VALUES ('item-log-test', 'inv-log-test', 'Service', 100.00, 1.0, 100.00, 'A', 15.00, 13.04)
+        ");
+        $stmtItem->execute();
+
+        $this->vmsService->fiscalizeInvoice('inv-log-test');
+
+        $stmtLogs = $this->pdo->query("SELECT event_type FROM vms_logs WHERE invoice_id = 'inv-log-test'");
+        $eventTypes = $stmtLogs->fetchAll(PDO::FETCH_COLUMN);
+
+        $this->assertContains('FISCALIZATION_REQ', $eventTypes);
+        $this->assertContains('FISCALIZATION_RESP', $eventTypes);
+    }
 }

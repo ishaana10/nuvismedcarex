@@ -55,8 +55,13 @@ function getDB(): PDO {
         seedDefaultUsersIfEmpty($pdo);
         return $pdo;
     } catch (PDOException $e) {
-        // In-memory fallback when local MySQL daemon is not reachable
-        $pdo = new PDO("sqlite::memory:", null, null, [
+        // File-based SQLite fallback when local MySQL daemon is not reachable
+        $dbDir = __DIR__ . '/../database';
+        if (!is_dir($dbDir)) {
+            mkdir($dbDir, 0755, true);
+        }
+        $sqliteFile = $dbDir . '/clinicflow.sqlite';
+        $pdo = new PDO("sqlite:" . $sqliteFile, null, null, [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         ]);
