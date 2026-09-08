@@ -14,8 +14,14 @@ foreach ($settingsRows as $r) {
 // Fetch user/doctor staff
 $usersList = $pdo->query("SELECT * FROM doctors ORDER BY name ASC")->fetchAll();
 
+$currentSessionUserRole = $_SESSION['user_role'] ?? $_SESSION['role'] ?? 'Doctor';
+$isDeveloper = ($currentSessionUserRole === 'Developer');
+
 // Determine active tab from query parameter (default: users)
 $activeTab = $_GET['tab'] ?? 'users';
+if ($activeTab === 'developer' && !$isDeveloper) {
+    $activeTab = 'users';
+}
 ?>
 
 <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -25,7 +31,7 @@ $activeTab = $_GET['tab'] ?? 'users';
     </div>
 
     <!-- Navigation Tabs -->
-    <div class="flex items-center gap-2 bg-surface-container-low p-1.5 rounded-2xl border border-outline-variant/30 text-xs font-bold">
+    <div class="flex items-center gap-2 bg-surface-container-low p-1.5 rounded-2xl border border-outline-variant/30 text-xs font-bold flex-wrap">
         <button type="button" onclick="switchAdminTab('users')" id="tab-btn-users" class="px-4 py-2 rounded-xl transition flex items-center gap-1.5 <?= $activeTab === 'users' ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high' ?>">
             <span class="material-symbols-outlined text-base">group</span>
             <span>User Management</span>
@@ -42,10 +48,12 @@ $activeTab = $_GET['tab'] ?? 'users';
             <span class="material-symbols-outlined text-base">inventory_2</span>
             <span>Inventory Settings</span>
         </button>
-        <button type="button" onclick="switchAdminTab('git')" id="tab-btn-git" class="px-4 py-2 rounded-xl transition flex items-center gap-1.5 <?= $activeTab === 'git' ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high' ?>">
-            <span class="material-symbols-outlined text-base">update</span>
-            <span>System Updates</span>
+        <?php if ($isDeveloper): ?>
+        <button type="button" onclick="switchAdminTab('developer')" id="tab-btn-developer" class="px-4 py-2 rounded-xl transition flex items-center gap-1.5 <?= $activeTab === 'developer' ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high' ?>">
+            <span class="material-symbols-outlined text-base">code</span>
+            <span>Developer Options</span>
         </button>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -430,8 +438,10 @@ $activeTab = $_GET['tab'] ?? 'users';
     </form>
 </div>
 
-<!-- ================= TAB 3: GIT UPDATES ================= -->
-<div id="admin-tab-git" class="<?= $activeTab === 'git' ? '' : 'hidden' ?> space-y-6">
+<?php if ($isDeveloper): ?>
+<!-- ================= TAB: DEVELOPER OPTIONS & LOGS ================= -->
+<div id="admin-tab-developer" class="<?= $activeTab === 'developer' ? '' : 'hidden' ?> space-y-6">
+    <!-- 1. System Updates (Git Updater) -->
     <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-5">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-outline-variant/20 pb-3">
             <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
@@ -511,7 +521,34 @@ $activeTab = $_GET['tab'] ?? 'users';
             </div>
         </div>
     </div>
+
+    <!-- 2. Developer Error Logger Module -->
+    <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-5">
+        <div class="flex items-center justify-between border-b border-outline-variant/20 pb-3">
+            <h2 class="text-xs font-bold text-rose-700 uppercase tracking-wider flex items-center gap-2">
+                <span class="material-symbols-outlined text-base">bug_report</span>
+                <span>Developer Error Logger & System Diagnostics</span>
+            </h2>
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="fetchDeveloperErrorLogs()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition flex items-center gap-1">
+                    <span class="material-symbols-outlined text-sm">refresh</span>
+                    <span>Refresh Logs</span>
+                </button>
+                <button type="button" onclick="clearDeveloperErrorLogs()" class="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-800 text-xs font-bold rounded-xl transition flex items-center gap-1">
+                    <span class="material-symbols-outlined text-sm">delete_sweep</span>
+                    <span>Clear Logs</span>
+                </button>
+            </div>
+        </div>
+
+        <div>
+            <div id="developer-error-console" class="font-mono text-xs bg-slate-950 text-slate-200 p-4 rounded-xl border border-slate-800 h-64 overflow-y-auto leading-relaxed space-y-2 shadow-inner">
+                <p class="text-slate-500 italic">Initializing developer error logger...</p>
+            </div>
+        </div>
+    </div>
 </div>
+<?php endif; ?>
 
 <!-- Modal: User Add/Edit Form -->
 <div id="userModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
@@ -639,13 +676,13 @@ function switchAdminTab(tab) {
     document.getElementById('admin-tab-clinic').classList.add('hidden');
     if (document.getElementById('admin-tab-vms')) document.getElementById('admin-tab-vms').classList.add('hidden');
     if (document.getElementById('admin-tab-inventory')) document.getElementById('admin-tab-inventory').classList.add('hidden');
-    document.getElementById('admin-tab-git').classList.add('hidden');
+    if (document.getElementById('admin-tab-developer')) document.getElementById('admin-tab-developer').classList.add('hidden');
 
     document.getElementById('tab-btn-users').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
     document.getElementById('tab-btn-clinic').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
     if (document.getElementById('tab-btn-vms')) document.getElementById('tab-btn-vms').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
     if (document.getElementById('tab-btn-inventory')) document.getElementById('tab-btn-inventory').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
-    document.getElementById('tab-btn-git').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
+    if (document.getElementById('tab-btn-developer')) document.getElementById('tab-btn-developer').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
 
     if (tab === 'users') {
         document.getElementById('admin-tab-users').classList.remove('hidden');
@@ -659,11 +696,52 @@ function switchAdminTab(tab) {
     } else if (tab === 'inventory') {
         if (document.getElementById('admin-tab-inventory')) document.getElementById('admin-tab-inventory').classList.remove('hidden');
         if (document.getElementById('tab-btn-inventory')) document.getElementById('tab-btn-inventory').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 bg-primary text-white shadow-xs';
-    } else if (tab === 'git') {
-        document.getElementById('admin-tab-git').classList.remove('hidden');
-        document.getElementById('tab-btn-git').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 bg-primary text-white shadow-xs';
+    } else if (tab === 'developer') {
+        if (document.getElementById('admin-tab-developer')) document.getElementById('admin-tab-developer').classList.remove('hidden');
+        if (document.getElementById('tab-btn-developer')) document.getElementById('tab-btn-developer').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 bg-primary text-white shadow-xs';
         refreshGitStatus();
+        fetchDeveloperErrorLogs();
     }
+}
+
+function fetchDeveloperErrorLogs() {
+    const consoleBox = document.getElementById('developer-error-console');
+    if (!consoleBox) return;
+
+    fetch('actions/git_actions.php?action=get_error_logs')
+    .then(r => r.json())
+    .then(d => {
+        if (d.success && d.logs && d.logs.length > 0) {
+            consoleBox.innerHTML = d.logs.map(log => {
+                let colorClass = 'text-slate-300';
+                if (log.type === 'ERROR') colorClass = 'text-rose-400 font-bold';
+                else if (log.type === 'WARNING') colorClass = 'text-amber-300';
+                else if (log.type === 'AUDIT') colorClass = 'text-emerald-400';
+
+                return `<div class="p-1 border-b border-slate-900 text-[11px]"><span class="text-slate-500">[${log.timestamp}]</span> <span class="px-1.5 py-0.5 rounded text-[9px] font-bold ${colorClass} bg-slate-900 mr-1">${log.type}</span> ${log.message}</div>`;
+            }).join('');
+        } else {
+            consoleBox.innerHTML = '<p class="text-slate-400 italic">No log entries found.</p>';
+        }
+    })
+    .catch(err => {
+        consoleBox.innerHTML = '<p class="text-rose-400 font-bold">Error retrieving developer logs: ' + err + '</p>';
+    });
+}
+
+function clearDeveloperErrorLogs() {
+    if (!confirm('Are you sure you want to clear the developer error log buffer?')) return;
+
+    fetch('actions/git_actions.php?action=clear_error_logs')
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            alert('Developer log buffer cleared.');
+            fetchDeveloperErrorLogs();
+        } else {
+            alert('Failed to clear logs: ' + (d.error || 'Unknown error'));
+        }
+    });
 }
 
 let activeRoleFilter = 'all';

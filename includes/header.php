@@ -168,6 +168,11 @@ $currentDoctor = reset($currentDoctor) ?: ($doctors[0] ?? ['id' => 'doc-1', 'nam
                 </form>
                 <img src="<?= htmlspecialchars($currentDoctor['avatar'] ?? 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=200') ?>" class="w-8 h-8 rounded-full object-cover border border-slate-200 shadow-xs" alt="Doctor Avatar">
             </div>
+
+            <!-- Logout Button (Header Right) -->
+            <a href="actions/logout.php" class="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-full transition flex items-center" title="Logout">
+                <span class="material-symbols-outlined text-xl">logout</span>
+            </a>
         </div>
     </div>
 </header>

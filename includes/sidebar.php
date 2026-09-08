@@ -4,6 +4,8 @@
  */
 $activePage = $activePage ?? 'dashboard';
 
+$userRole = $_SESSION['user_role'] ?? $_SESSION['role'] ?? 'Doctor';
+
 $navItems = [
     ['id' => 'dashboard', 'label' => 'Dashboard', 'icon' => 'dashboard', 'url' => 'index.php'],
     ['id' => 'patients', 'label' => 'Patients', 'icon' => 'group', 'url' => 'patients.php'],
@@ -14,6 +16,10 @@ $navItems = [
     ['id' => 'register-patient', 'label' => 'Register Patient', 'icon' => 'person_add', 'url' => 'register_patient.php'],
     ['id' => 'admin', 'label' => 'Administrator', 'icon' => 'admin_panel_settings', 'url' => 'admin.php'],
 ];
+
+if ($userRole === 'Developer') {
+    $navItems[] = ['id' => 'developer', 'label' => 'Developer Options', 'icon' => 'code', 'url' => 'admin.php?tab=developer'];
+}
 ?>
 
 <!-- Desktop Sidebar -->

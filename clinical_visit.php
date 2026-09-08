@@ -65,10 +65,13 @@ include __DIR__ . '/includes/header.php';
             <div>
                 <div class="flex items-center gap-2 flex-wrap">
                     <h1 class="text-xl font-bold text-slate-900"><?= htmlspecialchars($patient['first_name'] . ' ' . $patient['last_name']) ?></h1>
-                    <?php if (!empty($patient['allergies']) || !empty($patient['known_allergies'])): ?>
+                    <?php
+                    $patientAllergies = $patient['known_allergies'] ?? $patient['allergies'] ?? '';
+                    if (!empty($patientAllergies)):
+                    ?>
                         <span class="badge-chip badge-allergy">
                             <span class="material-symbols-outlined text-xs">warning</span>
-                            <?= htmlspecialchars($patient['allergies'] ?: $patient['known_allergies']) ?>
+                            <?= htmlspecialchars($patientAllergies) ?>
                         </span>
                     <?php endif; ?>
                 </div>

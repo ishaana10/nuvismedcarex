@@ -198,6 +198,74 @@ try {
         exit();
     }
 
+    if ($action === 'get_error_logs') {
+        if ($userRole !== 'Developer') {
+            echo json_encode(['success' => false, 'error' => 'Developer role required for error logs access']);
+            exit();
+        }
+
+        $logEntries = [];
+
+        // 1. Fetch PHP Error Log if readable
+        $errorLogFile = ini_get('error_log');
+        if (!empty($errorLogFile) && file_exists($errorLogFile) && is_readable($errorLogFile)) {
+            $raw = file_get_contents($errorLogFile);
+            $lines = array_filter(explode("\n", trim($raw)));
+            $lines = array_slice($lines, -50); // last 50 error entries
+            foreach ($lines as $line) {
+                $type = (stripos($line, 'error') !== false || stripos($line, 'exception') !== false || stripos($line, 'fatal') !== false) ? 'ERROR' : 'WARNING';
+                $logEntries[] = [
+                    'source'    => 'PHP_ERROR_LOG',
+                    'timestamp' => date('Y-m-d H:i:s'),
+                    'type'      => $type,
+                    'message'   => $line
+                ];
+            }
+        }
+
+        // 2. Fetch Audit Logs from Database
+        try {
+            $auditLogs = $pdo->query("SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 30")->fetchAll();
+            foreach ($auditLogs as $a) {
+                $logEntries[] = [
+                    'source'    => 'AUDIT_LOG',
+                    'timestamp' => $a['created_at'] ?? date('Y-m-d H:i:s'),
+                    'type'      => 'AUDIT',
+                    'message'   => '[' . ($a['user_role'] ?? 'User') . ' ' . ($a['user_name'] ?? 'System') . '] ' . ($a['action'] ?? 'ACTION') . ': ' . ($a['details'] ?? '') . ' (IP: ' . ($a['ip_address'] ?? '127.0.0.1') . ')'
+                ];
+            }
+        } catch (Throwable $e) {
+            // Ignore if audit logs table is empty or missing
+        }
+
+        if (empty($logEntries)) {
+            $logEntries[] = [
+                'source'    => 'SYSTEM',
+                'timestamp' => date('Y-m-d H:i:s'),
+                'type'      => 'INFO',
+                'message'   => 'No active errors or exception events detected. System operating normally.'
+            ];
+        }
+
+        echo json_encode(['success' => true, 'logs' => $logEntries]);
+        exit();
+    }
+
+    if ($action === 'clear_error_logs') {
+        if ($userRole !== 'Developer') {
+            echo json_encode(['success' => false, 'error' => 'Developer role required to clear logs']);
+            exit();
+        }
+
+        $errorLogFile = ini_get('error_log');
+        if (!empty($errorLogFile) && file_exists($errorLogFile) && is_writable($errorLogFile)) {
+            @file_put_contents($errorLogFile, '');
+        }
+
+        echo json_encode(['success' => true, 'message' => 'Error log buffer cleared']);
+        exit();
+    }
+
     echo json_encode(['success' => false, 'error' => 'Invalid action specified']);
 } catch (Throwable $e) {
     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
