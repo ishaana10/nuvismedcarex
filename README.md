@@ -1,4 +1,4 @@
-# Nuvis Medcare X - Deployment & System Release Notes
+# NuvisMedcareX - Deployment & System Release Notes
 
 **Current Version:** `v2.1.0-VMS3` (FRCS Fiji VMS Phase 3 & Inventory Module Release)
 **Target Environment:** Native PHP 8.1+ PDO Architecture (A2 Hosting / MySQL)

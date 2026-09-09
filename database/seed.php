@@ -39,7 +39,7 @@ foreach ($doctors as $doc) {
 
 // Default Clinic Settings
 $defaultSettings = [
-    'clinic_name' => 'Nuvis Medico Healthcare',
+    'clinic_name' => 'NuvisMedcareX',
     'clinic_subtitle' => 'Integrated Primary & Specialist Healthcare Platform',
     'clinic_address' => '100 Healthcare Way, Suite 400, Springfield, OR 97477',
     'clinic_phone' => '(555) 019-2831',
@@ -53,7 +53,7 @@ $defaultSettings = [
     'invoice_header_title' => 'MEDICAL SERVICES INVOICE',
     'invoice_tax_id' => '93-1029384',
     'invoice_payment_terms' => 'Net 30 Days. Please remit payment promptly.',
-    'invoice_footer_note' => 'Thank you for choosing Nuvis Medico Healthcare for your care.',
+    'invoice_footer_note' => 'Thank you for choosing NuvisMedcareX for your care.',
     'receipt_header_title' => 'OFFICIAL PAYMENT RECEIPT',
     'receipt_thank_you_msg' => 'Thank you for your payment. Your account balance for this invoice is cleared.',
     'doc_prc_no' => 'PRC-0098412',
