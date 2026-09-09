@@ -20,7 +20,7 @@ class ApiTest extends TestCase {
     }
 
     public function testDatabaseInitialization(): void {
-        $stmt = $this->pdo->query("SELECT COUNT(*) FROM clinics");
+        $stmt = $this->pdo->query("SELECT COUNT(*) FROM tenants");
         $this->assertGreaterThanOrEqual(1, (int)$stmt->fetchColumn());
     }
 }

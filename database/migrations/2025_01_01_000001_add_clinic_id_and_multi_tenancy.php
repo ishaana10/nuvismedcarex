@@ -4,34 +4,117 @@ return new class {
     public function up(PDO $pdo): void {
         $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
 
-        // 1. Create clinics table
-        $pdo->exec("CREATE TABLE IF NOT EXISTS clinics (
-            id VARCHAR(50) PRIMARY KEY,
-            name VARCHAR(255) NOT NULL,
-            code VARCHAR(50) UNIQUE NOT NULL,
-            address TEXT,
-            phone VARCHAR(50),
-            email VARCHAR(255),
-            is_active TINYINT(1) DEFAULT 1,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );");
+        // 1. Create tenants table if not exists
+        if ($driver === 'sqlite') {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS tenants (
+                id VARCHAR(50) PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                code VARCHAR(50) UNIQUE NOT NULL,
+                status VARCHAR(50) NOT NULL DEFAULT 'active',
+                plan VARCHAR(50) NOT NULL DEFAULT 'standard',
+                address TEXT,
+                phone VARCHAR(50),
+                email VARCHAR(255),
+                timezone VARCHAR(50) DEFAULT 'Pacific/Fiji',
+                locale VARCHAR(10) DEFAULT 'en_FJ',
+                currency VARCHAR(10) DEFAULT 'FJD',
+                branding TEXT,
+                vms_credentials TEXT,
+                feature_flags TEXT,
+                custom_fields TEXT,
+                billing_info TEXT,
+                is_active INTEGER DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );");
+        } else {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS tenants (
+                id VARCHAR(50) PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                code VARCHAR(50) UNIQUE NOT NULL,
+                status VARCHAR(50) NOT NULL DEFAULT 'active',
+                plan VARCHAR(50) NOT NULL DEFAULT 'standard',
+                address TEXT,
+                phone VARCHAR(50),
+                email VARCHAR(255),
+                timezone VARCHAR(50) DEFAULT 'Pacific/Fiji',
+                locale VARCHAR(10) DEFAULT 'en_FJ',
+                currency VARCHAR(10) DEFAULT 'FJD',
+                branding JSON,
+                vms_credentials JSON,
+                feature_flags JSON,
+                custom_fields JSON,
+                billing_info JSON,
+                is_active TINYINT(1) DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            );");
+        }
 
-        // Insert default clinic if not exists
-        $stmt = $pdo->prepare("SELECT COUNT(*) FROM clinics WHERE id = 'default-clinic'");
+        // Insert default tenant if not exists
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM tenants WHERE id = 'default-clinic'");
         $stmt->execute();
         if ((int)$stmt->fetchColumn() === 0) {
-            $insert = $pdo->prepare("INSERT INTO clinics (id, name, code, address, phone, email) VALUES (:id, :name, :code, :address, :phone, :email)");
+            $insert = $pdo->prepare("INSERT INTO tenants (id, name, code, status, plan, address, phone, email) VALUES (:id, :name, :code, :status, :plan, :address, :phone, :email)");
             $insert->execute([
                 'id' => 'default-clinic',
                 'name' => 'Main Suva Central Clinic',
-                'code' => 'SUVA-MAIN',
+                'code' => 'default-clinic',
+                'status' => 'active',
+                'plan' => 'enterprise',
                 'address' => '2 Woodstand Road, Suva',
                 'phone' => '+679 330 1234',
                 'email' => 'suva@clinicflow.org'
             ]);
         }
 
-        // 2. Add clinic_id to all relevant tables
+        // Create user_tenants table
+        if ($driver === 'sqlite') {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS user_tenants (
+                id VARCHAR(50) PRIMARY KEY,
+                user_id VARCHAR(50) NOT NULL,
+                tenant_id VARCHAR(50) NOT NULL,
+                role VARCHAR(50) NOT NULL DEFAULT 'practitioner',
+                permissions TEXT,
+                is_default INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );");
+        } else {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS user_tenants (
+                id VARCHAR(50) PRIMARY KEY,
+                user_id VARCHAR(50) NOT NULL,
+                tenant_id VARCHAR(50) NOT NULL,
+                role VARCHAR(50) NOT NULL DEFAULT 'practitioner',
+                permissions JSON,
+                is_default TINYINT(1) DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY uk_user_tenant (user_id, tenant_id)
+            );");
+        }
+
+        // Create tenant_settings table
+        if ($driver === 'sqlite') {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS tenant_settings (
+                id VARCHAR(50) PRIMARY KEY,
+                tenant_id VARCHAR(50) NOT NULL,
+                setting_key VARCHAR(100) NOT NULL,
+                setting_value TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );");
+        } else {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS tenant_settings (
+                id VARCHAR(50) PRIMARY KEY,
+                tenant_id VARCHAR(50) NOT NULL,
+                setting_key VARCHAR(100) NOT NULL,
+                setting_value TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                UNIQUE KEY uk_tenant_setting (tenant_id, setting_key)
+            );");
+        }
+
+        // 2. Rename clinic_id to tenant_id on all relevant tables if present
         $tables = [
             'doctors',
             'patients',
@@ -52,7 +135,6 @@ return new class {
         ];
 
         foreach ($tables as $table) {
-            // Check existing columns
             $cols = [];
             try {
                 if ($driver === 'sqlite') {
@@ -67,17 +149,20 @@ return new class {
                     }
                 }
             } catch (Exception $e) {
-                continue; // Table might not exist yet
+                continue;
             }
 
-            if (!empty($cols) && !in_array('clinic_id', $cols, true)) {
-                $pdo->exec("ALTER TABLE {$table} ADD COLUMN clinic_id VARCHAR(50) DEFAULT 'default-clinic'");
+            if (in_array('clinic_id', $cols, true) && !in_array('tenant_id', $cols, true)) {
+                if ($driver === 'sqlite') {
+                    $pdo->exec("ALTER TABLE {$table} RENAME COLUMN clinic_id TO tenant_id");
+                } else {
+                    $pdo->exec("ALTER TABLE {$table} CHANGE COLUMN clinic_id tenant_id VARCHAR(50) NOT NULL");
+                }
+            } elseif (!in_array('tenant_id', $cols, true)) {
+                $pdo->exec("ALTER TABLE {$table} ADD COLUMN tenant_id VARCHAR(50) NOT NULL DEFAULT 'default-clinic'");
             }
 
-            // Ensure null or blank values are assigned default-clinic
-            if (!empty($cols)) {
-                $pdo->exec("UPDATE {$table} SET clinic_id = 'default-clinic' WHERE clinic_id IS NULL OR clinic_id = ''");
-            }
+            $pdo->exec("UPDATE {$table} SET tenant_id = 'default-clinic' WHERE tenant_id IS NULL OR tenant_id = ''");
         }
     }
 };

@@ -1,13 +1,14 @@
 <?php
+declare(strict_types=1);
+
 namespace ClinicFlow\Repositories;
 
+use ClinicFlow\Infrastructure\BaseRepository;
 use PDO;
 
-class PatientRepository {
-    private PDO $db;
-
+class PatientRepository extends BaseRepository {
     public function __construct(PDO $db) {
-        $this->db = $db;
+        parent::__construct($db, 'patients');
     }
 
     public function findAll(int $limit = 50, int $offset = 0, ?string $search = null): array {
@@ -15,23 +16,24 @@ class PatientRepository {
             ? "CONCAT(first_name, ' ', last_name)"
             : "(first_name || ' ' || last_name)";
 
+        $tenantId = $this->getTenantId();
+
         if ($search) {
-            $stmt = $this->db->prepare("SELECT *, {$concatExpr} AS full_name FROM patients WHERE first_name LIKE ? OR last_name LIKE ? OR mrn LIKE ? OR phone LIKE ? ORDER BY id DESC LIMIT ? OFFSET ?");
+            $stmt = $this->db->prepare("SELECT *, {$concatExpr} AS full_name FROM patients WHERE tenant_id = :tid AND (first_name LIKE :s OR last_name LIKE :s OR mrn LIKE :s OR phone LIKE :s) ORDER BY id DESC LIMIT :limit OFFSET :offset");
             $searchTerm = "%{$search}%";
-            $stmt->bindValue(1, $searchTerm, PDO::PARAM_STR);
-            $stmt->bindValue(2, $searchTerm, PDO::PARAM_STR);
-            $stmt->bindValue(3, $searchTerm, PDO::PARAM_STR);
-            $stmt->bindValue(4, $searchTerm, PDO::PARAM_STR);
-            $stmt->bindValue(5, $limit, PDO::PARAM_INT);
-            $stmt->bindValue(6, $offset, PDO::PARAM_INT);
+            $stmt->bindValue(':tid', $tenantId, PDO::PARAM_STR);
+            $stmt->bindValue(':s', $searchTerm, PDO::PARAM_STR);
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
             $stmt->execute();
         } else {
-            $stmt = $this->db->prepare("SELECT *, {$concatExpr} AS full_name FROM patients ORDER BY id DESC LIMIT ? OFFSET ?");
-            $stmt->bindValue(1, $limit, PDO::PARAM_INT);
-            $stmt->bindValue(2, $offset, PDO::PARAM_INT);
+            $stmt = $this->db->prepare("SELECT *, {$concatExpr} AS full_name FROM patients WHERE tenant_id = :tid ORDER BY id DESC LIMIT :limit OFFSET :offset");
+            $stmt->bindValue(':tid', $tenantId, PDO::PARAM_STR);
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
             $stmt->execute();
         }
-        return $stmt->fetchAll();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function findById(string $id): ?array {
@@ -39,9 +41,9 @@ class PatientRepository {
             ? "CONCAT(first_name, ' ', last_name)"
             : "(first_name || ' ' || last_name)";
 
-        $stmt = $this->db->prepare("SELECT *, {$concatExpr} AS full_name FROM patients WHERE id = ? LIMIT 1");
-        $stmt->execute([$id]);
-        $row = $stmt->fetch();
+        $stmt = $this->db->prepare("SELECT *, {$concatExpr} AS full_name FROM patients WHERE id = :id AND tenant_id = :tid LIMIT 1");
+        $stmt->execute(['id' => $id, 'tid' => $this->getTenantId()]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
     }
 
@@ -50,9 +52,9 @@ class PatientRepository {
             ? "CONCAT(first_name, ' ', last_name)"
             : "(first_name || ' ' || last_name)";
 
-        $stmt = $this->db->prepare("SELECT *, {$concatExpr} AS full_name FROM patients WHERE mrn = ? LIMIT 1");
-        $stmt->execute([$mrn]);
-        $row = $stmt->fetch();
+        $stmt = $this->db->prepare("SELECT *, {$concatExpr} AS full_name FROM patients WHERE mrn = :mrn AND tenant_id = :tid LIMIT 1");
+        $stmt->execute(['mrn' => $mrn, 'tid' => $this->getTenantId()]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
     }
 
@@ -79,19 +81,22 @@ class PatientRepository {
         }
         $fields[] = "updated_at = CURRENT_TIMESTAMP";
         $params[] = $id;
-        $sql = "UPDATE patients SET " . implode(', ', $fields) . " WHERE id = ?";
+        $params[] = $this->getTenantId();
+        $sql = "UPDATE patients SET " . implode(', ', $fields) . " WHERE id = ? AND tenant_id = ?";
         $stmt = $this->db->prepare($sql);
         return $stmt->execute($params);
     }
 
     public function create(array $data): string {
         $id = $data['id'] ?? ('pat-' . uniqid());
+        $tenantId = $data['tenant_id'] ?? $this->getTenantId();
         $stmt = $this->db->prepare("
-            INSERT INTO patients (id, mrn, first_name, last_name, dob, age, gender, phone, email, address, emergency_contact_name, blood_group, known_allergies, chronic_conditions, registration_date, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_DATE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            INSERT INTO patients (id, tenant_id, mrn, first_name, last_name, dob, age, gender, phone, email, address, emergency_contact_name, blood_group, known_allergies, chronic_conditions, registration_date, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_DATE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         ");
         $stmt->execute([
             $id,
+            $tenantId,
             $data['mrn'],
             $data['first_name'] ?? 'FirstName',
             $data['last_name'] ?? 'LastName',

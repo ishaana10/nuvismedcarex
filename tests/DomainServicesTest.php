@@ -77,8 +77,8 @@ class DomainServicesTest extends TestCase {
         $app = new AppointmentService($this->pdo);
 
         // First insert dummy patient and doctor
-        $this->pdo->exec("INSERT INTO patients (id, mrn, first_name, last_name, dob, age, gender, registration_date) VALUES ('p1', 'MRN1', 'John', 'Doe', '1990-01-01', 34, 'Male', '2025-01-01')");
-        $this->pdo->exec("INSERT INTO doctors (id, name, specialty) VALUES ('d1', 'Dr. Smith', 'General')");
+        $this->pdo->exec("INSERT INTO patients (id, tenant_id, mrn, first_name, last_name, dob, age, gender, registration_date) VALUES ('p1', 'default-clinic', 'MRN1', 'John', 'Doe', '1990-01-01', 34, 'Male', '2025-01-01')");
+        $this->pdo->exec("INSERT INTO doctors (id, tenant_id, name, specialty) VALUES ('d1', 'default-clinic', 'Dr. Smith', 'General')");
 
         $appointment = $app->createAppointment([
             'patient_id' => 'p1',

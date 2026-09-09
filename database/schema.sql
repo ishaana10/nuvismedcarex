@@ -1,19 +1,30 @@
--- ClinicFlow Unified Database Schema (MySQL Architecture)
+-- ClinicFlow Unified Database Schema (Multi-Tenant Architecture)
 
-CREATE TABLE IF NOT EXISTS clinics (
+CREATE TABLE IF NOT EXISTS tenants (
     id VARCHAR(50) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     code VARCHAR(50) UNIQUE NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'active',
+    plan VARCHAR(50) NOT NULL DEFAULT 'standard',
     address TEXT,
     phone VARCHAR(50),
     email VARCHAR(255),
+    timezone VARCHAR(50) DEFAULT 'Pacific/Fiji',
+    locale VARCHAR(10) DEFAULT 'en_FJ',
+    currency VARCHAR(10) DEFAULT 'FJD',
+    branding TEXT,
+    vms_credentials TEXT,
+    feature_flags TEXT,
+    custom_fields TEXT,
+    billing_info TEXT,
     is_active TINYINT(1) DEFAULT 1,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS doctors (
     id VARCHAR(50) PRIMARY KEY,
-    clinic_id VARCHAR(50) DEFAULT 'default-clinic',
+    tenant_id VARCHAR(50) NOT NULL,
     name VARCHAR(255) NOT NULL,
     specialty VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE,
@@ -28,18 +39,38 @@ CREATE TABLE IF NOT EXISTS doctors (
     digital_stamp TEXT,
     is_active TINYINT(1) DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS clinic_settings (
-    setting_key VARCHAR(100) PRIMARY KEY,
-    setting_value TEXT
+CREATE TABLE IF NOT EXISTS user_tenants (
+    id VARCHAR(50) PRIMARY KEY,
+    user_id VARCHAR(50) NOT NULL,
+    tenant_id VARCHAR(50) NOT NULL,
+    role VARCHAR(50) NOT NULL DEFAULT 'practitioner',
+    permissions TEXT,
+    is_default TINYINT(1) DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES doctors(id) ON DELETE CASCADE,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+    CONSTRAINT uk_user_tenant UNIQUE (user_id, tenant_id)
+);
+
+CREATE TABLE IF NOT EXISTS tenant_settings (
+    id VARCHAR(50) PRIMARY KEY,
+    tenant_id VARCHAR(50) NOT NULL,
+    setting_key VARCHAR(100) NOT NULL,
+    setting_value TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+    CONSTRAINT uk_tenant_setting UNIQUE (tenant_id, setting_key)
 );
 
 CREATE TABLE IF NOT EXISTS patients (
     id VARCHAR(50) PRIMARY KEY,
-    clinic_id VARCHAR(50) DEFAULT 'default-clinic',
-    mrn VARCHAR(50) UNIQUE NOT NULL,
+    tenant_id VARCHAR(50) NOT NULL,
+    mrn VARCHAR(50) NOT NULL,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     dob DATE NOT NULL,
@@ -63,12 +94,16 @@ CREATE TABLE IF NOT EXISTS patients (
     registration_date DATE NOT NULL,
     is_active TINYINT(1) DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+    CONSTRAINT uk_tenant_mrn UNIQUE (tenant_id, mrn)
 );
+
+CREATE INDEX idx_patients_tenant ON patients(tenant_id);
 
 CREATE TABLE IF NOT EXISTS appointments (
     id VARCHAR(50) PRIMARY KEY,
-    clinic_id VARCHAR(50) DEFAULT 'default-clinic',
+    tenant_id VARCHAR(50) NOT NULL,
     patient_id VARCHAR(50) NOT NULL,
     patient_name VARCHAR(255) NOT NULL,
     patient_mrn VARCHAR(50) NOT NULL,
@@ -87,18 +122,20 @@ CREATE TABLE IF NOT EXISTS appointments (
     is_urgent TINYINT(1) DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
     FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE,
     FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_appointments_date ON appointments(appointment_date);
-CREATE INDEX idx_appointments_patient ON appointments(patient_id);
-CREATE INDEX idx_appointments_doctor ON appointments(doctor_id);
-CREATE INDEX idx_appointments_status ON appointments(status);
+CREATE INDEX idx_appointments_tenant ON appointments(tenant_id);
+CREATE INDEX idx_appointments_date ON appointments(tenant_id, appointment_date);
+CREATE INDEX idx_appointments_patient ON appointments(tenant_id, patient_id);
+CREATE INDEX idx_appointments_doctor ON appointments(tenant_id, doctor_id);
+CREATE INDEX idx_appointments_status ON appointments(tenant_id, status);
 
 CREATE TABLE IF NOT EXISTS queue (
     id VARCHAR(50) PRIMARY KEY,
-    clinic_id VARCHAR(50) DEFAULT 'default-clinic',
+    tenant_id VARCHAR(50) NOT NULL,
     patient_id VARCHAR(50) NOT NULL,
     patient_name VARCHAR(255) NOT NULL,
     mrn VARCHAR(50) NOT NULL,
@@ -108,15 +145,17 @@ CREATE TABLE IF NOT EXISTS queue (
     room VARCHAR(50),
     check_in_time VARCHAR(50),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
     FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_queue_status ON queue(status);
-CREATE INDEX idx_queue_patient ON queue(patient_id);
+CREATE INDEX idx_queue_tenant ON queue(tenant_id);
+CREATE INDEX idx_queue_status ON queue(tenant_id, status);
+CREATE INDEX idx_queue_patient ON queue(tenant_id, patient_id);
 
 CREATE TABLE IF NOT EXISTS vitals (
     id VARCHAR(50) PRIMARY KEY,
-    clinic_id VARCHAR(50) DEFAULT 'default-clinic',
+    tenant_id VARCHAR(50) NOT NULL,
     patient_id VARCHAR(50) NOT NULL,
     blood_pressure VARCHAR(50) DEFAULT '120/80',
     heart_rate INT DEFAULT 72,
@@ -126,28 +165,30 @@ CREATE TABLE IF NOT EXISTS vitals (
     bmi DECIMAL(4,1) DEFAULT 23.4,
     oxygen_sat INT DEFAULT 99,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
     FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_vitals_patient ON vitals(patient_id);
+CREATE INDEX idx_vitals_tenant_patient ON vitals(tenant_id, patient_id);
 
 CREATE TABLE IF NOT EXISTS soap_notes (
     id VARCHAR(50) PRIMARY KEY,
-    clinic_id VARCHAR(50) DEFAULT 'default-clinic',
+    tenant_id VARCHAR(50) NOT NULL,
     patient_id VARCHAR(50) NOT NULL,
     subjective TEXT,
     objective TEXT,
     assessment_codes TEXT,
     plan TEXT,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
     FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_soap_patient ON soap_notes(patient_id);
+CREATE INDEX idx_soap_tenant_patient ON soap_notes(tenant_id, patient_id);
 
 CREATE TABLE IF NOT EXISTS prescriptions (
     id VARCHAR(50) PRIMARY KEY,
-    clinic_id VARCHAR(50) DEFAULT 'default-clinic',
+    tenant_id VARCHAR(50) NOT NULL,
     patient_id VARCHAR(50) NOT NULL,
     visit_id VARCHAR(100),
     medication_name VARCHAR(255) NOT NULL,
@@ -156,14 +197,15 @@ CREATE TABLE IF NOT EXISTS prescriptions (
     duration VARCHAR(100),
     instructions TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
     FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_prescriptions_patient ON prescriptions(patient_id);
+CREATE INDEX idx_prescriptions_tenant_patient ON prescriptions(tenant_id, patient_id);
 
 CREATE TABLE IF NOT EXISTS past_visits (
     id VARCHAR(50) PRIMARY KEY,
-    clinic_id VARCHAR(50) DEFAULT 'default-clinic',
+    tenant_id VARCHAR(50) NOT NULL,
     patient_id VARCHAR(50) NOT NULL,
     visit_id VARCHAR(100),
     visit_date VARCHAR(50) NOT NULL,
@@ -174,26 +216,28 @@ CREATE TABLE IF NOT EXISTS past_visits (
     prescriptions TEXT,
     soap_notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
     FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_past_visits_patient ON past_visits(patient_id);
+CREATE INDEX idx_past_visits_tenant_patient ON past_visits(tenant_id, patient_id);
 
 CREATE TABLE IF NOT EXISTS activities (
     id VARCHAR(50) PRIMARY KEY,
-    clinic_id VARCHAR(50) DEFAULT 'default-clinic',
+    tenant_id VARCHAR(50) NOT NULL,
     type VARCHAR(50) NOT NULL,
     title VARCHAR(255) NOT NULL,
     detail VARCHAR(255) NOT NULL,
     timestamp VARCHAR(50) NOT NULL,
     badge_type VARCHAR(20) DEFAULT 'blue',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS invoices (
     id VARCHAR(50) PRIMARY KEY,
-    clinic_id VARCHAR(50) DEFAULT 'default-clinic',
-    invoice_number VARCHAR(50) UNIQUE NOT NULL,
+    tenant_id VARCHAR(50) NOT NULL,
+    invoice_number VARCHAR(50) NOT NULL,
     patient_id VARCHAR(50),
     patient_name VARCHAR(255) NOT NULL,
     patient_mrn VARCHAR(50) NOT NULL,
@@ -228,17 +272,19 @@ CREATE TABLE IF NOT EXISTS invoices (
     total_tax DECIMAL(10,2) DEFAULT 0.00,
     payment_methods TEXT,
 
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+    CONSTRAINT uk_tenant_invoice_num UNIQUE (tenant_id, invoice_number)
 );
 
-CREATE INDEX idx_invoices_mrn ON invoices(patient_mrn);
-CREATE INDEX idx_invoices_status ON invoices(status);
-CREATE INDEX idx_invoices_fiscalized ON invoices(is_fiscalized);
-CREATE INDEX idx_invoices_type ON invoices(invoice_type, transaction_type);
+CREATE INDEX idx_invoices_tenant_mrn ON invoices(tenant_id, patient_mrn);
+CREATE INDEX idx_invoices_tenant_status ON invoices(tenant_id, status);
+CREATE INDEX idx_invoices_tenant_fiscalized ON invoices(tenant_id, is_fiscalized);
+CREATE INDEX idx_invoices_tenant_type ON invoices(tenant_id, invoice_type, transaction_type);
 
 CREATE TABLE IF NOT EXISTS invoice_items (
     id VARCHAR(50) PRIMARY KEY,
-    clinic_id VARCHAR(50) DEFAULT 'default-clinic',
+    tenant_id VARCHAR(50) NOT NULL,
     invoice_id VARCHAR(50) NOT NULL,
     name VARCHAR(255) NOT NULL,
     gtin VARCHAR(50),
@@ -249,30 +295,32 @@ CREATE TABLE IF NOT EXISTS invoice_items (
     tax_rate DECIMAL(5,2) NOT NULL DEFAULT 15.00,
     tax_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
     FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_invoice_items_inv ON invoice_items(invoice_id);
+CREATE INDEX idx_invoice_items_tenant_inv ON invoice_items(tenant_id, invoice_id);
 
 CREATE TABLE IF NOT EXISTS vms_logs (
     id VARCHAR(50) PRIMARY KEY,
-    clinic_id VARCHAR(50) DEFAULT 'default-clinic',
+    tenant_id VARCHAR(50) NOT NULL,
     invoice_id VARCHAR(50),
     event_type VARCHAR(50) NOT NULL,
     request_payload TEXT,
     response_payload TEXT,
     status_code INT DEFAULT 200,
     error_message TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_vms_logs_invoice ON vms_logs(invoice_id);
+CREATE INDEX idx_vms_logs_tenant_inv ON vms_logs(tenant_id, invoice_id);
 
 CREATE TABLE IF NOT EXISTS inventory (
     id VARCHAR(50) PRIMARY KEY,
-    clinic_id VARCHAR(50) DEFAULT 'default-clinic',
+    tenant_id VARCHAR(50) NOT NULL,
     name VARCHAR(255) NOT NULL,
-    sku VARCHAR(100) UNIQUE NOT NULL,
+    sku VARCHAR(100) NOT NULL,
     category VARCHAR(100) NOT NULL,
     current_stock INT NOT NULL DEFAULT 0,
     min_threshold INT NOT NULL DEFAULT 10,
@@ -285,15 +333,17 @@ CREATE TABLE IF NOT EXISTS inventory (
     expiry_date DATE,
     is_active TINYINT(1) DEFAULT 1,
     vms_tax_code VARCHAR(10) DEFAULT 'A',
-    custom_fields TEXT
+    custom_fields TEXT,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+    CONSTRAINT uk_tenant_sku UNIQUE (tenant_id, sku)
 );
 
-CREATE INDEX idx_inventory_sku ON inventory(sku);
-CREATE INDEX idx_inventory_active ON inventory(is_active);
+CREATE INDEX idx_inventory_tenant_sku ON inventory(tenant_id, sku);
+CREATE INDEX idx_inventory_tenant_active ON inventory(tenant_id, is_active);
 
 CREATE TABLE IF NOT EXISTS inventory_logs (
     id VARCHAR(50) PRIMARY KEY,
-    clinic_id VARCHAR(50) DEFAULT 'default-clinic',
+    tenant_id VARCHAR(50) NOT NULL,
     inventory_id VARCHAR(50) NOT NULL,
     change_amount INT NOT NULL,
     previous_stock INT NOT NULL,
@@ -304,15 +354,16 @@ CREATE TABLE IF NOT EXISTS inventory_logs (
     notes TEXT,
     created_by VARCHAR(255) DEFAULT 'System',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
     FOREIGN KEY (inventory_id) REFERENCES inventory(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_inventory_logs_item ON inventory_logs(inventory_id);
+CREATE INDEX idx_inventory_logs_tenant_item ON inventory_logs(tenant_id, inventory_id);
 
 CREATE TABLE IF NOT EXISTS medical_certificates (
     id VARCHAR(50) PRIMARY KEY,
-    clinic_id VARCHAR(50) DEFAULT 'default-clinic',
-    certificate_number VARCHAR(50) UNIQUE NOT NULL,
+    tenant_id VARCHAR(50) NOT NULL,
+    certificate_number VARCHAR(50) NOT NULL,
     patient_id VARCHAR(50) NOT NULL,
     visit_id VARCHAR(50),
     issue_date DATE NOT NULL,
@@ -324,19 +375,24 @@ CREATE TABLE IF NOT EXISTS medical_certificates (
     prc_number VARCHAR(100),
     ptr_number VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+    FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE,
+    CONSTRAINT uk_tenant_cert_num UNIQUE (tenant_id, certificate_number)
 );
 
-CREATE INDEX idx_medcert_patient ON medical_certificates(patient_id);
+CREATE INDEX idx_medcert_tenant_patient ON medical_certificates(tenant_id, patient_id);
 
 CREATE TABLE IF NOT EXISTS audit_logs (
     id VARCHAR(50) PRIMARY KEY,
-    clinic_id VARCHAR(50) DEFAULT 'default-clinic',
+    tenant_id VARCHAR(50) NOT NULL,
     user_id VARCHAR(50),
     user_name VARCHAR(100),
     user_role VARCHAR(50),
     action VARCHAR(100),
     details TEXT,
     ip_address VARCHAR(45),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
 );
+
+CREATE INDEX idx_audit_logs_tenant ON audit_logs(tenant_id, created_at);
