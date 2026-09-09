@@ -25,10 +25,10 @@ if (empty($recipient) || empty($docType) || empty($docId)) {
     exit;
 }
 
-$subject = "Nuvis Medico Healthcare - Document (" . ucfirst($docType) . ")";
+$subject = "NuvisMedcareX - Document (" . ucfirst($docType) . ")";
 $body = "
 <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;'>
-    <h2 style='color: #1e3a8a;'>Nuvis Medico Healthcare</h2>
+    <h2 style='color: #1e3a8a;'>NuvisMedcareX</h2>
     <p>Dear Patient,</p>
     <p>Please find attached your clinical document details below:</p>
     <div style='background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0;'>
@@ -38,7 +38,7 @@ $body = "
     </div>
     <p>If you have any questions, please feel free to contact our clinic.</p>
     <br>
-    <p style='font-size: 12px; color: #64748b;'>Nuvis Medico Healthcare Team</p>
+    <p style='font-size: 12px; color: #64748b;'>NuvisMedcareX Team</p>
 </div>";
 
 $success = $emailService->sendDocumentEmail($recipient, $subject, $body, $docType, $docId);
