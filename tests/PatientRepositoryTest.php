@@ -12,6 +12,7 @@ class PatientRepositoryTest extends TestCase {
         $this->pdo->exec("
             CREATE TABLE patients (
                 id VARCHAR(50) PRIMARY KEY,
+                tenant_id VARCHAR(50) NOT NULL,
                 mrn VARCHAR(50) UNIQUE NOT NULL,
                 first_name VARCHAR(100) NOT NULL,
                 last_name VARCHAR(100) NOT NULL,
