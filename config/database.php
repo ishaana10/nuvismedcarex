@@ -49,13 +49,17 @@ function getDB(): PDO {
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES => false,
         ]);
-        executeAutoSchemaMigrations($pdo);
-        ensureDoctorColumnsExist($pdo);
         runDatabaseMigrations($pdo);
         seedDefaultUsersIfEmpty($pdo);
         return $pdo;
     } catch (PDOException $e) {
-        // File-based SQLite fallback when local MySQL daemon is not reachable
+        $env = getenv('APP_ENV') ?: ($cfg['app_env'] ?? 'development');
+        if ($cfg['db_driver'] === 'mysql' && $env === 'production') {
+            error_log("Database Connection Failure (Production MySQL): " . $e->getMessage());
+            throw new RuntimeException("Database connection error: Unable to connect to MySQL database in production mode.", 500, $e);
+        }
+
+        // Development SQLite fallback
         $dbDir = __DIR__ . '/../database';
         if (!is_dir($dbDir)) {
             mkdir($dbDir, 0755, true);
@@ -65,8 +69,6 @@ function getDB(): PDO {
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         ]);
-        executeAutoSchemaMigrations($pdo);
-        ensureDoctorColumnsExist($pdo);
         runDatabaseMigrations($pdo);
         seedDefaultUsersIfEmpty($pdo);
         return $pdo;

@@ -36,6 +36,17 @@ class PatientRepository extends BaseRepository {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public static function computeAge(?string $dob): int {
+        if (!$dob) return 0;
+        try {
+            $birth = new \DateTime($dob);
+            $now = new \DateTime();
+            return $birth->diff($now)->y;
+        } catch (\Throwable $e) {
+            return 0;
+        }
+    }
+
     public function findById(string $id): ?array {
         $concatExpr = ($this->db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql')
             ? "CONCAT(first_name, ' ', last_name)"
@@ -44,6 +55,9 @@ class PatientRepository extends BaseRepository {
         $stmt = $this->db->prepare("SELECT *, {$concatExpr} AS full_name FROM patients WHERE id = :id AND tenant_id = :tid LIMIT 1");
         $stmt->execute(['id' => $id, 'tid' => $this->getTenantId()]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($row) {
+            $row['age'] = self::computeAge($row['dob'] ?? null);
+        }
         return $row ?: null;
     }
 
