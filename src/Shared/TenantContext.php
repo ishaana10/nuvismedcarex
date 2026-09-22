@@ -41,9 +41,6 @@ class TenantContext {
             return $_SESSION['tenant_id'];
         }
 
-        if (isset($_SESSION['clinic_id']) && !empty($_SESSION['clinic_id'])) {
-            return $_SESSION['clinic_id'];
-        }
 
         // 4. Fallback Default Tenant
         return 'default-clinic';

@@ -19,7 +19,7 @@ if ($method === 'GET') {
                 'name' => $_SESSION['user_name'] ?? null,
                 'email' => $_SESSION['user_email'] ?? null,
                 'role' => $_SESSION['user_role'] ?? null,
-                'clinic_id' => $_SESSION['clinic_id'] ?? 'default-clinic'
+                'tenant_id' => $_SESSION['tenant_id'] ?? 'default-clinic'
             ],
             'csrf_token' => getCsrfToken()
         ]);
@@ -65,7 +65,7 @@ if ($method === 'POST') {
         $_SESSION['user_name'] = $user['name'];
         $_SESSION['user_email'] = $user['email'];
         $_SESSION['user_role'] = $user['role'] ?? 'Doctor';
-        $_SESSION['clinic_id'] = $user['clinic_id'] ?? 'default-clinic';
+        $_SESSION['tenant_id'] = $user['tenant_id'] ?? 'default-clinic';
         $_SESSION['user'] = $user;
 
         $audit = new AuditService($pdo);
