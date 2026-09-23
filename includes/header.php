@@ -180,7 +180,9 @@ if (!$tenantRow) {
                         <?php endforeach; ?>
                     </select>
                 </form>
-                <img src="<?= htmlspecialchars($currentDoctor['avatar'] ?? 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=200') ?>" class="w-8 h-8 rounded-full object-cover border border-slate-200 shadow-xs" alt="Doctor Avatar">
+                <button type="button" onclick="openChangePasswordModal()" title="Change Account Password" class="flex items-center hover:opacity-80 transition">
+                    <img src="<?= htmlspecialchars($currentDoctor['avatar'] ?? 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=200') ?>" class="w-8 h-8 rounded-full object-cover border border-slate-200 shadow-xs" alt="Doctor Avatar">
+                </button>
             </div>
 
             <!-- Logout Button (Header Right) -->
@@ -207,6 +209,19 @@ if (!$tenantRow) {
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>">
             <input type="hidden" name="redirect_url" value="<?= htmlspecialchars($_SERVER['REQUEST_URI'] ?? '../index.php') ?>">
 
+            <!-- Password Policy Rule Box -->
+            <div class="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-900 text-[11px] space-y-1">
+                <div class="font-bold flex items-center gap-1">
+                    <span class="material-symbols-outlined text-sm text-blue-700">shield</span>
+                    <span>Password Policy Requirements:</span>
+                </div>
+                <ul class="list-disc list-inside text-slate-700 space-y-0.5 pl-1">
+                    <li>Minimum 8 characters in length</li>
+                    <li>At least one uppercase letter (A-Z)</li>
+                    <li>At least one numeric digit (0-9)</li>
+                </ul>
+            </div>
+
             <div>
                 <label class="block font-bold text-slate-700 mb-1">Current Password *</label>
                 <input type="password" name="current_password" required placeholder="••••••••" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium text-on-surface focus:outline-none focus:border-primary">
@@ -214,12 +229,12 @@ if (!$tenantRow) {
 
             <div>
                 <label class="block font-bold text-slate-700 mb-1">New Password *</label>
-                <input type="password" name="new_password" required minlength="6" placeholder="At least 6 characters" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium text-on-surface focus:outline-none focus:border-primary">
+                <input type="password" name="new_password" required minlength="8" placeholder="At least 8 characters (e.g. SecurePass1)" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium text-on-surface focus:outline-none focus:border-primary">
             </div>
 
             <div>
                 <label class="block font-bold text-slate-700 mb-1">Confirm New Password *</label>
-                <input type="password" name="confirm_password" required minlength="6" placeholder="Repeat new password" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium text-on-surface focus:outline-none focus:border-primary">
+                <input type="password" name="confirm_password" required minlength="8" placeholder="Repeat new password" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium text-on-surface focus:outline-none focus:border-primary">
             </div>
 
             <div class="flex items-center justify-end gap-2 pt-3 border-t border-outline-variant/20">
