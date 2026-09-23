@@ -65,7 +65,7 @@ $csrfToken = generateCsrfToken();
                     <label class="block font-bold text-slate-700 mb-1.5">Email Address</label>
                     <div class="relative">
                         <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg">mail</span>
-                        <input type="email" name="email" value="medico@nuvistechnologies.com.fj" required placeholder="medico@nuvistechnologies.com.fj" class="w-full bg-slate-50 pl-10 pr-4 py-3 rounded-xl border border-slate-300 font-medium text-slate-800 focus:outline-none focus:border-blue-600 focus:bg-white transition">
+                        <input type="email" name="email" value="" required placeholder="user@clinicflow.com" class="w-full bg-slate-50 pl-10 pr-4 py-3 rounded-xl border border-slate-300 font-medium text-slate-800 focus:outline-none focus:border-blue-600 focus:bg-white transition">
                     </div>
                 </div>
 
@@ -73,7 +73,7 @@ $csrfToken = generateCsrfToken();
                     <label class="block font-bold text-slate-700 mb-1.5">Password</label>
                     <div class="relative">
                         <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg">lock</span>
-                        <input type="password" name="password" value="password" required placeholder="••••••••" class="w-full bg-slate-50 pl-10 pr-4 py-3 rounded-xl border border-slate-300 font-medium text-slate-800 focus:outline-none focus:border-blue-600 focus:bg-white transition">
+                        <input type="password" name="password" value="" required placeholder="••••••••" class="w-full bg-slate-50 pl-10 pr-4 py-3 rounded-xl border border-slate-300 font-medium text-slate-800 focus:outline-none focus:border-blue-600 focus:bg-white transition">
                     </div>
                 </div>
 
@@ -84,12 +84,6 @@ $csrfToken = generateCsrfToken();
                     </button>
                 </div>
             </form>
-
-            <div class="mt-6 p-4 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600 space-y-1">
-                <p class="font-bold text-slate-800">Developer / Administrator Credentials:</p>
-                <p>Email: <code class="text-blue-700 font-mono font-bold">medico@nuvistechnologies.com.fj</code></p>
-                <p>Password: <code class="text-blue-700 font-mono font-bold">password</code></p>
-            </div>
         </div>
     </div>
 

@@ -1,0 +1,66 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "ClinicFlow Medcare SaaS API",
+    "description": "Multi-Tenant Clinical EHR, Billing & VMS Phase 3 OpenAPI Specification",
+    "version": "2.1.0"
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:8000/api",
+      "description": "Local Development Server"
+    }
+  ],
+  "paths": {
+    "/health.php": {
+      "get": {
+        "summary": "System Health Check Endpoint",
+        "responses": {
+          "200": {
+            "description": "System and database status OK"
+          }
+        }
+      }
+    },
+    "/auth.php": {
+      "get": {
+        "summary": "Get authenticated user session & CSRF token",
+        "responses": {
+          "200": {
+            "description": "Authenticated user profile"
+          }
+        }
+      }
+    },
+    "/patients.php": {
+      "get": {
+        "summary": "List or search tenant patients",
+        "responses": {
+          "200": {
+            "description": "Array of patient records"
+          }
+        }
+      }
+    },
+    "/billing.php": {
+      "get": {
+        "summary": "List tenant invoices",
+        "responses": {
+          "200": {
+            "description": "Array of invoice records"
+          }
+        }
+      }
+    },
+    "/inventory.php": {
+      "get": {
+        "summary": "List tenant inventory stock items",
+        "responses": {
+          "200": {
+            "description": "Array of stock items"
+          }
+        }
+      }
+    }
+  }
+}

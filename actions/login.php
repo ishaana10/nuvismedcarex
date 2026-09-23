@@ -62,10 +62,13 @@ if ($valid && $user) {
     // Log login activity to audit_logs
     try {
         $auditId = \ClinicFlow\Utils\Uuid::uuidv7();
-        $auditStmt = $pdo->prepare("INSERT INTO audit_logs (id, clinic_id, user_id, user_name, user_role, action, details, ip_address) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        $tenantId = $user['tenant_id'] ?? 'default-clinic';
+        $_SESSION['tenant_id'] = $tenantId;
+        \ClinicFlow\Shared\TenantContext::setTenantId($tenantId);
+        $auditStmt = $pdo->prepare("INSERT INTO audit_logs (id, tenant_id, user_id, user_name, user_role, action, details, ip_address) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
         $auditStmt->execute([
             $auditId,
-            'default-clinic',
+            $tenantId,
             $user['id'],
             $user['name'],
             $user['role'] ?? 'Doctor',
