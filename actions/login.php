@@ -23,7 +23,7 @@ $email = trim($_POST['email'] ?? '');
 $password = $_POST['password'] ?? '';
 
 if ($email === '' || $password === '') {
-    recordLoginAttempt();
+    recordLoginAttempt($clientIp, $email);
     setToast('Login Error', 'Please enter both email and password.', 'error');
     header("Location: ../login.php");
     exit;
@@ -96,7 +96,7 @@ if ($valid && $user) {
     header("Location: ../index.php");
     exit;
 } else {
-    recordLoginAttempt();
+    recordLoginAttempt($clientIp, $email);
     setToast('Authentication Failed', 'Invalid email address or password.', 'error');
     header("Location: ../login.php");
     exit;

@@ -173,7 +173,10 @@ function checkLoginRateLimit(string $ip, string $email = '', ?PDO $pdo = null): 
     return count($_SESSION['login_attempts']) < $maxAttempts;
 }
 
-function recordLoginAttempt(string $ip, string $email = '', ?PDO $pdo = null): void {
+function recordLoginAttempt(string $ip = '', string $email = '', ?PDO $pdo = null): void {
+    if ($ip === '') {
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+    }
     if ($pdo === null && function_exists('getDB')) {
         try {
             $pdo = getDB();
