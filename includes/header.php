@@ -25,6 +25,21 @@ $doctors = $pdo->query("SELECT * FROM doctors ORDER BY name ASC")->fetchAll();
 $currentDoctorId = $_SESSION['current_doctor_id'] ?? ($doctors[0]['id'] ?? 'doc-1');
 $currentDoctor = array_filter($doctors, fn($d) => $d['id'] === $currentDoctorId);
 $currentDoctor = reset($currentDoctor) ?: ($doctors[0] ?? ['id' => 'doc-1', 'name' => 'Dr. Sarah Jenkins', 'specialty' => 'Internal Medicine']);
+
+// Fetch Active Clinic Name dynamically
+$currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+$tenantStmt = $pdo->prepare("SELECT name FROM tenants WHERE id = :tid LIMIT 1");
+$tenantStmt->execute(['tid' => $currentTenantId]);
+$tenantRow = $tenantStmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$tenantRow) {
+    $settingStmt = $pdo->prepare("SELECT setting_value FROM tenant_settings WHERE tenant_id = :tid AND setting_key = 'clinic_name' LIMIT 1");
+    $settingStmt->execute(['tid' => $currentTenantId]);
+    $settingRow = $settingStmt->fetch(PDO::FETCH_ASSOC);
+    $activeClinicName = $settingRow['setting_value'] ?? 'Nuvis Medico Healthcare';
+} else {
+    $activeClinicName = $tenantRow['name'];
+}
 ?>
 <!DOCTYPE html>
 <html class="light h-full bg-[#f8f9ff]" lang="en">
@@ -128,8 +143,7 @@ $currentDoctor = reset($currentDoctor) ?: ($doctors[0] ?? ['id' => 'doc-1', 'nam
                 <span class="material-symbols-outlined text-2xl font-bold">menu</span>
             </button>
             <a href="index.php" class="flex items-center gap-2">
-                <img src="assets/images/nuvis_medicoz_logo.png" alt="Nuvis Medicoz Logo" class="w-8 h-8 rounded-full object-cover border border-amber-500/50 shadow-xs">
-                <span class="font-bold text-xl text-blue-900 tracking-tight">Nuvis Medicoz</span>
+                <span class="font-bold text-xl text-blue-900 tracking-tight"><?= htmlspecialchars($activeClinicName) ?></span>
             </a>
         </div>
 
