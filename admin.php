@@ -11,6 +11,11 @@ foreach ($settingsRows as $r) {
     $settings[$r['setting_key']] = $r['setting_value'];
 }
 
+// Fetch multi-tenants clinics list
+$tenantService = new \ClinicFlow\Services\TenantService($pdo);
+$tenantsList = $tenantService->getAllTenants();
+$currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+
 // Fetch user/doctor staff
 $usersList = $pdo->query("SELECT * FROM doctors ORDER BY name ASC")->fetchAll();
 
@@ -32,6 +37,10 @@ if ($activeTab === 'developer' && !$isDeveloper) {
 
     <!-- Navigation Tabs -->
     <div class="flex items-center gap-2 bg-surface-container-low p-1.5 rounded-2xl border border-outline-variant/30 text-xs font-bold flex-wrap">
+        <button type="button" onclick="switchAdminTab('tenants')" id="tab-btn-tenants" class="px-4 py-2 rounded-xl transition flex items-center gap-1.5 <?= $activeTab === 'tenants' ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high' ?>">
+            <span class="material-symbols-outlined text-base">apartment</span>
+            <span>Multi-Tenancy & Clinics</span>
+        </button>
         <button type="button" onclick="switchAdminTab('users')" id="tab-btn-users" class="px-4 py-2 rounded-xl transition flex items-center gap-1.5 <?= $activeTab === 'users' ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high' ?>">
             <span class="material-symbols-outlined text-base">group</span>
             <span>User Management</span>
@@ -54,6 +63,73 @@ if ($activeTab === 'developer' && !$isDeveloper) {
             <span>Developer Options</span>
         </button>
         <?php endif; ?>
+    </div>
+</div>
+
+<!-- ================= TAB 0: MULTI-TENANCY & CLINICS ================= -->
+<div id="admin-tab-tenants" class="<?= $activeTab === 'tenants' ? '' : 'hidden' ?> space-y-6">
+    <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-outline-variant/20">
+            <div>
+                <h2 class="text-sm font-bold text-on-surface flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-lg">apartment</span>
+                    <span>Multi-Clinic Tenancy Directory</span>
+                </h2>
+                <p class="text-xs text-outline font-medium mt-0.5">Manage multi-tenant clinic instances, isolation profiles, and switch active clinic context. Active Context: <code class="text-primary font-bold font-mono"><?= htmlspecialchars($currentTenantId) ?></code></p>
+            </div>
+
+            <button type="button" onclick="openTenantModal()" class="px-4 py-2.5 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-2">
+                <span class="material-symbols-outlined text-base">add_location_alt</span>
+                <span>Add New Clinic Tenant</span>
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <?php foreach ($tenantsList as $tnt):
+                $isCurrent = ($tnt['id'] === $currentTenantId);
+            ?>
+                <div class="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/30 flex flex-col justify-between gap-3 text-xs transition hover:shadow-md <?= $isCurrent ? 'ring-2 ring-primary/60 bg-primary/5' : '' ?>">
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between gap-2">
+                            <h3 class="font-bold text-on-surface text-sm flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-base text-primary">domain</span>
+                                <span><?= htmlspecialchars($tnt['name']) ?></span>
+                            </h3>
+                            <?php if ($isCurrent): ?>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary text-white flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                                    <span>Active Context</span>
+                                </span>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="p-2.5 rounded-xl bg-surface-container-lowest border border-outline-variant/20 grid grid-cols-2 gap-2 text-[10px] font-mono text-slate-600">
+                            <div><span class="text-slate-400">Code:</span> <?= htmlspecialchars($tnt['code']) ?></div>
+                            <div><span class="text-slate-400">Plan:</span> <span class="uppercase font-bold text-primary"><?= htmlspecialchars($tnt['plan']) ?></span></div>
+                            <div><span class="text-slate-400">Status:</span> <?= htmlspecialchars($tnt['status']) ?></div>
+                            <div><span class="text-slate-400">Tenant ID:</span> <?= htmlspecialchars($tnt['id']) ?></div>
+                        </div>
+
+                        <p class="text-[11px] text-slate-600 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-xs text-slate-400">location_on</span>
+                            <span><?= htmlspecialchars($tnt['address'] ?: 'No address specified') ?></span>
+                        </p>
+                    </div>
+
+                    <div class="pt-3 border-t border-outline-variant/20 flex items-center justify-between gap-2">
+                        <form action="actions/tenant_actions.php" method="POST" class="w-full">
+                            <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+                            <input type="hidden" name="action" value="switch_tenant">
+                            <input type="hidden" name="tenant_id" value="<?= htmlspecialchars($tnt['id']) ?>">
+                            <button type="submit" <?= $isCurrent ? 'disabled' : '' ?> class="w-full py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 <?= $isCurrent ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-primary text-white hover:bg-primary/90' ?>">
+                                <span class="material-symbols-outlined text-base">swap_horiz</span>
+                                <span><?= $isCurrent ? 'Current Active Clinic' : 'Switch to This Clinic' ?></span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
     </div>
 </div>
 
@@ -550,6 +626,85 @@ if ($activeTab === 'developer' && !$isDeveloper) {
 </div>
 <?php endif; ?>
 
+<!-- Modal: Add/Edit Clinic Tenant -->
+<div id="tenantModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-xl w-full shadow-2xl border border-slate-200 overflow-hidden my-8">
+        <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+            <h3 class="font-bold text-sm flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-base">apartment</span>
+                <span>Clinic Tenant Profile</span>
+            </h3>
+            <button type="button" onclick="closeTenantModal()" class="text-slate-400 hover:text-white text-lg">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+
+        <form action="actions/tenant_actions.php" method="POST" class="p-6 space-y-4 text-xs">
+            <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+            <input type="hidden" name="action" value="save_tenant">
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div class="md:col-span-2">
+                    <label class="block font-bold text-slate-700 mb-1">Clinic / Practice Name <span class="text-red-500">*</span></label>
+                    <input type="text" name="name" required placeholder="e.g. Lautoka Specialist Clinic" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-bold">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Unique Tenant ID <span class="text-red-500">*</span></label>
+                    <input type="text" name="tenant_id" required placeholder="e.g. clinic-lautoka-01" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-mono font-medium">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Clinic Code <span class="text-red-500">*</span></label>
+                    <input type="text" name="code" required placeholder="e.g. LTK-01" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-mono font-bold">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Subscription Plan</label>
+                    <select name="plan" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-bold">
+                        <option value="enterprise" selected>Enterprise</option>
+                        <option value="professional">Professional</option>
+                        <option value="standard">Standard</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Status</label>
+                    <select name="status" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-bold">
+                        <option value="active" selected>Active</option>
+                        <option value="suspended">Suspended</option>
+                    </select>
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="block font-bold text-slate-700 mb-1">Address</label>
+                    <input type="text" name="address" placeholder="e.g. 15 Vitogo Parade, Lautoka" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-medium">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Phone</label>
+                    <input type="text" name="phone" placeholder="+679 666 1234" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-medium">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Email</label>
+                    <input type="email" name="email" placeholder="lautoka@clinicflow.com.fj" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-medium">
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-3 border-t border-slate-200">
+                <button type="button" onclick="closeTenantModal()" class="px-4 py-2 bg-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-300 transition">
+                    Cancel
+                </button>
+                <button type="submit" class="px-5 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-sm">save</span>
+                    <span>Save Clinic Tenant</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Modal: User Add/Edit Form -->
 <div id="userModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
     <div class="bg-white rounded-3xl max-w-xl w-full shadow-2xl border border-slate-200 overflow-hidden my-8">
@@ -671,20 +826,33 @@ if ($activeTab === 'developer' && !$isDeveloper) {
 </div>
 
 <script>
+function openTenantModal() {
+    document.getElementById('tenantModal').classList.remove('hidden');
+}
+
+function closeTenantModal() {
+    document.getElementById('tenantModal').classList.add('hidden');
+}
+
 function switchAdminTab(tab) {
+    if (document.getElementById('admin-tab-tenants')) document.getElementById('admin-tab-tenants').classList.add('hidden');
     document.getElementById('admin-tab-users').classList.add('hidden');
     document.getElementById('admin-tab-clinic').classList.add('hidden');
     if (document.getElementById('admin-tab-vms')) document.getElementById('admin-tab-vms').classList.add('hidden');
     if (document.getElementById('admin-tab-inventory')) document.getElementById('admin-tab-inventory').classList.add('hidden');
     if (document.getElementById('admin-tab-developer')) document.getElementById('admin-tab-developer').classList.add('hidden');
 
+    if (document.getElementById('tab-btn-tenants')) document.getElementById('tab-btn-tenants').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
     document.getElementById('tab-btn-users').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
     document.getElementById('tab-btn-clinic').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
     if (document.getElementById('tab-btn-vms')) document.getElementById('tab-btn-vms').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
     if (document.getElementById('tab-btn-inventory')) document.getElementById('tab-btn-inventory').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
     if (document.getElementById('tab-btn-developer')) document.getElementById('tab-btn-developer').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
 
-    if (tab === 'users') {
+    if (tab === 'tenants') {
+        if (document.getElementById('admin-tab-tenants')) document.getElementById('admin-tab-tenants').classList.remove('hidden');
+        if (document.getElementById('tab-btn-tenants')) document.getElementById('tab-btn-tenants').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 bg-primary text-white shadow-xs';
+    } else if (tab === 'users') {
         document.getElementById('admin-tab-users').classList.remove('hidden');
         document.getElementById('tab-btn-users').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 bg-primary text-white shadow-xs';
     } else if (tab === 'clinic') {
