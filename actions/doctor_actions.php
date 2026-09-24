@@ -102,8 +102,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($action === 'save' || $action === 
         }
         $passwordHash = password_hash($initialPassword, PASSWORD_DEFAULT);
 
-        $insertStmt = $pdo->prepare("INSERT INTO doctors (id, name, specialty, email, password_hash, role, is_active, color, dot_color_class, avatar, prc_number, ptr_number, esignature, digital_stamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $insertStmt->execute([$docId, $name, $specialty, $email, $passwordHash, $role, $isActive, $color, $dotColorClass, $avatar, $prcNumber, $ptrNumber, $esignature, $digitalStamp]);
+        $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+        $insertStmt = $pdo->prepare("INSERT INTO doctors (id, tenant_id, name, specialty, email, password_hash, role, is_active, color, dot_color_class, avatar, prc_number, ptr_number, esignature, digital_stamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $insertStmt->execute([$docId, $tenantId, $name, $specialty, $email, $passwordHash, $role, $isActive, $color, $dotColorClass, $avatar, $prcNumber, $ptrNumber, $esignature, $digitalStamp]);
 
         setToast("User Added", "New user account created successfully.");
     }

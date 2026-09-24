@@ -46,7 +46,7 @@ if (!$tenantRow) {
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title><?= htmlspecialchars($pageTitle ?? 'NuvisMedcareX') ?></title>
+    <title><?= htmlspecialchars($pageTitle ?? 'Nuvis Medicoz') ?></title>
 
     <!-- Material Symbols Outlined -->
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
@@ -144,8 +144,6 @@ if (!$tenantRow) {
             </button>
             <a href="index.php" class="flex items-center gap-2">
                 <span class="font-bold text-xl text-blue-900 tracking-tight"><?= htmlspecialchars($activeClinicName) ?></span>
-                <img src="assets/images/NuvisMedcareX_logo.jpg" alt="NuvisMedcareX Logo" class="h-8 object-contain">
-                <span class="font-bold text-xl text-blue-900 tracking-tight">NuvisMedcareX</span>
             </a>
         </div>
 
