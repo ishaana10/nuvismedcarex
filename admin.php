@@ -57,12 +57,6 @@ if ($activeTab === 'developer' && !$isDeveloper) {
             <span class="material-symbols-outlined text-base">inventory_2</span>
             <span>Inventory Settings</span>
         </button>
-        <?php if ($isDeveloper): ?>
-        <button type="button" onclick="switchAdminTab('developer')" id="tab-btn-developer" class="px-4 py-2 rounded-xl transition flex items-center gap-1.5 <?= $activeTab === 'developer' ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high' ?>">
-            <span class="material-symbols-outlined text-base">code</span>
-            <span>Developer Options</span>
-        </button>
-        <?php endif; ?>
     </div>
 </div>
 

@@ -1,0 +1,31 @@
+[Thu Sep 24 23:50:17 2026] PHP 8.3.6 Development Server (http://127.0.0.1:8000) started
+[Thu Sep 24 23:51:45 2026] 127.0.0.1:45820 Accepted
+[Thu Sep 24 23:51:45 2026] 127.0.0.1:45820 [200]: GET /login.php
+[Thu Sep 24 23:51:45 2026] 127.0.0.1:45820 Closing
+[Thu Sep 24 23:51:45 2026] 127.0.0.1:45830 Accepted
+[Thu Sep 24 23:51:45 2026] 127.0.0.1:45830 [302]: POST /actions/login.php
+[Thu Sep 24 23:51:45 2026] 127.0.0.1:45830 Closing
+[Thu Sep 24 23:51:45 2026] 127.0.0.1:45840 Accepted
+[Thu Sep 24 23:51:45 2026] 127.0.0.1:45840 [200]: GET /login.php
+[Thu Sep 24 23:51:45 2026] 127.0.0.1:45840 Closing
+[Thu Sep 24 23:51:45 2026] 127.0.0.1:45854 Accepted
+[Thu Sep 24 23:51:45 2026] 127.0.0.1:45854 [302]: GET /index.php
+[Thu Sep 24 23:51:45 2026] 127.0.0.1:45854 Closing
+[Thu Sep 24 23:51:45 2026] 127.0.0.1:45870 Accepted
+[Thu Sep 24 23:51:45 2026] 127.0.0.1:45870 [200]: GET /login.php
+[Thu Sep 24 23:51:45 2026] 127.0.0.1:45870 Closing
+[Thu Sep 24 23:52:13 2026] 127.0.0.1:37878 Accepted
+[Thu Sep 24 23:52:13 2026] 127.0.0.1:37878 [200]: GET /login.php
+[Thu Sep 24 23:52:13 2026] 127.0.0.1:37878 Closing
+[Thu Sep 24 23:52:13 2026] 127.0.0.1:37888 Accepted
+[Thu Sep 24 23:52:13 2026] 127.0.0.1:37888 [302]: POST /actions/login.php
+[Thu Sep 24 23:52:13 2026] 127.0.0.1:37888 Closing
+[Thu Sep 24 23:52:13 2026] 127.0.0.1:37894 Accepted
+[Thu Sep 24 23:52:13 2026] 127.0.0.1:37894 [200]: GET /login.php
+[Thu Sep 24 23:52:13 2026] 127.0.0.1:37894 Closing
+[Thu Sep 24 23:52:13 2026] 127.0.0.1:37910 Accepted
+[Thu Sep 24 23:52:13 2026] 127.0.0.1:37910 [302]: GET /index.php
+[Thu Sep 24 23:52:13 2026] 127.0.0.1:37910 Closing
+[Thu Sep 24 23:52:13 2026] 127.0.0.1:37918 Accepted
+[Thu Sep 24 23:52:13 2026] 127.0.0.1:37918 [200]: GET /login.php
+[Thu Sep 24 23:52:13 2026] 127.0.0.1:37918 Closing
