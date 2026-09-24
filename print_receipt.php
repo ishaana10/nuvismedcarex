@@ -18,7 +18,7 @@ foreach ($settingsRows as $r) {
 }
 
 $sellerTin = $settings['vms_seller_tin'] ?? '502579006';
-$clinicName = $settings['clinic_name'] ?? 'Nuvis Medico Healthcare';
+$clinicName = $settings['clinic_name'] ?? 'NuvisMedcareX';
 $clinicAddress = $settings['clinic_address'] ?? '100 Healthcare Way, Suite 400, Springfield, OR 97477';
 $clinicPhone = $settings['clinic_phone'] ?? '(555) 019-2831';
 
@@ -152,7 +152,7 @@ $qrCodeUrl = "https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=" . 
             <p class="text-slate-500 text-[10px]"><?= htmlspecialchars($clinicPhone) ?></p>
         </div>
         <div class="text-right">
-            <div class="border-b border-slate-400 mb-1 pb-2 font-serif text-base font-bold text-emerald-900 italic">Nuvis Medico Billing</div>
+            <div class="border-b border-slate-400 mb-1 pb-2 font-serif text-base font-bold text-emerald-900 italic">NuvisMedcareX Billing</div>
             <p class="font-bold text-slate-800">Authorized Cashier: <?= htmlspecialchars($invoice['cashier'] ?? 'Admin') ?></p>
         </div>
     </div>

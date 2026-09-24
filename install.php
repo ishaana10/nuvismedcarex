@@ -1,6 +1,6 @@
 <?php
 /**
- * ClinicFlow / Nuvis Medico Web Installation Wizard
+ * NuvisMedcareX Web Installation Wizard
  * Sets up Database, Developer / Administrator Credentials, Clinic Profile, Access Control & Seed Initial Data
  */
 session_start();
@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $adminRole  = trim($_POST['admin_role'] ?? 'Developer');
 
     // Clinic Profile Setup
-    $clinicName     = trim($_POST['clinic_name'] ?? 'Nuvis Medico Healthcare');
+    $clinicName     = trim($_POST['clinic_name'] ?? 'NuvisMedcareX');
     $clinicSubtitle = trim($_POST['clinic_subtitle'] ?? 'Integrated Primary & Specialist Healthcare Platform');
     $clinicPhone    = trim($_POST['clinic_phone'] ?? '(555) 019-2831');
     $clinicEmail    = trim($_POST['clinic_email'] ?? 'contact@nuvistechnologies.com.fj');
@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Seed Initial Developer / Administrator Account
         $stmtUser = $pdo->prepare("INSERT INTO doctors (id, name, specialty, email, password_hash, role, color, dot_color_class, avatar) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = VALUES(name), email = VALUES(email), password_hash = VALUES(password_hash), role = VALUES(role)");
         $stmtUser->execute([
-            'doc-1', $adminName, 'Developer / IT Administrator', $adminEmail, $passHash, $adminRole, '#10B981', 'bg-emerald-500', 'assets/images/nuvis_medico_logo.png'
+            'doc-1', $adminName, 'Developer / IT Administrator', $adminEmail, $passHash, $adminRole, '#10B981', 'bg-emerald-500', 'assets/images/NuvisMedcareX_logo.jpg'
         ]);
 
         // Seed initial clinic settings
@@ -97,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Write Config File
         $configContent = "<?php\n" .
-            "/**\n * Auto-generated Nuvis Medico Configuration\n */\n" .
+            "/**\n * Auto-generated NuvisMedcareX Configuration\n */\n" .
             "return [\n" .
             "    'db_driver' => 'mysql',\n" .
             "    'db_host'   => " . var_export($dbHost, true) . ",\n" .
@@ -127,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>Nuvis Medico Installation Wizard</title>
+    <title>NuvisMedcareX Installation Wizard</title>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -138,9 +138,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <!-- Header -->
     <div class="bg-blue-900 p-6 text-white flex items-center justify-between">
         <div class="flex items-center gap-3">
-            <img src="assets/images/nuvis_medico_logo.png" alt="Nuvis Medico" class="h-10 bg-white p-1 rounded-lg object-contain">
+            <img src="assets/images/NuvisMedcareX_logo.jpg" alt="NuvisMedcareX" class="h-10 bg-white p-1 rounded-lg object-contain">
             <div>
-                <h1 class="text-xl font-bold">Nuvis Medico Installation Wizard</h1>
+                <h1 class="text-xl font-bold">NuvisMedcareX Installation Wizard</h1>
                 <p class="text-xs text-blue-200">Configure Database, Developer Accounts, Access Levels & Clinic Profile</p>
             </div>
         </div>
@@ -268,7 +268,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block font-bold text-slate-700 mb-1">Clinic Name</label>
-                            <input type="text" name="clinic_name" value="Nuvis Medico Healthcare" required class="w-full bg-slate-50 px-3 py-2.5 rounded-xl border border-slate-300 font-medium focus:outline-none focus:border-blue-600">
+                            <input type="text" name="clinic_name" value="NuvisMedcareX" required class="w-full bg-slate-50 px-3 py-2.5 rounded-xl border border-slate-300 font-medium focus:outline-none focus:border-blue-600">
                         </div>
 
                         <div>

@@ -18,7 +18,7 @@ foreach ($settingsRows as $r) {
 }
 
 $sellerTin = $settings['vms_seller_tin'] ?? '502579006';
-$clinicName = $settings['clinic_name'] ?? 'Nuvis Medico Healthcare';
+$clinicName = $settings['clinic_name'] ?? 'NuvisMedcareX';
 $businessLocation = $settings['vms_business_location'] ?? ($settings['clinic_address'] ?? '2 Woodstand Road, Suva');
 
 $invoiceHeaderTitle = $settings['invoice_header_title'] ?? 'FISCAL INVOICE';

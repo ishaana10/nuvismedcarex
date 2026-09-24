@@ -1,6 +1,6 @@
 {
     "name": "clinicflow/clinicflow",
-    "description": "Nuvis Medico Healthcare - Clinical EHR & Clinic Management System",
+    "description": "NuvisMedcareX - Clinical EHR & Clinic Management System",
     "type": "project",
     "license": "MIT",
     "autoload": {

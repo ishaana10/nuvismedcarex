@@ -18,7 +18,7 @@ class EmailService {
         $headers = [
             'MIME-Version: 1.0',
             'Content-type: text/html; charset=utf-8',
-            'From: Nuvis Medico Healthcare <no-reply@nuvistechnologies.com.fj>',
+            'From: NuvisMedcareX <no-reply@nuvistechnologies.com.fj>',
             'X-Mailer: PHP/' . phpversion()
         ];
 
