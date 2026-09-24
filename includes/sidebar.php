@@ -27,11 +27,9 @@ if ($userRole === 'Developer') {
     <div class="space-y-5">
         <!-- Clinic Profile Badge -->
         <div class="flex items-center gap-3 px-2 py-1">
+            <img src="assets/images/nuvis_medico_logo.png" alt="Clinic Logo" class="w-10 h-10 rounded-full object-cover border border-blue-500/30 shadow-xs">
             <div class="overflow-hidden">
                 <div class="font-bold text-sm text-slate-900 truncate"><?= htmlspecialchars($GLOBALS['activeClinicName'] ?? $activeClinicName ?? 'Nuvis Medico Healthcare') ?></div>
-            <img src="assets/images/NuvisMedcareX_logo.jpg" alt="NuvisMedcareX Logo" class="h-10 object-contain">
-            <div class="overflow-hidden">
-                <div class="font-bold text-sm text-slate-900 truncate">NuvisMedcareX</div>
                 <div class="text-[11px] font-medium text-slate-500">Admin Portal</div>
             </div>
         </div>
@@ -80,9 +78,8 @@ if ($userRole === 'Developer') {
     <div class="space-y-4">
         <div class="flex items-center justify-between border-b border-outline-variant/30 pb-3">
             <div class="flex items-center gap-2">
+                <img src="assets/images/nuvis_medico_logo.png" alt="Clinic Logo" class="w-8 h-8 rounded-full object-cover border border-blue-500/30">
                 <span class="font-bold text-sm text-slate-900"><?= htmlspecialchars($GLOBALS['activeClinicName'] ?? $activeClinicName ?? 'Nuvis Medico Healthcare') ?></span>
-                <img src="assets/images/NuvisMedcareX_logo.jpg" alt="NuvisMedcareX" class="h-8 object-contain">
-                <span class="font-bold text-sm text-slate-900">NuvisMedcareX</span>
             </div>
             <button onclick="toggleMobileSidebar()" class="p-1.5 text-outline hover:text-on-surface rounded-lg">
                 <span class="material-symbols-outlined text-xl">close</span>
