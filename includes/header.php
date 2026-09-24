@@ -25,6 +25,21 @@ $doctors = $pdo->query("SELECT * FROM doctors ORDER BY name ASC")->fetchAll();
 $currentDoctorId = $_SESSION['current_doctor_id'] ?? ($doctors[0]['id'] ?? 'doc-1');
 $currentDoctor = array_filter($doctors, fn($d) => $d['id'] === $currentDoctorId);
 $currentDoctor = reset($currentDoctor) ?: ($doctors[0] ?? ['id' => 'doc-1', 'name' => 'Dr. Sarah Jenkins', 'specialty' => 'Internal Medicine']);
+
+// Fetch Active Clinic Name dynamically
+$currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+$tenantStmt = $pdo->prepare("SELECT name FROM tenants WHERE id = :tid LIMIT 1");
+$tenantStmt->execute(['tid' => $currentTenantId]);
+$tenantRow = $tenantStmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$tenantRow) {
+    $settingStmt = $pdo->prepare("SELECT setting_value FROM tenant_settings WHERE tenant_id = :tid AND setting_key = 'clinic_name' LIMIT 1");
+    $settingStmt->execute(['tid' => $currentTenantId]);
+    $settingRow = $settingStmt->fetch(PDO::FETCH_ASSOC);
+    $activeClinicName = $settingRow['setting_value'] ?? 'Nuvis Medico Healthcare';
+} else {
+    $activeClinicName = $tenantRow['name'];
+}
 ?>
 <!DOCTYPE html>
 <html class="light h-full bg-[#f8f9ff]" lang="en">
@@ -128,6 +143,7 @@ $currentDoctor = reset($currentDoctor) ?: ($doctors[0] ?? ['id' => 'doc-1', 'nam
                 <span class="material-symbols-outlined text-2xl font-bold">menu</span>
             </button>
             <a href="index.php" class="flex items-center gap-2">
+                <span class="font-bold text-xl text-blue-900 tracking-tight"><?= htmlspecialchars($activeClinicName) ?></span>
                 <img src="assets/images/NuvisMedcareX_logo.jpg" alt="NuvisMedcareX Logo" class="h-8 object-contain">
                 <span class="font-bold text-xl text-blue-900 tracking-tight">NuvisMedcareX</span>
             </a>
@@ -166,7 +182,9 @@ $currentDoctor = reset($currentDoctor) ?: ($doctors[0] ?? ['id' => 'doc-1', 'nam
                         <?php endforeach; ?>
                     </select>
                 </form>
-                <img src="<?= htmlspecialchars($currentDoctor['avatar'] ?? 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=200') ?>" class="w-8 h-8 rounded-full object-cover border border-slate-200 shadow-xs" alt="Doctor Avatar">
+                <button type="button" onclick="openChangePasswordModal()" title="Change Account Password" class="flex items-center hover:opacity-80 transition">
+                    <img src="<?= htmlspecialchars($currentDoctor['avatar'] ?? 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=200') ?>" class="w-8 h-8 rounded-full object-cover border border-slate-200 shadow-xs" alt="Doctor Avatar">
+                </button>
             </div>
 
             <!-- Logout Button (Header Right) -->
@@ -193,6 +211,19 @@ $currentDoctor = reset($currentDoctor) ?: ($doctors[0] ?? ['id' => 'doc-1', 'nam
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>">
             <input type="hidden" name="redirect_url" value="<?= htmlspecialchars($_SERVER['REQUEST_URI'] ?? '../index.php') ?>">
 
+            <!-- Password Policy Rule Box -->
+            <div class="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-900 text-[11px] space-y-1">
+                <div class="font-bold flex items-center gap-1">
+                    <span class="material-symbols-outlined text-sm text-blue-700">shield</span>
+                    <span>Password Policy Requirements:</span>
+                </div>
+                <ul class="list-disc list-inside text-slate-700 space-y-0.5 pl-1">
+                    <li>Minimum 8 characters in length</li>
+                    <li>At least one uppercase letter (A-Z)</li>
+                    <li>At least one numeric digit (0-9)</li>
+                </ul>
+            </div>
+
             <div>
                 <label class="block font-bold text-slate-700 mb-1">Current Password *</label>
                 <input type="password" name="current_password" required placeholder="••••••••" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium text-on-surface focus:outline-none focus:border-primary">
@@ -200,12 +231,12 @@ $currentDoctor = reset($currentDoctor) ?: ($doctors[0] ?? ['id' => 'doc-1', 'nam
 
             <div>
                 <label class="block font-bold text-slate-700 mb-1">New Password *</label>
-                <input type="password" name="new_password" required minlength="6" placeholder="At least 6 characters" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium text-on-surface focus:outline-none focus:border-primary">
+                <input type="password" name="new_password" required minlength="8" placeholder="At least 8 characters (e.g. SecurePass1)" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium text-on-surface focus:outline-none focus:border-primary">
             </div>
 
             <div>
                 <label class="block font-bold text-slate-700 mb-1">Confirm New Password *</label>
-                <input type="password" name="confirm_password" required minlength="6" placeholder="Repeat new password" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium text-on-surface focus:outline-none focus:border-primary">
+                <input type="password" name="confirm_password" required minlength="8" placeholder="Repeat new password" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium text-on-surface focus:outline-none focus:border-primary">
             </div>
 
             <div class="flex items-center justify-end gap-2 pt-3 border-t border-outline-variant/20">

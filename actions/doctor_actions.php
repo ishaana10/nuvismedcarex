@@ -81,6 +81,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($action === 'save' || $action === 
 
         $passwordHash = $existingDoc['password_hash'];
         if (!empty($password)) {
+            if (strlen($password) < 8 || !preg_match('/[A-Z]/', $password) || !preg_match('/[0-9]/', $password)) {
+                setToast("Weak Password", "Password must be at least 8 characters long and contain at least one uppercase letter and one number.", "error");
+                header("Location: ../admin.php?tab=users");
+                exit;
+            }
             $passwordHash = password_hash($password, PASSWORD_DEFAULT);
         }
 
@@ -89,7 +94,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($action === 'save' || $action === 
 
         setToast("User Updated", "User information and credentials updated successfully.");
     } else {
-        $passwordHash = password_hash(!empty($password) ? $password : 'password', PASSWORD_DEFAULT);
+        $initialPassword = !empty($password) ? $password : 'ClinicPass123';
+        if (strlen($initialPassword) < 8 || !preg_match('/[A-Z]/', $initialPassword) || !preg_match('/[0-9]/', $initialPassword)) {
+            setToast("Weak Password", "Password must be at least 8 characters long and contain at least one uppercase letter and one number.", "error");
+            header("Location: ../admin.php?tab=users");
+            exit;
+        }
+        $passwordHash = password_hash($initialPassword, PASSWORD_DEFAULT);
 
         $insertStmt = $pdo->prepare("INSERT INTO doctors (id, name, specialty, email, password_hash, role, is_active, color, dot_color_class, avatar, prc_number, ptr_number, esignature, digital_stamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $insertStmt->execute([$docId, $name, $specialty, $email, $passwordHash, $role, $isActive, $color, $dotColorClass, $avatar, $prcNumber, $ptrNumber, $esignature, $digitalStamp]);

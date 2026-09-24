@@ -27,6 +27,8 @@ if ($userRole === 'Developer') {
     <div class="space-y-5">
         <!-- Clinic Profile Badge -->
         <div class="flex items-center gap-3 px-2 py-1">
+            <div class="overflow-hidden">
+                <div class="font-bold text-sm text-slate-900 truncate"><?= htmlspecialchars($GLOBALS['activeClinicName'] ?? $activeClinicName ?? 'Nuvis Medico Healthcare') ?></div>
             <img src="assets/images/NuvisMedcareX_logo.jpg" alt="NuvisMedcareX Logo" class="h-10 object-contain">
             <div class="overflow-hidden">
                 <div class="font-bold text-sm text-slate-900 truncate">NuvisMedcareX</div>
@@ -55,6 +57,10 @@ if ($userRole === 'Developer') {
 
     <!-- Quick Help & Doctor Profile Badge -->
     <div class="space-y-2 pt-4 border-t border-slate-200/80 text-xs">
+        <button type="button" onclick="openChangePasswordModal()" class="w-full flex items-center gap-3 px-3.5 py-2 text-slate-600 hover:bg-slate-100 rounded-xl transition">
+            <span class="material-symbols-outlined text-lg">key</span>
+            <span>Change Password</span>
+        </button>
         <a href="#" class="flex items-center gap-3 px-3.5 py-2 text-slate-600 hover:bg-slate-100 rounded-xl transition">
             <span class="material-symbols-outlined text-lg">help_outline</span>
             <span>Help</span>
@@ -74,6 +80,7 @@ if ($userRole === 'Developer') {
     <div class="space-y-4">
         <div class="flex items-center justify-between border-b border-outline-variant/30 pb-3">
             <div class="flex items-center gap-2">
+                <span class="font-bold text-sm text-slate-900"><?= htmlspecialchars($GLOBALS['activeClinicName'] ?? $activeClinicName ?? 'Nuvis Medico Healthcare') ?></span>
                 <img src="assets/images/NuvisMedcareX_logo.jpg" alt="NuvisMedcareX" class="h-8 object-contain">
                 <span class="font-bold text-sm text-slate-900">NuvisMedcareX</span>
             </div>
@@ -95,6 +102,10 @@ if ($userRole === 'Developer') {
     </div>
 
     <div class="space-y-3 pt-4 border-t border-outline-variant/30">
+        <button type="button" onclick="openChangePasswordModal(); toggleMobileSidebar();" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 text-slate-800 text-xs font-semibold rounded-xl shadow-xs">
+            <span class="material-symbols-outlined text-base">key</span>
+            <span>Change Password</span>
+        </button>
         <a href="register_patient.php" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white text-xs font-semibold rounded-xl shadow-xs">
             <span class="material-symbols-outlined text-base">person_add</span>
             <span>Register Patient</span>
