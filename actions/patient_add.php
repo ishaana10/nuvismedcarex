@@ -51,19 +51,22 @@ $regDate = date('Y-m-d');
 
 $pdo = getDB();
 
-$stmt = $pdo->prepare("INSERT INTO patients (id, mrn, first_name, last_name, dob, age, gender, phone, email, address, emergency_contact_name, emergency_contact_relationship, emergency_contact_phone, insurance_provider, insurance_policy_number, insurance_group_number, known_allergies, blood_group, chronic_conditions, initials, registration_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+$tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+
+$stmt = $pdo->prepare("INSERT INTO patients (id, tenant_id, mrn, first_name, last_name, dob, age, gender, phone, email, address, emergency_contact_name, emergency_contact_relationship, emergency_contact_phone, insurance_provider, insurance_policy_number, insurance_group_number, known_allergies, blood_group, chronic_conditions, initials, registration_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
 $stmt->execute([
-    $patientId, $mrn, $firstName, $lastName, $dob, $age, $gender, $phone, $email, $address,
+    $patientId, $tenantId, $mrn, $firstName, $lastName, $dob, $age, $gender, $phone, $email, $address,
     $emergencyName, $emergencyRel, $emergencyPhone,
     $insuranceProvider, $insurancePolicy, $insuranceGroup,
     $allergies, $bloodGroup, $chronic, $initials, $regDate
 ]);
 
 // Add to activity log
-$actStmt = $pdo->prepare("INSERT INTO activities (id, type, title, detail, timestamp, badge_type) VALUES (?, ?, ?, ?, ?, ?)");
+$actStmt = $pdo->prepare("INSERT INTO activities (id, tenant_id, type, title, detail, timestamp, badge_type) VALUES (?, ?, ?, ?, ?, ?, ?)");
 $actStmt->execute([
     \ClinicFlow\Utils\Uuid::uuidv7(),
+    $tenantId,
     "patient_registered",
     "New Patient Registered: $firstName $lastName",
     "Just now • via Portal",

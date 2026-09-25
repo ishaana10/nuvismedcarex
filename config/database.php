@@ -193,6 +193,23 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
             }
         }
 
+        // Ensure tenant_id column exists on all business tables in MySQL
+        $tenantTables = ['patients', 'appointments', 'queue', 'vitals', 'soap_notes', 'prescriptions', 'past_visits', 'activities', 'invoices', 'invoice_items', 'inventory', 'inventory_logs', 'medical_certificates', 'audit_logs', 'vms_logs'];
+        foreach ($tenantTables as $tTable) {
+            try {
+                $tCols = [];
+                $tStmt = $pdo->query("DESCRIBE {$tTable}");
+                while ($tRow = $tStmt->fetch()) {
+                    $tCols[] = strtolower($tRow['Field']);
+                }
+                if (!in_array('tenant_id', $tCols)) {
+                    $pdo->exec("ALTER TABLE {$tTable} ADD COLUMN tenant_id VARCHAR(50) NOT NULL DEFAULT 'default-clinic'");
+                }
+            } catch (Throwable $te) {
+                // Table might not exist yet
+            }
+        }
+
         // Auto-migrate invoices table columns
         $invTableCols = [];
         $stmt = $pdo->query("DESCRIBE invoices");
