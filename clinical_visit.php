@@ -224,23 +224,8 @@ include __DIR__ . '/includes/header.php';
                 <?php endforeach; ?>
             </div>
 
-            <!-- Add Prescription Form -->
-            <div class="pt-4 border-t border-outline-variant/20 space-y-3 text-xs">
-                <p class="font-bold text-slate-700">Add New Medication Line</p>
-                <div>
-                    <input type="text" name="medication_name" placeholder="Medication Name (e.g. Amoxicillin)" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-medium">
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <input type="text" name="dosage" placeholder="Dosage (500mg)" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-medium">
-                    <input type="text" name="frequency" placeholder="Freq (BID)" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-medium">
-                </div>
-                <div>
-                    <input type="text" name="duration" placeholder="Duration (7 days)" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-medium">
-                </div>
-                <div>
-                    <input type="text" name="instructions" placeholder="Instructions (Take with food)" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-medium">
-                </div>
-                <button type="submit" name="add_rx" value="1" class="w-full py-2 bg-primary-container text-white text-xs font-semibold rounded-xl hover:bg-primary-container/90 transition shadow-xs flex items-center justify-center gap-1.5">
+            <div class="pt-3 border-t border-outline-variant/20">
+                <button type="button" onclick="openAddRxModal()" class="w-full py-2.5 bg-primary-container text-white text-xs font-semibold rounded-xl hover:bg-primary-container/90 transition shadow-xs flex items-center justify-center gap-1.5">
                     <span class="material-symbols-outlined text-sm">add</span>
                     <span>Add Medication Line</span>
                 </button>
@@ -357,6 +342,66 @@ function toggleFinalizeInvoiceFields() {
     }
 }
 </script>
+
+<!-- Modal: Add New Medication Line -->
+<div id="addRxModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+            <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+                <span class="material-symbols-outlined text-blue-600 text-base">add_circle</span>
+                <span>Add Prescription Line</span>
+            </h3>
+            <button type="button" onclick="closeAddRxModal()" class="text-slate-400 hover:text-slate-700">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+
+        <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs text-slate-500 italic">
+            Prescription form is blank for this encounter. Add new medication lines below.
+        </div>
+
+        <form action="actions/encounter_save.php" method="POST" class="space-y-3 text-xs">
+            <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+            <input type="hidden" name="action" value="add_rx">
+            <input type="hidden" name="add_rx" value="1">
+            <input type="hidden" name="patient_id" value="<?= htmlspecialchars($patient['id']) ?>">
+            <input type="hidden" name="visit_id" value="<?= htmlspecialchars($visitId) ?>">
+
+            <p class="font-bold text-slate-900 text-xs">Add New Medication Line</p>
+
+            <div>
+                <input type="text" name="medication_name" placeholder="Medication Name (e.g. Amoxicillin)" required class="w-full bg-slate-50 px-3.5 py-2.5 rounded-xl border border-slate-200/80 text-xs font-medium focus:bg-white focus:outline-none focus:border-blue-500 transition">
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5">
+                <div>
+                    <input type="text" name="dosage" placeholder="Dosage (500mg)" class="w-full bg-slate-50 px-3.5 py-2.5 rounded-xl border border-slate-200/80 text-xs font-medium focus:bg-white focus:outline-none focus:border-blue-500 transition">
+                </div>
+                <div>
+                    <input type="text" name="frequency" placeholder="Freq (BID)" class="w-full bg-slate-50 px-3.5 py-2.5 rounded-xl border border-slate-200/80 text-xs font-medium focus:bg-white focus:outline-none focus:border-blue-500 transition">
+                </div>
+            </div>
+
+            <div>
+                <input type="text" name="duration" placeholder="Duration (7 days)" class="w-full bg-slate-50 px-3.5 py-2.5 rounded-xl border border-slate-200/80 text-xs font-medium focus:bg-white focus:outline-none focus:border-blue-500 transition">
+            </div>
+
+            <div>
+                <input type="text" name="instructions" placeholder="Instructions (Take with food)" class="w-full bg-slate-50 px-3.5 py-2.5 rounded-xl border border-slate-200/80 text-xs font-medium focus:bg-white focus:outline-none focus:border-blue-500 transition">
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeAddRxModal()" class="px-4 py-2 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition">
+                    Cancel
+                </button>
+                <button type="submit" class="px-5 py-2 bg-blue-700 text-white font-bold rounded-xl hover:bg-blue-800 transition shadow-xs flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-sm">add</span>
+                    <span>Add Line</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <!-- Modal: Edit Medication Line -->
 <div id="editRxModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
@@ -491,6 +536,14 @@ function calculateInvoiceOwed() {
     const ins = parseFloat(document.getElementById('inv_insurance').value) || 0;
     const owed = Math.max(0, amount - ins);
     document.getElementById('inv_patient_owed').value = owed.toFixed(2);
+}
+
+function openAddRxModal() {
+    document.getElementById('addRxModal').classList.remove('hidden');
+}
+
+function closeAddRxModal() {
+    document.getElementById('addRxModal').classList.add('hidden');
 }
 
 function openEditRxModal(rx) {

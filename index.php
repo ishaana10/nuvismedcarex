@@ -39,10 +39,13 @@ $totalPatientsCount = 0;
 $appointments = [];
 $activities = [];
 
+$currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+
 try {
-    // 1. Queue Items
-    $queueStmt = $pdo->query("SELECT * FROM queue ORDER BY id ASC");
+    // 1. Queue Items (Tenant Scoped)
+    $queueStmt = $pdo->prepare("SELECT * FROM queue WHERE tenant_id = ? ORDER BY id ASC");
     if ($queueStmt) {
+        $queueStmt->execute([$currentTenantId]);
         $queueItems = $queueStmt->fetchAll() ?: [];
     }
 } catch (\Throwable $e) {
@@ -54,9 +57,9 @@ $waitingCount = count(array_filter($queueItems, fn($q) => ($q['status'] ?? '') =
 $inRoomCount = count(array_filter($queueItems, fn($q) => ($q['status'] ?? '') === 'In Room'));
 
 try {
-    $todayApptsStmt = $pdo->prepare("SELECT COUNT(*) FROM appointments WHERE appointment_date = ? OR appointment_date = '2023-10-24'");
+    $todayApptsStmt = $pdo->prepare("SELECT COUNT(*) FROM appointments WHERE tenant_id = ? AND (appointment_date = ? OR appointment_date = '2023-10-24')");
     if ($todayApptsStmt) {
-        $todayApptsStmt->execute([$todayDate]);
+        $todayApptsStmt->execute([$currentTenantId, $todayDate]);
         $todayApptsCount = (int) $todayApptsStmt->fetchColumn();
     }
 } catch (\Throwable $e) {
@@ -64,8 +67,9 @@ try {
 }
 
 try {
-    $patientsCountStmt = $pdo->query("SELECT COUNT(*) FROM patients");
+    $patientsCountStmt = $pdo->prepare("SELECT COUNT(*) FROM patients WHERE tenant_id = ?");
     if ($patientsCountStmt) {
+        $patientsCountStmt->execute([$currentTenantId]);
         $totalPatientsCount = (int) $patientsCountStmt->fetchColumn();
     }
 } catch (\Throwable $e) {
@@ -73,9 +77,10 @@ try {
 }
 
 try {
-    // 3. Today's Scheduled Appointments
-    $apptsStmt = $pdo->query("SELECT * FROM appointments ORDER BY time ASC LIMIT 6");
+    // 3. Today's Scheduled Appointments (Tenant Scoped)
+    $apptsStmt = $pdo->prepare("SELECT * FROM appointments WHERE tenant_id = ? ORDER BY time ASC LIMIT 6");
     if ($apptsStmt) {
+        $apptsStmt->execute([$currentTenantId]);
         $appointments = $apptsStmt->fetchAll() ?: [];
     }
 } catch (\Throwable $e) {
@@ -83,9 +88,10 @@ try {
 }
 
 try {
-    // 4. Recent Activities
-    $actStmt = $pdo->query("SELECT * FROM activities ORDER BY id DESC LIMIT 5");
+    // 4. Recent Activities (Tenant Scoped)
+    $actStmt = $pdo->prepare("SELECT * FROM activities WHERE tenant_id = ? ORDER BY id DESC LIMIT 5");
     if ($actStmt) {
+        $actStmt->execute([$currentTenantId]);
         $activities = $actStmt->fetchAll() ?: [];
     }
 } catch (\Throwable $e) {

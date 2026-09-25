@@ -8,15 +8,26 @@ use ClinicFlow\Services\VMSService;
 
 $vmsService = new VMSService($pdo);
 
+$currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+
 // Fetch settings
 $stmtSet = $pdo->query("SELECT setting_key, setting_value FROM clinic_settings WHERE setting_key LIKE 'vms_%'");
 $vmsSettings = $stmtSet->fetchAll(PDO::FETCH_KEY_PAIR);
 
-// Fetch all patients for dropdown selection
-$patientsList = $pdo->query("SELECT id, first_name, last_name, mrn, phone FROM patients ORDER BY first_name ASC")->fetchAll();
+// Fetch all patients for dropdown selection (Tenant Scoped)
+$patientsStmt = $pdo->prepare("SELECT id, first_name, last_name, mrn, phone FROM patients WHERE tenant_id = ? ORDER BY first_name ASC");
+$patientsStmt->execute([$currentTenantId]);
+$patientsList = $patientsStmt->fetchAll();
 
-// Fetch invoices
-$invoices = $pdo->query("SELECT * FROM invoices ORDER BY created_at DESC")->fetchAll();
+// Fetch active inventory items for invoice line items (Tenant Scoped)
+$inventoryStmt = $pdo->prepare("SELECT id, name, sku, current_stock, unit_price, vms_tax_code FROM inventory WHERE tenant_id = ? AND is_active = 1 ORDER BY name ASC");
+$inventoryStmt->execute([$currentTenantId]);
+$inventoryList = $inventoryStmt->fetchAll();
+
+// Fetch invoices (Tenant Scoped)
+$invoicesStmt = $pdo->prepare("SELECT * FROM invoices WHERE tenant_id = ? ORDER BY created_at DESC");
+$invoicesStmt->execute([$currentTenantId]);
+$invoices = $invoicesStmt->fetchAll();
 
 $totalPending = array_reduce($invoices, fn($acc, $i) => $i['status'] === 'Pending' ? $acc + $i['patient_owed'] : $acc, 0);
 $totalOverdue = array_reduce($invoices, fn($acc, $i) => $i['status'] === 'Overdue' ? $acc + $i['patient_owed'] : $acc, 0);
@@ -404,7 +415,7 @@ $zReportData = $vmsService->getDailyFiscalReport($selectedDate);
                 <div class="flex items-center justify-between mb-2">
                     <label class="font-bold text-on-surface">Invoice Line Items</label>
                     <button type="button" onclick="addInvoiceRow()" class="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-[11px] font-bold hover:bg-emerald-700 transition">
-                        + Add Item
+                        + Add Custom Row
                     </button>
                 </div>
 
@@ -412,8 +423,8 @@ $zReportData = $vmsService->getDailyFiscalReport($selectedDate);
                     <table class="w-full text-left" id="invoiceItemsTable">
                         <thead class="bg-surface-container-high text-[10px] font-bold uppercase text-outline">
                             <tr>
-                                <th class="py-2 px-3">Item / Service Name</th>
-                                <th class="py-2 px-2">GTIN</th>
+                                <th class="py-2 px-3">Select Inventory Item or Custom Service</th>
+                                <th class="py-2 px-2">SKU / GTIN</th>
                                 <th class="py-2 px-2 w-16">Qty</th>
                                 <th class="py-2 px-2 w-24">Price ($)</th>
                                 <th class="py-2 px-2 w-20">Tax Label</th>
@@ -422,11 +433,25 @@ $zReportData = $vmsService->getDailyFiscalReport($selectedDate);
                         </thead>
                         <tbody class="divide-y divide-outline-variant/20">
                             <tr>
-                                <td class="py-2 px-3">
-                                    <input type="text" name="item_name[]" value="Medical Consultation & Diagnosis" required class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg">
+                                <td class="py-2 px-3 space-y-1">
+                                    <select onchange="onInventoryItemSelect(this)" class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-semibold text-xs text-primary bg-white">
+                                        <option value="">-- Choose from Inventory Stock (Optional) --</option>
+                                        <?php foreach ($inventoryList as $invItem): ?>
+                                            <option value="<?= htmlspecialchars($invItem['id']) ?>"
+                                                    data-name="<?= htmlspecialchars($invItem['name']) ?>"
+                                                    data-sku="<?= htmlspecialchars($invItem['sku']) ?>"
+                                                    data-price="<?= htmlspecialchars($invItem['unit_price']) ?>"
+                                                    data-tax="<?= htmlspecialchars($invItem['vms_tax_code'] ?: 'A') ?>"
+                                                    data-stock="<?= (int)$invItem['current_stock'] ?>">
+                                                <?= htmlspecialchars($invItem['name']) ?> (Stock: <?= (int)$invItem['current_stock'] ?> | $<?= number_format($invItem['unit_price'], 2) ?>)
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <input type="hidden" name="inventory_id[]" value="">
+                                    <input type="text" name="item_name[]" value="Medical Consultation & Diagnosis" required placeholder="Item / Service Name" class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg text-xs font-medium">
                                 </td>
                                 <td class="py-2 px-2">
-                                    <input type="text" name="gtin[]" value="10009812" class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-mono text-[11px]">
+                                    <input type="text" name="gtin[]" value="10009812" placeholder="SKU/GTIN" class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-mono text-[11px]">
                                 </td>
                                 <td class="py-2 px-2">
                                     <input type="number" step="0.5" name="quantity[]" value="1" required class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-mono">
@@ -436,7 +461,7 @@ $zReportData = $vmsService->getDailyFiscalReport($selectedDate);
                                 </td>
                                 <td class="py-2 px-2">
                                     <select name="tax_label[]" class="w-full px-1 py-1 border border-outline-variant/40 rounded-lg font-bold">
-                                        <option value="A">A (15% VAT)</option>
+                                        <option value="A" selected>A (15% VAT)</option>
                                         <option value="E">E (Exempt 0%)</option>
                                         <option value="F">F (Zero 0%)</option>
                                         <option value="P">P (0.25%)</option>
@@ -485,6 +510,8 @@ $zReportData = $vmsService->getDailyFiscalReport($selectedDate);
 </div>
 
 <script>
+const inventoryList = <?= json_encode($inventoryList, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+
 function autoFillPatient(select) {
     const opt = select.options[select.selectedIndex];
     if (opt.value) {
@@ -493,15 +520,55 @@ function autoFillPatient(select) {
     }
 }
 
+function onInventoryItemSelect(select) {
+    const tr = select.closest('tr');
+    const opt = select.options[select.selectedIndex];
+
+    const invIdInput = tr.querySelector('input[name="inventory_id[]"]');
+    const itemNameInput = tr.querySelector('input[name="item_name[]"]');
+    const gtinInput = tr.querySelector('input[name="gtin[]"]');
+    const unitPriceInput = tr.querySelector('input[name="unit_price[]"]');
+    const taxSelect = tr.querySelector('select[name="tax_label[]"]');
+
+    if (opt.value) {
+        invIdInput.value = opt.value;
+        itemNameInput.value = opt.getAttribute('data-name') || '';
+        gtinInput.value = opt.getAttribute('data-sku') || '';
+        unitPriceInput.value = parseFloat(opt.getAttribute('data-price') || 0).toFixed(2);
+
+        const taxCode = opt.getAttribute('data-tax') || 'A';
+        if (taxSelect) {
+            taxSelect.value = taxCode;
+        }
+    } else {
+        invIdInput.value = '';
+    }
+}
+
 function addInvoiceRow() {
     const tbody = document.querySelector('#invoiceItemsTable tbody');
     const tr = document.createElement('tr');
+
+    let invOptions = '<option value="">-- Choose from Inventory Stock (Optional) --</option>';
+    if (Array.isArray(inventoryList)) {
+        inventoryList.forEach(item => {
+            const stock = parseInt(item.current_stock) || 0;
+            const price = parseFloat(item.unit_price) || 0;
+            const tax = item.vms_tax_code || 'A';
+            invOptions += `<option value="${item.id}" data-name="${item.name}" data-sku="${item.sku}" data-price="${price}" data-tax="${tax}" data-stock="${stock}">${item.name} (Stock: ${stock} | $${price.toFixed(2)})</option>`;
+        });
+    }
+
     tr.innerHTML = `
-        <td class="py-2 px-3">
-            <input type="text" name="item_name[]" placeholder="Item name" required class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg">
+        <td class="py-2 px-3 space-y-1">
+            <select onchange="onInventoryItemSelect(this)" class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-semibold text-xs text-primary bg-white">
+                ${invOptions}
+            </select>
+            <input type="hidden" name="inventory_id[]" value="">
+            <input type="text" name="item_name[]" placeholder="Item / Service Name" required class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg text-xs font-medium">
         </td>
         <td class="py-2 px-2">
-            <input type="text" name="gtin[]" placeholder="GTIN" class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-mono text-[11px]">
+            <input type="text" name="gtin[]" placeholder="SKU/GTIN" class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-mono text-[11px]">
         </td>
         <td class="py-2 px-2">
             <input type="number" step="0.5" name="quantity[]" value="1" required class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-mono">

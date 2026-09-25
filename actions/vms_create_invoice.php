@@ -23,6 +23,7 @@ $buyerCostCenter = trim($_POST['buyer_cost_center'] ?? '');
 $refNo = trim($_POST['ref_no'] ?? '');
 $refTime = trim($_POST['ref_time'] ?? '');
 
+$inventoryIds = $_POST['inventory_id'] ?? [];
 $itemNames = $_POST['item_name'] ?? [];
 $gtins = $_POST['gtin'] ?? [];
 $quantities = $_POST['quantity'] ?? [];
@@ -64,8 +65,11 @@ try {
         $totalAmount += $lineTotal;
         $totalTax += round($taxCalc['tax_amount'], 2);
 
+        $invItemId = $inventoryIds[$i] ?? '';
+
         $itemsToInsert[] = [
             'id' => 'item-' . uniqid(),
+            'inventory_id' => $invItemId,
             'name' => $name,
             'gtin' => $gtin,
             'unit_price' => $price,
@@ -75,6 +79,39 @@ try {
             'tax_rate' => $taxCalc['tax_rate'],
             'tax_amount' => round($taxCalc['tax_amount'], 2)
         ];
+
+        // If line item is linked to an inventory item, automatically deduct stock & log stock movement
+        if (!empty($invItemId)) {
+            $stmtInvCheck = $pdo->prepare("SELECT id, current_stock, name FROM inventory WHERE id = ? FOR UPDATE");
+            $stmtInvCheck->execute([$invItemId]);
+            $invRow = $stmtInvCheck->fetch();
+
+            if ($invRow) {
+                $prevStock = (int)$invRow['current_stock'];
+                $deductQty = (int)ceil($qty);
+                $newStock = max(0, $prevStock - $deductQty);
+                $stockStatus = ($newStock <= 0) ? 'Out of Stock' : (($newStock <= 10) ? 'Low Stock' : 'In Stock');
+
+                // Update inventory stock
+                $stmtStockUpd = $pdo->prepare("UPDATE inventory SET current_stock = ?, status = ? WHERE id = ?");
+                $stmtStockUpd->execute([$newStock, $stockStatus, $invItemId]);
+
+                // Log movement in inventory_logs
+                $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+                $logStmt = $pdo->prepare("INSERT INTO inventory_logs (id, tenant_id, inventory_id, change_amount, previous_stock, new_stock, type, notes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $logStmt->execute([
+                    'log-' . uniqid(),
+                    $tenantId,
+                    $invItemId,
+                    -$deductQty,
+                    $prevStock,
+                    $newStock,
+                    'Invoice Sale',
+                    'Deducted via VMS Fiscal Invoice: ' . $invoiceNumber,
+                    $_SESSION['user_name'] ?? 'Admin'
+                ]);
+            }
+        }
     }
 
     // Process payment methods JSON
