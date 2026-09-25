@@ -5,17 +5,17 @@ include __DIR__ . '/includes/header.php';
 
 $search = trim($_GET['q'] ?? '');
 $patients = [];
+$currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 
 try {
     if ($search !== '') {
-        $stmt = $pdo->prepare("SELECT * FROM patients WHERE first_name LIKE :s OR last_name LIKE :s OR mrn LIKE :s OR phone LIKE :s ORDER BY last_name ASC");
-        $stmt->execute(['s' => "%$search%"]);
+        $stmt = $pdo->prepare("SELECT * FROM patients WHERE tenant_id = :tid AND (first_name LIKE :s OR last_name LIKE :s OR mrn LIKE :s OR phone LIKE :s) ORDER BY last_name ASC");
+        $stmt->execute(['tid' => $currentTenantId, 's' => "%$search%"]);
         $patients = $stmt->fetchAll() ?: [];
     } else {
-        $stmt = $pdo->query("SELECT * FROM patients ORDER BY last_name ASC");
-        if ($stmt) {
-            $patients = $stmt->fetchAll() ?: [];
-        }
+        $stmt = $pdo->prepare("SELECT * FROM patients WHERE tenant_id = :tid ORDER BY last_name ASC");
+        $stmt->execute(['tid' => $currentTenantId]);
+        $patients = $stmt->fetchAll() ?: [];
     }
 } catch (\Throwable $e) {
     error_log("Patients directory query error: " . $e->getMessage());

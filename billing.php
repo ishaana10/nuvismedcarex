@@ -8,18 +8,26 @@ use ClinicFlow\Services\VMSService;
 
 $vmsService = new VMSService($pdo);
 
+$currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+
 // Fetch settings
 $stmtSet = $pdo->query("SELECT setting_key, setting_value FROM clinic_settings WHERE setting_key LIKE 'vms_%'");
 $vmsSettings = $stmtSet->fetchAll(PDO::FETCH_KEY_PAIR);
 
-// Fetch all patients for dropdown selection
-$patientsList = $pdo->query("SELECT id, first_name, last_name, mrn, phone FROM patients ORDER BY first_name ASC")->fetchAll();
+// Fetch all patients for dropdown selection (Tenant Scoped)
+$patientsStmt = $pdo->prepare("SELECT id, first_name, last_name, mrn, phone FROM patients WHERE tenant_id = ? ORDER BY first_name ASC");
+$patientsStmt->execute([$currentTenantId]);
+$patientsList = $patientsStmt->fetchAll();
 
-// Fetch active inventory items for invoice line items
-$inventoryList = $pdo->query("SELECT id, name, sku, current_stock, unit_price, vms_tax_code FROM inventory WHERE is_active = 1 ORDER BY name ASC")->fetchAll();
+// Fetch active inventory items for invoice line items (Tenant Scoped)
+$inventoryStmt = $pdo->prepare("SELECT id, name, sku, current_stock, unit_price, vms_tax_code FROM inventory WHERE tenant_id = ? AND is_active = 1 ORDER BY name ASC");
+$inventoryStmt->execute([$currentTenantId]);
+$inventoryList = $inventoryStmt->fetchAll();
 
-// Fetch invoices
-$invoices = $pdo->query("SELECT * FROM invoices ORDER BY created_at DESC")->fetchAll();
+// Fetch invoices (Tenant Scoped)
+$invoicesStmt = $pdo->prepare("SELECT * FROM invoices WHERE tenant_id = ? ORDER BY created_at DESC");
+$invoicesStmt->execute([$currentTenantId]);
+$invoices = $invoicesStmt->fetchAll();
 
 $totalPending = array_reduce($invoices, fn($acc, $i) => $i['status'] === 'Pending' ? $acc + $i['patient_owed'] : $acc, 0);
 $totalOverdue = array_reduce($invoices, fn($acc, $i) => $i['status'] === 'Overdue' ? $acc + $i['patient_owed'] : $acc, 0);
