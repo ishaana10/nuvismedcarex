@@ -225,8 +225,8 @@ include __DIR__ . '/includes/header.php';
             </div>
 
             <div class="pt-3 border-t border-outline-variant/20">
-                <button type="button" onclick="openAddRxModal()" class="w-full py-2.5 bg-primary-container text-white text-xs font-semibold rounded-xl hover:bg-primary-container/90 transition shadow-xs flex items-center justify-center gap-1.5">
-                    <span class="material-symbols-outlined text-sm">add</span>
+                <button type="button" onclick="openAddRxModal()" class="w-full py-2.5 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-1.5">
+                    <span class="material-symbols-outlined text-base">add</span>
                     <span>Add Medication Line</span>
                 </button>
             </div>
