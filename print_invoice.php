@@ -24,7 +24,7 @@ $businessLocation = $settings['vms_business_location'] ?? ($settings['clinic_add
 $invoiceHeaderTitle = $settings['invoice_header_title'] ?? 'FISCAL INVOICE';
 $invoiceTaxId = $settings['invoice_tax_id'] ?? $sellerTin;
 $invoicePaymentTerms = $settings['invoice_payment_terms'] ?? 'Net 30 Days. Please remit payment promptly.';
-$invoiceFooterNote = $settings['invoice_footer_note'] ?? 'Thank you for choosing ClinicFlow Medical Center for your care.';
+$invoiceFooterNote = $settings['invoice_footer_note'] ?? 'Thank you for choosing Nuvis Medico Healthcare for your care.';
 
 // Fetch Invoice
 $stmt = $pdo->prepare("SELECT * FROM invoices WHERE id = ? OR invoice_number = ?");

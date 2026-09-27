@@ -1,5 +1,5 @@
 <?php
-$pageTitle = "Appointments & Calendar - ClinicFlow";
+$pageTitle = "Appointments & Calendar - NuvisMedcareX";
 $activePage = "calendar";
 include __DIR__ . '/includes/header.php';
 

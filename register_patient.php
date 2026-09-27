@@ -1,5 +1,5 @@
 <?php
-$pageTitle = "Register New Patient - ClinicFlow";
+$pageTitle = "Register New Patient - NuvisMedcareX";
 $activePage = "register-patient";
 include __DIR__ . '/includes/header.php';
 ?>

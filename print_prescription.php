@@ -20,10 +20,10 @@ foreach ($settingsRows as $r) {
 }
 
 $clinicName = $settings['clinic_name'] ?? 'ClinicFlow Medical Center';
-$clinicSubtitle = $settings['clinic_subtitle'] ?? 'Integrated Primary & Specialist Healthcare';
+$clinicName = $settings['clinic_name'] ?? 'Nuvis Medico Healthcare';
 $clinicAddress = $settings['clinic_address'] ?? '100 Healthcare Way, Suite 400, Springfield, OR 97477';
 $clinicPhone = $settings['clinic_phone'] ?? '(555) 019-2831';
-$clinicEmail = $settings['clinic_email'] ?? 'contact@clinicflow.com';
+$clinicEmail = $settings['clinic_email'] ?? 'medico@nuvistechnologies.com.fj';
 $clinicDea = $settings['clinic_dea'] ?? 'FC9823019';
 $clinicNpi = $settings['clinic_npi'] ?? '1092830192';
 

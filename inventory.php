@@ -1,5 +1,5 @@
 <?php
-$pageTitle = "Pharmacy & Supplies Inventory - ClinicFlow";
+$pageTitle = "Pharmacy & Supplies Inventory - NuvisMedcareX";
 $activePage = "inventory";
 include __DIR__ . '/includes/header.php';
 require_once __DIR__ . '/includes/security.php';

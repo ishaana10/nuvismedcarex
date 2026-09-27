@@ -12,7 +12,7 @@ if ($currentUserRole !== 'Developer') {
     exit;
 }
 
-$pageTitle = "Developer Options - ClinicFlow";
+$pageTitle = "Developer Options - NuvisMedcareX";
 $activePage = "developer";
 include __DIR__ . '/includes/header.php';
 

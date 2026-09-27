@@ -1,5 +1,5 @@
 <?php
-$pageTitle = "Patients Directory - ClinicFlow";
+$pageTitle = "Patients Directory - NuvisMedcareX";
 $activePage = "patients";
 include __DIR__ . '/includes/header.php';
 
