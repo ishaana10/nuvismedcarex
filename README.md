@@ -1,55 +1,60 @@
-# Nuvis Medcare X - Deployment & System Release Notes
+# Nuvis Medcare X - Industrial Multi-Tenant EHR & VMS Platform
 
-**Current Version:** `v2.1.0-VMS3` (FRCS Fiji VMS Phase 3 & Inventory Module Release)
-**Target Environment:** Native PHP 8.1+ PDO Architecture (A2 Hosting / MySQL)
+**Current Version:** `v2.1.0-VMS3` (FRCS Fiji VMS Phase 3, Multi-Tenancy & Layered Architecture Release)
+**Target Environment:** PHP 8.1+ (PDO / MySQL 8.0+)
 
 ---
 
-## 🚀 Recent Release Updates & Feature Progress
+## 🚀 Key Architecture & Feature Highlights
 
-### 1. FRCS Fiji VMS Phase 3 Billing & POS Integration
-- **SDC Fiscalization Engine (`src/Services/VMSService.php`):** Implemented calculations for FRCS Fiji VAT Monitoring System Phase 3 compliance:
+### 1. Multi-Tenancy & Request-Scoped Isolation
+- **Mandatory Non-Nullable Tenant Schema:** All business entities (`patients`, `clinical_visits`, `invoices`, `inventory`, `inventory_logs`, `audit_logs`, `vms_transactions`) enforce `tenant_id` columns with foreign key constraints to the `tenants` table.
+- **Request-Scoped `TenantContext` Resolver (`src/Shared/TenantContext.php`):** Resolves active tenant context with deterministic precedence:
+  1. `HTTP_X_TENANT_ID` request header.
+  2. Authenticated user session (`$_SESSION['tenant_id']`).
+  3. Domain host subdomain parsing (e.g. `clinic1.yourdomain.com`). Ignores raw IP host requests.
+  4. Default tenant fallback (`default-clinic`).
+- **Multi-Clinic User Assignment & Switching (`user_tenants`):** Supports users assigned to multiple practice locations with real-time UI clinic switching (`TenantService::switchTenant()`).
+
+### 2. Layered PSR-4 Industrial Architecture
+Refactored into a clean, modern PHP PSR-4 domain-driven directory structure:
+```text
+src/
+├── Domain/          # Entities & Value Objects (e.g. Money VO, Patient entity)
+├── Infrastructure/  # Repositories (PatientRepository, InvoiceRepository, InventoryRepository, TenantRepository, AuditRepository)
+├── Application/     # Use Cases & Application Services (TenantService, SecurityService)
+├── Http/            # Middleware (AuthMiddleware, TenantContextMiddleware) & Handlers
+├── Services/        # Domain Services (VMSService for FRCS Fiji VMS, MigrationRunner)
+└── Shared/          # System Kernel, Database connection, & TenantContext
+```
+
+### 3. FRCS Fiji VMS Phase 3 Billing & Fiscalization Engine
+- **SDC Fiscalization (`src/Services/VMSService.php`):** FRCS Fiji VAT Monitoring System Phase 3 compliance:
   - **Tax Labels:** Label A (15.00% VAT), Label E (Exempt 0%), Label F (Zero-rated 0%), Label P (0.25% Levy).
-  - **Invoice & Transaction Types:** Normal Sales, Advance Invoices, Proforma Invoices, Copy Invoices, Training Invoices, and Refund Transactions.
-  - **Multi-Payment Split:** Full breakdown support across Cash, Card, Mobile Pay, Insurance, and Check.
-  - **Fiscal Receipts & Invoices (`print_invoice.php`, `print_receipt.php`):** Generated fiscalized receipt layouts containing SDC Time, SDC Invoice No, Buyer TIN, internal QR verification URL, and Tax Itemization.
-  - **Invoice Cancellations:** Automated buyer TIN fallback to seller TIN per VMS Phase 3 rules (Section 10.2).
-  - **Daily Z-Report Summaries:** Automated daily fiscal sales, refund totals, and tax breakdowns.
+  - **Invoice Types:** Normal Sales, Advance Invoices, Proforma Invoices, Copy Invoices, Training Invoices, and Refund Transactions.
+  - **Resiliency & Idempotency:** Support for fiscal retries, dead-letter queues, and status state machines.
+  - **Fiscal Documentation:** Printable receipts and invoices (`print_invoice.php`, `print_receipt.php`, `print_prescription.php`) with SDC timestamp, verification QR codes, Buyer TIN, and itemized tax breakdowns.
 
-### 2. Enhanced Inventory Management Module (`inventory.php`)
-- **Stock & Cost Tracking:** Full tracking for Selling Unit Price, Cost Price, Batch Numbers, Expiry Dates, and VMS Tax Classifications per item.
-- **Restocking Workflow:** Added support for quick single-item restocks and detailed batch-based restocking modal forms (`actions/inventory_restock.php`).
-- **Movement Audit Log (`inventory_logs` table):** Records all inventory adjustments, stock additions, price updates, and soft deletions with timestamp and practitioner credentials.
-- **Soft Deletion & Role Safeguards:** Soft-delete mechanism (`is_active = 0`) preserving historical visit line items while hiding inactive stock items from active dropdowns (`actions/inventory_delete.php`).
-- **Developer Settings:** Dynamic custom JSON fields setup in `admin.php` for custom stock attributes.
+### 4. Advanced FEFO Inventory & Billing Integration
+- **FEFO Batch Selection:** First-Expired-First-Out stock deduction and batch tracking.
+- **Auto Stock Reservation:** Invoices linked directly to inventory items automatically adjust stock and record immutable entries in `inventory_logs`.
 
-### 3. Account Security & User Self-Service
-- **User Password Change:** Integrated "Change Password" modal in header navigation bar handled by `actions/change_password.php`.
-- **CSRF & Autoloader Enhancements:** Centralized security helpers in `includes/security.php` (`getCsrfToken()`, `validateCsrfRequest()`) and standard PSR-4 autoloader fallback (`includes/autoloader.php`).
-
-### 4. Application Versioning & Dual DB Engine
-- **Versioning Metadata (`config/version.php`):** Defined system release constants (`APP_NAME`, `APP_VERSION`, `APP_RELEASE_DATE`, `APP_BUILD_NAME`) displayed in login pages, header bars, and footers.
-- **MySQL Database Persistence:** Native PDO layer optimized for MySQL persistence with `ON DUPLICATE KEY UPDATE` dialect resolution.
+### 5. Security, RBAC & Audit Trails
+- **Password Policy:** Enforces password strength rules (minimum 8 characters, at least 1 uppercase letter, and at least 1 digit).
+- **Fine-Grained RBAC:** Modular permissions (`can_manage_inventory`, `can_view_all_patients_in_clinic`, `can_fiscalize`, `can_manage_tenants`).
+- **Immutable Audit Trail:** Comprehensive tracking of patient records, financial transactions, stock adjustments, and clinical encounter modifications.
 
 ---
 
-## 🛠️ Quick Setup & Installation Guide
+## 🛠️ Setup & Installation
 
-### Web Installer (Recommended)
-1. Upload the application files to your web server (e.g., `public_html/` or a subdomain folder).
-2. Open your browser and navigate to:
-   `https://yourdomain.com/install.php`
-3. Enter database credentials (MySQL setup) and clinic administrator profiles.
-4. Click **Save Config & Install Database**.
-
-### Manual Configuration
-1. Copy `config/config.example.php` to `config/config.php`.
-2. Configure database host, username, password, and database name.
-3. Import schema:
+### Quick Setup
+1. Configure database connection credentials in `config/config.php` (copied from `config/config.example.php`).
+2. Run database migrations to provision the multi-tenant schema:
    ```bash
-   mysql -u user -p database_name < database/schema.sql
+   php database/migrate.php
    ```
-4. Run seed data script:
+3. Seed default data and tenant records:
    ```bash
    php database/seed.php
    ```
@@ -57,20 +62,19 @@
 ---
 
 ## 🧪 Testing & Verification
-Execute the PHPUnit unit test suite to verify VMS Phase 3 calculations and database repository functions:
+Run the unit and repository integration test suite with PHPUnit:
 ```bash
 vendor/bin/phpunit tests
 ```
-*Status:* All 6 unit tests (24 assertions) passing 100%.
+*Status:* 37 tests, 122 assertions passing 100%.
 
 ---
 
-## 📁 Key File Structure
+## 📁 Key Directory Structure
 
-- `config/version.php` - Release version metadata.
-- `src/Services/VMSService.php` - FRCS Fiji VMS Phase 3 core service class.
-- `billing.php` & `actions/vms_*.php` - Billing ledger and SDC fiscalization actions.
-- `inventory.php` & `actions/inventory_*.php` - Inventory stock management & audit logging.
-- `includes/security.php` - CSRF protection, rate limiting, and session security helpers.
-- `includes/autoloader.php` - PSR-4 ClinicFlow autoloader fallback.
-- `print_invoice.php` & `print_receipt.php` - Printable fiscal invoice & receipt templates.
+- `src/Domain/` - Domain entities and Money value objects.
+- `src/Infrastructure/` - Tenant-scoped repositories and DB persistence logic.
+- `src/Shared/TenantContext.php` - Multi-tenant context resolver.
+- `src/Services/VMSService.php` - FRCS Fiji VMS Phase 3 fiscalization service.
+- `database/migrations/` - Versioned schema migrations.
+- `print_invoice.php`, `print_prescription.php`, `print_medical_certificate.php` - Printable clinical and financial documents.
