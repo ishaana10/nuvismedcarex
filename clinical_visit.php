@@ -20,13 +20,15 @@ if (empty($patientId)) {
                    LEFT JOIN patients p ON q.patient_id = p.id AND q.tenant_id = p.tenant_id
                    WHERE q.tenant_id = :tid";
     if ($search !== '') {
-        $queueQuery .= " AND (q.patient_name LIKE :s OR q.mrn LIKE :s OR q.doctor_name LIKE :s)";
+        $queueQuery .= " AND (q.patient_name LIKE :s1 OR q.mrn LIKE :s2 OR q.doctor_name LIKE :s3)";
     }
     $queueQuery .= " ORDER BY q.created_at ASC";
     $qStmt = $pdo->prepare($queueQuery);
     $qParams = ['tid' => $currentTenantId];
     if ($search !== '') {
-        $qParams['s'] = "%$search%";
+        $qParams['s1'] = "%$search%";
+        $qParams['s2'] = "%$search%";
+        $qParams['s3'] = "%$search%";
     }
     $qStmt->execute($qParams);
     $activeEncounters = $qStmt->fetchAll() ?: [];
@@ -37,13 +39,17 @@ if (empty($patientId)) {
                   LEFT JOIN patients p ON pv.patient_id = p.id AND pv.tenant_id = p.tenant_id
                   WHERE pv.tenant_id = :tid";
     if ($search !== '') {
-        $pastQuery .= " AND (p.first_name LIKE :s OR p.last_name LIKE :s OR p.mrn LIKE :s OR pv.title LIKE :s OR pv.doctor_name LIKE :s)";
+        $pastQuery .= " AND (p.first_name LIKE :ps1 OR p.last_name LIKE :ps2 OR p.mrn LIKE :ps3 OR pv.title LIKE :ps4 OR pv.doctor_name LIKE :ps5)";
     }
     $pastQuery .= " ORDER BY pv.created_at DESC LIMIT 50";
     $pStmt = $pdo->prepare($pastQuery);
     $pParams = ['tid' => $currentTenantId];
     if ($search !== '') {
-        $pParams['s'] = "%$search%";
+        $pParams['ps1'] = "%$search%";
+        $pParams['ps2'] = "%$search%";
+        $pParams['ps3'] = "%$search%";
+        $pParams['ps4'] = "%$search%";
+        $pParams['ps5'] = "%$search%";
     }
     $pStmt->execute($pParams);
     $pastEncounters = $pStmt->fetchAll() ?: [];

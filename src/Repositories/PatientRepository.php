@@ -19,10 +19,13 @@ class PatientRepository extends BaseRepository {
         $tenantId = $this->getTenantId();
 
         if ($search) {
-            $stmt = $this->db->prepare("SELECT *, {$concatExpr} AS full_name FROM patients WHERE tenant_id = :tid AND (first_name LIKE :s OR last_name LIKE :s OR mrn LIKE :s OR phone LIKE :s) ORDER BY id DESC LIMIT :limit OFFSET :offset");
+            $stmt = $this->db->prepare("SELECT *, {$concatExpr} AS full_name FROM patients WHERE tenant_id = :tid AND (first_name LIKE :s1 OR last_name LIKE :s2 OR mrn LIKE :s3 OR phone LIKE :s4) ORDER BY id DESC LIMIT :limit OFFSET :offset");
             $searchTerm = "%{$search}%";
             $stmt->bindValue(':tid', $tenantId, PDO::PARAM_STR);
-            $stmt->bindValue(':s', $searchTerm, PDO::PARAM_STR);
+            $stmt->bindValue(':s1', $searchTerm, PDO::PARAM_STR);
+            $stmt->bindValue(':s2', $searchTerm, PDO::PARAM_STR);
+            $stmt->bindValue(':s3', $searchTerm, PDO::PARAM_STR);
+            $stmt->bindValue(':s4', $searchTerm, PDO::PARAM_STR);
             $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
             $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
             $stmt->execute();
