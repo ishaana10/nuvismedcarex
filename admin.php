@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/includes/security.php';
-$pageTitle = "Administrator Settings - ClinicFlow";
+$pageTitle = "Administrator Settings - NuvisMedcareX";
 $activePage = "admin";
 include __DIR__ . '/includes/header.php';
 
@@ -260,7 +260,7 @@ if ($activeTab === 'developer' && !$isDeveloper) {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
             <div class="md:col-span-2">
                 <label class="block font-bold text-slate-700 mb-1">Clinic Name <span class="text-red-500">*</span></label>
-                <input type="text" name="clinic_name" value="<?= htmlspecialchars($settings['clinic_name'] ?? 'ClinicFlow Medical Center') ?>" required class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-bold text-on-surface">
+                <input type="text" name="clinic_name" value="<?= htmlspecialchars($settings['clinic_name'] ?? 'Nuvis Medico Healthcare') ?>" required class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-bold text-on-surface">
             </div>
 
             <div>
@@ -275,7 +275,7 @@ if ($activeTab === 'developer' && !$isDeveloper) {
 
             <div>
                 <label class="block font-bold text-slate-700 mb-1">Clinic Email</label>
-                <input type="email" name="clinic_email" value="<?= htmlspecialchars($settings['clinic_email'] ?? 'contact@clinicflow.com') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium">
+                <input type="email" name="clinic_email" value="<?= htmlspecialchars($settings['clinic_email'] ?? 'medico@nuvistechnologies.com.fj') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium">
             </div>
 
             <div>
@@ -355,7 +355,7 @@ if ($activeTab === 'developer' && !$isDeveloper) {
 
             <div class="md:col-span-2">
                 <label class="block font-bold text-slate-700 mb-1">Invoice Footer Note</label>
-                <textarea name="invoice_footer_note" rows="2" class="w-full bg-surface-container-low p-3 rounded-xl border border-outline-variant/40 font-medium"><?= htmlspecialchars($settings['invoice_footer_note'] ?? 'Thank you for choosing ClinicFlow Medical Center for your care.') ?></textarea>
+                <textarea name="invoice_footer_note" rows="2" class="w-full bg-surface-container-low p-3 rounded-xl border border-outline-variant/40 font-medium"><?= htmlspecialchars($settings['invoice_footer_note'] ?? 'Thank you for choosing Nuvis Medico Healthcare for your care.') ?></textarea>
             </div>
 
             <div>

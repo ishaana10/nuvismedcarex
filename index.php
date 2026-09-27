@@ -27,7 +27,7 @@ if ($viewMode === 'react' && file_exists(__DIR__ . '/dist/index.html')) {
     exit;
 }
 
-$pageTitle = "Dashboard - ClinicFlow";
+$pageTitle = "Dashboard - NuvisMedcareX";
 $activePage = "dashboard";
 include __DIR__ . '/includes/header.php';
 

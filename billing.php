@@ -1,5 +1,5 @@
 <?php
-$pageTitle = "Billing & VMS Fiscal Invoices - ClinicFlow";
+$pageTitle = "Billing & VMS Fiscal Invoices - NuvisMedcareX";
 $activePage = "billing";
 require_once __DIR__ . '/includes/autoloader.php';
 include __DIR__ . '/includes/header.php';
