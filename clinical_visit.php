@@ -1,17 +1,273 @@
 <?php
-$patientId = $_GET['patient_id'] ?? 'pat-1';
-$visitId = $_GET['visit_id'] ?? ('visit-' . date('Ymd') . '-' . substr(md5($patientId . time()), 0, 6));
-
 require_once __DIR__ . '/config/database.php';
 $pdo = getDB();
 
+$patientId = $_GET['patient_id'] ?? null;
+$visitId = $_GET['visit_id'] ?? null;
+$currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+
+// IF NO PATIENT ID IS SUPPLIED -> SHOW ENCOUNTER DIRECTORY LIST VIEW
+if (empty($patientId)) {
+    $pageTitle = "Clinical Encounters - NuvisMedcareX";
+    $activePage = "clinical-visit";
+    include __DIR__ . '/includes/header.php';
+
+    $search = trim($_GET['q'] ?? '');
+
+    // 1. Fetch active queue items (waiting/in room encounters)
+    $queueQuery = "SELECT q.*, p.dob, p.age, p.gender, p.known_allergies
+                   FROM queue q
+                   LEFT JOIN patients p ON q.patient_id = p.id AND q.tenant_id = p.tenant_id
+                   WHERE q.tenant_id = :tid";
+    if ($search !== '') {
+        $queueQuery .= " AND (q.patient_name LIKE :s OR q.mrn LIKE :s OR q.doctor_name LIKE :s)";
+    }
+    $queueQuery .= " ORDER BY q.created_at ASC";
+    $qStmt = $pdo->prepare($queueQuery);
+    $qParams = ['tid' => $currentTenantId];
+    if ($search !== '') {
+        $qParams['s'] = "%$search%";
+    }
+    $qStmt->execute($qParams);
+    $activeEncounters = $qStmt->fetchAll() ?: [];
+
+    // 2. Fetch recent finalized past visits
+    $pastQuery = "SELECT pv.*, p.first_name, p.last_name, p.mrn, p.age, p.gender, p.known_allergies
+                  FROM past_visits pv
+                  LEFT JOIN patients p ON pv.patient_id = p.id AND pv.tenant_id = p.tenant_id
+                  WHERE pv.tenant_id = :tid";
+    if ($search !== '') {
+        $pastQuery .= " AND (p.first_name LIKE :s OR p.last_name LIKE :s OR p.mrn LIKE :s OR pv.title LIKE :s OR pv.doctor_name LIKE :s)";
+    }
+    $pastQuery .= " ORDER BY pv.created_at DESC LIMIT 50";
+    $pStmt = $pdo->prepare($pastQuery);
+    $pParams = ['tid' => $currentTenantId];
+    if ($search !== '') {
+        $pParams['s'] = "%$search%";
+    }
+    $pStmt->execute($pParams);
+    $pastEncounters = $pStmt->fetchAll() ?: [];
+
+    // 3. Fetch all active patients for "Start New Encounter" modal select
+    $allPatientsStmt = $pdo->prepare("SELECT id, first_name, last_name, mrn, dob, age, gender FROM patients WHERE tenant_id = :tid ORDER BY last_name ASC");
+    $allPatientsStmt->execute(['tid' => $currentTenantId]);
+    $patientList = $allPatientsStmt->fetchAll() ?: [];
+    ?>
+
+    <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Clinical Encounters</h1>
+            <p class="text-xs text-slate-500 font-medium">Manage active clinical visits, review patient encounters, and document SOAP notes</p>
+        </div>
+        <button type="button" onclick="document.getElementById('startEncounterModal').classList.remove('hidden')" class="btn-primary">
+            <span class="material-symbols-outlined text-base">add_notes</span>
+            <span>Start New Encounter</span>
+        </button>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="card-container mb-6 flex flex-col md:flex-row gap-4 justify-between items-center">
+        <form action="clinical_visit.php" method="GET" class="relative w-full md:w-96">
+            <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+            <input type="text" name="q" value="<?= htmlspecialchars($search) ?>" placeholder="Search encounter by patient, MRN, doctor..." class="form-input pl-10">
+        </form>
+        <p class="text-xs text-slate-500 font-medium">
+            Active Encounters: <span class="font-bold text-primary"><?= count($activeEncounters) ?></span> &nbsp;|&nbsp; Finalized: <span class="font-bold text-slate-700"><?= count($pastEncounters) ?></span>
+        </p>
+    </div>
+
+    <!-- Active Queue Encounters Section -->
+    <div class="mb-8 space-y-3">
+        <div class="flex items-center justify-between">
+            <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-lg">p2p</span>
+                <span>Active Visits & Queue</span>
+            </h2>
+        </div>
+
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 shadow-xs overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead>
+                        <tr class="bg-surface-container-low/60 border-b border-outline-variant/30 text-outline uppercase text-[10px] font-bold tracking-wider">
+                            <th class="py-3 px-4">Patient Name & MRN</th>
+                            <th class="py-3 px-4">Check-in Time</th>
+                            <th class="py-3 px-4">Assigned Doctor</th>
+                            <th class="py-3 px-4">Status</th>
+                            <th class="py-3 px-4 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-outline-variant/20">
+                        <?php if (empty($activeEncounters)): ?>
+                            <tr>
+                                <td colspan="5" class="py-8 text-center text-outline text-xs">No active encounters in queue right now. Click "Start New Encounter" to select a patient.</td>
+                            </tr>
+                        <?php endif; ?>
+                        <?php foreach ($activeEncounters as $ae): ?>
+                            <tr class="hover:bg-surface-container-low/50 transition">
+                                <td class="py-3.5 px-4">
+                                    <div class="font-bold text-on-surface"><?= htmlspecialchars($ae['patient_name']) ?></div>
+                                    <div class="text-[11px] font-mono text-slate-500">MRN: <?= htmlspecialchars($ae['mrn']) ?></div>
+                                </td>
+                                <td class="py-3.5 px-4 font-medium text-slate-600">
+                                    <?= htmlspecialchars($ae['check_in_time'] ?? $ae['time'] ?? 'Just now') ?>
+                                </td>
+                                <td class="py-3.5 px-4 font-medium text-slate-800">
+                                    <?= htmlspecialchars($ae['doctor_name'] ?? 'Attending Physician') ?>
+                                </td>
+                                <td class="py-3.5 px-4">
+                                    <?php if (($ae['status'] ?? '') === 'In Room'): ?>
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                                            In Room
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">
+                                            Waiting
+                                        </span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="py-3.5 px-4 text-right space-x-1">
+                                    <a href="clinical_visit.php?patient_id=<?= htmlspecialchars($ae['patient_id']) ?>" class="inline-flex items-center gap-1 px-3.5 py-1.5 bg-primary text-white rounded-xl text-xs font-semibold hover:bg-primary/90 transition">
+                                        <span class="material-symbols-outlined text-sm">edit_note</span>
+                                        <span>Open Encounter</span>
+                                    </a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Finalized Encounter History Section -->
+    <div class="space-y-3">
+        <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+            <span class="material-symbols-outlined text-emerald-600 text-lg">history</span>
+            <span>Finalized Encounters</span>
+        </h2>
+
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 shadow-xs overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead>
+                        <tr class="bg-surface-container-low/60 border-b border-outline-variant/30 text-outline uppercase text-[10px] font-bold tracking-wider">
+                            <th class="py-3 px-4">Visit Date</th>
+                            <th class="py-3 px-4">Patient Name & MRN</th>
+                            <th class="py-3 px-4">Title / Reason</th>
+                            <th class="py-3 px-4">Attending Doctor</th>
+                            <th class="py-3 px-4 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-outline-variant/20">
+                        <?php if (empty($pastEncounters)): ?>
+                            <tr>
+                                <td colspan="5" class="py-8 text-center text-outline text-xs">No past encounter history recorded yet.</td>
+                            </tr>
+                        <?php endif; ?>
+                        <?php foreach ($pastEncounters as $pe): ?>
+                            <tr class="hover:bg-surface-container-low/50 transition">
+                                <td class="py-3.5 px-4 font-mono font-medium text-slate-600">
+                                    <?= htmlspecialchars($pe['visit_date']) ?>
+                                </td>
+                                <td class="py-3.5 px-4">
+                                    <div class="font-bold text-on-surface"><?= htmlspecialchars(($pe['first_name'] ?? 'Patient') . ' ' . ($pe['last_name'] ?? '')) ?></div>
+                                    <div class="text-[11px] font-mono text-slate-500">MRN: <?= htmlspecialchars($pe['mrn'] ?? '') ?></div>
+                                </td>
+                                <td class="py-3.5 px-4 font-medium text-slate-800">
+                                    <?= htmlspecialchars($pe['title'] ?? 'Clinical Encounter') ?>
+                                    <?php if (!empty($pe['summary'])): ?>
+                                        <p class="text-[11px] text-slate-500 font-normal truncate max-w-xs"><?= htmlspecialchars($pe['summary']) ?></p>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="py-3.5 px-4 font-medium text-slate-700">
+                                    <?= htmlspecialchars($pe['doctor_name'] ?? 'Physician') ?>
+                                </td>
+                                <td class="py-3.5 px-4 text-right space-x-1">
+                                    <a href="patient_detail.php?id=<?= htmlspecialchars($pe['patient_id']) ?>" class="inline-flex items-center gap-1 px-3 py-1.5 bg-surface-container-high text-primary rounded-xl text-xs font-semibold hover:bg-surface-container-highest transition">
+                                        <span class="material-symbols-outlined text-sm">visibility</span>
+                                        <span>View Chart</span>
+                                    </a>
+                                    <a href="clinical_visit.php?patient_id=<?= htmlspecialchars($pe['patient_id']) ?>&visit_id=<?= htmlspecialchars($pe['visit_id'] ?? '') ?>" class="inline-flex items-center gap-1 px-3 py-1.5 bg-primary/10 text-primary rounded-xl text-xs font-semibold hover:bg-primary/20 transition">
+                                        <span>Re-open</span>
+                                    </a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Start New Encounter -->
+    <div id="startEncounterModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 class="font-bold text-base text-slate-900 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-xl">add_notes</span>
+                    <span>Start New Clinical Encounter</span>
+                </h3>
+                <button type="button" onclick="document.getElementById('startEncounterModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-700">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-600">
+                Select a registered patient to begin a new clinical documentation session.
+            </p>
+
+            <form action="clinical_visit.php" method="GET" class="space-y-4 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1.5">Select Patient <span class="text-red-500">*</span></label>
+                    <select name="patient_id" required class="w-full bg-slate-50 p-3 rounded-xl border border-slate-200 font-medium text-slate-800 focus:bg-white focus:outline-none focus:border-primary">
+                        <option value="">-- Choose Patient --</option>
+                        <?php foreach ($patientList as $pl): ?>
+                            <option value="<?= htmlspecialchars($pl['id']) ?>">
+                                <?= htmlspecialchars($pl['first_name'] . ' ' . $pl['last_name']) ?> (MRN: <?= htmlspecialchars($pl['mrn']) ?>, DOB: <?= htmlspecialchars($pl['dob']) ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="p-3 bg-blue-50/70 border border-blue-100 rounded-xl text-blue-800 text-[11px] leading-relaxed">
+                    <strong>Note:</strong> Starting an encounter will allow you to record vitals, SOAP notes, issue prescriptions, generate invoices, and produce medical certificates.
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                    <button type="button" onclick="document.getElementById('startEncounterModal').classList.add('hidden')" class="px-4 py-2 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-5 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition shadow-xs flex items-center gap-1.5">
+                        <span>Begin Encounter</span>
+                        <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <?php
+    include __DIR__ . '/includes/footer.php';
+    exit;
+}
+
+// ---------------------------------------------------------
+// IF PATIENT ID IS SUPPLIED -> SHOW ACTIVE ENCOUNTER FORM
+// ---------------------------------------------------------
+
+if (empty($visitId)) {
+    $visitId = 'visit-' . date('Ymd') . '-' . substr(md5($patientId . time()), 0, 6);
+}
+
 // Fetch patient info
-$stmt = $pdo->prepare("SELECT * FROM patients WHERE id = ?");
-$stmt->execute([$patientId]);
+$stmt = $pdo->prepare("SELECT * FROM patients WHERE id = ? AND tenant_id = ?");
+$stmt->execute([$patientId, $currentTenantId]);
 $patient = $stmt->fetch();
 
 if (!$patient) {
-    header("Location: patients.php");
+    header("Location: clinical_visit.php");
     exit;
 }
 
@@ -55,19 +311,27 @@ $activePage = "clinical-visit";
 include __DIR__ . '/includes/header.php';
 ?>
 
-<!-- Patient Encounter Header Bar (Matches Prescription.png) -->
+<!-- Back to Encounters List -->
+<div class="mb-4">
+    <a href="clinical_visit.php" class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-primary transition">
+        <span class="material-symbols-outlined text-base">arrow_back</span>
+        <span>Back to All Encounters</span>
+    </a>
+</div>
+
+<!-- Patient Encounter Header Bar -->
 <div class="card-container mb-6">
     <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div class="flex items-center gap-4">
             <div class="w-12 h-12 rounded-xl bg-blue-700 text-white font-bold text-lg flex items-center justify-center shadow-md">
-                <?= htmlspecialchars($patient['initials'] ?: 'P') ?>
+                <?= htmlspecialchars($patient['initials'] ?: substr($patient['first_name'],0,1) . substr($patient['last_name'],0,1)) ?>
             </div>
             <div>
                 <div class="flex items-center gap-2 flex-wrap">
                     <h1 class="text-xl font-bold text-slate-900"><?= htmlspecialchars($patient['first_name'] . ' ' . $patient['last_name']) ?></h1>
                     <?php
                     $patientAllergies = $patient['known_allergies'] ?? $patient['allergies'] ?? '';
-                    if (!empty($patientAllergies)):
+                    if (!empty($patientAllergies) && $patientAllergies !== 'None' && $patientAllergies !== 'None reported'):
                     ?>
                         <span class="badge-chip badge-allergy">
                             <span class="material-symbols-outlined text-xs">warning</span>
@@ -111,7 +375,7 @@ include __DIR__ . '/includes/header.php';
     <!-- Left Column (2 Cols): Vitals & SOAP Notes -->
     <div class="lg:col-span-2 space-y-6">
 
-        <!-- Vitals Summary Bar (Matches Prescription.png) -->
+        <!-- Vitals Summary Bar -->
         <div class="vitals-summary-bar">
             <div class="vital-metric border-r border-slate-200 pr-4">
                 <span class="vital-label">BLOOD PRESSURE</span>
@@ -354,10 +618,6 @@ function toggleFinalizeInvoiceFields() {
             <button type="button" onclick="closeAddRxModal()" class="text-slate-400 hover:text-slate-700">
                 <span class="material-symbols-outlined">close</span>
             </button>
-        </div>
-
-        <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs text-slate-500 italic">
-            Prescription form is blank for this encounter. Add new medication lines below.
         </div>
 
         <form action="actions/encounter_save.php" method="POST" class="space-y-3 text-xs">
