@@ -30,24 +30,33 @@ class TenantService {
     }
 
     public function switchTenant(string $tenantId): bool {
+        if ($tenantId === 'default-clinic') {
+            // Always allow switching to default-clinic
+            $stmt = $this->db->prepare("SELECT id FROM tenants WHERE id = 'default-clinic' LIMIT 1");
+            $stmt->execute();
+            if (!$stmt->fetch()) {
+                $ins = $this->db->prepare("INSERT INTO tenants (id, name, code, status, plan, is_active) VALUES ('default-clinic', 'Nuvis Medico Healthcare', 'default-clinic', 'active', 'enterprise', 1)");
+                $ins->execute();
+            } else {
+                $upd = $this->db->prepare("UPDATE tenants SET is_active = 1, status = 'active' WHERE id = 'default-clinic'");
+                $upd->execute();
+            }
+            $_SESSION['tenant_id'] = 'default-clinic';
+            TenantContext::setTenantId('default-clinic');
+            return true;
+        }
+
         $stmt = $this->db->prepare("SELECT id FROM tenants WHERE id = :id LIMIT 1");
         $stmt->execute(['id' => $tenantId]);
         $tenant = $stmt->fetch();
 
         if (!$tenant) {
-            // Auto-provision default tenant if missing
-            if ($tenantId === 'default-clinic') {
-                $ins = $this->db->prepare("INSERT INTO tenants (id, name, code, status, plan, is_active) VALUES ('default-clinic', 'Nuvis Medico Healthcare', 'default-clinic', 'active', 'enterprise', 1)");
-                $ins->execute();
-            } else {
-                return false;
-            }
-        } else {
-            // Ensure tenant is active when switching to it
-            if (isset($tenant['is_active']) && (int)$tenant['is_active'] === 0) {
-                $upd = $this->db->prepare("UPDATE tenants SET is_active = 1, status = 'active' WHERE id = :id");
-                $upd->execute(['id' => $tenantId]);
-            }
+            return false;
+        }
+
+        if (isset($tenant['is_active']) && (int)$tenant['is_active'] === 0) {
+            $upd = $this->db->prepare("UPDATE tenants SET is_active = 1, status = 'active' WHERE id = :id");
+            $upd->execute(['id' => $tenantId]);
         }
 
         $_SESSION['tenant_id'] = $tenantId;
