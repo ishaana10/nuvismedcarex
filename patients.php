@@ -9,8 +9,9 @@ $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 
 try {
     if ($search !== '') {
-        $stmt = $pdo->prepare("SELECT * FROM patients WHERE tenant_id = :tid AND (first_name LIKE :s OR last_name LIKE :s OR mrn LIKE :s OR phone LIKE :s) ORDER BY last_name ASC");
-        $stmt->execute(['tid' => $currentTenantId, 's' => "%$search%"]);
+        $stmt = $pdo->prepare("SELECT * FROM patients WHERE tenant_id = :tid AND (first_name LIKE :s1 OR last_name LIKE :s2 OR mrn LIKE :s3 OR phone LIKE :s4) ORDER BY last_name ASC");
+        $searchTerm = "%$search%";
+        $stmt->execute(['tid' => $currentTenantId, 's1' => $searchTerm, 's2' => $searchTerm, 's3' => $searchTerm, 's4' => $searchTerm]);
         $patients = $stmt->fetchAll() ?: [];
     } else {
         $stmt = $pdo->prepare("SELECT * FROM patients WHERE tenant_id = :tid ORDER BY last_name ASC");
