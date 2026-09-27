@@ -268,5 +268,6 @@ try {
 
     echo json_encode(['success' => false, 'error' => 'Invalid action specified']);
 } catch (Throwable $e) {
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Shared\Logger::class)->error("git_actions error: " . $e->getMessage());
+    echo json_encode(['success' => false, 'error' => 'An internal server error occurred.']);
 }

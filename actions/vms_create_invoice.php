@@ -3,13 +3,16 @@ require_once __DIR__ . '/../includes/security.php';
 require_once __DIR__ . '/../includes/autoloader.php';
 require_once __DIR__ . '/../config/database.php';
 
+use ClinicFlow\Shared\Container;
 use ClinicFlow\Services\VMSService;
+use ClinicFlow\Shared\Logger;
 
 // CSRF check
 validateCsrfRequest();
 
 $pdo = getDB();
-$vmsService = new VMSService($pdo);
+$vmsService = Container::getInstance()->get(VMSService::class);
+$logger = Container::getInstance()->get(Logger::class);
 
 $patientId = trim($_POST['patient_id'] ?? '');
 $patientName = trim($_POST['patient_name'] ?? '');
@@ -186,11 +189,12 @@ try {
     $vmsService->fiscalizeInvoice($invoiceId);
 
     $_SESSION['flash_success'] = "Invoice {$invoiceNumber} successfully created and fiscalized with VMS!";
-} catch (Exception $e) {
+} catch (\Throwable $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    $_SESSION['flash_error'] = "Failed to create invoice: " . $e->getMessage();
+    $logger->error("Failed to create VMS invoice: " . $e->getMessage());
+    $_SESSION['flash_error'] = "Failed to create invoice.";
 }
 
 header("Location: ../billing.php");

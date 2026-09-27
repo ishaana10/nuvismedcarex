@@ -12,6 +12,9 @@ if (empty($_SESSION['authenticated'])) {
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/security.php';
 
+use ClinicFlow\Shared\Container;
+use ClinicFlow\Services\InventoryService;
+
 $role = $_SESSION['user_role'] ?? '';
 if (!in_array($role, ['Administrator', 'Developer'])) {
     setToast("Access Denied", "Only Administrators and Developers can delete inventory records.", "error");
@@ -31,27 +34,20 @@ if (!validateCsrfToken($csrf)) {
     exit;
 }
 
-$pdo = getDB();
+$inventoryService = Container::getInstance()->get(InventoryService::class);
 $itemId = trim($_POST['item_id'] ?? '');
 
 if (!empty($itemId)) {
-    $stmt = $pdo->prepare("SELECT * FROM inventory WHERE id = ?");
-    $stmt->execute([$itemId]);
-    $item = $stmt->fetch();
-
-    if ($item) {
-        // Soft delete item by marking is_active = 0
-        $dStmt = $pdo->prepare("UPDATE inventory SET is_active = 0 WHERE id = ?");
-        $dStmt->execute([$itemId]);
-
-        // Audit Log
-        $userName = $_SESSION['user_name'] ?? 'Admin';
-        $logStmt = $pdo->prepare("INSERT INTO inventory_logs (id, inventory_id, change_amount, previous_stock, new_stock, type, notes, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $logStmt->execute([
-            'log-' . uniqid(), $itemId, 0, $item['current_stock'], $item['current_stock'], 'deactivation', 'Soft deleted / deactivated item', $userName, date('Y-m-d H:i:s')
-        ]);
-
-        setToast("Item Deleted", "Inventory record '{$item['name']}' has been removed.", "info");
+    try {
+        $deleted = $inventoryService->deleteItem($itemId);
+        if ($deleted) {
+            setToast("Item Deleted", "Inventory record has been removed.", "info");
+        } else {
+            setToast("Not Found", "Inventory record not found.", "error");
+        }
+    } catch (\Throwable $e) {
+        Container::getInstance()->get(\ClinicFlow\Shared\Logger::class)->error("Error deleting inventory item: " . $e->getMessage());
+        setToast("Error", "Could not delete inventory item: " . $e->getMessage(), "error");
     }
 }
 

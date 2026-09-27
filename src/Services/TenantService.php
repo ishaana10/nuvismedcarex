@@ -63,4 +63,22 @@ class TenantService {
         TenantContext::setTenantId($tenantId);
         return true;
     }
+
+    public function saveTenant(array $data): void {
+        $stmt = $this->db->prepare("
+            INSERT INTO tenants (id, name, code, status, plan, address, phone, email)
+            VALUES (:id, :name, :code, :status, :plan, :address, :phone, :email)
+            ON DUPLICATE KEY UPDATE name = VALUES(name), code = VALUES(code), status = VALUES(status), plan = VALUES(plan), address = VALUES(address), phone = VALUES(phone), email = VALUES(email)
+        ");
+        $stmt->execute([
+            'id' => $data['id'],
+            'name' => $data['name'],
+            'code' => $data['code'],
+            'status' => $data['status'] ?? 'active',
+            'plan' => $data['plan'] ?? 'standard',
+            'address' => $data['address'] ?? '',
+            'phone' => $data['phone'] ?? '',
+            'email' => $data['email'] ?? ''
+        ]);
+    }
 }
