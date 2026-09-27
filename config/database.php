@@ -50,6 +50,7 @@ function getDB(): PDO {
             PDO::ATTR_EMULATE_PREPARES => false,
         ]);
         runDatabaseMigrations($pdo);
+        ensureDoctorColumnsExist($pdo);
         seedDefaultUsersIfEmpty($pdo);
         return $pdo;
     } catch (PDOException $e) {
