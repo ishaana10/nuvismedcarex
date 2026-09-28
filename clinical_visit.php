@@ -302,6 +302,10 @@ $soap = $soapStmt->fetch() ?: [
 
 $assessmentCodes = json_decode($soap['assessment_codes'] ?? '[]', true) ?: [];
 
+// Fetch Lab Orders for Patient
+$labOrderService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\LabOrderService::class);
+$patientLabOrders = $labOrderService->getOrdersByPatient($patientId);
+
 // Fetch Prescriptions for THIS encounter only (visit_id)
 $rxStmt = $pdo->prepare("SELECT * FROM prescriptions WHERE patient_id = ? AND visit_id = ? ORDER BY created_at ASC");
 $rxStmt->execute([$patientId, $visitId]);
@@ -500,6 +504,39 @@ include __DIR__ . '/includes/header.php';
                     <span>Add Medication Line</span>
                 </button>
             </div>
+        </div>
+
+        <!-- Lab & Diagnostic Orders Section -->
+        <div class="bg-surface-container-lowest rounded-3xl border border-outline-variant/30 p-5 shadow-xs">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="font-bold text-sm text-on-surface flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-base">science</span>
+                    <span>Lab & Diagnostic Orders</span>
+                </h3>
+                <button type="button" onclick="openModal('modal-add-lab-order')" class="px-2.5 py-1 bg-primary text-white text-xs font-semibold rounded-lg hover:bg-primary/90 flex items-center gap-1">
+                    <span class="material-symbols-outlined text-sm">add</span>
+                    <span>Order Test</span>
+                </button>
+            </div>
+            <?php if (empty($patientLabOrders)): ?>
+                <p class="text-xs text-outline italic">No lab or diagnostic orders recorded for this patient.</p>
+            <?php else: ?>
+                <div class="space-y-2">
+                    <?php foreach ($patientLabOrders as $lo): ?>
+                        <div class="p-2.5 bg-surface-container-low rounded-xl border border-outline-variant/30 flex items-center justify-between text-xs">
+                            <div>
+                                <span class="font-bold text-on-surface"><?= e($lo['test_name']) ?></span>
+                                <span class="text-outline text-[11px] block"><?= e($lo['category']) ?> • Ordered by <?= e($lo['ordered_by']) ?></span>
+                            </div>
+                            <div class="text-right">
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold <?= $lo['status'] === 'Completed' ? ($lo['is_abnormal'] ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800') : 'bg-amber-100 text-amber-800' ?>">
+                                    <?= e($lo['status']) ?> <?= !empty($lo['is_abnormal']) ? '(Abnormal)' : '' ?>
+                                </span>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
         </div>
 
         <!-- Prescription History Tab (Previous Prescriptions) -->
@@ -905,6 +942,51 @@ foreach ($settingsRows as $sr) {
                 <button type="submit" class="px-5 py-2 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition shadow-xs flex items-center gap-2">
                     <span class="material-symbols-outlined text-base">print</span>
                     <span>Issue & Print Certificate</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Add Lab Order -->
+<div id="modal-add-lab-order" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center hidden p-4">
+    <div class="bg-surface-container-lowest rounded-3xl border border-outline-variant/30 shadow-2xl max-w-md w-full overflow-hidden">
+        <div class="p-5 bg-slate-900 text-white flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-xl">science</span>
+                <h3 class="font-bold text-sm">Order Lab Test / Diagnostic</h3>
+            </div>
+            <button type="button" onclick="closeModal('modal-add-lab-order')" class="text-slate-400 hover:text-white">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <form action="actions/lab_order_save.php" method="POST" class="p-6 space-y-4 text-xs">
+            <input type="hidden" name="csrf_token" value="<?= e(getCsrfToken()) ?>">
+            <input type="hidden" name="action" value="create_lab_order">
+            <input type="hidden" name="patient_id" value="<?= e($patientId) ?>">
+            <input type="hidden" name="visit_id" value="<?= e($visitId) ?>">
+
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Test Name *</label>
+                <input type="text" name="test_name" required placeholder="e.g., Complete Blood Count (CBC)" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium text-on-surface focus:outline-none focus:border-primary">
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Category</label>
+                <select name="category" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium text-on-surface focus:outline-none focus:border-primary">
+                    <option value="General">General Diagnostics</option>
+                    <option value="Hematology">Hematology</option>
+                    <option value="Biochemistry">Biochemistry</option>
+                    <option value="Microbiology">Microbiology</option>
+                    <option value="Radiology">Radiology / Imaging</option>
+                </select>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-outline-variant/20">
+                <button type="button" onclick="closeModal('modal-add-lab-order')" class="px-4 py-2 bg-surface-container hover:bg-surface-container-high rounded-xl font-semibold text-on-surface">Cancel</button>
+                <button type="submit" class="px-5 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 shadow-xs flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-base">send</span>
+                    <span>Submit Order</span>
                 </button>
             </div>
         </form>
