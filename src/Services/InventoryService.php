@@ -144,26 +144,50 @@ class InventoryService {
 
     public function restockItem(string $id, int $changeAmount, string $type = 'restock', ?string $supplier = null, ?float $unitCost = null, ?string $notes = null, ?string $tenantId = null): array {
         $tenantId = $tenantId ?? TenantContext::getTenantId();
-        $item = $this->getItemById($id, $tenantId);
-        if (!$item) {
-            throw new \RuntimeException("Inventory item not found.");
+
+        if (!$this->db->inTransaction()) {
+            $this->db->beginTransaction();
+            $autoCommit = true;
+        } else {
+            $autoCommit = false;
         }
 
-        $prevStock = (int)$item['current_stock'];
-        $newStock = $prevStock + $changeAmount;
-        $minThreshold = (int)$item['min_threshold'];
-        $status = $newStock > $minThreshold ? 'In Stock' : ($newStock > 0 ? 'Low Stock' : 'Out of Stock');
+        try {
+            $isMysql = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql';
+            $sql = "SELECT * FROM inventory WHERE id = :id AND tenant_id = :tid" . ($isMysql ? " FOR UPDATE" : "");
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute(['id' => $id, 'tid' => $tenantId]);
+            $item = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $upd = $this->db->prepare(
-            "UPDATE inventory SET current_stock = :stock, status = :status, last_restocked = :date WHERE id = :id AND tenant_id = :tid"
-        );
-        $upd->execute([
-            'stock' => $newStock,
-            'status' => $status,
-            'date' => date('Y-m-d'),
-            'id' => $id,
-            'tid' => $tenantId
-        ]);
+            if (!$item) {
+                throw new \RuntimeException("Inventory item not found.");
+            }
+
+            $prevStock = (int)$item['current_stock'];
+            $newStock = $prevStock + $changeAmount;
+            $minThreshold = (int)$item['min_threshold'];
+            $status = $newStock > $minThreshold ? 'In Stock' : ($newStock > 0 ? 'Low Stock' : 'Out of Stock');
+
+            $upd = $this->db->prepare(
+                "UPDATE inventory SET current_stock = :stock, status = :status, last_restocked = :date WHERE id = :id AND tenant_id = :tid"
+            );
+            $upd->execute([
+                'stock' => $newStock,
+                'status' => $status,
+                'date' => date('Y-m-d'),
+                'id' => $id,
+                'tid' => $tenantId
+            ]);
+
+            if ($autoCommit) {
+                $this->db->commit();
+            }
+        } catch (\Throwable $e) {
+            if ($autoCommit && $this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $e;
+        }
 
         $logId = Uuid::uuidv7();
         $logStmt = $this->db->prepare(

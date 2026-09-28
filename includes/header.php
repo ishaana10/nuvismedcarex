@@ -173,6 +173,30 @@ if (!$tenantRow) {
                 <span class="material-symbols-outlined text-xl">help</span>
             </button>
 
+            <!-- Clinic Tenant Switcher -->
+            <?php
+            $containerHeader = \ClinicFlow\Shared\Container::getInstance();
+            $tenantServiceHeader = $containerHeader->get(\ClinicFlow\Services\TenantService::class);
+            $allTenantsHeader = [];
+            try {
+                $allTenantsHeader = $tenantServiceHeader->getAllTenants();
+            } catch (\Throwable $e) {}
+            $activeTenantIdHeader = \ClinicFlow\Shared\TenantContext::getTenantId();
+            ?>
+            <?php if (!empty($allTenantsHeader)): ?>
+                <form action="actions/tenant_actions.php" method="POST" class="inline-block">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getCsrfToken()) ?>">
+                    <input type="hidden" name="action" value="switch_tenant">
+                    <select name="tenant_id" onchange="this.form.submit()" class="bg-slate-100 border border-slate-200 text-slate-800 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                        <?php foreach ($allTenantsHeader as $tn): ?>
+                            <option value="<?= htmlspecialchars($tn['id']) ?>" <?= $tn['id'] === $activeTenantIdHeader ? 'selected' : '' ?>>
+                                🏥 <?= htmlspecialchars($tn['name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </form>
+            <?php endif; ?>
+
             <!-- Doctor Selector & Profile -->
             <div class="flex items-center gap-2 pl-2 border-l border-slate-200">
                 <form action="actions/set_doctor.php" method="POST" class="flex items-center gap-2">
