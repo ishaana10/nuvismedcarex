@@ -13,12 +13,7 @@ $toast = getToast();
 $activePage = $activePage ?? 'dashboard';
 
 // Authentication Check
-if (!isset($_SESSION['authenticated']) || $_SESSION['authenticated'] !== true) {
-    if (basename($_SERVER['PHP_SELF']) !== 'login.php' && basename($_SERVER['PHP_SELF']) !== 'install.php') {
-        header("Location: login.php");
-        exit;
-    }
-}
+requireAuth();
 
 // Get doctors for current doctor selector
 $doctors = $pdo->query("SELECT * FROM doctors ORDER BY name ASC")->fetchAll();
