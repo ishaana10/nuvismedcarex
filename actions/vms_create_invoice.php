@@ -188,6 +188,28 @@ try {
     // Auto-fiscalize invoice with SDC
     $vmsService->fiscalizeInvoice($invoiceId);
 
+    // Automatically send invoice email to patient if email exists
+    try {
+        if (!empty($patientId)) {
+            $pStmt = $pdo->prepare("SELECT email FROM patients WHERE id = ?");
+            $pStmt->execute([$patientId]);
+            $patientEmail = $pStmt->fetchColumn();
+            if (!empty($patientEmail)) {
+                $emailService = Container::getInstance()->get(\ClinicFlow\Services\EmailService::class);
+                $emailService->sendInvoiceEmail($patientEmail, [
+                    'id' => $invoiceId,
+                    'invoice_number' => $invoiceNumber,
+                    'patient_name' => $patientName,
+                    'service_date' => date('Y-m-d'),
+                    'amount' => $totalAmount,
+                    'patient_owed' => $patientOwed
+                ]);
+            }
+        }
+    } catch (\Throwable $e) {
+        $logger->warning("Automated invoice email error: " . $e->getMessage());
+    }
+
     $_SESSION['flash_success'] = "Invoice {$invoiceNumber} successfully created and fiscalized with VMS!";
 } catch (\Throwable $e) {
     if ($pdo->inTransaction()) {

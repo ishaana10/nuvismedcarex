@@ -41,4 +41,77 @@ class EmailService {
 
         return $sent || true; // Return status
     }
+
+    public function sendInvoiceEmail(string $recipientEmail, array $invoice): bool {
+        $subject = "Nuvis Medico Healthcare - Invoice #" . ($invoice['invoice_number'] ?? 'INV');
+        $amount = number_format((float)($invoice['amount'] ?? 0), 2);
+        $owed = number_format((float)($invoice['patient_owed'] ?? 0), 2);
+
+        $body = "
+        <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;'>
+            <h2 style='color: #1d4ed8;'>Nuvis Medico Healthcare</h2>
+            <p>Dear " . htmlspecialchars($invoice['patient_name'] ?? 'Patient') . ",</p>
+            <p>Thank you for choosing Nuvis Medico Healthcare. Please review your invoice summary below:</p>
+            <div style='background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0;'>
+                <p><strong>Invoice Number:</strong> " . htmlspecialchars($invoice['invoice_number'] ?? '') . "</p>
+                <p><strong>Service Date:</strong> " . htmlspecialchars($invoice['service_date'] ?? date('Y-m-d')) . "</p>
+                <p><strong>Total Amount:</strong> $" . $amount . "</p>
+                <p><strong>Amount Owed:</strong> $" . $owed . "</p>
+            </div>
+            <p>If you have any billing questions, please contact our clinic staff.</p>
+            <br>
+            <p style='font-size: 12px; color: #64748b;'>Nuvis Medico Healthcare Team</p>
+        </div>";
+
+        return $this->sendDocumentEmail($recipientEmail, $subject, $body, 'invoice', $invoice['id'] ?? null);
+    }
+
+    public function sendReceiptEmail(string $recipientEmail, array $invoice, float $paymentAmount, string $paymentMethod): bool {
+        $subject = "Nuvis Medico Healthcare - Payment Receipt #" . ($invoice['invoice_number'] ?? 'INV');
+        $paidStr = number_format($paymentAmount, 2);
+
+        $body = "
+        <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;'>
+            <h2 style='color: #059669;'>Nuvis Medico Healthcare</h2>
+            <p>Dear " . htmlspecialchars($invoice['patient_name'] ?? 'Patient') . ",</p>
+            <p>We have received your payment. Here is your official payment receipt details:</p>
+            <div style='background-color: #f0fdf4; padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid #bbf7d0;'>
+                <p><strong>Invoice Number:</strong> " . htmlspecialchars($invoice['invoice_number'] ?? '') . "</p>
+                <p><strong>Amount Paid:</strong> $" . $paidStr . "</p>
+                <p><strong>Payment Method:</strong> " . htmlspecialchars($paymentMethod) . "</p>
+                <p><strong>Date:</strong> " . date('F j, Y g:i A') . "</p>
+            </div>
+            <p>Thank you for your prompt payment.</p>
+            <br>
+            <p style='font-size: 12px; color: #64748b;'>Nuvis Medico Healthcare Team</p>
+        </div>";
+
+        return $this->sendDocumentEmail($recipientEmail, $subject, $body, 'receipt', $invoice['id'] ?? null);
+    }
+
+    public function sendPrescriptionEmail(string $recipientEmail, string $patientName, array $prescriptions): bool {
+        $subject = "Nuvis Medico Healthcare - Your Clinical Prescription";
+
+        $rxItems = "";
+        foreach ($prescriptions as $rx) {
+            $rxItems .= "<li style='margin-bottom: 8px;'><strong>" . htmlspecialchars($rx['medication_name'] ?? '') . "</strong> (" . htmlspecialchars($rx['dosage'] ?? '') . ") - " . htmlspecialchars($rx['frequency'] ?? '') . " for " . htmlspecialchars($rx['duration'] ?? '') . "<br><small style='color: #475569;'>" . htmlspecialchars($rx['instructions'] ?? '') . "</small></li>";
+        }
+
+        $body = "
+        <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;'>
+            <h2 style='color: #1d4ed8;'>Nuvis Medico Healthcare</h2>
+            <p>Dear " . htmlspecialchars($patientName) . ",</p>
+            <p>Your attending physician has issued the following prescription for your clinical visit:</p>
+            <div style='background-color: #eff6ff; padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid #bfdbfe;'>
+                <ul style='padding-left: 20px;'>
+                    " . $rxItems . "
+                </ul>
+            </div>
+            <p>Please follow your physician's instructions carefully.</p>
+            <br>
+            <p style='font-size: 12px; color: #64748b;'>Nuvis Medico Healthcare Team</p>
+        </div>";
+
+        return $this->sendDocumentEmail($recipientEmail, $subject, $body, 'prescription');
+    }
 }

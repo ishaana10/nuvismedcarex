@@ -200,6 +200,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'insurance_covered' => (float)($_POST['insurance_covered'] ?? 0.00)
                 ]);
 
+                // Automatically send prescription email if prescriptions exist & patient has email
+                try {
+                    $pStmt = $pdo->prepare("SELECT first_name, last_name, email FROM patients WHERE id = ?");
+                    $pStmt->execute([$patientId]);
+                    $pRow = $pStmt->fetch();
+
+                    if ($pRow && !empty($pRow['email'])) {
+                        $rxStmt = $pdo->prepare("SELECT medication_name, dosage, frequency, duration, instructions FROM prescriptions WHERE patient_id = ? AND visit_id = ?");
+                        $rxStmt->execute([$patientId, $visitId]);
+                        $prescriptionsData = $rxStmt->fetchAll();
+
+                        if (!empty($prescriptionsData)) {
+                            $emailService = Container::getInstance()->get(\ClinicFlow\Services\EmailService::class);
+                            $emailService->sendPrescriptionEmail($pRow['email'], $pRow['first_name'] . ' ' . $pRow['last_name'], $prescriptionsData);
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    $logger->warning("Automated prescription email error: " . $e->getMessage());
+                }
+
                 setToast("Visit Finalized!", "Encounter for patient has been finalized.");
                 header("Location: ../patient_detail.php?id=$patientId");
                 exit;
