@@ -120,6 +120,9 @@ $zReportData = $vmsService->getDailyFiscalReport($selectedDate);
     <a href="billing.php?tab=invoices" class="pb-3 border-b-2 <?= $activeTab === 'invoices' ? 'border-primary text-primary' : 'border-transparent text-outline hover:text-on-surface' ?>">
         Fiscal Invoices List
     </a>
+    <a href="billing.php?tab=insurance" class="pb-3 border-b-2 <?= $activeTab === 'insurance' ? 'border-primary text-primary' : 'border-transparent text-outline hover:text-on-surface' ?>">
+        Insurance Claims
+    </a>
     <a href="billing.php?tab=zreport" class="pb-3 border-b-2 <?= $activeTab === 'zreport' ? 'border-primary text-primary' : 'border-transparent text-outline hover:text-on-surface' ?>">
         Daily Fiscal Summary (Z-Report)
     </a>
@@ -212,6 +215,124 @@ $zReportData = $vmsService->getDailyFiscalReport($selectedDate);
                 <?php endforeach; ?>
             </tbody>
         </table>
+    </div>
+</div>
+
+<?php elseif ($activeTab === 'insurance'): ?>
+<!-- Insurance Claims Management Tab -->
+<?php
+$insuranceClaimsStmt = $pdo->prepare("SELECT * FROM insurance_claims WHERE tenant_id = ? ORDER BY created_at DESC");
+$insuranceClaimsStmt->execute([$currentTenantId]);
+$insuranceClaims = $insuranceClaimsStmt->fetchAll();
+?>
+<div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 overflow-hidden shadow-xs">
+    <div class="p-4 bg-surface-container-low border-b border-outline-variant/30 flex items-center justify-between">
+        <h3 class="font-bold text-sm text-on-surface flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-base">verified</span>
+            <span>Submitted Insurance Claims</span>
+        </h3>
+        <button onclick="document.getElementById('createClaimModal').classList.remove('hidden')" class="px-3 py-1.5 bg-primary text-white rounded-xl text-xs font-bold hover:bg-primary-hover transition flex items-center gap-1">
+            <span class="material-symbols-outlined text-sm">add</span>
+            <span>Submit Claim</span>
+        </button>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs">
+            <thead class="bg-surface-container text-outline uppercase font-semibold text-[10px]">
+                <tr>
+                    <th class="py-3 px-4">Claim ID</th>
+                    <th class="py-3 px-4">Invoice ID</th>
+                    <th class="py-3 px-4">Provider</th>
+                    <th class="py-3 px-4">Policy No</th>
+                    <th class="py-3 px-4">Claim Amount</th>
+                    <th class="py-3 px-4">Status</th>
+                    <th class="py-3 px-4 text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-outline-variant/20 font-medium">
+                <?php if (empty($insuranceClaims)): ?>
+                    <tr>
+                        <td colspan="7" class="py-6 text-center text-outline italic">No insurance claims submitted yet.</td>
+                    </tr>
+                <?php else: ?>
+                    <?php foreach ($insuranceClaims as $claim): ?>
+                        <tr class="hover:bg-surface-container-low/50">
+                            <td class="py-3 px-4 font-mono font-bold"><?= htmlspecialchars(substr($claim['id'], 0, 8)) ?></td>
+                            <td class="py-3 px-4 font-mono"><?= htmlspecialchars($claim['invoice_id']) ?></td>
+                            <td class="py-3 px-4"><?= htmlspecialchars($claim['provider_name']) ?></td>
+                            <td class="py-3 px-4 font-mono"><?= htmlspecialchars($claim['policy_number']) ?></td>
+                            <td class="py-3 px-4 font-bold">$<?= number_format((float)$claim['claim_amount'], 2) ?></td>
+                            <td class="py-3 px-4">
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold <?= $claim['status'] === 'Approved' ? 'bg-emerald-100 text-emerald-800' : ($claim['status'] === 'Rejected' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800') ?>">
+                                    <?= htmlspecialchars($claim['status']) ?>
+                                </span>
+                            </td>
+                            <td class="py-3 px-4 text-right">
+                                <form action="actions/insurance_claim_save.php" method="POST" class="inline-flex gap-1">
+                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getCsrfToken()) ?>">
+                                    <input type="hidden" name="action" value="update_status">
+                                    <input type="hidden" name="claim_id" value="<?= htmlspecialchars($claim['id']) ?>">
+                                    <button type="submit" name="status" value="Approved" class="px-2 py-0.5 bg-emerald-600 text-white rounded text-[10px] font-bold hover:bg-emerald-700">Approve</button>
+                                    <button type="submit" name="status" value="Rejected" class="px-2 py-0.5 bg-red-600 text-white rounded text-[10px] font-bold hover:bg-red-700">Reject</button>
+                                </form>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Submit Insurance Claim -->
+<div id="createClaimModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center hidden p-4">
+    <div class="bg-surface-container-lowest rounded-3xl border border-outline-variant/30 shadow-2xl max-w-md w-full overflow-hidden">
+        <div class="p-5 bg-slate-900 text-white flex items-center justify-between">
+            <h3 class="font-bold text-sm">Submit New Insurance Claim</h3>
+            <button type="button" onclick="document.getElementById('createClaimModal').classList.add('hidden')" class="text-slate-400 hover:text-white">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <form action="actions/insurance_claim_save.php" method="POST" class="p-6 space-y-4 text-xs">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getCsrfToken()) ?>">
+            <input type="hidden" name="action" value="create_claim">
+
+            <div>
+                <label class="block font-bold text-outline mb-1">Select Invoice *</label>
+                <select name="invoice_id" required class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium">
+                    <?php foreach ($invoices as $inv): ?>
+                        <option value="<?= htmlspecialchars($inv['id']) ?>">
+                            <?= htmlspecialchars($inv['invoice_number']) ?> - <?= htmlspecialchars($inv['patient_name']) ?> ($<?= number_format((float)$inv['amount'], 2) ?>)
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div>
+                <label class="block font-bold text-outline mb-1">Patient ID *</label>
+                <input type="text" name="patient_id" required value="<?= htmlspecialchars($invoices[0]['patient_id'] ?? 'pat-1') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium">
+            </div>
+
+            <div>
+                <label class="block font-bold text-outline mb-1">Insurance Provider Name</label>
+                <input type="text" name="provider_name" value="Fiji National Health Insurance" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium">
+            </div>
+
+            <div>
+                <label class="block font-bold text-outline mb-1">Policy / Member Number</label>
+                <input type="text" name="policy_number" placeholder="e.g. POL-882019" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium">
+            </div>
+
+            <div>
+                <label class="block font-bold text-outline mb-1">Claim Amount ($) *</label>
+                <input type="number" step="0.01" name="claim_amount" required placeholder="100.00" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium">
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-outline-variant/20">
+                <button type="button" onclick="document.getElementById('createClaimModal').classList.add('hidden')" class="px-4 py-2 bg-surface-container rounded-xl font-semibold">Cancel</button>
+                <button type="submit" class="px-5 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90">Submit Claim</button>
+            </div>
+        </form>
     </div>
 </div>
 

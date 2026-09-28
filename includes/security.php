@@ -77,13 +77,19 @@ function validateCsrfRequest(): void {
  * Require User Authentication
  */
 function requireAuth(): void {
+    $scriptName = basename($_SERVER['PHP_SELF'] ?? '');
+    if (in_array($scriptName, ['login.php', 'install.php'])) {
+        return;
+    }
+
     if (empty($_SESSION['authenticated']) || $_SESSION['authenticated'] !== true) {
         if (isAjaxRequest()) {
             http_response_code(401);
             echo json_encode(['error' => 'Unauthenticated']);
             exit;
         }
-        header("Location: login.php");
+        setToast("Session Expired", "Your session has expired. Please log in again.", "error");
+        header("Location: login.php?expired=1");
         exit;
     }
 
@@ -92,6 +98,10 @@ function requireAuth(): void {
     if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > $maxInactivity)) {
         session_unset();
         session_destroy();
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        setToast("Session Expired", "Your session has expired due to inactivity. Please log in again.", "error");
         if (isAjaxRequest()) {
             http_response_code(401);
             echo json_encode(['error' => 'Session expired due to inactivity.']);
@@ -107,6 +117,10 @@ function requireAuth(): void {
     if (!empty($_SESSION['user_agent']) && !empty($currentUserAgent) && $_SESSION['user_agent'] !== $currentUserAgent) {
         session_unset();
         session_destroy();
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        setToast("Session Violation", "Session security check failed. Please log in again.", "error");
         if (isAjaxRequest()) {
             http_response_code(401);
             echo json_encode(['error' => 'Session security violation.']);
