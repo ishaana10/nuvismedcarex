@@ -12,5 +12,15 @@
         <span>A2 Hosting PHP 8.1+ Ready</span>
     </div>
 </footer>
+<script>
+function openModal(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('hidden');
+}
+function closeModal(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('hidden');
+}
+</script>
 </body>
 </html>

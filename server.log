@@ -13,3 +13,5 @@
 [2026-09-28 03:01:37] [WARNING] [Tenant: default-clinic] Failed loading VMS settings, falling back to defaults: SQLSTATE[HY000]: General error: 1 no such table: clinic_settings
 [2026-09-28 03:05:08] [WARNING] [Tenant: default-clinic] Failed loading VMS settings, falling back to defaults: SQLSTATE[HY000]: General error: 1 no such table: clinic_settings
 [2026-09-28 03:06:06] [WARNING] [Tenant: default-clinic] Failed loading VMS settings, falling back to defaults: SQLSTATE[HY000]: General error: 1 no such table: clinic_settings
+[2026-09-28 05:05:13] [WARNING] [Tenant: default-clinic] Failed loading VMS settings, falling back to defaults: SQLSTATE[HY000]: General error: 1 no such table: clinic_settings
+[2026-09-28 05:06:05] [WARNING] [Tenant: default-clinic] Failed loading VMS settings, falling back to defaults: SQLSTATE[HY000]: General error: 1 no such table: clinic_settings
