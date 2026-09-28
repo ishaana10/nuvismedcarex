@@ -14,7 +14,18 @@ class TenantService {
     }
 
     public function getAllTenants(): array {
-        $stmt = $this->db->query("SELECT id, name, code, status, plan, address, phone, email, is_active FROM tenants ORDER BY name ASC");
+        try {
+            $stmt = $this->db->prepare("SELECT id FROM tenants WHERE id = 'default-clinic' LIMIT 1");
+            $stmt->execute();
+            if (!$stmt->fetch()) {
+                $ins = $this->db->prepare("INSERT INTO tenants (id, name, code, status, plan, address, phone, email, is_active) VALUES ('default-clinic', 'Main Suva Central Clinic', 'default-clinic', 'active', 'enterprise', '2 Woodstand Road, Suva', '+679 330 1234', 'suva@clinicflow.org', 1)");
+                $ins->execute();
+            }
+        } catch (\Throwable $e) {
+            // Ignore if tenants table not ready
+        }
+
+        $stmt = $this->db->query("SELECT id, name, code, status, plan, address, phone, email, is_active FROM tenants ORDER BY CASE WHEN id = 'default-clinic' THEN 0 ELSE 1 END, name ASC");
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 

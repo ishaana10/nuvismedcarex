@@ -27,20 +27,21 @@ class TenantContext {
             return trim($_SERVER['HTTP_X_TENANT_ID']);
         }
 
-        // 2. HTTP Host / Subdomain (e.g. clinic1.yourdomain.com -> clinic1)
-        if (isset($_SERVER['HTTP_HOST'])) {
-            $host = explode(':', $_SERVER['HTTP_HOST'])[0];
-            $parts = explode('.', $host);
-            if (count($parts) >= 3 && $parts[0] !== 'www' && $parts[0] !== 'localhost') {
-                return $parts[0];
-            }
-        }
-
-        // 3. Authenticated Session
+        // 2. Authenticated Session
         if (isset($_SESSION['tenant_id']) && !empty($_SESSION['tenant_id'])) {
             return $_SESSION['tenant_id'];
         }
 
+        // 3. HTTP Host / Subdomain (e.g. clinic1.yourdomain.com -> clinic1)
+        if (isset($_SERVER['HTTP_HOST'])) {
+            $host = explode(':', $_SERVER['HTTP_HOST'])[0];
+            if (!filter_var($host, FILTER_VALIDATE_IP)) {
+                $parts = explode('.', $host);
+                if (count($parts) >= 3 && $parts[0] !== 'www' && $parts[0] !== 'localhost') {
+                    return $parts[0];
+                }
+            }
+        }
 
         // 4. Fallback Default Tenant
         return 'default-clinic';

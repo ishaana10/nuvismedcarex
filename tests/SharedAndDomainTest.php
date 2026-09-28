@@ -38,5 +38,19 @@ class SharedAndDomainTest extends TestCase {
 
         TenantContext::clear();
         $this->assertEquals('default-clinic', TenantContext::getTenantId());
+
+        // Test IP address host resolution
+        $_SERVER['HTTP_HOST'] = '127.0.0.1:8000';
+        TenantContext::clear();
+        $this->assertEquals('default-clinic', TenantContext::resolveTenantId());
+
+        // Test session precedence over subdomain host
+        $_SERVER['HTTP_HOST'] = 'clinic2.example.com';
+        $_SESSION['tenant_id'] = 'session-clinic';
+        TenantContext::clear();
+        $this->assertEquals('session-clinic', TenantContext::resolveTenantId());
+
+        unset($_SERVER['HTTP_HOST'], $_SESSION['tenant_id']);
+        TenantContext::clear();
     }
 }

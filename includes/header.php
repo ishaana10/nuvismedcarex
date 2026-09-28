@@ -144,6 +144,11 @@ if (!$tenantRow) {
             </button>
             <a href="index.php" class="flex items-center gap-2">
                 <span class="font-bold text-xl text-blue-900 tracking-tight"><?= htmlspecialchars($activeClinicName) ?></span>
+                <?php if ($currentTenantId !== 'default-clinic'): ?>
+                    <span class="px-2 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 rounded-md border border-amber-300" title="Active Tenant Context: <?= htmlspecialchars($currentTenantId) ?>">
+                        Tenant: <?= htmlspecialchars($currentTenantId) ?>
+                    </span>
+                <?php endif; ?>
             </a>
         </div>
 

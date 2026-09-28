@@ -69,7 +69,20 @@ if ($activeTab === 'developer' && !$isDeveloper) {
                     <span class="material-symbols-outlined text-primary text-lg">apartment</span>
                     <span>Multi-Clinic Tenancy Directory</span>
                 </h2>
-                <p class="text-xs text-outline font-medium mt-0.5">Manage multi-tenant clinic instances, isolation profiles, and switch active clinic context. Active Context: <code class="text-primary font-bold font-mono"><?= htmlspecialchars($currentTenantId) ?></code></p>
+                <div class="flex items-center gap-2 flex-wrap mt-0.5">
+                    <p class="text-xs text-outline font-medium">Manage multi-tenant clinic instances, isolation profiles, and switch active clinic context. Active Context: <code class="text-primary font-bold font-mono"><?= htmlspecialchars($currentTenantId) ?></code></p>
+                    <?php if ($currentTenantId !== 'default-clinic'): ?>
+                        <form action="actions/tenant_actions.php" method="POST" class="inline">
+                            <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+                            <input type="hidden" name="action" value="switch_tenant">
+                            <input type="hidden" name="tenant_id" value="default-clinic">
+                            <button type="submit" class="px-2.5 py-1 bg-primary text-white text-[11px] font-bold rounded-lg hover:bg-primary/90 transition inline-flex items-center gap-1 shadow-xs">
+                                <span class="material-symbols-outlined text-xs">restart_alt</span>
+                                <span>Switch Back to Default Clinic</span>
+                            </button>
+                        </form>
+                    <?php endif; ?>
+                </div>
             </div>
 
             <button type="button" onclick="openTenantModal()" class="px-4 py-2.5 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-2">
