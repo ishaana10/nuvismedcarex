@@ -1,1 +1,4 @@
 [Mon Aug 24 09:11:09 2026] Failed to listen on localhost:8000 (reason: Address already in use)
+[2026-09-27 22:29:01] [WARNING] [Tenant: default-clinic] Failed loading VMS settings, falling back to defaults: SQLSTATE[HY000]: General error: 1 no such table: clinic_settings
+[2026-09-27 22:29:36] [WARNING] [Tenant: default-clinic] Failed loading VMS settings, falling back to defaults: SQLSTATE[HY000]: General error: 1 no such table: clinic_settings
+[2026-09-27 22:30:36] [WARNING] [Tenant: default-clinic] Failed loading VMS settings, falling back to defaults: SQLSTATE[HY000]: General error: 1 no such table: clinic_settings

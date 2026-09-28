@@ -34,7 +34,7 @@ class VMSService
             if (isset($settings['vms_tax_rate_f'])) $this->taxRates['F'] = (float)$settings['vms_tax_rate_f'];
             if (isset($settings['vms_tax_rate_p'])) $this->taxRates['P'] = (float)$settings['vms_tax_rate_p'];
         } catch (Exception $e) {
-            // Fallback to defaults if settings table query fails
+            \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Shared\Logger::class)->warning("Failed loading VMS settings, falling back to defaults: " . $e->getMessage());
         }
     }
 
@@ -193,7 +193,7 @@ class VMSService
                     }
                 }
             } catch (Throwable $e) {
-                // Remote failure falls back to sandbox generation
+                \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Shared\Logger::class)->warning("Remote VMS fiscalization failed, using sandbox fallback: " . $e->getMessage());
             }
         }
 

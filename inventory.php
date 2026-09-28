@@ -7,16 +7,12 @@ require_once __DIR__ . '/includes/security.php';
 $userRole = $_SESSION['user_role'] ?? 'Staff';
 $isAdminOrDev = in_array($userRole, ['Administrator', 'Developer']);
 
-$pdo = getDB();
+$inventoryService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\InventoryService::class);
 
 // Fetch Clinic Inventory Settings & Custom Fields Definition
-$settingsStmt = $pdo->query("SELECT setting_key, setting_value FROM clinic_settings WHERE setting_key IN ('inventory_categories', 'inventory_default_min_threshold', 'inventory_custom_fields_def')");
-$settingsMap = $settingsStmt->fetchAll(PDO::FETCH_KEY_PAIR);
-
-$rawCategories = $settingsMap['inventory_categories'] ?? 'Pharmaceuticals, Surgical Supplies, Medical Equipment, Diagnostics, Consumables';
-$categories = array_filter(array_map('trim', explode(',', $rawCategories)));
-
-$customFieldsDef = json_decode($settingsMap['inventory_custom_fields_def'] ?? '[]', true) ?: [];
+$settings = $inventoryService->getInventorySettings();
+$categories = $settings['categories'];
+$customFieldsDef = $settings['custom_fields_def'];
 
 // Search and Filter parameters
 $searchQuery = trim($_GET['q'] ?? '');
@@ -24,36 +20,8 @@ $categoryFilter = trim($_GET['category'] ?? '');
 $statusFilter = trim($_GET['status'] ?? '');
 $activeTab = trim($_GET['tab'] ?? 'inventory'); // inventory or logs
 
-// Build Query for Inventory
-$sql = "SELECT * FROM inventory WHERE is_active = 1";
-$params = [];
-
-if ($searchQuery !== '') {
-    $sql .= " AND (name LIKE ? OR sku LIKE ? OR batch_number LIKE ?)";
-    $params[] = "%$searchQuery%";
-    $params[] = "%$searchQuery%";
-    $params[] = "%$searchQuery%";
-}
-
-if ($categoryFilter !== '') {
-    $sql .= " AND category = ?";
-    $params[] = $categoryFilter;
-}
-
-if ($statusFilter !== '') {
-    if ($statusFilter === 'Low Stock') {
-        $sql .= " AND (status = 'Low Stock' OR current_stock <= min_threshold)";
-    } elseif ($statusFilter === 'In Stock') {
-        $sql .= " AND (status = 'In Stock' AND current_stock > min_threshold)";
-    } elseif ($statusFilter === 'Out of Stock') {
-        $sql .= " AND current_stock = 0";
-    }
-}
-
-$sql .= " ORDER BY name ASC";
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-$items = $stmt->fetchAll();
+// Fetch Inventory Items via InventoryService
+$items = $inventoryService->searchAndFilterItems($searchQuery, $categoryFilter, $statusFilter);
 
 // Calculate Stats
 $totalItems = count($items);
@@ -70,12 +38,8 @@ foreach ($items as $item) {
     $totalValuation += ((int)$item['current_stock'] * (float)$item['unit_price']);
 }
 
-// Fetch Inventory Logs if tab is logs or for audit modal
-$logsStmt = $pdo->query("SELECT l.*, i.name as item_name, i.sku as item_sku
-                         FROM inventory_logs l
-                         LEFT JOIN inventory i ON l.inventory_id = i.id
-                         ORDER BY l.created_at DESC LIMIT 100");
-$inventoryLogs = $logsStmt->fetchAll();
+// Fetch Inventory Logs via InventoryService
+$inventoryLogs = $inventoryService->getInventoryLogs(100);
 
 $csrfToken = getCsrfToken();
 ?>
