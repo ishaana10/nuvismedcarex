@@ -8,6 +8,7 @@ require_once __DIR__ . '/../config/database.php';
 use ClinicFlow\Shared\Container;
 use ClinicFlow\Services\EncounterService;
 use ClinicFlow\Services\BillingService;
+use ClinicFlow\Services\ClinicalAlertService;
 use ClinicFlow\Shared\Logger;
 
 requireAuth();
@@ -151,10 +152,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($medName !== '') {
             try {
+                $alertService = Container::getInstance()->get(ClinicalAlertService::class);
+                $alerts = $alertService->checkMedicationAllergies($patientId, $medName);
+
                 $rxId = "rx-" . time() . '-' . rand(100, 999);
                 $stmt = $pdo->prepare("INSERT INTO prescriptions (id, patient_id, visit_id, medication_name, dosage, frequency, duration, instructions) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
                 $stmt->execute([$rxId, $patientId, $visitId, $medName, $dosage, $frequency, $duration, $instructions]);
-                setToast("Medication Added", "$medName $dosage added to prescription.");
+
+                if (!empty($alerts)) {
+                    $alertMsg = implode(' ', array_column($alerts, 'message'));
+                    setToast("Allergy Alert Warning!", $alertMsg, "error");
+                } else {
+                    setToast("Medication Added", "$medName $dosage added to prescription.");
+                }
             } catch (\Throwable $e) {
                 $logger->error("Error adding rx: " . $e->getMessage());
                 setToast("Error", "Could not add prescription line.", "error");
