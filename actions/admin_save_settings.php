@@ -53,6 +53,16 @@ if (isset($_POST['vms_seller_tin'])) {
     $settings['vms_tax_rate_p']        = trim($_POST['vms_tax_rate_p'] ?? '0.25');
 }
 
+// Email Settings (if submitted)
+if (isset($_POST['smtp_host']) || (isset($_POST['section']) && $_POST['section'] === 'email')) {
+    $settings['smtp_host']   = trim($_POST['smtp_host'] ?? '');
+    $settings['smtp_port']   = trim($_POST['smtp_port'] ?? '587');
+    $settings['smtp_user']   = trim($_POST['smtp_user'] ?? '');
+    $settings['smtp_pass']   = trim($_POST['smtp_pass'] ?? '');
+    $settings['smtp_from']   = trim($_POST['smtp_from'] ?? '');
+    $settings['smtp_secure'] = trim($_POST['smtp_secure'] ?? 'tls');
+}
+
 // Inventory Developer Settings (if submitted)
 if (isset($_POST['inventory_categories'])) {
     $settings['inventory_categories']            = trim($_POST['inventory_categories']);

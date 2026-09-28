@@ -49,6 +49,10 @@ if ($activeTab === 'developer' && !$isDeveloper) {
             <span class="material-symbols-outlined text-base">domain</span>
             <span>Clinic & Branding Settings</span>
         </button>
+        <button type="button" onclick="switchAdminTab('email')" id="tab-btn-email" class="px-4 py-2 rounded-xl transition flex items-center gap-1.5 <?= $activeTab === 'email' ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high' ?>">
+            <span class="material-symbols-outlined text-base">mail</span>
+            <span>Email Setup</span>
+        </button>
         <button type="button" onclick="switchAdminTab('vms')" id="tab-btn-vms" class="px-4 py-2 rounded-xl transition flex items-center gap-1.5 <?= $activeTab === 'vms' ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high' ?>">
             <span class="material-symbols-outlined text-base">point_of_sale</span>
             <span>VMS Fiscal Settings</span>
@@ -411,6 +415,69 @@ if ($activeTab === 'developer' && !$isDeveloper) {
             <button type="submit" class="px-6 py-2.5 bg-primary text-white text-xs font-semibold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-2">
                 <span class="material-symbols-outlined text-base">save</span>
                 <span>Save Clinic & Financial Template Settings</span>
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- ================= TAB: EMAIL SETUP ================= -->
+<div id="admin-tab-email" class="<?= $activeTab === 'email' ? '' : 'hidden' ?> space-y-6">
+    <form action="actions/admin_save_settings.php" method="POST" class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-5">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>">
+        <input type="hidden" name="section" value="email">
+        <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+            <span class="material-symbols-outlined text-base">mail</span>
+            <span>Email Server (SMTP) & Automated Notifications Configuration</span>
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-medium">
+            <div>
+                <label class="block font-bold text-on-surface mb-1">SMTP Host Server</label>
+                <input type="text" name="smtp_host" value="<?= htmlspecialchars($settings['smtp_host'] ?? 'smtp.a2hosting.com') ?>" placeholder="smtp.mailserver.com" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40">
+            </div>
+
+            <div>
+                <label class="block font-bold text-on-surface mb-1">SMTP Port</label>
+                <input type="number" name="smtp_port" value="<?= htmlspecialchars($settings['smtp_port'] ?? '587') ?>" placeholder="587" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40">
+            </div>
+
+            <div>
+                <label class="block font-bold text-on-surface mb-1">SMTP Username / Email</label>
+                <input type="text" name="smtp_user" value="<?= htmlspecialchars($settings['smtp_user'] ?? 'no-reply@nuvistechnologies.com.fj') ?>" placeholder="user@nuvistechnologies.com.fj" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40">
+            </div>
+
+            <div>
+                <label class="block font-bold text-on-surface mb-1">SMTP Password</label>
+                <input type="password" name="smtp_pass" value="<?= htmlspecialchars($settings['smtp_pass'] ?? '') ?>" placeholder="••••••••" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40">
+            </div>
+
+            <div>
+                <label class="block font-bold text-on-surface mb-1">Sender 'From' Email Address</label>
+                <input type="email" name="smtp_from" value="<?= htmlspecialchars($settings['smtp_from'] ?? 'no-reply@nuvistechnologies.com.fj') ?>" placeholder="no-reply@nuvistechnologies.com.fj" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40">
+            </div>
+
+            <div>
+                <label class="block font-bold text-on-surface mb-1">Encryption Protocol</label>
+                <select name="smtp_secure" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40">
+                    <option value="tls" <?= ($settings['smtp_secure'] ?? 'tls') === 'tls' ? 'selected' : '' ?>>TLS (Port 587)</option>
+                    <option value="ssl" <?= ($settings['smtp_secure'] ?? '') === 'ssl' ? 'selected' : '' ?>>SSL (Port 465)</option>
+                    <option value="none" <?= ($settings['smtp_secure'] ?? '') === 'none' ? 'selected' : '' ?>>None (Port 25)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="p-4 bg-primary/5 rounded-xl border border-primary/20 text-xs text-on-surface space-y-1">
+            <span class="font-bold flex items-center gap-1.5 text-primary">
+                <span class="material-symbols-outlined text-sm">mark_email_read</span>
+                <span>Automated Document Emailing Active</span>
+            </span>
+            <p class="text-outline">Patient invoices, payment receipts, and clinical prescriptions are dispatched automatically to patient email addresses using these SMTP server settings.</p>
+        </div>
+
+        <div class="flex justify-end pt-3">
+            <button type="submit" class="px-6 py-2.5 bg-primary text-white text-xs font-semibold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-2">
+                <span class="material-symbols-outlined text-base">save</span>
+                <span>Save Email SMTP Settings</span>
             </button>
         </div>
     </form>
@@ -845,6 +912,7 @@ function switchAdminTab(tab) {
     if (document.getElementById('admin-tab-tenants')) document.getElementById('admin-tab-tenants').classList.add('hidden');
     document.getElementById('admin-tab-users').classList.add('hidden');
     document.getElementById('admin-tab-clinic').classList.add('hidden');
+    if (document.getElementById('admin-tab-email')) document.getElementById('admin-tab-email').classList.add('hidden');
     if (document.getElementById('admin-tab-vms')) document.getElementById('admin-tab-vms').classList.add('hidden');
     if (document.getElementById('admin-tab-inventory')) document.getElementById('admin-tab-inventory').classList.add('hidden');
     if (document.getElementById('admin-tab-developer')) document.getElementById('admin-tab-developer').classList.add('hidden');
@@ -852,6 +920,7 @@ function switchAdminTab(tab) {
     if (document.getElementById('tab-btn-tenants')) document.getElementById('tab-btn-tenants').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
     document.getElementById('tab-btn-users').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
     document.getElementById('tab-btn-clinic').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
+    if (document.getElementById('tab-btn-email')) document.getElementById('tab-btn-email').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
     if (document.getElementById('tab-btn-vms')) document.getElementById('tab-btn-vms').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
     if (document.getElementById('tab-btn-inventory')) document.getElementById('tab-btn-inventory').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
     if (document.getElementById('tab-btn-developer')) document.getElementById('tab-btn-developer').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
@@ -865,6 +934,9 @@ function switchAdminTab(tab) {
     } else if (tab === 'clinic') {
         document.getElementById('admin-tab-clinic').classList.remove('hidden');
         document.getElementById('tab-btn-clinic').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 bg-primary text-white shadow-xs';
+    } else if (tab === 'email') {
+        if (document.getElementById('admin-tab-email')) document.getElementById('admin-tab-email').classList.remove('hidden');
+        if (document.getElementById('tab-btn-email')) document.getElementById('tab-btn-email').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 bg-primary text-white shadow-xs';
     } else if (tab === 'vms') {
         if (document.getElementById('admin-tab-vms')) document.getElementById('admin-tab-vms').classList.remove('hidden');
         if (document.getElementById('tab-btn-vms')) document.getElementById('tab-btn-vms').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 bg-primary text-white shadow-xs';
