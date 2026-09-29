@@ -53,6 +53,33 @@ if (isset($_POST['vms_seller_tin'])) {
     $settings['vms_tax_rate_p']        = trim($_POST['vms_tax_rate_p'] ?? '0.25');
 }
 
+// Dynamic Custom Permission Addition / Deletion
+$action = $_POST['action'] ?? '';
+if ($action === 'add_custom_permission') {
+    $key = strtolower(preg_replace('/[^a-zA-Z0-9_]/', '', trim($_POST['permission_key'] ?? '')));
+    $label = trim($_POST['permission_label'] ?? '');
+    if ($key !== '' && $label !== '') {
+        $stmtSel = $pdo->prepare("SELECT setting_value FROM clinic_settings WHERE setting_key = 'rbac_custom_modules'");
+        $stmtSel->execute();
+        $currJson = $stmtSel->fetchColumn();
+        $currArr = json_decode($currJson ?: '{}', true) ?: [];
+        $currArr[$key] = $label;
+        $settings['rbac_custom_modules'] = json_encode($currArr);
+    }
+}
+
+if ($action === 'delete_custom_permission') {
+    $key = trim($_POST['permission_key'] ?? '');
+    if ($key !== '') {
+        $stmtSel = $pdo->prepare("SELECT setting_value FROM clinic_settings WHERE setting_key = 'rbac_custom_modules'");
+        $stmtSel->execute();
+        $currJson = $stmtSel->fetchColumn();
+        $currArr = json_decode($currJson ?: '{}', true) ?: [];
+        unset($currArr[$key]);
+        $settings['rbac_custom_modules'] = json_encode($currArr);
+    }
+}
+
 // RBAC Group Permissions Settings (if submitted)
 if (isset($_POST['rbac'])) {
     $settings['rbac_group_permissions'] = json_encode($_POST['rbac']);

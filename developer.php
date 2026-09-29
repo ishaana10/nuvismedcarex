@@ -41,8 +41,25 @@ foreach ($settingsRows as $r) {
     </div>
 </div>
 
+<!-- Developer Child Tabs Navigation -->
+<div class="flex border-b border-outline-variant/30 mb-6 space-x-2 text-xs font-bold">
+    <button type="button" onclick="switchDevTab('git')" id="dev-tab-btn-git" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white">
+        <span class="material-symbols-outlined text-base">update</span>
+        <span>Git Updates & Terminal</span>
+    </button>
+    <button type="button" onclick="switchDevTab('rbac')" id="dev-tab-btn-rbac" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+        <span class="material-symbols-outlined text-base">admin_panel_settings</span>
+        <span>Role Permissions & Access Control</span>
+    </button>
+    <button type="button" onclick="switchDevTab('logs')" id="dev-tab-btn-logs" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+        <span class="material-symbols-outlined text-base">bug_report</span>
+        <span>Error Logs & Diagnostics</span>
+    </button>
+</div>
+
 <div class="space-y-6">
     <!-- 1. System Updates (Git Updater) -->
+    <div id="dev-panel-git" class="space-y-6">
     <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-5">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-outline-variant/20 pb-3">
             <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
@@ -122,17 +139,23 @@ foreach ($settingsRows as $r) {
             </div>
         </div>
     </div>
+    </div> <!-- End dev-panel-git -->
 
     <!-- 2. Role Permissions & User Access Level Matrix Module -->
+    <div id="dev-panel-rbac" class="hidden space-y-6">
     <?php
     $roles = ['Developer', 'Administrator', 'Doctor', 'Nurse', 'Receptionist'];
-    $modules = [
+    $defaultModules = [
         'patients' => 'Patients & Clinical Records',
         'billing' => 'Billing & Financial Invoices',
         'inventory' => 'Inventory & Pharmacy',
         'admin' => 'Administrator & User Management',
         'developer' => 'Developer Workspace & Tools'
     ];
+    $customModulesJson = $settings['rbac_custom_modules'] ?? '{}';
+    $customModules = json_decode($customModulesJson, true) ?: [];
+    $modules = array_merge($defaultModules, $customModules);
+
     $savedRbacJson = $settings['rbac_group_permissions'] ?? '{}';
     $savedRbac = json_decode($savedRbacJson, true) ?: [];
 
@@ -197,6 +220,46 @@ foreach ($settingsRows as $r) {
             </div>
         </form>
 
+        <!-- Custom Permission/Module Add & Delete Controls -->
+        <div class="pt-4 border-t border-outline-variant/20 space-y-3">
+            <p class="text-xs font-bold text-slate-800">Dynamic Custom Permission / Module Management:</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Add New Module -->
+                <form action="actions/admin_save_settings.php" method="POST" class="p-3 bg-surface-container-low rounded-xl border border-outline-variant/30 space-y-2">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>">
+                    <input type="hidden" name="action" value="add_custom_permission">
+                    <span class="text-xs font-bold text-primary block">Add New Custom Permission/Module</span>
+                    <div class="flex gap-2">
+                        <input type="text" name="permission_key" required placeholder="e.g. lab_reports" class="w-1/2 bg-white px-2.5 py-1.5 rounded-lg border border-outline-variant/40 text-xs">
+                        <input type="text" name="permission_label" required placeholder="e.g. Lab Reports & Diagnostics" class="w-1/2 bg-white px-2.5 py-1.5 rounded-lg border border-outline-variant/40 text-xs">
+                    </div>
+                    <button type="submit" class="px-3 py-1.5 bg-primary text-white rounded-lg text-xs font-bold hover:bg-primary/90">Add Permission</button>
+                </form>
+
+                <!-- Delete Custom Module -->
+                <div class="p-3 bg-surface-container-low rounded-xl border border-outline-variant/30 space-y-2">
+                    <span class="text-xs font-bold text-rose-700 block">Delete Custom Permission/Module</span>
+                    <?php if (empty($customModules)): ?>
+                        <p class="text-xs text-outline italic">No dynamic custom permissions defined yet.</p>
+                    <?php else: ?>
+                        <div class="space-y-1">
+                            <?php foreach ($customModules as $cKey => $cLabel): ?>
+                                <div class="flex items-center justify-between p-1.5 bg-white rounded-lg border border-outline-variant/30 text-xs">
+                                    <span class="font-bold text-on-surface"><?= htmlspecialchars($cLabel) ?> <span class="text-[10px] text-outline font-mono">(<?= htmlspecialchars($cKey) ?>)</span></span>
+                                    <form action="actions/admin_save_settings.php" method="POST" class="inline">
+                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>">
+                                        <input type="hidden" name="action" value="delete_custom_permission">
+                                        <input type="hidden" name="permission_key" value="<?= htmlspecialchars($cKey) ?>">
+                                        <button type="submit" onclick="return confirm('Delete permission \'<?= htmlspecialchars($cKey) ?>\'?')" class="px-2 py-0.5 bg-rose-600 text-white rounded text-[10px] font-bold">Delete</button>
+                                    </form>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+
         <!-- User Access Revocation List -->
         <div class="pt-4 border-t border-outline-variant/20 space-y-3">
             <p class="text-xs font-bold text-slate-800">User Access Level Status & Revocation:</p>
@@ -242,7 +305,10 @@ foreach ($settingsRows as $r) {
         </div>
     </div>
 
+    </div> <!-- End dev-panel-rbac -->
+
     <!-- 3. Developer Error Logger Module -->
+    <div id="dev-panel-logs" class="hidden space-y-6">
     <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-5">
         <div class="flex items-center justify-between border-b border-outline-variant/20 pb-3">
             <h2 class="text-xs font-bold text-rose-700 uppercase tracking-wider flex items-center gap-2">
@@ -267,9 +333,31 @@ foreach ($settingsRows as $r) {
             </div>
         </div>
     </div>
+    </div>
+    </div> <!-- End dev-panel-logs -->
 </div>
 
 <script>
+function switchDevTab(tab) {
+    document.getElementById('dev-panel-git').classList.add('hidden');
+    document.getElementById('dev-panel-rbac').classList.add('hidden');
+    document.getElementById('dev-panel-logs').classList.add('hidden');
+
+    document.getElementById('dev-tab-btn-git').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
+    document.getElementById('dev-tab-btn-rbac').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
+    document.getElementById('dev-tab-btn-logs').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
+
+    if (tab === 'git') {
+        document.getElementById('dev-panel-git').classList.remove('hidden');
+        document.getElementById('dev-tab-btn-git').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
+    } else if (tab === 'rbac') {
+        document.getElementById('dev-panel-rbac').classList.remove('hidden');
+        document.getElementById('dev-tab-btn-rbac').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
+    } else if (tab === 'logs') {
+        document.getElementById('dev-panel-logs').classList.remove('hidden');
+        document.getElementById('dev-tab-btn-logs').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
+    }
+}
 document.addEventListener('DOMContentLoaded', function() {
     refreshGitStatus();
     fetchDeveloperErrorLogs();
