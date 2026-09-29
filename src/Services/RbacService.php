@@ -45,6 +45,20 @@ class RbacService {
      * Check if user role has a specific permission
      */
     public function hasPermission(string $role, string $permission): bool {
+        try {
+            $stmt = $this->db->prepare("SELECT setting_value FROM clinic_settings WHERE setting_key = 'rbac_group_permissions' LIMIT 1");
+            $stmt->execute();
+            $custom = $stmt->fetchColumn();
+            if ($custom) {
+                $decoded = json_decode($custom, true);
+                if (is_array($decoded) && isset($decoded[$role]) && is_array($decoded[$role])) {
+                    return !empty($decoded[$role][$permission]);
+                }
+            }
+        } catch (\Throwable $e) {
+            // Fallback to default matrix
+        }
+
         $perms = $this->rolePermissions[$role] ?? [];
         return in_array($permission, $perms, true);
     }

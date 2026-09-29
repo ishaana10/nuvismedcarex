@@ -123,7 +123,126 @@ foreach ($settingsRows as $r) {
         </div>
     </div>
 
-    <!-- 2. Developer Error Logger Module -->
+    <!-- 2. Role Permissions & User Access Level Matrix Module -->
+    <?php
+    $roles = ['Developer', 'Administrator', 'Doctor', 'Nurse', 'Receptionist'];
+    $modules = [
+        'patients' => 'Patients & Clinical Records',
+        'billing' => 'Billing & Financial Invoices',
+        'inventory' => 'Inventory & Pharmacy',
+        'admin' => 'Administrator & User Management',
+        'developer' => 'Developer Workspace & Tools'
+    ];
+    $savedRbacJson = $settings['rbac_group_permissions'] ?? '{}';
+    $savedRbac = json_decode($savedRbacJson, true) ?: [];
+
+    $usersStmt = $pdo->query("SELECT id, name, email, role, is_active FROM doctors ORDER BY name ASC");
+    $allUsers = $usersStmt->fetchAll();
+    ?>
+    <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-5">
+        <div class="flex items-center justify-between border-b border-outline-variant/20 pb-3">
+            <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                <span class="material-symbols-outlined text-base">admin_panel_settings</span>
+                <span>Role Permissions & User Access Level Management</span>
+            </h2>
+        </div>
+
+        <form action="actions/admin_save_settings.php" method="POST" class="space-y-6">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>">
+
+            <!-- Group Read/Write Matrix -->
+            <div class="overflow-x-auto">
+                <p class="text-xs font-bold text-slate-800 mb-2">Group Access Matrix (Read / Write Permissions):</p>
+                <table class="w-full text-left text-xs border border-outline-variant/30 rounded-xl overflow-hidden">
+                    <thead class="bg-surface-container text-outline uppercase font-semibold text-[10px]">
+                        <tr>
+                            <th class="py-2.5 px-3">Role / Group</th>
+                            <?php foreach ($modules as $modKey => $modLabel): ?>
+                                <th class="py-2.5 px-3 text-center"><?= htmlspecialchars($modLabel) ?></th>
+                            <?php endforeach; ?>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-outline-variant/20">
+                        <?php foreach ($roles as $r): ?>
+                            <tr class="hover:bg-surface-container-low/50">
+                                <td class="py-2.5 px-3 font-bold text-on-surface"><?= htmlspecialchars($r) ?></td>
+                                <?php foreach ($modules as $modKey => $modLabel):
+                                    $canRead = $savedRbac[$r][$modKey . '_read'] ?? ($r === 'Developer' || $r === 'Administrator' || ($r === 'Doctor' && $modKey !== 'admin' && $modKey !== 'developer'));
+                                    $canWrite = $savedRbac[$r][$modKey . '_write'] ?? ($r === 'Developer' || ($r === 'Administrator' && $modKey !== 'developer'));
+                                ?>
+                                    <td class="py-2.5 px-3 text-center">
+                                        <div class="flex items-center justify-center gap-2">
+                                            <label class="inline-flex items-center gap-1 cursor-pointer">
+                                                <input type="checkbox" name="rbac[<?= $r ?>][<?= $modKey ?>_read]" value="1" <?= $canRead ? 'checked' : '' ?> class="rounded text-primary focus:ring-primary">
+                                                <span class="text-[10px] font-medium text-slate-600">Read</span>
+                                            </label>
+                                            <label class="inline-flex items-center gap-1 cursor-pointer">
+                                                <input type="checkbox" name="rbac[<?= $r ?>][<?= $modKey ?>_write]" value="1" <?= $canWrite ? 'checked' : '' ?> class="rounded text-primary focus:ring-primary">
+                                                <span class="text-[10px] font-medium text-slate-600">Write</span>
+                                            </label>
+                                        </div>
+                                    </td>
+                                <?php endforeach; ?>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button type="submit" class="px-5 py-2 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary/90 transition shadow-xs flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-base">save</span>
+                    <span>Save Role Permissions Matrix</span>
+                </button>
+            </div>
+        </form>
+
+        <!-- User Access Revocation List -->
+        <div class="pt-4 border-t border-outline-variant/20 space-y-3">
+            <p class="text-xs font-bold text-slate-800">User Access Level Status & Revocation:</p>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs border border-outline-variant/30 rounded-xl">
+                    <thead class="bg-surface-container text-outline uppercase font-semibold text-[10px]">
+                        <tr>
+                            <th class="py-2.5 px-3">User Name</th>
+                            <th class="py-2.5 px-3">Email</th>
+                            <th class="py-2.5 px-3">Role</th>
+                            <th class="py-2.5 px-3">Status</th>
+                            <th class="py-2.5 px-3 text-right">Access Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-outline-variant/20">
+                        <?php foreach ($allUsers as $u): ?>
+                            <tr class="hover:bg-surface-container-low/50">
+                                <td class="py-2.5 px-3 font-bold text-on-surface"><?= htmlspecialchars($u['name']) ?></td>
+                                <td class="py-2.5 px-3 text-slate-600"><?= htmlspecialchars($u['email']) ?></td>
+                                <td class="py-2.5 px-3 font-semibold"><?= htmlspecialchars($u['role']) ?></td>
+                                <td class="py-2.5 px-3">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold <?= !empty($u['is_active']) ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800' ?>">
+                                        <?= !empty($u['is_active']) ? 'Active' : 'Revoked' ?>
+                                    </span>
+                                </td>
+                                <td class="py-2.5 px-3 text-right">
+                                    <?php if ($u['role'] !== 'Developer'): ?>
+                                        <form action="actions/admin_save_doctor.php" method="POST" class="inline">
+                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>">
+                                            <input type="hidden" name="doctor_id" value="<?= htmlspecialchars($u['id']) ?>">
+                                            <input type="hidden" name="action" value="toggle_status">
+                                            <button type="submit" class="px-2.5 py-1 <?= !empty($u['is_active']) ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white' ?> rounded-lg text-[10px] font-bold transition">
+                                                <?= !empty($u['is_active']) ? 'Revoke Access' : 'Restore Access' ?>
+                                            </button>
+                                        </form>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Developer Error Logger Module -->
     <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-5">
         <div class="flex items-center justify-between border-b border-outline-variant/20 pb-3">
             <h2 class="text-xs font-bold text-rose-700 uppercase tracking-wider flex items-center gap-2">

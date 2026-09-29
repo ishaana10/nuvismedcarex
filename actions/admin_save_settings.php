@@ -53,6 +53,11 @@ if (isset($_POST['vms_seller_tin'])) {
     $settings['vms_tax_rate_p']        = trim($_POST['vms_tax_rate_p'] ?? '0.25');
 }
 
+// RBAC Group Permissions Settings (if submitted)
+if (isset($_POST['rbac'])) {
+    $settings['rbac_group_permissions'] = json_encode($_POST['rbac']);
+}
+
 // Email Settings (if submitted)
 if (isset($_POST['smtp_host']) || (isset($_POST['section']) && $_POST['section'] === 'email')) {
     $settings['smtp_host']   = trim($_POST['smtp_host'] ?? '');
