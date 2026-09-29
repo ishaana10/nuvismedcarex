@@ -53,6 +53,33 @@ if (isset($_POST['vms_seller_tin'])) {
     $settings['vms_tax_rate_p']        = trim($_POST['vms_tax_rate_p'] ?? '0.25');
 }
 
+// Dynamic Custom Role Addition / Deletion
+if ($action === 'add_custom_role') {
+    $roleName = trim($_POST['role_name'] ?? '');
+    if ($roleName !== '') {
+        $stmtSel = $pdo->prepare("SELECT setting_value FROM clinic_settings WHERE setting_key = 'rbac_custom_roles'");
+        $stmtSel->execute();
+        $currJson = $stmtSel->fetchColumn();
+        $currArr = json_decode($currJson ?: '[]', true) ?: [];
+        if (!in_array($roleName, $currArr, true)) {
+            $currArr[] = $roleName;
+        }
+        $settings['rbac_custom_roles'] = json_encode(array_values($currArr));
+    }
+}
+
+if ($action === 'delete_custom_role') {
+    $roleName = trim($_POST['role_name'] ?? '');
+    if ($roleName !== '') {
+        $stmtSel = $pdo->prepare("SELECT setting_value FROM clinic_settings WHERE setting_key = 'rbac_custom_roles'");
+        $stmtSel->execute();
+        $currJson = $stmtSel->fetchColumn();
+        $currArr = json_decode($currJson ?: '[]', true) ?: [];
+        $currArr = array_values(array_filter($currArr, fn($r) => $r !== $roleName));
+        $settings['rbac_custom_roles'] = json_encode($currArr);
+    }
+}
+
 // Dynamic Custom Permission Addition / Deletion
 $action = $_POST['action'] ?? '';
 if ($action === 'add_custom_permission') {
