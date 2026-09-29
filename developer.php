@@ -144,7 +144,10 @@ foreach ($settingsRows as $r) {
     <!-- 2. Role Permissions & User Access Level Matrix Module -->
     <div id="dev-panel-rbac" class="hidden space-y-6">
     <?php
-    $roles = ['Developer', 'Administrator', 'Doctor', 'Nurse', 'Receptionist'];
+    $defaultRoles = ['Developer', 'Administrator', 'Doctor', 'Nurse', 'Receptionist'];
+    $customRolesJson = $settings['rbac_custom_roles'] ?? '[]';
+    $customRoles = json_decode($customRolesJson, true) ?: [];
+    $roles = array_unique(array_merge($defaultRoles, $customRoles));
     $defaultModules = [
         'patients' => 'Patients & Clinical Records',
         'billing' => 'Billing & Financial Invoices',
@@ -219,6 +222,45 @@ foreach ($settingsRows as $r) {
                 </button>
             </div>
         </form>
+
+        <!-- Custom Role Add & Delete Controls -->
+        <div class="pt-4 border-t border-outline-variant/20 space-y-3">
+            <p class="text-xs font-bold text-slate-800">Dynamic User Role Management:</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Add New Role -->
+                <form action="actions/admin_save_settings.php" method="POST" class="p-3 bg-surface-container-low rounded-xl border border-outline-variant/30 space-y-2">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>">
+                    <input type="hidden" name="action" value="add_custom_role">
+                    <span class="text-xs font-bold text-primary block">Add New Custom Role</span>
+                    <div class="flex gap-2">
+                        <input type="text" name="role_name" required placeholder="e.g. Lab Technician, Pharmacist" class="w-full bg-white px-2.5 py-1.5 rounded-lg border border-outline-variant/40 text-xs">
+                        <button type="submit" class="px-3 py-1.5 bg-primary text-white rounded-lg text-xs font-bold hover:bg-primary/90 shrink-0">Add Role</button>
+                    </div>
+                </form>
+
+                <!-- Delete Custom Role -->
+                <div class="p-3 bg-surface-container-low rounded-xl border border-outline-variant/30 space-y-2">
+                    <span class="text-xs font-bold text-rose-700 block">Delete Custom Role</span>
+                    <?php if (empty($customRoles)): ?>
+                        <p class="text-xs text-outline italic">No dynamic custom roles defined yet.</p>
+                    <?php else: ?>
+                        <div class="space-y-1">
+                            <?php foreach ($customRoles as $crName): ?>
+                                <div class="flex items-center justify-between p-1.5 bg-white rounded-lg border border-outline-variant/30 text-xs">
+                                    <span class="font-bold text-on-surface"><?= htmlspecialchars($crName) ?></span>
+                                    <form action="actions/admin_save_settings.php" method="POST" class="inline">
+                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>">
+                                        <input type="hidden" name="action" value="delete_custom_role">
+                                        <input type="hidden" name="role_name" value="<?= htmlspecialchars($crName) ?>">
+                                        <button type="submit" onclick="return confirm('Delete role \'<?= htmlspecialchars($crName) ?>\'?')" class="px-2 py-0.5 bg-rose-600 text-white rounded text-[10px] font-bold">Delete Role</button>
+                                    </form>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
 
         <!-- Custom Permission/Module Add & Delete Controls -->
         <div class="pt-4 border-t border-outline-variant/20 space-y-3">
