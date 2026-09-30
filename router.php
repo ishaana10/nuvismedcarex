@@ -11,6 +11,11 @@ if (str_starts_with($uri, '/assets/')) {
     }
 }
 
+if ($uri === '/api/notifications/stream' || $uri === '/api/notifications/stream.php') {
+    require __DIR__ . '/api/notifications/stream.php';
+    exit;
+}
+
 if (file_exists(__DIR__ . $uri) && is_file(__DIR__ . $uri)) {
     return false;
 }
