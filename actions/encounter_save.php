@@ -212,8 +212,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $prescriptionsData = $rxStmt->fetchAll();
 
                         if (!empty($prescriptionsData)) {
+                            $tenantId = $_SESSION['tenant_id'] ?? 'tenant-default';
+                            $rxService = new \ClinicFlow\Services\PrescriptionVerificationService();
+                            $token = $rxService->getOrCreateToken($pdo, $tenantId, $patientId, $visitId);
+                            $url = $rxService->getVerificationUrl($token);
                             $emailService = Container::getInstance()->get(\ClinicFlow\Services\EmailService::class);
-                            $emailService->sendPrescriptionEmail($pRow['email'], $pRow['first_name'] . ' ' . $pRow['last_name'], $prescriptionsData);
+                            $emailService->sendPrescriptionEmail($pRow['email'], $pRow['first_name'] . ' ' . $pRow['last_name'], $prescriptionsData, $url, $token);
                         }
                     }
                 } catch (\Throwable $e) {

@@ -62,6 +62,9 @@ $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
     <button type="button" onclick="switchDevTab('lab')" id="dev-tab-btn-lab" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">science</span>
         <span>Lab Catalog & Customization</span>
+    <button type="button" onclick="switchDevTab('pagination')" id="dev-tab-btn-pagination" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+        <span class="material-symbols-outlined text-base">format_list_numbered</span>
+        <span>Pagination Settings</span>
     </button>
     <button type="button" onclick="switchDevTab('rbac')" id="dev-tab-btn-rbac" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">admin_panel_settings</span>
@@ -165,6 +168,27 @@ $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
                 <label class="block font-bold text-slate-700 text-xs mb-1">Lab Catalog JSON Configuration</label>
                 <textarea name="lab_catalog_json" rows="14" class="w-full bg-slate-950 text-emerald-400 p-4 rounded-xl font-mono text-xs border border-slate-800 leading-relaxed shadow-inner focus:outline-none focus:ring-2 focus:ring-primary"><?= htmlspecialchars($labCatalogJson) ?></textarea>
                 <p class="text-[11px] text-slate-500">Developers can modify categories and available test procedure templates in JSON format.</p>
+    <!-- Pagination Settings Panel -->
+    <div id="dev-panel-pagination" class="hidden space-y-6">
+        <form action="actions/admin_save_settings.php" method="POST" class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-5">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>">
+            <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                <span class="material-symbols-outlined text-base">format_list_numbered</span>
+                <span>Global Pagination & Table Records Customization</span>
+            </h2>
+
+            <div class="space-y-4 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Default Items Per Page (Limit)</label>
+                    <select name="default_pagination_limit" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-bold text-primary max-w-xs">
+                        <?php
+                        $currDefLimit = (int)($settings['default_pagination_limit'] ?? 10);
+                        foreach ([5, 10, 25, 50, 100] as $optLimit): ?>
+                            <option value="<?= $optLimit ?>" <?= $currDefLimit === $optLimit ? 'selected' : '' ?>><?= $optLimit ?> items per page</option>
+                        <?php endforeach; ?>
+                    </select>
+                    <p class="text-[11px] text-outline mt-1">Configures default record limit across Patients, Inventory, Billing, and User Directory tables.</p>
+                </div>
             </div>
 
             <div class="flex justify-end pt-3 border-t border-outline-variant/20">
@@ -175,6 +199,11 @@ $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
             </div>
         </form>
     </div> <!-- End dev-panel-lab -->
+                    <span>Save Pagination Settings</span>
+                </button>
+            </div>
+        </form>
+    </div> <!-- End dev-panel-pagination -->
 
     <!-- VMS Fiscal Settings Panel -->
     <div id="dev-panel-vms" class="hidden space-y-6">
@@ -574,6 +603,7 @@ function switchDevTab(tab) {
     if (document.getElementById('dev-panel-tenants')) document.getElementById('dev-panel-tenants').classList.add('hidden');
     if (document.getElementById('dev-panel-vms')) document.getElementById('dev-panel-vms').classList.add('hidden');
     if (document.getElementById('dev-panel-lab')) document.getElementById('dev-panel-lab').classList.add('hidden');
+    if (document.getElementById('dev-panel-pagination')) document.getElementById('dev-panel-pagination').classList.add('hidden');
     if (document.getElementById('dev-panel-rbac')) document.getElementById('dev-panel-rbac').classList.add('hidden');
     if (document.getElementById('dev-panel-logs')) document.getElementById('dev-panel-logs').classList.add('hidden');
 
@@ -581,6 +611,7 @@ function switchDevTab(tab) {
     if (document.getElementById('dev-tab-btn-tenants')) document.getElementById('dev-tab-btn-tenants').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
     if (document.getElementById('dev-tab-btn-vms')) document.getElementById('dev-tab-btn-vms').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
     if (document.getElementById('dev-tab-btn-lab')) document.getElementById('dev-tab-btn-lab').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
+    if (document.getElementById('dev-tab-btn-pagination')) document.getElementById('dev-tab-btn-pagination').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
     if (document.getElementById('dev-tab-btn-rbac')) document.getElementById('dev-tab-btn-rbac').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
     if (document.getElementById('dev-tab-btn-logs')) document.getElementById('dev-tab-btn-logs').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
 
@@ -596,6 +627,9 @@ function switchDevTab(tab) {
     } else if (tab === 'lab') {
         if (document.getElementById('dev-panel-lab')) document.getElementById('dev-panel-lab').classList.remove('hidden');
         if (document.getElementById('dev-tab-btn-lab')) document.getElementById('dev-tab-btn-lab').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
+    } else if (tab === 'pagination') {
+        if (document.getElementById('dev-panel-pagination')) document.getElementById('dev-panel-pagination').classList.remove('hidden');
+        if (document.getElementById('dev-tab-btn-pagination')) document.getElementById('dev-tab-btn-pagination').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
     } else if (tab === 'rbac') {
         if (document.getElementById('dev-panel-rbac')) document.getElementById('dev-panel-rbac').classList.remove('hidden');
         if (document.getElementById('dev-tab-btn-rbac')) document.getElementById('dev-tab-btn-rbac').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';

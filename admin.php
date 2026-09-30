@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/includes/security.php';
+require_once __DIR__ . '/includes/pagination.php';
 $pageTitle = "Administrator Settings - NuvisMedcareX";
 $activePage = "admin";
 include __DIR__ . '/includes/header.php';
@@ -16,17 +17,26 @@ $tenantService = new \ClinicFlow\Services\TenantService($pdo);
 $tenantsList = $tenantService->getAllTenants();
 $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 
-// Fetch user/doctor staff
-$usersList = $pdo->query("SELECT * FROM doctors ORDER BY name ASC")->fetchAll();
-
+// Determine active tab from query parameter (default: users)
 $currentSessionUserRole = $_SESSION['user_role'] ?? $_SESSION['role'] ?? 'Doctor';
 $isDeveloper = ($currentSessionUserRole === 'Developer');
 
-// Determine active tab from query parameter (default: users)
 $activeTab = $_GET['tab'] ?? 'users';
 if ($activeTab === 'developer' && !$isDeveloper) {
     $activeTab = 'users';
 }
+
+$pagination = getPaginationParams(10, [5, 10, 25, 50, 100], $pdo);
+
+// Fetch total count and paginated user/doctor staff
+$totalUsersStmt = $pdo->query("SELECT COUNT(*) FROM doctors");
+$totalUsers = (int)$totalUsersStmt->fetchColumn();
+
+$usersStmt = $pdo->prepare("SELECT * FROM doctors ORDER BY name ASC LIMIT :limit OFFSET :offset");
+$usersStmt->bindValue(':limit', $pagination['limit'], PDO::PARAM_INT);
+$usersStmt->bindValue(':offset', $pagination['offset'], PDO::PARAM_INT);
+$usersStmt->execute();
+$usersList = $usersStmt->fetchAll();
 ?>
 
 <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -253,6 +263,11 @@ if ($activeTab === 'developer' && !$isDeveloper) {
                 </table>
             </div>
         </div>
+
+        <!-- Pagination Controls -->
+        <?php
+        echo renderPagination($totalUsers, $pagination['page'], $pagination['limit'], 'admin.php', ['tab' => 'users']);
+        ?>
     </div>
 </div>
 
@@ -304,6 +319,17 @@ if ($activeTab === 'developer' && !$isDeveloper) {
             <div>
                 <label class="block font-bold text-slate-700 mb-1">Default Physician PTR No.</label>
                 <input type="text" name="doc_ptr_no" value="<?= htmlspecialchars($settings['doc_ptr_no'] ?? 'PTR-8842109') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-mono font-medium">
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Default Table Items Per Page (Pagination Limit)</label>
+                <select name="default_pagination_limit" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-bold text-primary">
+                    <?php
+                    $currDefLimit = (int)($settings['default_pagination_limit'] ?? 10);
+                    foreach ([5, 10, 25, 50, 100] as $optLimit): ?>
+                        <option value="<?= $optLimit ?>" <?= $currDefLimit === $optLimit ? 'selected' : '' ?>><?= $optLimit ?> items per page</option>
+                    <?php endforeach; ?>
+                </select>
             </div>
 
             <div class="md:col-span-2">
