@@ -755,3 +755,93 @@ sh: 1: /usr/sbin/sendmail: not found
 [Wed Sep 30 22:32:49 2026] 127.0.0.1:58792 Closing
 [Wed Sep 30 22:32:49 2026] 127.0.0.1:58808 Accepted
 [Wed Sep 30 22:32:49 2026] 127.0.0.1:58808 Closing
+[Wed Sep 30 22:49:40 2026] 127.0.0.1:59032 Accepted
+[Wed Sep 30 22:49:40 2026] 127.0.0.1:59032 [200]: GET /login.php
+[Wed Sep 30 22:49:40 2026] 127.0.0.1:59032 Closing
+[Wed Sep 30 22:49:40 2026] 127.0.0.1:59034 Accepted
+[Wed Sep 30 22:49:40 2026] 127.0.0.1:59050 Accepted
+[Wed Sep 30 22:49:40 2026] 127.0.0.1:59034 Closing
+[Wed Sep 30 22:49:40 2026] 127.0.0.1:59050 [200]: GET /assets/images/stethoscope_heart.png
+[Wed Sep 30 22:49:40 2026] 127.0.0.1:59050 Closing
+[Wed Sep 30 22:49:40 2026] 127.0.0.1:59058 Accepted
+[Wed Sep 30 22:49:40 2026] 127.0.0.1:59058 Closing
+[Wed Sep 30 22:49:40 2026] 127.0.0.1:59062 Accepted
+[Wed Sep 30 22:49:40 2026] 127.0.0.1:59078 Accepted
+[Wed Sep 30 22:49:40 2026] 127.0.0.1:59062 [200]: GET /assets/images/caduceus_logo.png
+[Wed Sep 30 22:49:40 2026] 127.0.0.1:59078 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
+[Wed Sep 30 22:49:40 2026] 127.0.0.1:59062 Closing
+[Wed Sep 30 22:49:40 2026] 127.0.0.1:59078 Closing
+[Wed Sep 30 22:49:41 2026] 127.0.0.1:33838 Accepted
+[Wed Sep 30 22:49:41 2026] 127.0.0.1:33838 [302]: POST /actions/login.php
+[Wed Sep 30 22:49:41 2026] 127.0.0.1:33838 Closing
+[Wed Sep 30 22:49:41 2026] 127.0.0.1:33854 Accepted
+[Wed Sep 30 22:49:41 2026] 127.0.0.1:33854 [200]: GET /login.php
+[Wed Sep 30 22:49:41 2026] 127.0.0.1:33854 Closing
+[Wed Sep 30 22:49:41 2026] 127.0.0.1:33862 Accepted
+[Wed Sep 30 22:49:41 2026] 127.0.0.1:33868 Accepted
+[Wed Sep 30 22:49:41 2026] 127.0.0.1:33862 Closing
+[Wed Sep 30 22:49:41 2026] 127.0.0.1:33868 [200]: GET /assets/images/stethoscope_heart.png
+[Wed Sep 30 22:49:41 2026] 127.0.0.1:33868 Closing
+[Wed Sep 30 22:49:41 2026] 127.0.0.1:33884 Accepted
+[Wed Sep 30 22:49:41 2026] 127.0.0.1:33884 Closing
+[Wed Sep 30 22:49:41 2026] 127.0.0.1:33886 Accepted
+[Wed Sep 30 22:49:41 2026] 127.0.0.1:33886 [200]: GET /assets/images/caduceus_logo.png
+[Wed Sep 30 22:49:41 2026] 127.0.0.1:33886 Closing
+[Wed Sep 30 22:49:41 2026] 127.0.0.1:33894 Accepted
+[Wed Sep 30 22:49:41 2026] 127.0.0.1:33894 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
+[Wed Sep 30 22:49:41 2026] 127.0.0.1:33894 Closing
+[Wed Sep 30 22:49:42 2026] 127.0.0.1:33898 Accepted
+[Wed Sep 30 22:49:42 2026] PHP Fatal error:  Uncaught Error: Call to undefined function setToast() in /app/developer.php:10
+Stack trace:
+#0 {main}
+  thrown in /app/developer.php on line 10
+[Wed Sep 30 22:49:42 2026] 127.0.0.1:33898 [500]: GET /developer.php - Uncaught Error: Call to undefined function setToast() in /app/developer.php:10
+Stack trace:
+#0 {main}
+  thrown in /app/developer.php on line 10
+[Wed Sep 30 22:49:42 2026] 127.0.0.1:33898 Closing
+[Wed Sep 30 23:10:35 2026] 127.0.0.1:47520 Accepted
+[Wed Sep 30 23:10:35 2026] 127.0.0.1:47520 [200]: GET /login.php
+[Wed Sep 30 23:10:35 2026] 127.0.0.1:47520 Closing
+[Wed Sep 30 23:10:35 2026] 127.0.0.1:47524 Accepted
+[Wed Sep 30 23:10:35 2026] 127.0.0.1:47530 Accepted
+[Wed Sep 30 23:10:35 2026] 127.0.0.1:47524 Closing
+[Wed Sep 30 23:10:35 2026] 127.0.0.1:47530 [200]: GET /assets/images/stethoscope_heart.png
+[Wed Sep 30 23:10:35 2026] 127.0.0.1:47530 Closing
+[Wed Sep 30 23:10:35 2026] 127.0.0.1:47534 Accepted
+[Wed Sep 30 23:10:35 2026] 127.0.0.1:47534 Closing
+[Wed Sep 30 23:10:35 2026] 127.0.0.1:47536 Accepted
+[Wed Sep 30 23:10:35 2026] 127.0.0.1:47548 Accepted
+[Wed Sep 30 23:10:35 2026] 127.0.0.1:47536 [200]: GET /assets/images/caduceus_logo.png
+[Wed Sep 30 23:10:35 2026] 127.0.0.1:47536 Closing
+[Wed Sep 30 23:10:35 2026] 127.0.0.1:47548 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
+[Wed Sep 30 23:10:35 2026] 127.0.0.1:47548 Closing
+[Wed Sep 30 23:10:36 2026] 127.0.0.1:47558 Accepted
+[Wed Sep 30 23:10:36 2026] 127.0.0.1:47558 [302]: POST /actions/login.php
+[Wed Sep 30 23:10:36 2026] 127.0.0.1:47558 Closing
+[Wed Sep 30 23:10:36 2026] 127.0.0.1:47564 Accepted
+[Wed Sep 30 23:10:36 2026] 127.0.0.1:47564 [200]: GET /login.php
+[Wed Sep 30 23:10:36 2026] 127.0.0.1:47564 Closing
+[Wed Sep 30 23:10:36 2026] 127.0.0.1:47566 Accepted
+[Wed Sep 30 23:10:36 2026] 127.0.0.1:47582 Accepted
+[Wed Sep 30 23:10:36 2026] 127.0.0.1:47566 Closing
+[Wed Sep 30 23:10:36 2026] 127.0.0.1:47582 [200]: GET /assets/images/stethoscope_heart.png
+[Wed Sep 30 23:10:36 2026] 127.0.0.1:47582 Closing
+[Wed Sep 30 23:10:36 2026] 127.0.0.1:47586 Accepted
+[Wed Sep 30 23:10:36 2026] 127.0.0.1:47586 Closing
+[Wed Sep 30 23:10:36 2026] 127.0.0.1:47600 Accepted
+[Wed Sep 30 23:10:36 2026] 127.0.0.1:47600 [200]: GET /assets/images/caduceus_logo.png
+[Wed Sep 30 23:10:36 2026] 127.0.0.1:47600 Closing
+[Wed Sep 30 23:10:36 2026] 127.0.0.1:47608 Accepted
+[Wed Sep 30 23:10:36 2026] 127.0.0.1:47608 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
+[Wed Sep 30 23:10:36 2026] 127.0.0.1:47608 Closing
+[Wed Sep 30 23:10:37 2026] 127.0.0.1:47622 Accepted
+[Wed Sep 30 23:10:37 2026] PHP Fatal error:  Uncaught Error: Call to undefined function setToast() in /app/developer.php:10
+Stack trace:
+#0 {main}
+  thrown in /app/developer.php on line 10
+[Wed Sep 30 23:10:37 2026] 127.0.0.1:47622 [500]: GET /developer.php - Uncaught Error: Call to undefined function setToast() in /app/developer.php:10
+Stack trace:
+#0 {main}
+  thrown in /app/developer.php on line 10
+[Wed Sep 30 23:10:37 2026] 127.0.0.1:47622 Closing
