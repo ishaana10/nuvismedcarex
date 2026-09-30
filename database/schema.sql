@@ -56,6 +56,12 @@ CREATE TABLE IF NOT EXISTS user_tenants (
     CONSTRAINT uk_user_tenant UNIQUE (user_id, tenant_id)
 );
 
+CREATE TABLE IF NOT EXISTS clinic_settings (
+    setting_key VARCHAR(100) PRIMARY KEY,
+    setting_value TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS tenant_settings (
     id VARCHAR(50) PRIMARY KEY,
     tenant_id VARCHAR(50) NOT NULL,

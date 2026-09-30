@@ -130,14 +130,30 @@ if (isset($_POST['inventory_categories'])) {
     $settings['inventory_custom_fields_def']     = trim($_POST['inventory_custom_fields_def'] ?? '[]');
 }
 
+// SSE Real-Time Notifications Toggle (if submitted)
+if (isset($_POST['sse_setting_submitted']) || isset($_POST['sse_notifications_enabled'])) {
+    $settings['sse_notifications_enabled'] = isset($_POST['sse_notifications_enabled']) ? '1' : '0';
+}
+
 $isSqlite = ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite');
 $query = $isSqlite
     ? "INSERT INTO clinic_settings (setting_key, setting_value) VALUES (?, ?) ON CONFLICT(setting_key) DO UPDATE SET setting_value = excluded.setting_value"
     : "INSERT INTO clinic_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)";
 $stmt = $pdo->prepare($query);
 
+$tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+$tsQuery = $isSqlite
+    ? "INSERT INTO tenant_settings (id, tenant_id, setting_key, setting_value) VALUES (?, ?, ?, ?) ON CONFLICT(tenant_id, setting_key) DO UPDATE SET setting_value = excluded.setting_value, updated_at = CURRENT_TIMESTAMP"
+    : "INSERT INTO tenant_settings (id, tenant_id, setting_key, setting_value) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = CURRENT_TIMESTAMP";
+$tsStmt = $pdo->prepare($tsQuery);
+
 foreach ($settings as $key => $val) {
     $stmt->execute([$key, $val]);
+    try {
+        $tsStmt->execute(['ts-' . $tenantId . '-' . $key, $tenantId, $key, $val]);
+    } catch (\Throwable $te) {
+        // Fallback
+    }
 }
 
 setToast("Settings Saved", "Clinic branding and prescription settings updated successfully.");

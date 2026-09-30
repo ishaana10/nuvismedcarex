@@ -379,10 +379,35 @@ if ($activeTab === 'developer' && !$isDeveloper) {
 
         <hr class="border-outline-variant/20">
 
+        <!-- Server-Sent Events (SSE) Real-Time Patient Registration Notifications Toggle -->
+        <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+            <span class="material-symbols-outlined text-base">sensors</span>
+            <span>4. Real-Time Patient Notifications (Server-Sent Events)</span>
+        </h2>
+
+        <div class="p-4 bg-surface-container-low rounded-xl border border-outline-variant/30 flex items-center justify-between gap-4">
+            <div>
+                <h3 class="font-bold text-on-surface text-xs flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-primary text-base">notifications_active</span>
+                    <span>Enable Real-Time SSE Patient Registration Stream</span>
+                </h3>
+                <p class="text-[11px] text-outline mt-0.5">Push instant audio/visual notifications to doctor dashboards whenever a new patient is registered in the clinic.</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <input type="hidden" name="sse_setting_submitted" value="1">
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" name="sse_notifications_enabled" value="1" <?= ($settings['sse_notifications_enabled'] ?? '1') === '1' ? 'checked' : '' ?> class="w-4 h-4 text-primary rounded focus:ring-primary">
+                    <span class="ml-2 font-bold text-xs text-on-surface">Enabled</span>
+                </label>
+            </div>
+        </div>
+
+        <hr class="border-outline-variant/20">
+
         <!-- Fully Customisable Medical Certificate Settings -->
         <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
             <span class="material-symbols-outlined text-base">badge</span>
-            <span>4. Medical Certificate Customization</span>
+            <span>5. Medical Certificate Customization</span>
         </h2>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">

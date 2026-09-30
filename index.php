@@ -427,4 +427,98 @@ try {
     </div>
 </div>
 
+<!-- Real-Time SSE Notification Container for Toast Alerts -->
+<div id="sse-toast-container" class="fixed top-5 right-5 z-50 space-y-2 max-w-sm pointer-events-none"></div>
+
+<!-- SSE Doctor Dashboard EventSource Listener -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    if (!window.EventSource) {
+        console.warn('Browser does not support Server-Sent Events (SSE).');
+        return;
+    }
+
+    function playNotificationSound() {
+        try {
+            const audio = new Audio('assets/notification.mp3');
+            audio.play().catch(function() {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+                osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.5);
+            });
+        } catch (e) {}
+    }
+
+    function showSseToast(notification) {
+        const container = document.getElementById('sse-toast-container');
+        if (!container) return;
+
+        const toast = document.createElement('div');
+        toast.className = 'pointer-events-auto p-4 bg-white border border-emerald-200 rounded-2xl shadow-xl flex items-start gap-3 transition-all duration-300 transform translate-y-2 opacity-0 animate-bounce-in';
+        toast.innerHTML = `
+            <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-lg">person_add</span>
+            </div>
+            <div class="flex-1 text-xs">
+                <div class="font-bold text-slate-900">${notification.title || 'New Patient Registered'}</div>
+                <div class="text-slate-600 mt-0.5">${notification.message || 'A new patient has been registered.'}</div>
+                <div class="text-[10px] text-slate-400 mt-1">${notification.timestamp || 'Just now'} • Real-Time Alert</div>
+            </div>
+            <button type="button" class="text-slate-400 hover:text-slate-700" onclick="this.parentElement.remove()">
+                <span class="material-symbols-outlined text-base">close</span>
+            </button>
+        `;
+
+        container.appendChild(toast);
+        setTimeout(function() {
+            toast.classList.remove('translate-y-2', 'opacity-0');
+        }, 10);
+
+        setTimeout(function() {
+            if (toast.parentNode) {
+                toast.remove();
+            }
+        }, 6000);
+    }
+
+    const eventSource = new EventSource('/api/notifications/stream');
+
+    eventSource.onmessage = function(event) {
+        try {
+            const notification = JSON.parse(event.data);
+
+            if (notification.status === 'disabled' || notification.enabled === false) {
+                console.log('SSE Real-time notifications are disabled for this tenant.');
+                eventSource.close();
+                return;
+            }
+
+            if (notification.title) {
+                playNotificationSound();
+                showSseToast(notification);
+            }
+        } catch (e) {
+            console.error('Failed to parse SSE payload:', e);
+        }
+    };
+
+    eventSource.onerror = function(err) {
+        console.warn('SSE EventSource connection error or reconnecting:', err);
+    };
+
+    window.addEventListener('beforeunload', function() {
+        eventSource.close();
+    });
+});
+</script>
+
 <?php include __DIR__ . '/includes/footer.php'; ?>
