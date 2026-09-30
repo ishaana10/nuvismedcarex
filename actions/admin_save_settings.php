@@ -136,6 +136,11 @@ if (isset($_POST['sse_setting_submitted']) || isset($_POST['sse_notifications_en
     $settings['sse_notifications_enabled'] = isset($_POST['sse_notifications_enabled']) ? '1' : '0';
 }
 
+// Lab Catalog Customization (if submitted)
+if (isset($_POST['lab_catalog_json'])) {
+    $settings['lab_catalog'] = trim($_POST['lab_catalog_json']);
+}
+
 $isSqlite = ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite');
 $query = $isSqlite
     ? "INSERT INTO clinic_settings (setting_key, setting_value) VALUES (?, ?) ON CONFLICT(setting_key) DO UPDATE SET setting_value = excluded.setting_value"
