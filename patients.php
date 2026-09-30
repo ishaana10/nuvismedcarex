@@ -1,21 +1,43 @@
 <?php
 $pageTitle = "Patients Directory - NuvisMedcareX";
 $activePage = "patients";
+require_once __DIR__ . '/includes/pagination.php';
 include __DIR__ . '/includes/header.php';
 
 $search = trim($_GET['q'] ?? '');
 $patients = [];
 $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 
+$pagination = getPaginationParams(10, [5, 10, 25, 50, 100], $pdo);
+$totalPatients = 0;
+
 try {
     if ($search !== '') {
-        $stmt = $pdo->prepare("SELECT * FROM patients WHERE tenant_id = :tid AND (first_name LIKE :s1 OR last_name LIKE :s2 OR mrn LIKE :s3 OR phone LIKE :s4) ORDER BY last_name ASC");
         $searchTerm = "%$search%";
-        $stmt->execute(['tid' => $currentTenantId, 's1' => $searchTerm, 's2' => $searchTerm, 's3' => $searchTerm, 's4' => $searchTerm]);
+        $countStmt = $pdo->prepare("SELECT COUNT(*) FROM patients WHERE tenant_id = :tid AND (first_name LIKE :s1 OR last_name LIKE :s2 OR mrn LIKE :s3 OR phone LIKE :s4)");
+        $countStmt->execute(['tid' => $currentTenantId, 's1' => $searchTerm, 's2' => $searchTerm, 's3' => $searchTerm, 's4' => $searchTerm]);
+        $totalPatients = (int)$countStmt->fetchColumn();
+
+        $stmt = $pdo->prepare("SELECT * FROM patients WHERE tenant_id = :tid AND (first_name LIKE :s1 OR last_name LIKE :s2 OR mrn LIKE :s3 OR phone LIKE :s4) ORDER BY last_name ASC LIMIT :limit OFFSET :offset");
+        $stmt->bindValue(':tid', $currentTenantId);
+        $stmt->bindValue(':s1', $searchTerm);
+        $stmt->bindValue(':s2', $searchTerm);
+        $stmt->bindValue(':s3', $searchTerm);
+        $stmt->bindValue(':s4', $searchTerm);
+        $stmt->bindValue(':limit', $pagination['limit'], PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $pagination['offset'], PDO::PARAM_INT);
+        $stmt->execute();
         $patients = $stmt->fetchAll() ?: [];
     } else {
-        $stmt = $pdo->prepare("SELECT * FROM patients WHERE tenant_id = :tid ORDER BY last_name ASC");
-        $stmt->execute(['tid' => $currentTenantId]);
+        $countStmt = $pdo->prepare("SELECT COUNT(*) FROM patients WHERE tenant_id = :tid");
+        $countStmt->execute(['tid' => $currentTenantId]);
+        $totalPatients = (int)$countStmt->fetchColumn();
+
+        $stmt = $pdo->prepare("SELECT * FROM patients WHERE tenant_id = :tid ORDER BY last_name ASC LIMIT :limit OFFSET :offset");
+        $stmt->bindValue(':tid', $currentTenantId);
+        $stmt->bindValue(':limit', $pagination['limit'], PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $pagination['offset'], PDO::PARAM_INT);
+        $stmt->execute();
         $patients = $stmt->fetchAll() ?: [];
     }
 } catch (\Throwable $e) {
@@ -41,7 +63,7 @@ try {
         <input type="text" name="q" value="<?= htmlspecialchars($search) ?>" placeholder="Search by name, MRN, phone..." class="form-input pl-10">
     </form>
     <p class="text-xs text-slate-500 font-medium">
-        Showing <span class="font-bold text-slate-900"><?= count($patients) ?></span> registered patients
+        Showing <span class="font-bold text-slate-900"><?= count($patients) ?></span> of <span class="font-bold text-slate-900"><?= $totalPatients ?></span> registered patients
     </p>
 </div>
 
@@ -122,5 +144,10 @@ try {
         </table>
     </div>
 </div>
+
+<!-- Pagination Controls -->
+<?php
+echo renderPagination($totalPatients, $pagination['page'], $pagination['limit'], 'patients.php', $search !== '' ? ['q' => $search] : []);
+?>
 
 <?php include __DIR__ . '/includes/footer.php'; ?>

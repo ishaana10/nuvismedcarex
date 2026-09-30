@@ -11,7 +11,20 @@ if (!function_exists('getPaginationParams')) {
      * @param array $allowedLimits Allowed limits dropdown values.
      * @return array Array containing 'page', 'limit', and 'offset'.
      */
-    function getPaginationParams(int $defaultLimit = 10, array $allowedLimits = [5, 10, 25, 50, 100]): array {
+    function getPaginationParams(int $defaultLimit = 10, array $allowedLimits = [5, 10, 25, 50, 100], ?PDO $pdo = null): array {
+        if ($pdo !== null && !isset($_GET['limit'])) {
+            try {
+                $stmt = $pdo->prepare("SELECT setting_value FROM clinic_settings WHERE setting_key = 'default_pagination_limit'");
+                $stmt->execute();
+                $dbVal = $stmt->fetchColumn();
+                if ($dbVal && in_array((int)$dbVal, $allowedLimits, true)) {
+                    $defaultLimit = (int)$dbVal;
+                }
+            } catch (\Throwable $e) {
+                // fallback to passed default
+            }
+        }
+
         $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : $defaultLimit;
         if (!in_array($limit, $allowedLimits, true)) {
             $limit = $defaultLimit;
