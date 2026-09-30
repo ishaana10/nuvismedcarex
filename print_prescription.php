@@ -2,6 +2,9 @@
 session_start();
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/includes/security.php';
+require_once __DIR__ . '/includes/autoloader.php';
+
+use ClinicFlow\Services\PrescriptionVerificationService;
 
 if (empty($_SESSION['authenticated'])) {
     header('Location: login.php');
@@ -19,8 +22,8 @@ foreach ($settingsRows as $r) {
     $settings[$r['setting_key']] = $r['setting_value'];
 }
 
-$clinicName = $settings['clinic_name'] ?? 'ClinicFlow Medical Center';
 $clinicName = $settings['clinic_name'] ?? 'Nuvis Medico Healthcare';
+$clinicSubtitle = $settings['clinic_subtitle'] ?? 'EHR & Clinical Management System';
 $clinicAddress = $settings['clinic_address'] ?? '100 Healthcare Way, Suite 400, Springfield, OR 97477';
 $clinicPhone = $settings['clinic_phone'] ?? '(555) 019-2831';
 $clinicEmail = $settings['clinic_email'] ?? 'medico@nuvistechnologies.com.fj';
@@ -66,6 +69,12 @@ $docId = $_SESSION['current_doctor_id'] ?? 'doc-2';
 $docStmt = $pdo->prepare("SELECT * FROM doctors WHERE id = ? OR role = 'Doctor'");
 $docStmt->execute([$docId]);
 $attendingDoc = $docStmt->fetch() ?: ['name' => 'Dr. Sarah Jenkins', 'specialty' => 'Internal Medicine', 'prc_number' => 'PRC-0098412', 'ptr_number' => 'PTR-8842109'];
+
+// Generate Verification Token & Public Link
+$tenantId = $_SESSION['tenant_id'] ?? 'tenant-default';
+$rxVerificationService = new PrescriptionVerificationService();
+$verificationToken = $rxVerificationService->getOrCreateToken($pdo, $tenantId, $patient['id'], $visitId);
+$verificationUrl = $rxVerificationService->getVerificationUrl($verificationToken);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -74,6 +83,7 @@ $attendingDoc = $docStmt->fetch() ?: ['name' => 'Dr. Sarah Jenkins', 'specialty'
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prescription - <?= htmlspecialchars($patient['first_name'] . ' ' . $patient['last_name']) ?></title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
     <style>
         @media print {
             .no-print { display: none !important; }
@@ -92,6 +102,8 @@ $attendingDoc = $docStmt->fetch() ?: ['name' => 'Dr. Sarah Jenkins', 'specialty'
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
                 <input type="hidden" name="document_type" value="prescription">
                 <input type="hidden" name="document_id" value="RX-<?= htmlspecialchars($patient['mrn']) ?>">
+                <input type="hidden" name="patient_id" value="<?= htmlspecialchars($patient['id']) ?>">
+                <input type="hidden" name="visit_id" value="<?= htmlspecialchars($visitId) ?>">
                 <input type="email" name="email" value="<?= htmlspecialchars($patient['email'] ?? '') ?>" placeholder="patient@example.com" required class="px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 focus:outline-none">
                 <button type="submit" class="px-3 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-700 transition">Email Rx</button>
             </form>
@@ -163,6 +175,21 @@ $attendingDoc = $docStmt->fetch() ?: ['name' => 'Dr. Sarah Jenkins', 'specialty'
                     <?php endif; ?>
                 </div>
             <?php endforeach; ?>
+        </div>
+    </div>
+
+    <!-- Pharmacy QR Code Verification Block -->
+    <div class="mb-8 p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-4">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=<?= urlencode($verificationUrl) ?>" alt="Scan to Verify Prescription" class="w-20 h-20 rounded border border-slate-300 shrink-0">
+        <div class="text-xs text-slate-700">
+            <p class="font-bold text-slate-900 flex items-center gap-1">
+                <span class="material-symbols-outlined text-sm text-emerald-600">verified</span> Pharmacy Verification QR Code
+            </p>
+            <p class="text-[11px] text-slate-500 mt-0.5">Scan with mobile camera or barcode reader to verify official authenticity with dispensing pharmacy.</p>
+            <p class="font-mono text-[11px] text-slate-800 mt-1">Token: <strong class="text-blue-900 font-bold"><?= htmlspecialchars($verificationToken) ?></strong></p>
+            <a href="<?= htmlspecialchars($verificationUrl) ?>" target="_blank" class="text-blue-600 hover:underline text-[10px] font-mono no-print inline-block mt-0.5">
+                <?= htmlspecialchars($verificationUrl) ?>
+            </a>
         </div>
     </div>
 

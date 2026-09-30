@@ -89,12 +89,23 @@ class EmailService {
         return $this->sendDocumentEmail($recipientEmail, $subject, $body, 'receipt', $invoice['id'] ?? null);
     }
 
-    public function sendPrescriptionEmail(string $recipientEmail, string $patientName, array $prescriptions): bool {
+    public function sendPrescriptionEmail(string $recipientEmail, string $patientName, array $prescriptions, ?string $verificationUrl = null, ?string $verificationToken = null): bool {
         $subject = "Nuvis Medico Healthcare - Your Clinical Prescription";
 
         $rxItems = "";
         foreach ($prescriptions as $rx) {
             $rxItems .= "<li style='margin-bottom: 8px;'><strong>" . htmlspecialchars($rx['medication_name'] ?? '') . "</strong> (" . htmlspecialchars($rx['dosage'] ?? '') . ") - " . htmlspecialchars($rx['frequency'] ?? '') . " for " . htmlspecialchars($rx['duration'] ?? '') . "<br><small style='color: #475569;'>" . htmlspecialchars($rx['instructions'] ?? '') . "</small></li>";
+        }
+
+        $qrSection = "";
+        if (!empty($verificationUrl)) {
+            $qrSection = "
+            <div style='background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid #e2e8f0; text-align: center;'>
+                <p style='margin: 0 0 10px 0; font-size: 13px; font-weight: bold; color: #1e293b;'>Pharmacy Verification QR Code</p>
+                <img src='https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=" . urlencode($verificationUrl) . "' alt='QR Verification' style='width: 140px; height: 140px; border-radius: 6px; border: 1px solid #cbd5e1;'>
+                <p style='margin: 8px 0 0 0; font-size: 11px; font-family: monospace; color: #475569;'>Token: " . htmlspecialchars($verificationToken ?? '') . "</p>
+                <p style='margin: 4px 0 0 0; font-size: 12px;'><a href='" . htmlspecialchars($verificationUrl) . "' style='color: #2563eb; text-decoration: underline;'>Verify Prescription Online</a></p>
+            </div>";
         }
 
         $body = "
@@ -107,6 +118,7 @@ class EmailService {
                     " . $rxItems . "
                 </ul>
             </div>
+            " . $qrSection . "
             <p>Please follow your physician's instructions carefully.</p>
             <br>
             <p style='font-size: 12px; color: #64748b;'>Nuvis Medico Healthcare Team</p>
