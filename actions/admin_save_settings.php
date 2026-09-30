@@ -37,7 +37,8 @@ $settings = [
     'cert_disclaimer'       => trim($_POST['cert_disclaimer'] ?? ''),
     'cert_footer_note'      => trim($_POST['cert_footer_note'] ?? ''),
     'doc_prc_no'            => trim($_POST['doc_prc_no'] ?? ''),
-    'doc_ptr_no'            => trim($_POST['doc_ptr_no'] ?? '')
+    'doc_ptr_no'            => trim($_POST['doc_ptr_no'] ?? ''),
+    'default_pagination_limit' => (int)($_POST['default_pagination_limit'] ?? 10)
 ];
 
 // VMS Fiscal Settings (if submitted)

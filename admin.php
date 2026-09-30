@@ -26,7 +26,7 @@ if ($activeTab === 'developer' && !$isDeveloper) {
     $activeTab = 'users';
 }
 
-$pagination = getPaginationParams(10);
+$pagination = getPaginationParams(10, [5, 10, 25, 50, 100], $pdo);
 
 // Fetch total count and paginated user/doctor staff
 $totalUsersStmt = $pdo->query("SELECT COUNT(*) FROM doctors");
@@ -319,6 +319,17 @@ $usersList = $usersStmt->fetchAll();
             <div>
                 <label class="block font-bold text-slate-700 mb-1">Default Physician PTR No.</label>
                 <input type="text" name="doc_ptr_no" value="<?= htmlspecialchars($settings['doc_ptr_no'] ?? 'PTR-8842109') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-mono font-medium">
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Default Table Items Per Page (Pagination Limit)</label>
+                <select name="default_pagination_limit" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-bold text-primary">
+                    <?php
+                    $currDefLimit = (int)($settings['default_pagination_limit'] ?? 10);
+                    foreach ([5, 10, 25, 50, 100] as $optLimit): ?>
+                        <option value="<?= $optLimit ?>" <?= $currDefLimit === $optLimit ? 'selected' : '' ?>><?= $optLimit ?> items per page</option>
+                    <?php endforeach; ?>
+                </select>
             </div>
 
             <div class="md:col-span-2">
