@@ -176,9 +176,9 @@ foreach ($settingsRows as $r) {
         <form action="actions/admin_save_settings.php" method="POST" class="space-y-6">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>">
 
-            <!-- Group Read/Write Matrix -->
+            <!-- Group Read/Write/Delete Matrix -->
             <div class="overflow-x-auto">
-                <p class="text-xs font-bold text-slate-800 mb-2">Group Access Matrix (Read / Write Permissions):</p>
+                <p class="text-xs font-bold text-slate-800 mb-2">Group Access Matrix (Read / Write / Delete Permissions):</p>
                 <table class="w-full text-left text-xs border border-outline-variant/30 rounded-xl overflow-hidden">
                     <thead class="bg-surface-container text-outline uppercase font-semibold text-[10px]">
                         <tr>
@@ -195,16 +195,21 @@ foreach ($settingsRows as $r) {
                                 <?php foreach ($modules as $modKey => $modLabel):
                                     $canRead = $savedRbac[$r][$modKey . '_read'] ?? ($r === 'Developer' || $r === 'Administrator' || ($r === 'Doctor' && $modKey !== 'admin' && $modKey !== 'developer'));
                                     $canWrite = $savedRbac[$r][$modKey . '_write'] ?? ($r === 'Developer' || ($r === 'Administrator' && $modKey !== 'developer'));
+                                    $canDelete = $savedRbac[$r][$modKey . '_delete'] ?? ($r === 'Developer' || ($r === 'Administrator' && $modKey !== 'developer'));
                                 ?>
                                     <td class="py-2.5 px-3 text-center">
-                                        <div class="flex items-center justify-center gap-2">
-                                            <label class="inline-flex items-center gap-1 cursor-pointer">
+                                        <div class="flex items-center justify-center gap-1.5 flex-wrap">
+                                            <label class="inline-flex items-center gap-0.5 cursor-pointer">
                                                 <input type="checkbox" name="rbac[<?= $r ?>][<?= $modKey ?>_read]" value="1" <?= $canRead ? 'checked' : '' ?> class="rounded text-primary focus:ring-primary">
                                                 <span class="text-[10px] font-medium text-slate-600">Read</span>
                                             </label>
-                                            <label class="inline-flex items-center gap-1 cursor-pointer">
+                                            <label class="inline-flex items-center gap-0.5 cursor-pointer">
                                                 <input type="checkbox" name="rbac[<?= $r ?>][<?= $modKey ?>_write]" value="1" <?= $canWrite ? 'checked' : '' ?> class="rounded text-primary focus:ring-primary">
                                                 <span class="text-[10px] font-medium text-slate-600">Write</span>
+                                            </label>
+                                            <label class="inline-flex items-center gap-0.5 cursor-pointer">
+                                                <input type="checkbox" name="rbac[<?= $r ?>][<?= $modKey ?>_delete]" value="1" <?= $canDelete ? 'checked' : '' ?> class="rounded text-rose-600 focus:ring-rose-600">
+                                                <span class="text-[10px] font-medium text-rose-700">Delete</span>
                                             </label>
                                         </div>
                                     </td>

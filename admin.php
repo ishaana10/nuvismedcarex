@@ -180,87 +180,86 @@ if ($activeTab === 'developer' && !$isDeveloper) {
             </div>
         </div>
 
-        <!-- User Cards Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="users-card-grid">
-            <?php foreach ($usersList as $usr):
-                $isActive = (isset($usr['is_active']) && (int)$usr['is_active'] === 0) ? false : true;
-                $userRole = $usr['role'] ?? 'Doctor';
-            ?>
-                <div class="user-card p-4 rounded-2xl bg-surface-container-low border border-outline-variant/30 flex flex-col justify-between gap-3 text-xs transition hover:shadow-md" data-role="<?= htmlspecialchars($userRole) ?>" data-search="<?= htmlspecialchars(strtolower($usr['name'] . ' ' . $usr['email'] . ' ' . $usr['role'] . ' ' . $usr['specialty'])) ?>">
-
-                    <div class="space-y-3">
-                        <div class="flex items-start justify-between gap-2">
-                            <div class="flex items-center gap-3">
-                                <img src="<?= htmlspecialchars($usr['avatar'] ?: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&q=80&w=200') ?>" class="w-12 h-12 rounded-2xl object-cover border border-slate-200 shadow-2xs shrink-0" alt="Avatar">
-                                <div>
-                                    <div class="flex items-center gap-1.5 flex-wrap">
-                                        <h3 class="font-bold text-on-surface text-sm"><?= htmlspecialchars($usr['name']) ?></h3>
+        <!-- User Table View -->
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 overflow-hidden shadow-xs">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-surface-container text-outline uppercase font-semibold text-[10px]">
+                        <tr>
+                            <th class="py-3 px-4">User</th>
+                            <th class="py-3 px-4">Role & Specialty</th>
+                            <th class="py-3 px-4">PRC / PTR</th>
+                            <th class="py-3 px-4">Status</th>
+                            <th class="py-3 px-4 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-outline-variant/20 font-medium">
+                        <?php foreach ($usersList as $usr):
+                            $isActive = (isset($usr['is_active']) && (int)$usr['is_active'] === 0) ? false : true;
+                            $userRole = $usr['role'] ?? 'Doctor';
+                        ?>
+                            <tr class="user-row hover:bg-surface-container-low/50 transition" data-role="<?= htmlspecialchars($userRole) ?>" data-search="<?= htmlspecialchars(strtolower($usr['name'] . ' ' . $usr['email'] . ' ' . $usr['role'] . ' ' . $usr['specialty'])) ?>">
+                                <td class="py-3 px-4">
+                                    <div class="flex items-center gap-3">
+                                        <img src="<?= htmlspecialchars($usr['avatar'] ?: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&q=80&w=200') ?>" class="w-9 h-9 rounded-xl object-cover border border-slate-200 shrink-0" alt="Avatar">
+                                        <div>
+                                            <div class="font-bold text-on-surface"><?= htmlspecialchars($usr['name']) ?></div>
+                                            <div class="text-[11px] text-outline font-normal"><?= htmlspecialchars($usr['email']) ?></div>
+                                        </div>
                                     </div>
-                                    <p class="text-[11px] text-outline font-medium truncate max-w-[180px]"><?= htmlspecialchars($usr['email']) ?></p>
-                                </div>
-                            </div>
-
-                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold inline-flex items-center gap-1 <?= $isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800' ?>">
-                                <span class="w-1.5 h-1.5 rounded-full <?= $isActive ? 'bg-emerald-500' : 'bg-rose-500' ?>"></span>
-                                <span><?= $isActive ? 'Active' : 'Inactive' ?></span>
-                            </span>
-                        </div>
-
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <span class="px-2.5 py-0.5 rounded-lg bg-primary/10 text-primary font-bold text-[11px] uppercase tracking-wider">
-                                <?= htmlspecialchars($userRole) ?>
-                            </span>
-                            <?php if (!empty($usr['specialty'])): ?>
-                                <span class="px-2.5 py-0.5 rounded-lg bg-surface-container-high text-on-surface-variant font-medium text-[11px]">
-                                    <?= htmlspecialchars($usr['specialty']) ?>
-                                </span>
-                            <?php endif; ?>
-                        </div>
-
-                        <div class="p-2.5 rounded-xl bg-surface-container-lowest border border-outline-variant/20 grid grid-cols-2 gap-2 text-[10px] font-mono text-slate-600">
-                            <div><span class="text-slate-400">PRC:</span> <?= htmlspecialchars($usr['prc_number'] ?: 'N/A') ?></div>
-                            <div><span class="text-slate-400">PTR:</span> <?= htmlspecialchars($usr['ptr_number'] ?: 'N/A') ?></div>
-                        </div>
-
-                        <div class="flex items-center gap-2">
-                            <?php if (!empty($usr['esignature'])): ?>
-                                <span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold flex items-center gap-1">
-                                    <span class="material-symbols-outlined text-[12px]">draw</span> Signature
-                                </span>
-                            <?php endif; ?>
-                            <?php if (!empty($usr['digital_stamp'])): ?>
-                                <span class="px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold flex items-center gap-1">
-                                    <span class="material-symbols-outlined text-[12px]">verified</span> Digital Stamp
-                                </span>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-
-                    <div class="pt-3 border-t border-outline-variant/20 flex items-center justify-between gap-2">
-                        <div class="flex items-center gap-1.5">
-                            <button type="button" onclick='openUserModal(<?= htmlspecialchars(json_encode($usr), ENT_QUOTES, "UTF-8") ?>)' class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg text-xs font-bold transition flex items-center gap-1">
-                                <span class="material-symbols-outlined text-sm">edit</span>
-                                <span>Edit</span>
-                            </button>
-
-                            <form action="actions/doctor_actions.php" method="POST" class="inline">
-                                <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
-                                <input type="hidden" name="action" value="toggle_status">
-                                <input type="hidden" name="user_id" value="<?= htmlspecialchars($usr['id']) ?>">
-                                <input type="hidden" name="status" value="<?= $isActive ? 0 : 1 ?>">
-                                <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 <?= $isActive ? 'bg-amber-100 text-amber-800 hover:bg-amber-200' : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' ?>">
-                                    <span class="material-symbols-outlined text-sm"><?= $isActive ? 'block' : 'check_circle' ?></span>
-                                    <span><?= $isActive ? 'Deactivate' : 'Activate' ?></span>
-                                </button>
-                            </form>
-                        </div>
-
-                        <a href="actions/doctor_actions.php?action=delete&id=<?= urlencode($usr['id']) ?>" onclick="return confirm('Are you sure you want to permanently delete user account \'<?= htmlspecialchars(addslashes($usr['name'])) ?>\'?')" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Delete User Account">
-                            <span class="material-symbols-outlined text-base">delete</span>
-                        </a>
-                    </div>
-                </div>
-            <?php endforeach; ?>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <span class="px-2 py-0.5 rounded-lg bg-primary/10 text-primary font-bold text-[10px] uppercase">
+                                            <?= htmlspecialchars($userRole) ?>
+                                        </span>
+                                        <?php if (!empty($usr['specialty'])): ?>
+                                            <span class="px-2 py-0.5 rounded-lg bg-surface-container-high text-on-surface-variant text-[10px]">
+                                                <?= htmlspecialchars($usr['specialty']) ?>
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-4 font-mono text-[11px] text-slate-600">
+                                    <div>PRC: <?= htmlspecialchars($usr['prc_number'] ?: 'N/A') ?></div>
+                                    <div class="text-[10px] text-slate-400">PTR: <?= htmlspecialchars($usr['ptr_number'] ?: 'N/A') ?></div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold inline-flex items-center gap-1 <?= $isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800' ?>">
+                                        <span class="w-1.5 h-1.5 rounded-full <?= $isActive ? 'bg-emerald-500' : 'bg-rose-500' ?>"></span>
+                                        <span><?= $isActive ? 'Active' : 'Inactive' ?></span>
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4 text-right">
+                                    <div class="inline-flex items-center gap-1">
+                                        <button type="button" onclick='viewCardDetails(<?= htmlspecialchars(json_encode($usr), ENT_QUOTES, "UTF-8") ?>)' class="px-2.5 py-1 bg-surface-container-high hover:bg-surface-variant text-on-surface rounded-lg text-xs font-semibold transition flex items-center gap-1" title="View Full Card Details">
+                                            <span class="material-symbols-outlined text-sm">visibility</span>
+                                            <span>View</span>
+                                        </button>
+                                        <button type="button" onclick='openUserModal(<?= htmlspecialchars(json_encode($usr), ENT_QUOTES, "UTF-8") ?>)' class="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold transition flex items-center gap-1">
+                                            <span class="material-symbols-outlined text-sm">edit</span>
+                                            <span>Edit</span>
+                                        </button>
+                                        <form action="actions/doctor_actions.php" method="POST" class="inline">
+                                            <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+                                            <input type="hidden" name="action" value="toggle_status">
+                                            <input type="hidden" name="user_id" value="<?= htmlspecialchars($usr['id']) ?>">
+                                            <input type="hidden" name="status" value="<?= $isActive ? 0 : 1 ?>">
+                                            <button type="submit" class="px-2.5 py-1 rounded-lg text-xs font-semibold transition flex items-center gap-1 <?= $isActive ? 'bg-amber-100 text-amber-800 hover:bg-amber-200' : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' ?>">
+                                                <span class="material-symbols-outlined text-sm"><?= $isActive ? 'block' : 'check_circle' ?></span>
+                                                <span><?= $isActive ? 'Deactivate' : 'Activate' ?></span>
+                                            </button>
+                                        </form>
+                                        <a href="actions/doctor_actions.php?action=delete&id=<?= urlencode($usr['id']) ?>" onclick="return confirm('Are you sure you want to permanently delete user account \'<?= htmlspecialchars(addslashes($usr['name'])) ?>\'?')" class="p-1 text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Delete User Account">
+                                            <span class="material-symbols-outlined text-base">delete</span>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -779,6 +778,60 @@ if ($activeTab === 'developer' && !$isDeveloper) {
     </div>
 </div>
 
+<!-- Modal View User Details Card -->
+<div id="modal-view-user-details" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center hidden p-4">
+    <div class="bg-surface-container-lowest rounded-3xl border border-outline-variant/30 shadow-2xl max-w-md w-full overflow-hidden">
+        <div class="p-5 bg-slate-900 text-white flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-xl">badge</span>
+                <h3 class="font-bold text-sm" id="view-card-name">User Profile Card</h3>
+            </div>
+            <button type="button" onclick="closeModal('modal-view-user-details')" class="text-slate-400 hover:text-white">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <div class="p-6 space-y-4 text-xs">
+            <div class="flex items-center gap-4 border-b border-outline-variant/20 pb-4">
+                <img id="view-card-avatar" src="" class="w-16 h-16 rounded-2xl object-cover border-2 border-primary/20 shadow-xs shrink-0" alt="Avatar">
+                <div>
+                    <h2 class="text-base font-bold text-on-surface" id="view-card-fullname">User Name</h2>
+                    <p class="text-xs text-outline font-medium" id="view-card-email">user@clinicflow.com</p>
+                    <div class="flex items-center gap-2 mt-2">
+                        <span class="px-2.5 py-0.5 rounded-lg bg-primary/10 text-primary font-bold text-[10px] uppercase" id="view-card-role">Doctor</span>
+                        <span class="px-2.5 py-0.5 rounded-lg bg-surface-container-high text-on-surface-variant text-[10px]" id="view-card-specialty">Internal Medicine</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 p-3 bg-surface-container-low rounded-xl border border-outline-variant/30 text-xs">
+                <div>
+                    <span class="text-outline text-[10px] block font-bold">PRC License No.</span>
+                    <span class="font-mono font-bold text-on-surface" id="view-card-prc">PRC-0000000</span>
+                </div>
+                <div>
+                    <span class="text-outline text-[10px] block font-bold">PTR License No.</span>
+                    <span class="font-mono font-bold text-on-surface" id="view-card-ptr">PTR-0000000</span>
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <div class="p-3 bg-surface-container-low rounded-xl border border-outline-variant/30 flex items-center justify-between">
+                    <span class="font-bold text-on-surface">Digital e-Signature:</span>
+                    <span id="view-card-sig-status" class="px-2 py-0.5 rounded text-[10px] font-bold"></span>
+                </div>
+                <div class="p-3 bg-surface-container-low rounded-xl border border-outline-variant/30 flex items-center justify-between">
+                    <span class="font-bold text-on-surface">Digital Stamp:</span>
+                    <span id="view-card-stamp-status" class="px-2 py-0.5 rounded text-[10px] font-bold"></span>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end pt-3 border-t border-outline-variant/20">
+                <button type="button" onclick="closeModal('modal-view-user-details')" class="px-5 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal: User Add/Edit Form -->
 <div id="userModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
     <div class="bg-white rounded-3xl max-w-xl w-full shadow-2xl border border-slate-200 overflow-hidden my-8">
@@ -1007,21 +1060,53 @@ function filterUserRole(role) {
 
 function searchUsers() {
     const query = (document.getElementById('user-search-input').value || '').toLowerCase().trim();
-    const cards = document.querySelectorAll('.user-card');
+    const rows = document.querySelectorAll('.user-row');
 
-    cards.forEach(card => {
-        const cardRole = card.getAttribute('data-role');
-        const cardSearchText = card.getAttribute('data-search') || '';
+    rows.forEach(row => {
+        const rowRole = row.getAttribute('data-role');
+        const rowSearchText = row.getAttribute('data-search') || '';
 
-        const matchesRole = (activeRoleFilter === 'all' || cardRole === activeRoleFilter);
-        const matchesQuery = (!query || cardSearchText.includes(query));
+        const matchesRole = (activeRoleFilter === 'all' || rowRole === activeRoleFilter);
+        const matchesQuery = (!query || rowSearchText.includes(query));
 
         if (matchesRole && matchesQuery) {
-            card.classList.remove('hidden');
+            row.classList.remove('hidden');
         } else {
-            card.classList.add('hidden');
+            row.classList.add('hidden');
         }
     });
+}
+
+function viewCardDetails(usr) {
+    if (!usr) return;
+    document.getElementById('view-card-name').innerText = usr.name || 'User Details';
+    document.getElementById('view-card-fullname').innerText = usr.name || 'User Name';
+    document.getElementById('view-card-email').innerText = usr.email || 'N/A';
+    document.getElementById('view-card-role').innerText = usr.role || 'Doctor';
+    document.getElementById('view-card-specialty').innerText = usr.specialty || 'General Practice';
+    document.getElementById('view-card-prc').innerText = usr.prc_number || 'N/A';
+    document.getElementById('view-card-ptr').innerText = usr.ptr_number || 'N/A';
+    document.getElementById('view-card-avatar').src = usr.avatar || 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&q=80&w=200';
+
+    const sigEl = document.getElementById('view-card-sig-status');
+    if (usr.esignature) {
+        sigEl.innerText = 'Uploaded / Active';
+        sigEl.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800';
+    } else {
+        sigEl.innerText = 'Not Uploaded';
+        sigEl.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-surface-container-high text-outline';
+    }
+
+    const stampEl = document.getElementById('view-card-stamp-status');
+    if (usr.digital_stamp) {
+        stampEl.innerText = 'Uploaded / Active';
+        stampEl.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800';
+    } else {
+        stampEl.innerText = 'Not Uploaded';
+        stampEl.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-surface-container-high text-outline';
+    }
+
+    openModal('modal-view-user-details');
 }
 
 function openUserModal(usr = null) {

@@ -53,6 +53,8 @@ if (isset($_POST['vms_seller_tin'])) {
     $settings['vms_tax_rate_p']        = trim($_POST['vms_tax_rate_p'] ?? '0.25');
 }
 
+$action = $_POST['action'] ?? '';
+
 // Dynamic Custom Role Addition / Deletion
 if ($action === 'add_custom_role') {
     $roleName = trim($_POST['role_name'] ?? '');
@@ -81,7 +83,6 @@ if ($action === 'delete_custom_role') {
 }
 
 // Dynamic Custom Permission Addition / Deletion
-$action = $_POST['action'] ?? '';
 if ($action === 'add_custom_permission') {
     $key = strtolower(preg_replace('/[^a-zA-Z0-9_]/', '', trim($_POST['permission_key'] ?? '')));
     $label = trim($_POST['permission_label'] ?? '');
