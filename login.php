@@ -70,7 +70,10 @@ $csrfToken = generateCsrfToken();
                 </div>
 
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1.5">Password</label>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="block font-bold text-slate-700">Password</label>
+                        <a href="forgot_password.php" class="text-xs font-semibold text-blue-700 hover:underline">Forgot Password?</a>
+                    </div>
                     <div class="relative">
                         <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg">lock</span>
                         <input type="password" name="password" value="" required placeholder="••••••••" class="w-full bg-slate-50 pl-10 pr-4 py-3 rounded-xl border border-slate-300 font-medium text-slate-800 focus:outline-none focus:border-blue-600 focus:bg-white transition">

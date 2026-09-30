@@ -402,3 +402,26 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 );
 
 CREATE INDEX idx_audit_logs_tenant ON audit_logs(tenant_id, created_at);
+
+CREATE TABLE IF NOT EXISTS password_resets (
+    id VARCHAR(50) PRIMARY KEY,
+    email VARCHAR(255) NOT NULL,
+    otp VARCHAR(10) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    used TINYINT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_password_resets_email ON password_resets(email);
+
+CREATE TABLE IF NOT EXISTS prescription_verifications (
+    id VARCHAR(50) PRIMARY KEY,
+    tenant_id VARCHAR(50) NOT NULL,
+    patient_id VARCHAR(50) NOT NULL,
+    visit_id VARCHAR(100),
+    verification_token VARCHAR(100) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_rx_verifications_token ON prescription_verifications(verification_token);
+CREATE INDEX idx_rx_verifications_pv ON prescription_verifications(patient_id, visit_id);
