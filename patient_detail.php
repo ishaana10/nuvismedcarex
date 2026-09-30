@@ -169,18 +169,42 @@ foreach ($settingsRows as $sr) {
             <?php if (empty($patientLabOrders)): ?>
                 <p class="text-xs text-outline italic">No lab or diagnostic orders recorded for this patient.</p>
             <?php else: ?>
-                <div class="space-y-2">
+                <div class="space-y-3">
                     <?php foreach ($patientLabOrders as $lo): ?>
-                        <div class="p-2.5 bg-surface-container-low rounded-xl border border-outline-variant/30 flex items-center justify-between text-xs">
-                            <div>
-                                <span class="font-bold text-on-surface"><?= htmlspecialchars($lo['test_name']) ?></span>
-                                <span class="text-outline text-[11px] block"><?= htmlspecialchars($lo['category']) ?> • Ordered by <?= htmlspecialchars($lo['ordered_by']) ?></span>
+                        <div class="p-3 bg-surface-container-low rounded-xl border border-outline-variant/30 text-xs space-y-2">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <span class="font-bold text-on-surface text-sm"><?= htmlspecialchars($lo['test_name']) ?></span>
+                                    <span class="text-outline text-[11px] block"><?= htmlspecialchars($lo['category']) ?> • Ordered by <?= htmlspecialchars($lo['ordered_by']) ?> on <?= date('M d, Y', strtotime($lo['created_at'])) ?></span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold <?= $lo['status'] === 'Completed' ? ($lo['is_abnormal'] ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800') : 'bg-amber-100 text-amber-800' ?>">
+                                        <?= htmlspecialchars($lo['status']) ?> <?= !empty($lo['is_abnormal']) ? '(Abnormal)' : '' ?>
+                                    </span>
+                                    <a href="print_lab_order.php?id=<?= htmlspecialchars($lo['id']) ?>" target="_blank" class="px-2 py-1 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg text-[11px] font-bold flex items-center gap-1 transition">
+                                        <span class="material-symbols-outlined text-xs">print</span> Print
+                                    </a>
+                                </div>
                             </div>
-                            <div class="text-right">
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold <?= $lo['status'] === 'Completed' ? ($lo['is_abnormal'] ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800') : 'bg-amber-100 text-amber-800' ?>">
-                                    <?= htmlspecialchars($lo['status']) ?> <?= !empty($lo['is_abnormal']) ? '(Abnormal)' : '' ?>
-                                </span>
-                            </div>
+
+                            <?php if (!empty($lo['items'])): ?>
+                                <div class="pl-2 border-l-2 border-primary/30 space-y-1 my-1">
+                                    <p class="text-[10px] font-bold text-outline uppercase">Order Items (<?= count($lo['items']) ?>)</p>
+                                    <?php foreach ($lo['items'] as $item): ?>
+                                        <div class="flex items-center justify-between text-[11px]">
+                                            <span class="font-medium text-slate-700">• <?= htmlspecialchars($item['test_name']) ?> <span class="text-slate-400">(<?= htmlspecialchars($item['category']) ?>)</span></span>
+                                            <span class="text-slate-500 italic"><?= htmlspecialchars($item['instructions'] ?: 'Standard') ?></span>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php if (!empty($lo['results'])): ?>
+                                <div class="p-2 bg-white rounded-lg border border-outline-variant/20 text-[11px]">
+                                    <span class="font-bold text-slate-700">Results:</span>
+                                    <span class="text-slate-800 font-mono"><?= htmlspecialchars($lo['results']) ?></span>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
                 </div>
@@ -733,13 +757,13 @@ function openCreateInvoiceForVisit(pv) {
     </div>
 </div>
 
-<!-- Modal Add Lab Order Patient Detail -->
+<!-- Modal Add Lab Order Patient Detail (Multi-Item Supported) -->
 <div id="modal-add-lab-order-pd" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center hidden p-4">
-    <div class="bg-surface-container-lowest rounded-3xl border border-outline-variant/30 shadow-2xl max-w-md w-full overflow-hidden">
+    <div class="bg-surface-container-lowest rounded-3xl border border-outline-variant/30 shadow-2xl max-w-xl w-full overflow-hidden">
         <div class="p-5 bg-slate-900 text-white flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <span class="material-symbols-outlined text-primary text-xl">science</span>
-                <h3 class="font-bold text-sm">Order Lab Test / Diagnostic</h3>
+                <h3 class="font-bold text-sm">Order Lab Tests & Diagnostics</h3>
             </div>
             <button type="button" onclick="closeModal('modal-add-lab-order-pd')" class="text-slate-400 hover:text-white">
                 <span class="material-symbols-outlined">close</span>
@@ -750,20 +774,40 @@ function openCreateInvoiceForVisit(pv) {
             <input type="hidden" name="action" value="create_lab_order">
             <input type="hidden" name="patient_id" value="<?= htmlspecialchars($patientId) ?>">
 
-            <div>
-                <label class="block font-bold text-slate-700 mb-1">Test Name *</label>
-                <input type="text" name="test_name" required placeholder="e.g., Complete Blood Count (CBC)" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium text-on-surface focus:outline-none focus:border-primary">
+            <div class="flex items-center justify-between">
+                <span class="font-bold text-slate-800">Requested Test Items / Panels</span>
+                <button type="button" onclick="addLabRowPd()" class="px-2.5 py-1 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg font-bold text-[11px] flex items-center gap-1 transition">
+                    <span class="material-symbols-outlined text-xs">add</span> Add Test Item
+                </button>
+            </div>
+
+            <div id="lab-items-container-pd" class="space-y-3 max-h-60 overflow-y-auto pr-1">
+                <div class="p-3 bg-surface-container-low rounded-xl border border-outline-variant/30 grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
+                    <div class="md:col-span-5">
+                        <label class="block font-bold text-slate-600 text-[10px] mb-0.5">Test Name *</label>
+                        <input type="text" name="items[0][test_name]" required placeholder="e.g. Complete Blood Count (CBC)" class="w-full bg-white px-3 py-1.5 rounded-lg border border-outline-variant/40 font-medium text-on-surface focus:outline-none focus:border-primary">
+                    </div>
+                    <div class="md:col-span-4">
+                        <label class="block font-bold text-slate-600 text-[10px] mb-0.5">Category</label>
+                        <select name="items[0][category]" class="w-full bg-white px-3 py-1.5 rounded-lg border border-outline-variant/40 font-medium text-on-surface focus:outline-none focus:border-primary">
+                            <option value="General">General</option>
+                            <option value="Hematology">Hematology</option>
+                            <option value="Biochemistry">Biochemistry</option>
+                            <option value="Microbiology">Microbiology</option>
+                            <option value="Serology">Serology</option>
+                            <option value="Imaging">Imaging / Radiology</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-3">
+                        <label class="block font-bold text-slate-600 text-[10px] mb-0.5">Instructions</label>
+                        <input type="text" name="items[0][instructions]" placeholder="Fasting 8h, etc." class="w-full bg-white px-2.5 py-1.5 rounded-lg border border-outline-variant/40 font-medium">
+                    </div>
+                </div>
             </div>
 
             <div>
-                <label class="block font-bold text-slate-700 mb-1">Category</label>
-                <select name="category" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium text-on-surface focus:outline-none focus:border-primary">
-                    <option value="General">General Diagnostics</option>
-                    <option value="Hematology">Hematology</option>
-                    <option value="Biochemistry">Biochemistry</option>
-                    <option value="Microbiology">Microbiology</option>
-                    <option value="Radiology">Radiology / Imaging</option>
-                </select>
+                <label class="block font-bold text-slate-700 mb-1">Clinical Notes / Indications</label>
+                <textarea name="clinical_notes" rows="2" placeholder="Clinical reasons for requesting lab tests..." class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-medium text-on-surface focus:outline-none focus:border-primary"></textarea>
             </div>
 
             <div class="flex items-center justify-end gap-2 pt-3 border-t border-outline-variant/20">
@@ -776,5 +820,42 @@ function openCreateInvoiceForVisit(pv) {
         </form>
     </div>
 </div>
+
+<script>
+let pdLabItemCount = 1;
+function addLabRowPd() {
+    const container = document.getElementById('lab-items-container-pd');
+    const div = document.createElement('div');
+    div.className = 'p-3 bg-surface-container-low rounded-xl border border-outline-variant/30 grid grid-cols-1 md:grid-cols-12 gap-2 items-center relative';
+    div.innerHTML = `
+        <div class="md:col-span-5">
+            <label class="block font-bold text-slate-600 text-[10px] mb-0.5">Test Name *</label>
+            <input type="text" name="items[${pdLabItemCount}][test_name]" required placeholder="e.g. Lipid Profile" class="w-full bg-white px-3 py-1.5 rounded-lg border border-outline-variant/40 font-medium text-on-surface">
+        </div>
+        <div class="md:col-span-4">
+            <label class="block font-bold text-slate-600 text-[10px] mb-0.5">Category</label>
+            <select name="items[${pdLabItemCount}][category]" class="w-full bg-white px-3 py-1.5 rounded-lg border border-outline-variant/40 font-medium text-on-surface">
+                <option value="General">General</option>
+                <option value="Hematology">Hematology</option>
+                <option value="Biochemistry">Biochemistry</option>
+                <option value="Microbiology">Microbiology</option>
+                <option value="Serology">Serology</option>
+                <option value="Imaging">Imaging / Radiology</option>
+            </select>
+        </div>
+        <div class="md:col-span-2">
+            <label class="block font-bold text-slate-600 text-[10px] mb-0.5">Instructions</label>
+            <input type="text" name="items[${pdLabItemCount}][instructions]" placeholder="e.g. Fasting" class="w-full bg-white px-2.5 py-1.5 rounded-lg border border-outline-variant/40 font-medium">
+        </div>
+        <div class="md:col-span-1 flex items-end justify-center pt-3">
+            <button type="button" onclick="this.closest('.grid').remove()" class="text-rose-600 hover:text-rose-800 p-1">
+                <span class="material-symbols-outlined text-base">delete</span>
+            </button>
+        </div>
+    `;
+    container.appendChild(div);
+    pdLabItemCount++;
+}
+</script>
 
 <?php include __DIR__ . '/includes/footer.php'; ?>

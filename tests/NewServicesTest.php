@@ -22,10 +22,11 @@ class NewServicesTest extends TestCase {
         $runner->run();
 
         // Seed patient and tenant
-        $this->pdo->exec("INSERT INTO patients (id, tenant_id, mrn, first_name, last_name, dob, age, gender, known_allergies, registration_date) VALUES ('pat-100', 'default-clinic', 'MRN-100', 'John', 'Doe', '1990-01-01', 34, 'Male', 'Penicillin, Peanuts', '2025-01-01')");
+        $this->pdo->exec("INSERT INTO patients (id, tenant_id, mrn, first_name, last_name, dob, age, gender, known_allergies, registration_date) VALUES ('pat-100', 'default-clinic', 'MRN-100', 'John', 'Doe', '1990-01-01', 34, 'Male', 'penicillin, peanuts', '2025-01-01')");
     }
 
     public function testClinicalAlertService(): void {
+        \ClinicFlow\Shared\TenantContext::setTenantId('default-clinic');
         $alertService = new ClinicalAlertService($this->pdo);
 
         $alerts = $alertService->checkMedicationAllergies('pat-100', 'Amoxicillin 500mg');

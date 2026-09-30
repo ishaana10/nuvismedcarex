@@ -20,20 +20,84 @@ $patientId = $_POST['patient_id'] ?? $_GET['patient_id'] ?? '';
 $visitId = $_POST['visit_id'] ?? $_GET['visit_id'] ?? '';
 
 if ($action === 'create_lab_order') {
-    $testName = trim($_POST['test_name'] ?? '');
     $orderType = trim($_POST['order_type'] ?? 'Lab');
-    $category = trim($_POST['category'] ?? 'General');
+    $notes = trim($_POST['clinical_notes'] ?? '');
 
-    if (!empty($patientId) && !empty($testName)) {
+    // Parse multi-item array if submitted
+    $rawItems = $_POST['items'] ?? [];
+    $items = [];
+
+    if (is_array($rawItems) && !empty($rawItems)) {
+        foreach ($rawItems as $raw) {
+            $testName = trim($raw['test_name'] ?? '');
+            if (!empty($testName)) {
+                $items[] = [
+                    'test_name' => $testName,
+                    'category' => trim($raw['category'] ?? 'General'),
+                    'instructions' => trim($raw['instructions'] ?? '')
+                ];
+            }
+        }
+    }
+
+    // Fallback single test_name if items array empty
+    if (empty($items)) {
+        $singleTest = trim($_POST['test_name'] ?? '');
+        if (!empty($singleTest)) {
+            $items[] = [
+                'test_name' => $singleTest,
+                'category' => trim($_POST['category'] ?? 'General'),
+                'instructions' => trim($_POST['instructions'] ?? '')
+            ];
+        }
+    }
+
+    if (!empty($patientId) && !empty($items)) {
         try {
-            $labOrderService->createOrder($patientId, $testName, $orderType, $category);
-            setToast('Lab Order Created', "Ordered '{$testName}' for patient.");
+            $order = $labOrderService->createMultiItemOrder($patientId, $items, $orderType, $notes);
+            setToast('Lab Order Created', "Created lab order with " . count($items) . " test item(s).");
         } catch (\Throwable $e) {
             $logger->error("Error creating lab order: " . $e->getMessage());
-            setToast('Error', 'Could not create lab order.', 'error');
+            setToast('Error', 'Could not create lab order: ' . $e->getMessage(), 'error');
         }
     } else {
-        setToast('Validation Error', 'Patient ID and Test Name are required.', 'error');
+        setToast('Validation Error', 'Patient ID and at least one Test Name are required.', 'error');
+    }
+}
+
+if ($action === 'edit_lab_order' || $action === 'update_lab_order') {
+    $orderId = trim($_POST['order_id'] ?? '');
+    $notes = trim($_POST['clinical_notes'] ?? '');
+
+    $rawItems = $_POST['items'] ?? [];
+    $items = [];
+
+    if (is_array($rawItems)) {
+        foreach ($rawItems as $raw) {
+            $testName = trim($raw['test_name'] ?? '');
+            if (!empty($testName)) {
+                $items[] = [
+                    'test_name' => $testName,
+                    'category' => trim($raw['category'] ?? 'General'),
+                    'instructions' => trim($raw['instructions'] ?? ''),
+                    'status' => trim($raw['status'] ?? 'Ordered'),
+                    'results' => trim($raw['results'] ?? ''),
+                    'is_abnormal' => !empty($raw['is_abnormal'])
+                ];
+            }
+        }
+    }
+
+    if (!empty($orderId) && !empty($items)) {
+        try {
+            $labOrderService->updateOrder($orderId, $items, $notes);
+            setToast('Lab Order Updated', 'Lab order and test items updated successfully.');
+        } catch (\Throwable $e) {
+            $logger->error("Error updating lab order: " . $e->getMessage());
+            setToast('Error', 'Could not update lab order: ' . $e->getMessage(), 'error');
+        }
+    } else {
+        setToast('Validation Error', 'Order ID and at least one test item are required.', 'error');
     }
 }
 
