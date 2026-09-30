@@ -22,6 +22,10 @@ $settings = [];
 foreach ($settingsRows as $r) {
     $settings[$r['setting_key']] = $r['setting_value'];
 }
+
+$tenantService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\TenantService::class);
+$tenantsList = $tenantService->getAllTenants();
+$currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 ?>
 
 <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -42,10 +46,18 @@ foreach ($settingsRows as $r) {
 </div>
 
 <!-- Developer Child Tabs Navigation -->
-<div class="flex border-b border-outline-variant/30 mb-6 space-x-2 text-xs font-bold">
+<div class="flex border-b border-outline-variant/30 mb-6 space-x-2 text-xs font-bold flex-wrap">
     <button type="button" onclick="switchDevTab('git')" id="dev-tab-btn-git" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white">
         <span class="material-symbols-outlined text-base">update</span>
         <span>Git Updates & Terminal</span>
+    </button>
+    <button type="button" onclick="switchDevTab('tenants')" id="dev-tab-btn-tenants" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+        <span class="material-symbols-outlined text-base">apartment</span>
+        <span>Multi-Tenancy Clinics</span>
+    </button>
+    <button type="button" onclick="switchDevTab('vms')" id="dev-tab-btn-vms" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+        <span class="material-symbols-outlined text-base">point_of_sale</span>
+        <span>VMS Fiscal Settings</span>
     </button>
     <button type="button" onclick="switchDevTab('rbac')" id="dev-tab-btn-rbac" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">admin_panel_settings</span>
@@ -60,6 +72,143 @@ foreach ($settingsRows as $r) {
 <div class="space-y-6">
     <!-- 1. System Updates (Git Updater) -->
     <div id="dev-panel-git" class="space-y-6">
+    </div> <!-- End dev-panel-git -->
+
+    <!-- Multi-Tenancy Clinics Panel -->
+    <div id="dev-panel-tenants" class="hidden space-y-6">
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-outline-variant/20">
+                <div>
+                    <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                        <span class="material-symbols-outlined text-base">apartment</span>
+                        <span>Multi-Clinic Tenancy Directory</span>
+                    </h2>
+                    <p class="text-xs text-outline font-medium mt-0.5">Manage multi-tenant clinic instances, isolation profiles, and switch active clinic context. Active Context: <code class="text-primary font-bold font-mono"><?= htmlspecialchars($currentTenantId) ?></code></p>
+                </div>
+
+                <button type="button" onclick="openTenantModal()" class="px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-base">add_location_alt</span>
+                    <span>Add New Clinic Tenant</span>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <?php foreach ($tenantsList as $tnt):
+                    $isCurrent = ($tnt['id'] === $currentTenantId);
+                ?>
+                    <div class="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/30 flex flex-col justify-between gap-3 text-xs transition hover:shadow-md <?= $isCurrent ? 'ring-2 ring-primary/60 bg-primary/5' : '' ?>">
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between gap-2">
+                                <h3 class="font-bold text-on-surface text-sm flex items-center gap-1.5">
+                                    <span class="material-symbols-outlined text-base text-primary">domain</span>
+                                    <span><?= htmlspecialchars($tnt['name']) ?></span>
+                                </h3>
+                                <?php if ($isCurrent): ?>
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary text-white flex items-center gap-1">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                                        <span>Active Context</span>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
+
+                            <div class="p-2.5 rounded-xl bg-surface-container-lowest border border-outline-variant/20 grid grid-cols-2 gap-2 text-[10px] font-mono text-slate-600">
+                                <div><span class="text-slate-400">Code:</span> <?= htmlspecialchars($tnt['code']) ?></div>
+                                <div><span class="text-slate-400">Plan:</span> <span class="uppercase font-bold text-primary"><?= htmlspecialchars($tnt['plan']) ?></span></div>
+                                <div><span class="text-slate-400">Status:</span> <?= htmlspecialchars($tnt['status']) ?></div>
+                                <div><span class="text-slate-400">Tenant ID:</span> <?= htmlspecialchars($tnt['id']) ?></div>
+                            </div>
+
+                            <p class="text-[11px] text-slate-600 flex items-center gap-1">
+                                <span class="material-symbols-outlined text-xs text-slate-400">location_on</span>
+                                <span><?= htmlspecialchars($tnt['address'] ?: 'No address specified') ?></span>
+                            </p>
+                        </div>
+
+                        <div class="pt-3 border-t border-outline-variant/20 flex items-center justify-between gap-2">
+                            <form action="actions/tenant_actions.php" method="POST" class="w-full">
+                                <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+                                <input type="hidden" name="action" value="switch_tenant">
+                                <input type="hidden" name="tenant_id" value="<?= htmlspecialchars($tnt['id']) ?>">
+                                <button type="submit" <?= $isCurrent ? 'disabled' : '' ?> class="w-full py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 <?= $isCurrent ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-primary text-white hover:bg-primary/90' ?>">
+                                    <span class="material-symbols-outlined text-base">swap_horiz</span>
+                                    <span><?= $isCurrent ? 'Current Active Clinic' : 'Switch to This Clinic' ?></span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </div> <!-- End dev-panel-tenants -->
+
+    <!-- VMS Fiscal Settings Panel -->
+    <div id="dev-panel-vms" class="hidden space-y-6">
+        <form action="actions/admin_save_settings.php" method="POST" class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-5">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>">
+            <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                <span class="material-symbols-outlined text-base">point_of_sale</span>
+                <span>FRCS VAT Monitoring System (VMS Phase 3) Configuration</span>
+            </h2>
+
+            <div class="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                <input type="checkbox" id="vms_enabled_dev" name="vms_enabled" value="1" <?= ($settings['vms_enabled'] ?? '1') === '1' ? 'checked' : '' ?> class="w-4 h-4 text-primary rounded focus:ring-primary">
+                <label for="vms_enabled_dev" class="font-bold text-on-surface text-xs">Enable FRCS VMS Fiscalization for all created invoices</label>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Taxpayer Seller TIN <span class="text-red-500">*</span></label>
+                    <input type="text" name="vms_seller_tin" value="<?= htmlspecialchars($settings['vms_seller_tin'] ?? '502579006') ?>" required class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-mono font-bold">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Accredited POS Number <span class="text-red-500">*</span></label>
+                    <input type="text" name="vms_pos_number" value="<?= htmlspecialchars($settings['vms_pos_number'] ?? 'ASDF238/1.2') ?>" required class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-mono font-bold">
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="block font-bold text-slate-700 mb-1">Business Location Address <span class="text-red-500">*</span></label>
+                    <input type="text" name="vms_business_location" value="<?= htmlspecialchars($settings['vms_business_location'] ?? 'Suva Central Clinic, 2 Woodstand Road, Suva') ?>" required class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium">
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="block font-bold text-slate-700 mb-1">SDC / VMS Sandbox API Base URL <span class="text-red-500">*</span></label>
+                    <input type="url" name="vms_sdc_url" value="<?= htmlspecialchars($settings['vms_sdc_url'] ?? 'https://tap.sandbox.vms.frcs.org.fj') ?>" required class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-mono font-medium">
+                </div>
+            </div>
+
+            <hr class="border-outline-variant/20">
+
+            <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">VMS Tax Label Rates (%)</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Label A (Standard VAT %)</label>
+                    <input type="number" step="0.01" name="vms_tax_rate_a" value="<?= htmlspecialchars($settings['vms_tax_rate_a'] ?? '15.00') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-mono font-bold">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Label E (Exempt %)</label>
+                    <input type="number" step="0.01" name="vms_tax_rate_e" value="<?= htmlspecialchars($settings['vms_tax_rate_e'] ?? '0.00') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-mono font-bold">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Label F (Zero-Rated %)</label>
+                    <input type="number" step="0.01" name="vms_tax_rate_f" value="<?= htmlspecialchars($settings['vms_tax_rate_f'] ?? '0.00') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-mono font-bold">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Label P (Special Tax %)</label>
+                    <input type="number" step="0.01" name="vms_tax_rate_p" value="<?= htmlspecialchars($settings['vms_tax_rate_p'] ?? '0.25') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-mono font-bold">
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-3">
+                <button type="submit" class="px-6 py-2.5 bg-primary text-white text-xs font-semibold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base">save</span>
+                    <span>Save VMS Fiscal Settings</span>
+                </button>
+            </div>
+        </form>
+    </div> <!-- End dev-panel-vms -->
+
+    <div id="dev-panel-git-content" class="space-y-6">
     <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-5">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-outline-variant/20 pb-3">
             <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
@@ -386,23 +535,33 @@ foreach ($settingsRows as $r) {
 
 <script>
 function switchDevTab(tab) {
-    document.getElementById('dev-panel-git').classList.add('hidden');
-    document.getElementById('dev-panel-rbac').classList.add('hidden');
-    document.getElementById('dev-panel-logs').classList.add('hidden');
+    if (document.getElementById('dev-panel-git')) document.getElementById('dev-panel-git').classList.add('hidden');
+    if (document.getElementById('dev-panel-tenants')) document.getElementById('dev-panel-tenants').classList.add('hidden');
+    if (document.getElementById('dev-panel-vms')) document.getElementById('dev-panel-vms').classList.add('hidden');
+    if (document.getElementById('dev-panel-rbac')) document.getElementById('dev-panel-rbac').classList.add('hidden');
+    if (document.getElementById('dev-panel-logs')) document.getElementById('dev-panel-logs').classList.add('hidden');
 
-    document.getElementById('dev-tab-btn-git').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
-    document.getElementById('dev-tab-btn-rbac').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
-    document.getElementById('dev-tab-btn-logs').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
+    if (document.getElementById('dev-tab-btn-git')) document.getElementById('dev-tab-btn-git').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
+    if (document.getElementById('dev-tab-btn-tenants')) document.getElementById('dev-tab-btn-tenants').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
+    if (document.getElementById('dev-tab-btn-vms')) document.getElementById('dev-tab-btn-vms').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
+    if (document.getElementById('dev-tab-btn-rbac')) document.getElementById('dev-tab-btn-rbac').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
+    if (document.getElementById('dev-tab-btn-logs')) document.getElementById('dev-tab-btn-logs').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
 
     if (tab === 'git') {
-        document.getElementById('dev-panel-git').classList.remove('hidden');
-        document.getElementById('dev-tab-btn-git').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
+        if (document.getElementById('dev-panel-git')) document.getElementById('dev-panel-git').classList.remove('hidden');
+        if (document.getElementById('dev-tab-btn-git')) document.getElementById('dev-tab-btn-git').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
+    } else if (tab === 'tenants') {
+        if (document.getElementById('dev-panel-tenants')) document.getElementById('dev-panel-tenants').classList.remove('hidden');
+        if (document.getElementById('dev-tab-btn-tenants')) document.getElementById('dev-tab-btn-tenants').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
+    } else if (tab === 'vms') {
+        if (document.getElementById('dev-panel-vms')) document.getElementById('dev-panel-vms').classList.remove('hidden');
+        if (document.getElementById('dev-tab-btn-vms')) document.getElementById('dev-tab-btn-vms').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
     } else if (tab === 'rbac') {
-        document.getElementById('dev-panel-rbac').classList.remove('hidden');
-        document.getElementById('dev-tab-btn-rbac').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
+        if (document.getElementById('dev-panel-rbac')) document.getElementById('dev-panel-rbac').classList.remove('hidden');
+        if (document.getElementById('dev-tab-btn-rbac')) document.getElementById('dev-tab-btn-rbac').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
     } else if (tab === 'logs') {
-        document.getElementById('dev-panel-logs').classList.remove('hidden');
-        document.getElementById('dev-tab-btn-logs').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
+        if (document.getElementById('dev-panel-logs')) document.getElementById('dev-panel-logs').classList.remove('hidden');
+        if (document.getElementById('dev-tab-btn-logs')) document.getElementById('dev-tab-btn-logs').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
     }
 }
 document.addEventListener('DOMContentLoaded', function() {
