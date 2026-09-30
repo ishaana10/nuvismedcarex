@@ -114,4 +114,23 @@ class EmailService {
 
         return $this->sendDocumentEmail($recipientEmail, $subject, $body, 'prescription');
     }
+
+    public function sendOtpEmail(string $recipientEmail, string $otp, int $expiryMinutes = 15): bool {
+        $subject = "Nuvis Medcare X - Password Reset Verification Code";
+        $body = "
+        <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;'>
+            <h2 style='color: #1e3a8a; margin-bottom: 8px;'>Nuvis Medcare X</h2>
+            <p style='color: #475569; font-size: 14px;'>Password Reset Request</p>
+            <hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 16px 0;'>
+            <p>You requested a password reset for your account. Please use the One-Time Password (OTP) below to reset your password:</p>
+            <div style='background-color: #f1f5f9; padding: 20px; border-radius: 12px; text-align: center; margin: 20px 0; border: 1px dashed #cbd5e1;'>
+                <span style='font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #1e3a8a; font-family: monospace;'>{$otp}</span>
+            </div>
+            <p style='font-size: 13px; color: #64748b;'>This verification code will expire in <strong>{$expiryMinutes} minutes</strong>. If you did not request a password reset, please ignore this email or contact your system administrator.</p>
+            <br>
+            <p style='font-size: 12px; color: #94a3b8;'>Nuvis Medcare X Platform Team</p>
+        </div>";
+
+        return $this->sendDocumentEmail($recipientEmail, $subject, $body, 'otp_reset');
+    }
 }
