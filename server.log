@@ -1,1136 +1,300 @@
-[Wed Sep 30 06:46:17 2026] Failed to listen on 127.0.0.1:8000 (reason: Address already i[Wed Sep 30 06:47:12 2026] 127.0.0.1:37222 Accepted
-[Wed Sep 30 06:47:12 2026] 127.0.0.1:37222 [200]: HEAD /login.php
-[Wed Sep 30 06:47:12 2026] 127.0.0.1:37222 Closing
-[Wed Sep 30 06:47:35 2026] 127.0.0.1:45378 Accepted
-[Wed Sep 30 06:47:35 2026] 127.0.0.1:45378 [200]: GET /login.php
-[Wed Sep 30 06:47:35 2026] 127.0.0.1:45378 Closing
-[Wed Sep 30 06:47:35 2026] 127.0.0.1:45382 Accepted
-[Wed Sep 30 06:47:35 2026] 127.0.0.1:45384 Accepted
-[Wed Sep 30 06:47:35 2026] 127.0.0.1:45382 Closing
-[Wed Sep 30 06:47:35 2026] 127.0.0.1:45384 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 06:47:35 2026] 127.0.0.1:45384 Closing
-[Wed Sep 30 06:47:35 2026] 127.0.0.1:45394 Accepted
-[Wed Sep 30 06:47:35 2026] 127.0.0.1:45400 Accepted
-[Wed Sep 30 06:47:35 2026] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY000]: General error: 1 no such table: doctors in /app/includes/header.php:19
+[Thu Oct  1 04:29:56 2026] PHP 8.3.6 Development Server (http://127.0.0.1:8000) started
+[Thu Oct  1 04:30:21 2026] 127.0.0.1:35582 Accepted
+[Thu Oct  1 04:30:21 2026] 127.0.0.1:35582 [200]: GET /login.php
+[Thu Oct  1 04:30:21 2026] 127.0.0.1:35582 Closing
+[Thu Oct  1 04:30:21 2026] 127.0.0.1:35590 Accepted
+[Thu Oct  1 04:30:21 2026] 127.0.0.1:35602 Accepted
+[Thu Oct  1 04:30:21 2026] 127.0.0.1:35590 [200]: GET /assets/images/NuvisMedcareX_banner%20(1).jpg
+[Thu Oct  1 04:30:21 2026] 127.0.0.1:35602 [200]: GET /assets/images/stethoscope_heart.png
+[Thu Oct  1 04:30:21 2026] 127.0.0.1:35590 Closing
+[Thu Oct  1 04:30:21 2026] 127.0.0.1:35602 Closing
+[Thu Oct  1 04:30:21 2026] 127.0.0.1:35612 Accepted
+[Thu Oct  1 04:30:21 2026] 127.0.0.1:35614 Accepted
+[Thu Oct  1 04:30:21 2026] 127.0.0.1:35612 [200]: GET /assets/images/caduceus_logo.png
+[Thu Oct  1 04:30:21 2026] 127.0.0.1:35614 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
+[Thu Oct  1 04:30:21 2026] 127.0.0.1:35612 Closing
+[Thu Oct  1 04:30:21 2026] 127.0.0.1:35614 Closing
+[Thu Oct  1 04:30:23 2026] 127.0.0.1:35618 Accepted
+[Thu Oct  1 04:30:23 2026] 127.0.0.1:35618 [302]: POST /actions/login.php
+[Thu Oct  1 04:30:23 2026] 127.0.0.1:35618 Closing
+[Thu Oct  1 04:30:23 2026] 127.0.0.1:35620 Accepted
+[Thu Oct  1 04:30:23 2026] 127.0.0.1:35620 [200]: GET /login.php
+[Thu Oct  1 04:30:23 2026] 127.0.0.1:35620 Closing
+[Thu Oct  1 04:30:23 2026] 127.0.0.1:35630 Accepted
+[Thu Oct  1 04:30:23 2026] 127.0.0.1:35646 Accepted
+[Thu Oct  1 04:30:23 2026] 127.0.0.1:35630 [200]: GET /assets/images/NuvisMedcareX_banner%20(1).jpg
+[Thu Oct  1 04:30:23 2026] 127.0.0.1:35646 [200]: GET /assets/images/stethoscope_heart.png
+[Thu Oct  1 04:30:23 2026] 127.0.0.1:35630 Closing
+[Thu Oct  1 04:30:23 2026] 127.0.0.1:35646 Closing
+[Thu Oct  1 04:30:23 2026] 127.0.0.1:35656 Accepted
+[Thu Oct  1 04:30:23 2026] 127.0.0.1:35662 Accepted
+[Thu Oct  1 04:30:23 2026] 127.0.0.1:35656 [200]: GET /assets/images/caduceus_logo.png
+[Thu Oct  1 04:30:23 2026] 127.0.0.1:35662 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
+[Thu Oct  1 04:30:23 2026] 127.0.0.1:35656 Closing
+[Thu Oct  1 04:30:23 2026] 127.0.0.1:35662 Closing
+[Thu Oct  1 04:30:24 2026] 127.0.0.1:35666 Accepted
+[Thu Oct  1 04:30:24 2026] 127.0.0.1:35666 [302]: GET /inventory.php
+[Thu Oct  1 04:30:24 2026] 127.0.0.1:35666 Closing
+[Thu Oct  1 04:30:24 2026] 127.0.0.1:35672 Accepted
+[Thu Oct  1 04:30:24 2026] 127.0.0.1:35672 [200]: GET /login.php?expired=1
+[Thu Oct  1 04:30:24 2026] 127.0.0.1:35672 Closing
+[Thu Oct  1 04:30:24 2026] 127.0.0.1:35686 Accepted
+[Thu Oct  1 04:30:24 2026] 127.0.0.1:35692 Accepted
+[Thu Oct  1 04:30:24 2026] 127.0.0.1:35686 [200]: GET /assets/images/NuvisMedcareX_banner%20(1).jpg
+[Thu Oct  1 04:30:24 2026] 127.0.0.1:35692 [200]: GET /assets/images/stethoscope_heart.png
+[Thu Oct  1 04:30:24 2026] 127.0.0.1:35686 Closing
+[Thu Oct  1 04:30:24 2026] 127.0.0.1:35692 Closing
+[Thu Oct  1 04:30:24 2026] 127.0.0.1:35696 Accepted
+[Thu Oct  1 04:30:24 2026] 127.0.0.1:35704 Accepted
+[Thu Oct  1 04:30:24 2026] 127.0.0.1:35696 [200]: GET /assets/images/caduceus_logo.png
+[Thu Oct  1 04:30:24 2026] 127.0.0.1:35704 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
+[Thu Oct  1 04:30:24 2026] 127.0.0.1:35696 Closing
+[Thu Oct  1 04:30:24 2026] 127.0.0.1:35704 Closing
+[Thu Oct  1 04:30:25 2026] 127.0.0.1:35720 Accepted
+[Thu Oct  1 04:30:25 2026] 127.0.0.1:35720 [302]: GET /billing.php
+[Thu Oct  1 04:30:25 2026] 127.0.0.1:35720 Closing
+[Thu Oct  1 04:30:25 2026] 127.0.0.1:35728 Accepted
+[Thu Oct  1 04:30:25 2026] 127.0.0.1:35728 [200]: GET /login.php?expired=1
+[Thu Oct  1 04:30:25 2026] 127.0.0.1:35728 Closing
+[Thu Oct  1 04:30:25 2026] 127.0.0.1:35734 Accepted
+[Thu Oct  1 04:30:25 2026] 127.0.0.1:35748 Accepted
+[Thu Oct  1 04:30:25 2026] 127.0.0.1:35734 [200]: GET /assets/images/NuvisMedcareX_banner%20(1).jpg
+[Thu Oct  1 04:30:25 2026] 127.0.0.1:35734 Closing
+[Thu Oct  1 04:30:25 2026] 127.0.0.1:35748 [200]: GET /assets/images/stethoscope_heart.png
+[Thu Oct  1 04:30:25 2026] 127.0.0.1:35748 Closing
+[Thu Oct  1 04:30:25 2026] 127.0.0.1:35754 Accepted
+[Thu Oct  1 04:30:25 2026] 127.0.0.1:35762 Accepted
+[Thu Oct  1 04:30:25 2026] 127.0.0.1:35754 [200]: GET /assets/images/caduceus_logo.png
+[Thu Oct  1 04:30:25 2026] 127.0.0.1:35762 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
+[Thu Oct  1 04:30:25 2026] 127.0.0.1:35754 Closing
+[Thu Oct  1 04:30:25 2026] 127.0.0.1:35762 Closing
+[Thu Oct  1 04:30:27 2026] 127.0.0.1:35766 Accepted
+[Thu Oct  1 04:30:27 2026] 127.0.0.1:35766 [302]: GET /patient_detail.php?id=pat-1
+[Thu Oct  1 04:30:27 2026] 127.0.0.1:35766 Closing
+[Thu Oct  1 04:30:27 2026] 127.0.0.1:35782 Accepted
+[Thu Oct  1 04:30:27 2026] 127.0.0.1:35782 [200]: GET /login.php?expired=1
+[Thu Oct  1 04:30:27 2026] 127.0.0.1:35782 Closing
+[Thu Oct  1 04:30:27 2026] 127.0.0.1:35790 Accepted
+[Thu Oct  1 04:30:27 2026] 127.0.0.1:35798 Accepted
+[Thu Oct  1 04:30:27 2026] 127.0.0.1:35790 [200]: GET /assets/images/NuvisMedcareX_banner%20(1).jpg
+[Thu Oct  1 04:30:27 2026] 127.0.0.1:35790 Closing
+[Thu Oct  1 04:30:27 2026] 127.0.0.1:35798 [200]: GET /assets/images/stethoscope_heart.png
+[Thu Oct  1 04:30:27 2026] 127.0.0.1:35798 Closing
+[Thu Oct  1 04:30:27 2026] 127.0.0.1:35800 Accepted
+[Thu Oct  1 04:30:27 2026] 127.0.0.1:35808 Accepted
+[Thu Oct  1 04:30:27 2026] 127.0.0.1:35800 [200]: GET /assets/images/caduceus_logo.png
+[Thu Oct  1 04:30:27 2026] 127.0.0.1:35808 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
+[Thu Oct  1 04:30:27 2026] 127.0.0.1:35800 Closing
+[Thu Oct  1 04:30:27 2026] 127.0.0.1:35808 Closing
+[Thu Oct  1 04:30:28 2026] 127.0.0.1:35818 Accepted
+[Thu Oct  1 04:30:28 2026] 127.0.0.1:35818 [200]: GET /login.php
+[Thu Oct  1 04:30:28 2026] 127.0.0.1:35818 Closing
+[Thu Oct  1 04:30:28 2026] 127.0.0.1:35834 Accepted
+[Thu Oct  1 04:30:28 2026] 127.0.0.1:35848 Accepted
+[Thu Oct  1 04:30:28 2026] 127.0.0.1:35834 [200]: GET /assets/images/NuvisMedcareX_banner%20(1).jpg
+[Thu Oct  1 04:30:28 2026] 127.0.0.1:35848 [200]: GET /assets/images/stethoscope_heart.png
+[Thu Oct  1 04:30:28 2026] 127.0.0.1:35834 Closing
+[Thu Oct  1 04:30:28 2026] 127.0.0.1:35848 Closing
+[Thu Oct  1 04:30:28 2026] 127.0.0.1:35860 Accepted
+[Thu Oct  1 04:30:28 2026] 127.0.0.1:35876 Accepted
+[Thu Oct  1 04:30:28 2026] 127.0.0.1:35860 [200]: GET /assets/images/caduceus_logo.png
+[Thu Oct  1 04:30:28 2026] 127.0.0.1:35876 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
+[Thu Oct  1 04:30:28 2026] 127.0.0.1:35860 Closing
+[Thu Oct  1 04:30:28 2026] 127.0.0.1:35876 Closing
+[Thu Oct  1 04:30:29 2026] 127.0.0.1:35882 Accepted
+[Thu Oct  1 04:30:29 2026] 127.0.0.1:35882 [302]: POST /actions/login.php
+[Thu Oct  1 04:30:29 2026] 127.0.0.1:35882 Closing
+[Thu Oct  1 04:30:29 2026] 127.0.0.1:35896 Accepted
+[Thu Oct  1 04:30:29 2026] 127.0.0.1:35896 [200]: GET /login.php
+[Thu Oct  1 04:30:29 2026] 127.0.0.1:35896 Closing
+[Thu Oct  1 04:30:29 2026] 127.0.0.1:35906 Accepted
+[Thu Oct  1 04:30:29 2026] 127.0.0.1:35910 Accepted
+[Thu Oct  1 04:30:29 2026] 127.0.0.1:35906 [200]: GET /assets/images/NuvisMedcareX_banner%20(1).jpg
+[Thu Oct  1 04:30:29 2026] 127.0.0.1:35906 Closing
+[Thu Oct  1 04:30:29 2026] 127.0.0.1:35910 [200]: GET /assets/images/stethoscope_heart.png
+[Thu Oct  1 04:30:29 2026] 127.0.0.1:35910 Closing
+[Thu Oct  1 04:30:29 2026] 127.0.0.1:35916 Accepted
+[Thu Oct  1 04:30:29 2026] 127.0.0.1:35930 Accepted
+[Thu Oct  1 04:30:29 2026] 127.0.0.1:35916 [200]: GET /assets/images/caduceus_logo.png
+[Thu Oct  1 04:30:29 2026] 127.0.0.1:35916 Closing
+[Thu Oct  1 04:30:29 2026] 127.0.0.1:35930 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
+[Thu Oct  1 04:30:29 2026] 127.0.0.1:35930 Closing
+[Thu Oct  1 04:30:30 2026] 127.0.0.1:58418 Accepted
+[Thu Oct  1 04:30:30 2026] PHP Fatal error:  Uncaught Error: Call to undefined function setToast() in /app/developer.php:10
 Stack trace:
-#0 /app/includes/header.php(19): PDO->query()
-#1 /app/index.php(32): include('...')
-#2 /app/router.php(23): require('...')
-#3 {main}
-  thrown in /app/includes/header.php on line 19
-[Wed Sep 30 06:47:35 2026] 127.0.0.1:45394 Closing
-[Wed Sep 30 06:47:35 2026] 127.0.0.1:45408 Accepted
-[Wed Sep 30 06:47:35 2026] 127.0.0.1:45400 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 06:47:35 2026] 127.0.0.1:45408 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 06:47:35 2026] 127.0.0.1:45400 Closing
-[Wed Sep 30 06:47:35 2026] 127.0.0.1:45408 Closing
-[Wed Sep 30 06:47:37 2026] 127.0.0.1:45420 Accepted
-[Wed Sep 30 06:47:37 2026] 127.0.0.1:45420 [200]: GET /forgot_password.php
-[Wed Sep 30 06:47:37 2026] 127.0.0.1:45420 Closing
-[Wed Sep 30 06:47:37 2026] 127.0.0.1:45426 Accepted
-[Wed Sep 30 06:47:37 2026] 127.0.0.1:45434 Accepted
-[Wed Sep 30 06:47:37 2026] 127.0.0.1:45426 Closing
-[Wed Sep 30 06:47:37 2026] 127.0.0.1:45436 Accepted
-[Wed Sep 30 06:47:37 2026] 127.0.0.1:45434 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 06:47:37 2026] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY000]: General error: 1 no such table: doctors in /app/includes/header.php:19
+#0 {main}
+  thrown in /app/developer.php on line 10
+[Thu Oct  1 04:30:30 2026] 127.0.0.1:58418 [500]: GET /developer.php?dev_tab=rbac - Uncaught Error: Call to undefined function setToast() in /app/developer.php:10
 Stack trace:
-#0 /app/includes/header.php(19): PDO->query()
-#1 /app/index.php(32): include('...')
-#2 /app/router.php(23): require('...')
-#3 {main}
-  thrown in /app/includes/header.php on line 19
-[Wed Sep 30 06:47:37 2026] 127.0.0.1:45436 Closing
-[Wed Sep 30 06:47:37 2026] 127.0.0.1:45434 Closing
-[Wed Sep 30 06:47:37 2026] 127.0.0.1:45442 Accepted
-[Wed Sep 30 06:47:37 2026] 127.0.0.1:45442 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 06:47:37 2026] 127.0.0.1:45442 Closing
-[Wed Sep 30 06:47:37 2026] 127.0.0.1:45446 Accepted
-[Wed Sep 30 06:47:37 2026] 127.0.0.1:45446 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 06:47:37 2026] 127.0.0.1:45446 Closing
-[Wed Sep 30 06:47:39 2026] 127.0.0.1:57252 Accepted
-[Wed Sep 30 06:47:39 2026] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY000]: General error: 1 no such table: doctors in /app/actions/request_otp.php:31
+#0 {main}
+  thrown in /app/developer.php on line 10
+[Thu Oct  1 04:30:30 2026] 127.0.0.1:58418 Closing
+[Thu Oct  1 04:31:44 2026] 127.0.0.1:47366 Accepted
+[Thu Oct  1 04:31:44 2026] 127.0.0.1:47366 [200]: GET /login.php
+[Thu Oct  1 04:31:44 2026] 127.0.0.1:47366 Closing
+[Thu Oct  1 04:31:44 2026] 127.0.0.1:47382 Accepted
+[Thu Oct  1 04:31:44 2026] 127.0.0.1:47386 Accepted
+[Thu Oct  1 04:31:44 2026] 127.0.0.1:47382 [200]: GET /assets/images/NuvisMedcareX_banner%20(1).jpg
+[Thu Oct  1 04:31:44 2026] 127.0.0.1:47382 Closing
+[Thu Oct  1 04:31:44 2026] 127.0.0.1:47386 [200]: GET /assets/images/stethoscope_heart.png
+[Thu Oct  1 04:31:44 2026] 127.0.0.1:47386 Closing
+[Thu Oct  1 04:31:44 2026] 127.0.0.1:47388 Accepted
+[Thu Oct  1 04:31:44 2026] 127.0.0.1:47402 Accepted
+[Thu Oct  1 04:31:44 2026] 127.0.0.1:47388 [200]: GET /assets/images/caduceus_logo.png
+[Thu Oct  1 04:31:44 2026] 127.0.0.1:47402 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
+[Thu Oct  1 04:31:44 2026] 127.0.0.1:47388 Closing
+[Thu Oct  1 04:31:44 2026] 127.0.0.1:47402 Closing
+[Thu Oct  1 04:31:46 2026] 127.0.0.1:47408 Accepted
+[Thu Oct  1 04:31:46 2026] 127.0.0.1:47408 [302]: POST /actions/login.php
+[Thu Oct  1 04:31:46 2026] 127.0.0.1:47408 Closing
+[Thu Oct  1 04:31:46 2026] 127.0.0.1:47416 Accepted
+[Thu Oct  1 04:31:46 2026] 127.0.0.1:47416 [200]: GET /login.php
+[Thu Oct  1 04:31:46 2026] 127.0.0.1:47416 Closing
+[Thu Oct  1 04:31:46 2026] 127.0.0.1:47428 Accepted
+[Thu Oct  1 04:31:46 2026] 127.0.0.1:47434 Accepted
+[Thu Oct  1 04:31:46 2026] 127.0.0.1:47428 [200]: GET /assets/images/NuvisMedcareX_banner%20(1).jpg
+[Thu Oct  1 04:31:46 2026] 127.0.0.1:47434 [200]: GET /assets/images/stethoscope_heart.png
+[Thu Oct  1 04:31:46 2026] 127.0.0.1:47428 Closing
+[Thu Oct  1 04:31:46 2026] 127.0.0.1:47434 Closing
+[Thu Oct  1 04:31:46 2026] 127.0.0.1:47442 Accepted
+[Thu Oct  1 04:31:46 2026] 127.0.0.1:47452 Accepted
+[Thu Oct  1 04:31:46 2026] 127.0.0.1:47442 [200]: GET /assets/images/caduceus_logo.png
+[Thu Oct  1 04:31:46 2026] 127.0.0.1:47452 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
+[Thu Oct  1 04:31:46 2026] 127.0.0.1:47442 Closing
+[Thu Oct  1 04:31:46 2026] 127.0.0.1:47452 Closing
+[Thu Oct  1 04:31:47 2026] 127.0.0.1:47468 Accepted
+[Thu Oct  1 04:31:47 2026] 127.0.0.1:47468 [302]: GET /inventory.php
+[Thu Oct  1 04:31:47 2026] 127.0.0.1:47468 Closing
+[Thu Oct  1 04:31:47 2026] 127.0.0.1:47480 Accepted
+[Thu Oct  1 04:31:47 2026] 127.0.0.1:47480 [200]: GET /login.php?expired=1
+[Thu Oct  1 04:31:47 2026] 127.0.0.1:47480 Closing
+[Thu Oct  1 04:31:47 2026] 127.0.0.1:47488 Accepted
+[Thu Oct  1 04:31:47 2026] 127.0.0.1:47496 Accepted
+[Thu Oct  1 04:31:47 2026] 127.0.0.1:47488 [200]: GET /assets/images/NuvisMedcareX_banner%20(1).jpg
+[Thu Oct  1 04:31:47 2026] 127.0.0.1:47496 [200]: GET /assets/images/stethoscope_heart.png
+[Thu Oct  1 04:31:47 2026] 127.0.0.1:47488 Closing
+[Thu Oct  1 04:31:47 2026] 127.0.0.1:47496 Closing
+[Thu Oct  1 04:31:47 2026] 127.0.0.1:47500 Accepted
+[Thu Oct  1 04:31:47 2026] 127.0.0.1:47514 Accepted
+[Thu Oct  1 04:31:47 2026] 127.0.0.1:47500 [200]: GET /assets/images/caduceus_logo.png
+[Thu Oct  1 04:31:47 2026] 127.0.0.1:47514 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
+[Thu Oct  1 04:31:47 2026] 127.0.0.1:47500 Closing
+[Thu Oct  1 04:31:47 2026] 127.0.0.1:47514 Closing
+[Thu Oct  1 04:31:48 2026] 127.0.0.1:47524 Accepted
+[Thu Oct  1 04:31:48 2026] 127.0.0.1:47524 [302]: GET /billing.php
+[Thu Oct  1 04:31:48 2026] 127.0.0.1:47524 Closing
+[Thu Oct  1 04:31:48 2026] 127.0.0.1:47534 Accepted
+[Thu Oct  1 04:31:48 2026] 127.0.0.1:47534 [200]: GET /login.php?expired=1
+[Thu Oct  1 04:31:48 2026] 127.0.0.1:47534 Closing
+[Thu Oct  1 04:31:48 2026] 127.0.0.1:47538 Accepted
+[Thu Oct  1 04:31:48 2026] 127.0.0.1:47542 Accepted
+[Thu Oct  1 04:31:48 2026] 127.0.0.1:47538 [200]: GET /assets/images/NuvisMedcareX_banner%20(1).jpg
+[Thu Oct  1 04:31:48 2026] 127.0.0.1:47542 [200]: GET /assets/images/stethoscope_heart.png
+[Thu Oct  1 04:31:48 2026] 127.0.0.1:47538 Closing
+[Thu Oct  1 04:31:48 2026] 127.0.0.1:47542 Closing
+[Thu Oct  1 04:31:48 2026] 127.0.0.1:47546 Accepted
+[Thu Oct  1 04:31:48 2026] 127.0.0.1:47560 Accepted
+[Thu Oct  1 04:31:48 2026] 127.0.0.1:47546 [200]: GET /assets/images/caduceus_logo.png
+[Thu Oct  1 04:31:48 2026] 127.0.0.1:47560 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
+[Thu Oct  1 04:31:48 2026] 127.0.0.1:47546 Closing
+[Thu Oct  1 04:31:48 2026] 127.0.0.1:47560 Closing
+[Thu Oct  1 04:31:50 2026] 127.0.0.1:58224 Accepted
+[Thu Oct  1 04:31:50 2026] 127.0.0.1:58224 [302]: GET /patient_detail.php?id=pat-1
+[Thu Oct  1 04:31:50 2026] 127.0.0.1:58224 Closing
+[Thu Oct  1 04:31:50 2026] 127.0.0.1:58236 Accepted
+[Thu Oct  1 04:31:50 2026] 127.0.0.1:58236 [200]: GET /login.php?expired=1
+[Thu Oct  1 04:31:50 2026] 127.0.0.1:58236 Closing
+[Thu Oct  1 04:31:50 2026] 127.0.0.1:58250 Accepted
+[Thu Oct  1 04:31:50 2026] 127.0.0.1:58264 Accepted
+[Thu Oct  1 04:31:50 2026] 127.0.0.1:58250 [200]: GET /assets/images/NuvisMedcareX_banner%20(1).jpg
+[Thu Oct  1 04:31:50 2026] 127.0.0.1:58250 Closing
+[Thu Oct  1 04:31:50 2026] 127.0.0.1:58264 [200]: GET /assets/images/stethoscope_heart.png
+[Thu Oct  1 04:31:50 2026] 127.0.0.1:58264 Closing
+[Thu Oct  1 04:31:50 2026] 127.0.0.1:58266 Accepted
+[Thu Oct  1 04:31:50 2026] 127.0.0.1:58272 Accepted
+[Thu Oct  1 04:31:50 2026] 127.0.0.1:58266 [200]: GET /assets/images/caduceus_logo.png
+[Thu Oct  1 04:31:50 2026] 127.0.0.1:58266 Closing
+[Thu Oct  1 04:31:50 2026] 127.0.0.1:58272 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
+[Thu Oct  1 04:31:50 2026] 127.0.0.1:58272 Closing
+[Thu Oct  1 04:31:51 2026] 127.0.0.1:58284 Accepted
+[Thu Oct  1 04:31:51 2026] PHP Fatal error:  Uncaught Error: Call to undefined function setToast() in /app/developer.php:10
 Stack trace:
-#0 /app/actions/request_otp.php(31): PDO->prepare()
-#1 {main}
-  thrown in /app/actions/request_otp.php on line 31
-[Wed Sep 30 06:47:39 2026] 127.0.0.1:57252 [500]: POST /actions/request_otp.php - Uncaught PDOException: SQLSTATE[HY000]: General error: 1 no such table: doctors in /app/actions/request_otp.php:31
+#0 {main}
+  thrown in /app/developer.php on line 10
+[Thu Oct  1 04:31:51 2026] 127.0.0.1:58284 [500]: GET /developer.php?dev_tab=rbac - Uncaught Error: Call to undefined function setToast() in /app/developer.php:10
 Stack trace:
-#0 /app/actions/request_otp.php(31): PDO->prepare()
-#1 {main}
-  thrown in /app/actions/request_otp.php on line 31
-[Wed Sep 30 06:47:39 2026] 127.0.0.1:57252 Closing
-[Wed Sep 30 06:48:43 2026] 127.0.0.1:51586 Accepted
-[Wed Sep 30 06:48:43 2026] 127.0.0.1:51586 [200]: GET /login.php
-[Wed Sep 30 06:48:43 2026] 127.0.0.1:51586 Closing
-[Wed Sep 30 06:48:43 2026] 127.0.0.1:51598 Accepted
-[Wed Sep 30 06:48:43 2026] 127.0.0.1:51604 Accepted
-[Wed Sep 30 06:48:43 2026] 127.0.0.1:51598 Closing
-[Wed Sep 30 06:48:43 2026] 127.0.0.1:51604 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 06:48:43 2026] 127.0.0.1:51604 Closing
-[Wed Sep 30 06:48:43 2026] 127.0.0.1:51620 Accepted
-[Wed Sep 30 06:48:43 2026] 127.0.0.1:51636 Accepted
-[Wed Sep 30 06:48:43 2026] 127.0.0.1:51620 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 06:48:43 2026] 127.0.0.1:51620 Closing
-[Wed Sep 30 06:48:43 2026] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY000]: General error: 1 no such table: doctors in /app/includes/header.php:19
-Stack trace:
-#0 /app/includes/header.php(19): PDO->query()
-#1 /app/index.php(32): include('...')
-#2 /app/router.php(23): require('...')
-#3 {main}
-  thrown in /app/includes/header.php on line 19
-[Wed Sep 30 06:48:43 2026] 127.0.0.1:51636 Closing
-[Wed Sep 30 06:48:43 2026] 127.0.0.1:51638 Accepted
-[Wed Sep 30 06:48:43 2026] 127.0.0.1:51638 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 06:48:43 2026] 127.0.0.1:51638 Closing
-[Wed Sep 30 06:48:44 2026] 127.0.0.1:51650 Accepted
-[Wed Sep 30 06:48:44 2026] 127.0.0.1:51650 [200]: GET /forgot_password.php
-[Wed Sep 30 06:48:44 2026] 127.0.0.1:51650 Closing
-[Wed Sep 30 06:48:44 2026] 127.0.0.1:51656 Accepted
-[Wed Sep 30 06:48:44 2026] 127.0.0.1:51656 Closing
-[Wed Sep 30 06:48:44 2026] 127.0.0.1:51660 Accepted
-[Wed Sep 30 06:48:44 2026] 127.0.0.1:51660 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 06:48:44 2026] 127.0.0.1:51660 Closing
-[Wed Sep 30 06:48:44 2026] 127.0.0.1:51668 Accepted
-[Wed Sep 30 06:48:44 2026] 127.0.0.1:51676 Accepted
-[Wed Sep 30 06:48:44 2026] 127.0.0.1:51668 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 06:48:44 2026] 127.0.0.1:51676 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 06:48:44 2026] 127.0.0.1:51668 Closing
-[Wed Sep 30 06:48:44 2026] 127.0.0.1:51676 Closing
-[Wed Sep 30 06:48:44 2026] 127.0.0.1:51680 Accepted
-[Wed Sep 30 06:48:44 2026] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY000]: General error: 1 no such table: doctors in /app/includes/header.php:19
-Stack trace:
-#0 /app/includes/header.php(19): PDO->query()
-#1 /app/index.php(32): include('...')
-#2 /app/router.php(23): require('...')
-#3 {main}
-  thrown in /app/includes/header.php on line 19
-[Wed Sep 30 06:48:44 2026] 127.0.0.1:51680 Closing
-[Wed Sep 30 06:48:46 2026] 127.0.0.1:51690 Accepted
-[Wed Sep 30 06:48:46 2026] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY000]: General error: 1 no such table: doctors in /app/actions/request_otp.php:31
-Stack trace:
-#0 /app/actions/request_otp.php(31): PDO->prepare()
-#1 {main}
-  thrown in /app/actions/request_otp.php on line 31
-[Wed Sep 30 06:48:46 2026] 127.0.0.1:51690 [500]: POST /actions/request_otp.php - Uncaught PDOException: SQLSTATE[HY000]: General error: 1 no such table: doctors in /app/actions/request_otp.php:31
-Stack trace:
-#0 /app/actions/request_otp.php(31): PDO->prepare()
-#1 {main}
-  thrown in /app/actions/request_otp.php on line 31
-[Wed Sep 30 06:48:46 2026] 127.0.0.1:51690 Closing
-[Wed Sep 30 06:49:51 2026] 127.0.0.1:51144 Accepted
-[Wed Sep 30 06:49:51 2026] 127.0.0.1:51144 [200]: GET /login.php
-[Wed Sep 30 06:49:51 2026] 127.0.0.1:51144 Closing
-[Wed Sep 30 06:49:51 2026] 127.0.0.1:51150 Accepted
-[Wed Sep 30 06:49:51 2026] 127.0.0.1:51164 Accepted
-[Wed Sep 30 06:49:51 2026] 127.0.0.1:51150 Closing
-[Wed Sep 30 06:49:51 2026] 127.0.0.1:51164 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 06:49:51 2026] 127.0.0.1:51164 Closing
-[Wed Sep 30 06:49:51 2026] 127.0.0.1:51178 Accepted
-[Wed Sep 30 06:49:51 2026] 127.0.0.1:51180 Accepted
-[Wed Sep 30 06:49:51 2026] 127.0.0.1:51178 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 06:49:51 2026] 127.0.0.1:51178 Closing
-[Wed Sep 30 06:49:51 2026] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY000]: General error: 1 no such table: doctors in /app/includes/header.php:19
-Stack trace:
-#0 /app/includes/header.php(19): PDO->query()
-#1 /app/index.php(32): include('...')
-#2 /app/router.php(23): require('...')
-#3 {main}
-  thrown in /app/includes/header.php on line 19
-[Wed Sep 30 06:49:51 2026] 127.0.0.1:51180 Closing
-[Wed Sep 30 06:49:51 2026] 127.0.0.1:51184 Accepted
-[Wed Sep 30 06:49:51 2026] 127.0.0.1:51184 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 06:49:51 2026] 127.0.0.1:51184 Closing
-[Wed Sep 30 06:49:52 2026] 127.0.0.1:51186 Accepted
-[Wed Sep 30 06:49:52 2026] 127.0.0.1:51186 [200]: GET /forgot_password.php
-[Wed Sep 30 06:49:52 2026] 127.0.0.1:51186 Closing
-[Wed Sep 30 06:49:52 2026] 127.0.0.1:51190 Accepted
-[Wed Sep 30 06:49:52 2026] 127.0.0.1:51190 Closing
-[Wed Sep 30 06:49:52 2026] 127.0.0.1:51204 Accepted
-[Wed Sep 30 06:49:52 2026] 127.0.0.1:51204 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 06:49:52 2026] 127.0.0.1:51204 Closing
-[Wed Sep 30 06:49:52 2026] 127.0.0.1:51218 Accepted
-[Wed Sep 30 06:49:52 2026] 127.0.0.1:51230 Accepted
-[Wed Sep 30 06:49:52 2026] 127.0.0.1:51218 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 06:49:52 2026] 127.0.0.1:51230 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 06:49:52 2026] 127.0.0.1:51218 Closing
-[Wed Sep 30 06:49:52 2026] 127.0.0.1:51230 Closing
-[Wed Sep 30 06:49:53 2026] 127.0.0.1:51232 Accepted
-[Wed Sep 30 06:49:53 2026] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY000]: General error: 1 no such table: doctors in /app/includes/header.php:19
-Stack trace:
-#0 /app/includes/header.php(19): PDO->query()
-#1 /app/index.php(32): include('...')
-#2 /app/router.php(23): require('...')
-#3 {main}
-  thrown in /app/includes/header.php on line 19
-[Wed Sep 30 06:49:53 2026] 127.0.0.1:51232 Closing
-[Wed Sep 30 06:49:54 2026] 127.0.0.1:51246 Accepted
-[Wed Sep 30 06:49:54 2026] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY000]: General error: 1 no such table: doctors in /app/actions/request_otp.php:31
-Stack trace:
-#0 /app/actions/request_otp.php(31): PDO->prepare()
-#1 {main}
-  thrown in /app/actions/request_otp.php on line 31
-[Wed Sep 30 06:49:54 2026] 127.0.0.1:51246 [500]: POST /actions/request_otp.php - Uncaught PDOException: SQLSTATE[HY000]: General error: 1 no such table: doctors in /app/actions/request_otp.php:31
-Stack trace:
-#0 /app/actions/request_otp.php(31): PDO->prepare()
-#1 {main}
-  thrown in /app/actions/login.php on line 33
-[Wed Sep 30 02:26:11 2026] 127.0.0.1:37290 Closing
-[Wed Sep 30 02:28:39 2026] 127.0.0.1:36004 Accepted
-[Wed Sep 30 02:28:39 2026] 127.0.0.1:36004 [200]: GET /login.php
-[Wed Sep 30 02:28:39 2026] 127.0.0.1:36004 Closing
-[Wed Sep 30 02:28:39 2026] 127.0.0.1:36018 Accepted
-[Wed Sep 30 02:28:39 2026] 127.0.0.1:36022 Accepted
-[Wed Sep 30 02:28:39 2026] 127.0.0.1:36018 Closing
-[Wed Sep 30 02:28:39 2026] 127.0.0.1:36022 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 02:28:39 2026] 127.0.0.1:36022 Closing
-[Wed Sep 30 02:28:39 2026] 127.0.0.1:36030 Accepted
-[Wed Sep 30 02:28:39 2026] 127.0.0.1:36046 Accepted
-[Wed Sep 30 02:28:39 2026] 127.0.0.1:36030 Closing
-[Wed Sep 30 02:28:39 2026] 127.0.0.1:36046 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 02:28:39 2026] 127.0.0.1:36046 Closing
-[Wed Sep 30 02:28:39 2026] 127.0.0.1:36060 Accepted
-[Wed Sep 30 02:28:39 2026] 127.0.0.1:36060 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 02:28:39 2026] 127.0.0.1:36060 Closing
-[Wed Sep 30 02:28:40 2026] 127.0.0.1:36072 Accepted
-[Wed Sep 30 02:28:40 2026] 127.0.0.1:36072 [302]: POST /actions/login.php
-[Wed Sep 30 02:28:40 2026] 127.0.0.1:36072 Closing
-[Wed Sep 30 02:28:40 2026] 127.0.0.1:36088 Accepted
-[Wed Sep 30 02:28:40 2026] 127.0.0.1:36088 [200]: GET /login.php
-[Wed Sep 30 02:28:40 2026] 127.0.0.1:36088 Closing
-[Wed Sep 30 02:28:40 2026] 127.0.0.1:36096 Accepted
-[Wed Sep 30 02:28:40 2026] 127.0.0.1:36102 Accepted
-[Wed Sep 30 02:28:40 2026] 127.0.0.1:36096 Closing
-[Wed Sep 30 02:28:40 2026] 127.0.0.1:36102 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 02:28:40 2026] 127.0.0.1:36102 Closing
-[Wed Sep 30 02:28:40 2026] 127.0.0.1:36104 Accepted
-[Wed Sep 30 02:28:40 2026] 127.0.0.1:36106 Accepted
-[Wed Sep 30 02:28:40 2026] 127.0.0.1:36104 Closing
-[Wed Sep 30 02:28:40 2026] 127.0.0.1:36106 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 02:28:40 2026] 127.0.0.1:36106 Closing
-[Wed Sep 30 02:28:40 2026] 127.0.0.1:36120 Accepted
-[Wed Sep 30 02:28:40 2026] 127.0.0.1:36120 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 02:28:40 2026] 127.0.0.1:36120 Closing
-[Wed Sep 30 02:29:50 2026] 127.0.0.1:34488 Accepted
-[Wed Sep 30 02:29:50 2026] 127.0.0.1:34488 [200]: GET /login.php
-[Wed Sep 30 02:29:50 2026] 127.0.0.1:34488 Closing
-[Wed Sep 30 02:29:50 2026] 127.0.0.1:34496 Accepted
-[Wed Sep 30 02:29:50 2026] 127.0.0.1:34508 Accepted
-[Wed Sep 30 02:29:50 2026] 127.0.0.1:34496 Closing
-[Wed Sep 30 02:29:50 2026] 127.0.0.1:34508 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 02:29:50 2026] 127.0.0.1:34508 Closing
-[Wed Sep 30 02:29:50 2026] 127.0.0.1:34522 Accepted
-[Wed Sep 30 02:29:50 2026] 127.0.0.1:34524 Accepted
-[Wed Sep 30 02:29:50 2026] 127.0.0.1:34522 Closing
-[Wed Sep 30 02:29:50 2026] 127.0.0.1:34524 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 02:29:50 2026] 127.0.0.1:34524 Closing
-[Wed Sep 30 02:29:50 2026] 127.0.0.1:34540 Accepted
-[Wed Sep 30 02:29:50 2026] 127.0.0.1:34540 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 02:29:50 2026] 127.0.0.1:34540 Closing
-[Wed Sep 30 02:29:51 2026] 127.0.0.1:34550 Accepted
-[Wed Sep 30 02:29:51 2026] 127.0.0.1:34550 [302]: POST /actions/login.php
-[Wed Sep 30 02:29:51 2026] 127.0.0.1:34550 Closing
-[Wed Sep 30 02:29:51 2026] 127.0.0.1:34558 Accepted
-[Wed Sep 30 02:29:51 2026] 127.0.0.1:34558 [200]: GET /index.php
-[Wed Sep 30 02:29:51 2026] 127.0.0.1:34558 Closing
-[Wed Sep 30 02:29:51 2026] 127.0.0.1:34572 Accepted
-[Wed Sep 30 02:29:51 2026] 127.0.0.1:34574 Accepted
-[Wed Sep 30 02:29:51 2026] 127.0.0.1:34572 [200]: GET /assets/css/custom.css
-[Wed Sep 30 02:29:51 2026] 127.0.0.1:34574 [200]: GET /assets/images/nuvis_medico_logo.png
-[Wed Sep 30 02:29:51 2026] 127.0.0.1:34572 Closing
-[Wed Sep 30 02:29:51 2026] 127.0.0.1:34574 Closing
-[Wed Sep 30 02:29:52 2026] 127.0.0.1:34588 Accepted
-[Wed Sep 30 02:29:56 2026] 127.0.0.1:34588 Closing
-[Wed Sep 30 02:29:56 2026] 127.0.0.1:34594 Accepted
-[Wed Sep 30 02:29:56 2026] 127.0.0.1:34594 [200]: GET /admin.php
-[Wed Sep 30 02:29:56 2026] 127.0.0.1:34594 Closing
-[Wed Sep 30 02:29:56 2026] 127.0.0.1:60368 Accepted
-[Wed Sep 30 02:29:56 2026] 127.0.0.1:60368 [200]: GET /assets/css/custom.css
-[Wed Sep 30 02:29:56 2026] 127.0.0.1:60368 Closing
-[Wed Sep 30 02:29:56 2026] 127.0.0.1:60370 Accepted
-[Wed Sep 30 02:29:56 2026] 127.0.0.1:60370 [200]: GET /assets/images/nuvis_medico_logo.png
-[Wed Sep 30 02:29:56 2026] 127.0.0.1:60370 Closing
-[Wed Sep 30 02:31:18 2026] 127.0.0.1:38818 Accepted
-[Wed Sep 30 02:31:18 2026] 127.0.0.1:38818 [200]: GET /login.php
-[Wed Sep 30 02:31:18 2026] 127.0.0.1:38818 Closing
-[Wed Sep 30 02:31:18 2026] 127.0.0.1:38826 Accepted
-[Wed Sep 30 02:31:18 2026] 127.0.0.1:38840 Accepted
-[Wed Sep 30 02:31:18 2026] 127.0.0.1:38826 Closing
-[Wed Sep 30 02:31:18 2026] 127.0.0.1:38840 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 02:31:18 2026] 127.0.0.1:38840 Closing
-[Wed Sep 30 02:31:18 2026] 127.0.0.1:38850 Accepted
-[Wed Sep 30 02:31:18 2026] 127.0.0.1:38850 Closing
-[Wed Sep 30 02:31:18 2026] 127.0.0.1:38852 Accepted
-[Wed Sep 30 02:31:18 2026] 127.0.0.1:38852 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 02:31:18 2026] 127.0.0.1:38852 Closing
-[Wed Sep 30 02:31:18 2026] 127.0.0.1:38860 Accepted
-[Wed Sep 30 02:31:18 2026] 127.0.0.1:38860 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 02:31:18 2026] 127.0.0.1:38860 Closing
-[Wed Sep 30 02:31:18 2026] 127.0.0.1:38870 Accepted
-[Wed Sep 30 02:31:18 2026] 127.0.0.1:38870 [302]: POST /actions/login.php
-[Wed Sep 30 02:31:18 2026] 127.0.0.1:38870 Closing
-[Wed Sep 30 02:31:18 2026] 127.0.0.1:38874 Accepted
-[Wed Sep 30 02:31:18 2026] 127.0.0.1:38874 [200]: GET /index.php
-[Wed Sep 30 02:31:18 2026] 127.0.0.1:38874 Closing
-[Wed Sep 30 02:31:18 2026] 127.0.0.1:38876 Accepted
-[Wed Sep 30 02:31:18 2026] 127.0.0.1:38880 Accepted
-[Wed Sep 30 02:31:18 2026] 127.0.0.1:38876 [200]: GET /assets/css/custom.css
-[Wed Sep 30 02:31:18 2026] 127.0.0.1:38880 [200]: GET /assets/images/nuvis_medico_logo.png
-[Wed Sep 30 02:31:18 2026] 127.0.0.1:38876 Closing
-[Wed Sep 30 02:31:18 2026] 127.0.0.1:38880 Closing
-[Wed Sep 30 02:31:19 2026] 127.0.0.1:38882 Accepted
-[Wed Sep 30 02:31:23 2026] 127.0.0.1:38882 Closing
-[Wed Sep 30 02:31:23 2026] 127.0.0.1:38892 Accepted
-[Wed Sep 30 02:31:23 2026] 127.0.0.1:38892 [200]: GET /admin.php
-[Wed Sep 30 02:31:23 2026] 127.0.0.1:38892 Closing
-[Wed Sep 30 02:31:23 2026] 127.0.0.1:38894 Accepted
-[Wed Sep 30 02:31:23 2026] 127.0.0.1:38904 Accepted
-[Wed Sep 30 02:31:23 2026] 127.0.0.1:38894 [200]: GET /assets/css/custom.css
-[Wed Sep 30 02:31:23 2026] 127.0.0.1:38894 Closing
-[Wed Sep 30 02:31:23 2026] 127.0.0.1:38904 [200]: GET /assets/images/nuvis_medico_logo.png
-[Wed Sep 30 02:31:23 2026] 127.0.0.1:38904 Closing
-[Wed Sep 30 02:31:44 2026] 127.0.0.1:38736 Accepted
-[Wed Sep 30 02:31:44 2026] 127.0.0.1:38736 [200]: GET /login.php
-[Wed Sep 30 02:31:44 2026] 127.0.0.1:38736 Closing
-[Wed Sep 30 02:31:44 2026] 127.0.0.1:38748 Accepted
-[Wed Sep 30 02:31:44 2026] 127.0.0.1:38762 Accepted
-[Wed Sep 30 02:31:44 2026] 127.0.0.1:38748 Closing
-[Wed Sep 30 02:31:44 2026] 127.0.0.1:38762 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 02:31:44 2026] 127.0.0.1:38762 Closing
-[Wed Sep 30 02:31:44 2026] 127.0.0.1:38764 Accepted
-[Wed Sep 30 02:31:44 2026] 127.0.0.1:38764 Closing
-[Wed Sep 30 02:31:44 2026] 127.0.0.1:38774 Accepted
-[Wed Sep 30 02:31:44 2026] 127.0.0.1:38774 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 02:31:44 2026] 127.0.0.1:38774 Closing
-[Wed Sep 30 02:31:44 2026] 127.0.0.1:38784 Accepted
-[Wed Sep 30 02:31:44 2026] 127.0.0.1:38784 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 02:31:44 2026] 127.0.0.1:38784 Closing
-[Wed Sep 30 02:31:45 2026] 127.0.0.1:38794 Accepted
-[Wed Sep 30 02:31:45 2026] 127.0.0.1:38794 [302]: POST /actions/login.php
-[Wed Sep 30 02:31:45 2026] 127.0.0.1:38794 Closing
-[Wed Sep 30 02:31:45 2026] 127.0.0.1:53974 Accepted
-[Wed Sep 30 02:31:45 2026] 127.0.0.1:53974 [200]: GET /index.php
-[Wed Sep 30 02:31:45 2026] 127.0.0.1:53974 Closing
-[Wed Sep 30 02:31:45 2026] 127.0.0.1:53980 Accepted
-[Wed Sep 30 02:31:45 2026] 127.0.0.1:53986 Accepted
-[Wed Sep 30 02:31:45 2026] 127.0.0.1:53980 [200]: GET /assets/css/custom.css
-[Wed Sep 30 02:31:45 2026] 127.0.0.1:53986 [200]: GET /assets/images/nuvis_medico_logo.png
-[Wed Sep 30 02:31:45 2026] 127.0.0.1:53980 Closing
-[Wed Sep 30 02:31:45 2026] 127.0.0.1:53986 Closing
-[Wed Sep 30 02:31:46 2026] 127.0.0.1:53994 Accepted
-[Wed Sep 30 02:31:50 2026] 127.0.0.1:53994 Closing
-[Wed Sep 30 02:31:50 2026] 127.0.0.1:54002 Accepted
-[Wed Sep 30 02:31:50 2026] 127.0.0.1:54002 [200]: GET /admin.php
-[Wed Sep 30 02:31:50 2026] 127.0.0.1:54002 Closing
-[Wed Sep 30 02:31:50 2026] 127.0.0.1:54004 Accepted
-[Wed Sep 30 02:31:50 2026] 127.0.0.1:54018 Accepted
-[Wed Sep 30 02:31:50 2026] 127.0.0.1:54004 [200]: GET /assets/css/custom.css
-[Wed Sep 30 02:31:50 2026] 127.0.0.1:54018 [200]: GET /assets/images/nuvis_medico_logo.png
-[Wed Sep 30 02:31:50 2026] 127.0.0.1:54004 Closing
-[Wed Sep 30 02:31:50 2026] 127.0.0.1:54018 Closing
-[Wed Sep 30 02:32:14 2026] 127.0.0.1:45912 Accepted
-[Wed Sep 30 02:32:14 2026] 127.0.0.1:45912 [200]: GET /login.php
-[Wed Sep 30 02:32:14 2026] 127.0.0.1:45912 Closing
-[Wed Sep 30 02:32:14 2026] 127.0.0.1:45922 Accepted
-[Wed Sep 30 02:32:14 2026] 127.0.0.1:45926 Accepted
-[Wed Sep 30 02:32:14 2026] 127.0.0.1:45922 Closing
-[Wed Sep 30 02:32:14 2026] 127.0.0.1:45926 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 02:32:14 2026] 127.0.0.1:45926 Closing
-[Wed Sep 30 02:32:14 2026] 127.0.0.1:45932 Accepted
-[Wed Sep 30 02:32:14 2026] 127.0.0.1:45932 Closing
-[Wed Sep 30 02:32:14 2026] 127.0.0.1:45936 Accepted
-[Wed Sep 30 02:32:14 2026] 127.0.0.1:45936 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 02:32:14 2026] 127.0.0.1:45936 Closing
-[Wed Sep 30 02:32:14 2026] 127.0.0.1:45952 Accepted
-[Wed Sep 30 02:32:14 2026] 127.0.0.1:45952 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 02:32:14 2026] 127.0.0.1:45952 Closing
-[Wed Sep 30 02:32:14 2026] 127.0.0.1:45956 Accepted
-[Wed Sep 30 02:32:15 2026] 127.0.0.1:45956 [302]: POST /actions/login.php
-[Wed Sep 30 02:32:15 2026] 127.0.0.1:45956 Closing
-[Wed Sep 30 02:32:15 2026] 127.0.0.1:45960 Accepted
-[Wed Sep 30 02:32:15 2026] 127.0.0.1:45960 [200]: GET /index.php
-[Wed Sep 30 02:32:15 2026] 127.0.0.1:45960 Closing
-[Wed Sep 30 02:32:15 2026] 127.0.0.1:45964 Accepted
-[Wed Sep 30 02:32:15 2026] 127.0.0.1:45976 Accepted
-[Wed Sep 30 02:32:15 2026] 127.0.0.1:45964 [200]: GET /assets/css/custom.css
-[Wed Sep 30 02:32:15 2026] 127.0.0.1:45976 [200]: GET /assets/images/nuvis_medico_logo.png
-[Wed Sep 30 02:32:15 2026] 127.0.0.1:45964 Closing
-[Wed Sep 30 02:32:15 2026] 127.0.0.1:45976 Closing
-[Wed Sep 30 02:32:15 2026] 127.0.0.1:48252 Accepted
-[Wed Sep 30 02:32:19 2026] 127.0.0.1:48252 Closing
-[Wed Sep 30 02:32:19 2026] 127.0.0.1:48268 Accepted
-[Wed Sep 30 02:32:19 2026] 127.0.0.1:48268 [200]: GET /admin.php
-[Wed Sep 30 02:32:19 2026] 127.0.0.1:48268 Closing
-[Wed Sep 30 02:32:19 2026] 127.0.0.1:48274 Accepted
-[Wed Sep 30 02:32:19 2026] 127.0.0.1:48290 Accepted
-[Wed Sep 30 02:32:19 2026] 127.0.0.1:48274 [200]: GET /assets/css/custom.css
-[Wed Sep 30 02:32:19 2026] 127.0.0.1:48290 [200]: GET /assets/images/nuvis_medico_logo.png
-[Wed Sep 30 02:32:19 2026] 127.0.0.1:48274 Closing
-[Wed Sep 30 02:32:19 2026] 127.0.0.1:48290 Closing
-[Wed Sep 30 22:10:26 2026] 127.0.0.1:32816 Accepted
-[Wed Sep 30 22:10:26 2026] 127.0.0.1:32816 [200]: GET /login.php
-[Wed Sep 30 22:10:26 2026] 127.0.0.1:32816 Closing
-[Wed Sep 30 22:10:26 2026] 127.0.0.1:32830 Accepted
-[Wed Sep 30 22:10:26 2026] 127.0.0.1:32844 Accepted
-[Wed Sep 30 22:10:26 2026] 127.0.0.1:32830 Closing
-[Wed Sep 30 22:10:26 2026] 127.0.0.1:32844 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 22:10:26 2026] 127.0.0.1:32844 Closing
-[Wed Sep 30 22:10:26 2026] 127.0.0.1:32856 Accepted
-[Wed Sep 30 22:10:26 2026] 127.0.0.1:32862 Accepted
-[Wed Sep 30 22:10:26 2026] 127.0.0.1:32856 Closing
-[Wed Sep 30 22:10:26 2026] 127.0.0.1:32866 Accepted
-[Wed Sep 30 22:10:26 2026] 127.0.0.1:32862 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 22:10:26 2026] 127.0.0.1:32862 Closing
-[Wed Sep 30 22:10:26 2026] 127.0.0.1:32866 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 22:10:26 2026] 127.0.0.1:32866 Closing
-[Wed Sep 30 22:10:27 2026] 127.0.0.1:58576 Accepted
-[Wed Sep 30 22:10:27 2026] 127.0.0.1:58576 [302]: POST /actions/login.php
-[Wed Sep 30 22:10:27 2026] 127.0.0.1:58576 Closing
-[Wed Sep 30 22:10:27 2026] 127.0.0.1:58586 Accepted
-[Wed Sep 30 22:10:27 2026] 127.0.0.1:58586 [200]: GET /login.php
-[Wed Sep 30 22:10:27 2026] 127.0.0.1:58586 Closing
-[Wed Sep 30 22:10:27 2026] 127.0.0.1:58590 Accepted
-[Wed Sep 30 22:10:27 2026] 127.0.0.1:58606 Accepted
-[Wed Sep 30 22:10:27 2026] 127.0.0.1:58590 Closing
-[Wed Sep 30 22:10:27 2026] 127.0.0.1:58606 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 22:10:27 2026] 127.0.0.1:58606 Closing
-[Wed Sep 30 22:10:27 2026] 127.0.0.1:58620 Accepted
-[Wed Sep 30 22:10:27 2026] 127.0.0.1:58636 Accepted
-[Wed Sep 30 22:10:27 2026] 127.0.0.1:58620 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 22:10:27 2026] 127.0.0.1:58636 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 22:10:27 2026] 127.0.0.1:58620 Closing
-[Wed Sep 30 22:10:27 2026] 127.0.0.1:58636 Closing
-[Wed Sep 30 22:10:28 2026] 127.0.0.1:58646 Accepted
-[Wed Sep 30 22:10:28 2026] 127.0.0.1:58646 Closing
-[Wed Sep 30 22:10:28 2026] 127.0.0.1:58660 Accepted
-[Wed Sep 30 22:10:28 2026] 127.0.0.1:58660 [302]: GET /patient_detail.php?id=pat-1
-[Wed Sep 30 22:10:28 2026] 127.0.0.1:58660 Closing
-[Wed Sep 30 22:10:28 2026] 127.0.0.1:58670 Accepted
-[Wed Sep 30 22:10:28 2026] 127.0.0.1:58670 [200]: GET /login.php?expired=1
-[Wed Sep 30 22:10:28 2026] 127.0.0.1:58670 Closing
-[Wed Sep 30 22:10:28 2026] 127.0.0.1:58676 Accepted
-[Wed Sep 30 22:10:28 2026] 127.0.0.1:58684 Accepted
-[Wed Sep 30 22:10:28 2026] 127.0.0.1:58676 Closing
-[Wed Sep 30 22:10:28 2026] 127.0.0.1:58684 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 22:10:28 2026] 127.0.0.1:58684 Closing
-[Wed Sep 30 22:10:28 2026] 127.0.0.1:58686 Accepted
-[Wed Sep 30 22:10:28 2026] 127.0.0.1:58696 Accepted
-[Wed Sep 30 22:10:28 2026] 127.0.0.1:58686 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 22:10:28 2026] 127.0.0.1:58696 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 22:10:28 2026] 127.0.0.1:58686 Closing
-[Wed Sep 30 22:10:28 2026] 127.0.0.1:58696 Closing
-[Wed Sep 30 22:10:29 2026] 127.0.0.1:58698 Accepted
-[Wed Sep 30 22:10:29 2026] 127.0.0.1:58698 Closing
-[Wed Sep 30 22:12:28 2026] 127.0.0.1:41524 Accepted
-[Wed Sep 30 22:12:28 2026] 127.0.0.1:41524 [200]: GET /login.php
-[Wed Sep 30 22:12:28 2026] 127.0.0.1:41524 Closing
-[Wed Sep 30 22:12:28 2026] 127.0.0.1:41530 Accepted
-[Wed Sep 30 22:12:28 2026] 127.0.0.1:41544 Accepted
-[Wed Sep 30 22:12:28 2026] 127.0.0.1:41530 Closing
-[Wed Sep 30 22:12:28 2026] 127.0.0.1:41544 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 22:12:28 2026] 127.0.0.1:41544 Closing
-[Wed Sep 30 22:12:28 2026] 127.0.0.1:41560 Accepted
-[Wed Sep 30 22:12:28 2026] 127.0.0.1:41560 Closing
-[Wed Sep 30 22:12:28 2026] 127.0.0.1:41574 Accepted
-[Wed Sep 30 22:12:28 2026] 127.0.0.1:41574 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 22:12:28 2026] 127.0.0.1:41574 Closing
-[Wed Sep 30 22:12:28 2026] 127.0.0.1:41576 Accepted
-[Wed Sep 30 22:12:28 2026] 127.0.0.1:41576 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 22:12:28 2026] 127.0.0.1:41576 Closing
-[Wed Sep 30 22:12:29 2026] 127.0.0.1:41586 Accepted
-[Wed Sep 30 22:12:29 2026] 127.0.0.1:41586 [302]: POST /actions/login.php
-[Wed Sep 30 22:12:29 2026] 127.0.0.1:41586 Closing
-[Wed Sep 30 22:12:29 2026] 127.0.0.1:41594 Accepted
-[Wed Sep 30 22:12:29 2026] 127.0.0.1:41594 [200]: GET /login.php
-[Wed Sep 30 22:12:29 2026] 127.0.0.1:41594 Closing
-[Wed Sep 30 22:12:29 2026] 127.0.0.1:41606 Accepted
-[Wed Sep 30 22:12:29 2026] 127.0.0.1:41616 Accepted
-[Wed Sep 30 22:12:29 2026] 127.0.0.1:41606 Closing
-[Wed Sep 30 22:12:29 2026] 127.0.0.1:41616 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 22:12:29 2026] 127.0.0.1:41616 Closing
-[Wed Sep 30 22:12:29 2026] 127.0.0.1:41632 Accepted
-[Wed Sep 30 22:12:29 2026] 127.0.0.1:41632 Closing
-[Wed Sep 30 22:12:29 2026] 127.0.0.1:41634 Accepted
-[Wed Sep 30 22:12:29 2026] 127.0.0.1:41640 Accepted
-[Wed Sep 30 22:12:29 2026] 127.0.0.1:41634 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 22:12:29 2026] 127.0.0.1:41640 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 22:12:29 2026] 127.0.0.1:41634 Closing
-[Wed Sep 30 22:12:29 2026] 127.0.0.1:41640 Closing
-[Wed Sep 30 22:12:30 2026] 127.0.0.1:41644 Accepted
-[Wed Sep 30 22:12:30 2026] 127.0.0.1:41644 [302]: GET /patient_detail.php?id=pat-1
-[Wed Sep 30 22:12:30 2026] 127.0.0.1:41644 Closing
-[Wed Sep 30 22:12:30 2026] 127.0.0.1:41648 Accepted
-[Wed Sep 30 22:12:30 2026] 127.0.0.1:41648 [200]: GET /login.php?expired=1
-[Wed Sep 30 22:12:30 2026] 127.0.0.1:41648 Closing
-[Wed Sep 30 22:12:30 2026] 127.0.0.1:41656 Accepted
-[Wed Sep 30 22:12:30 2026] 127.0.0.1:41668 Accepted
-[Wed Sep 30 22:12:30 2026] 127.0.0.1:41656 Closing
-[Wed Sep 30 22:12:30 2026] 127.0.0.1:41668 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 22:12:30 2026] 127.0.0.1:41668 Closing
-[Wed Sep 30 22:12:30 2026] 127.0.0.1:41684 Accepted
-[Wed Sep 30 22:12:30 2026] 127.0.0.1:41694 Accepted
-[Wed Sep 30 22:12:30 2026] 127.0.0.1:41684 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 22:12:30 2026] 127.0.0.1:41694 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 22:12:30 2026] 127.0.0.1:41684 Closing
-[Wed Sep 30 22:12:30 2026] 127.0.0.1:41694 Closing
-[Wed Sep 30 22:12:30 2026] 127.0.0.1:41704 Accepted
-[Wed Sep 30 22:12:30 2026] 127.0.0.1:41704 Closing
-[Wed Sep 30 22:15:25 2026] 127.0.0.1:35036 Accepted
-[Wed Sep 30 22:15:25 2026] 127.0.0.1:35036 [200]: GET /login.php
-[Wed Sep 30 22:15:25 2026] 127.0.0.1:35036 Closing
-[Wed Sep 30 22:15:25 2026] 127.0.0.1:35040 Accepted
-[Wed Sep 30 22:15:25 2026] 127.0.0.1:35042 Accepted
-[Wed Sep 30 22:15:25 2026] 127.0.0.1:35040 Closing
-[Wed Sep 30 22:15:25 2026] 127.0.0.1:35042 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 22:15:25 2026] 127.0.0.1:35042 Closing
-[Wed Sep 30 22:15:25 2026] 127.0.0.1:35058 Accepted
-[Wed Sep 30 22:15:25 2026] 127.0.0.1:35058 Closing
-[Wed Sep 30 22:15:25 2026] 127.0.0.1:35062 Accepted
-[Wed Sep 30 22:15:25 2026] 127.0.0.1:35062 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 22:15:25 2026] 127.0.0.1:35062 Closing
-[Wed Sep 30 22:15:25 2026] 127.0.0.1:35068 Accepted
-[Wed Sep 30 22:15:25 2026] 127.0.0.1:35068 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 22:15:25 2026] 127.0.0.1:35068 Closing
-[Wed Sep 30 22:15:26 2026] 127.0.0.1:36190 Accepted
-[Wed Sep 30 22:15:26 2026] 127.0.0.1:36190 [302]: POST /actions/login.php
-[Wed Sep 30 22:15:26 2026] 127.0.0.1:36190 Closing
-[Wed Sep 30 22:15:26 2026] 127.0.0.1:36198 Accepted
-[Wed Sep 30 22:15:26 2026] 127.0.0.1:36198 [200]: GET /index.php
-[Wed Sep 30 22:15:26 2026] 127.0.0.1:36198 Closing
-[Wed Sep 30 22:15:26 2026] 127.0.0.1:36210 Accepted
-[Wed Sep 30 22:15:26 2026] 127.0.0.1:36212 Accepted
-[Wed Sep 30 22:15:26 2026] 127.0.0.1:36210 [200]: GET /assets/css/custom.css
-[Wed Sep 30 22:15:26 2026] 127.0.0.1:36212 [200]: GET /assets/images/nuvis_medico_logo.png
-[Wed Sep 30 22:15:26 2026] 127.0.0.1:36210 Closing
-[Wed Sep 30 22:15:26 2026] 127.0.0.1:36212 Closing
-[Wed Sep 30 22:15:27 2026] 127.0.0.1:36224 Accepted
-[Wed Sep 30 22:15:31 2026] 127.0.0.1:36224 Closing
-[Wed Sep 30 22:15:31 2026] 127.0.0.1:36228 Accepted
-[Wed Sep 30 22:15:31 2026] 127.0.0.1:36228 [200]: GET /patient_detail.php?id=pat-1
-[Wed Sep 30 22:15:31 2026] 127.0.0.1:36228 Closing
-[Wed Sep 30 22:15:31 2026] 127.0.0.1:36244 Accepted
-[Wed Sep 30 22:15:31 2026] 127.0.0.1:36244 [200]: GET /assets/css/custom.css
-[Wed Sep 30 22:15:31 2026] 127.0.0.1:36244 Closing
-[Wed Sep 30 22:15:31 2026] 127.0.0.1:36258 Accepted
-[Wed Sep 30 22:15:31 2026] 127.0.0.1:36258 [200]: GET /assets/images/nuvis_medico_logo.png
-[Wed Sep 30 22:15:31 2026] 127.0.0.1:36258 Closing
-[Wed Sep 30 22:16:09 2026] 127.0.0.1:56648 Accepted
-[Wed Sep 30 22:16:09 2026] 127.0.0.1:56648 [200]: GET /login.php
-[Wed Sep 30 22:16:09 2026] 127.0.0.1:56648 Closing
-[Wed Sep 30 22:16:09 2026] 127.0.0.1:56658 Accepted
-[Wed Sep 30 22:16:09 2026] 127.0.0.1:56664 Accepted
-[Wed Sep 30 22:16:09 2026] 127.0.0.1:56658 Closing
-[Wed Sep 30 22:16:09 2026] 127.0.0.1:56664 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 22:16:09 2026] 127.0.0.1:56664 Closing
-[Wed Sep 30 22:16:09 2026] 127.0.0.1:56670 Accepted
-[Wed Sep 30 22:16:09 2026] 127.0.0.1:56672 Accepted
-[Wed Sep 30 22:16:09 2026] 127.0.0.1:56670 Closing
-[Wed Sep 30 22:16:09 2026] 127.0.0.1:56672 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 22:16:09 2026] 127.0.0.1:56672 Closing
-[Wed Sep 30 22:16:09 2026] 127.0.0.1:56678 Accepted
-[Wed Sep 30 22:16:09 2026] 127.0.0.1:56678 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 22:16:09 2026] 127.0.0.1:56678 Closing
-[Wed Sep 30 22:16:10 2026] 127.0.0.1:56684 Accepted
-[Wed Sep 30 22:16:10 2026] 127.0.0.1:56684 [302]: POST /actions/login.php
-[Wed Sep 30 22:16:10 2026] 127.0.0.1:56684 Closing
-[Wed Sep 30 22:16:10 2026] 127.0.0.1:56694 Accepted
-[Wed Sep 30 22:16:10 2026] 127.0.0.1:56694 [200]: GET /index.php
-[Wed Sep 30 22:16:10 2026] 127.0.0.1:56694 Closing
-[Wed Sep 30 22:16:10 2026] 127.0.0.1:56704 Accepted
-[Wed Sep 30 22:16:10 2026] 127.0.0.1:56704 [200]: GET /assets/css/custom.css
-[Wed Sep 30 22:16:10 2026] 127.0.0.1:56704 Closing
-[Wed Sep 30 22:16:10 2026] 127.0.0.1:56706 Accepted
-[Wed Sep 30 22:16:10 2026] 127.0.0.1:56706 [200]: GET /assets/images/nuvis_medico_logo.png
-[Wed Sep 30 22:16:10 2026] 127.0.0.1:56706 Closing
-[Wed Sep 30 22:16:11 2026] 127.0.0.1:56712 Accepted
-[Wed Sep 30 22:16:15 2026] 127.0.0.1:56712 Closing
-[Wed Sep 30 22:16:15 2026] 127.0.0.1:56714 Accepted
-[Wed Sep 30 22:16:15 2026] 127.0.0.1:56714 [200]: GET /patient_detail.php?id=pat-1
-[Wed Sep 30 22:16:15 2026] 127.0.0.1:56714 Closing
-[Wed Sep 30 22:16:15 2026] 127.0.0.1:56724 Accepted
-[Wed Sep 30 22:16:15 2026] 127.0.0.1:56730 Accepted
-[Wed Sep 30 22:16:15 2026] 127.0.0.1:56724 [200]: GET /assets/css/custom.css
-[Wed Sep 30 22:16:15 2026] 127.0.0.1:56724 Closing
-[Wed Sep 30 22:16:15 2026] 127.0.0.1:56730 [200]: GET /assets/images/nuvis_medico_logo.png
-[Wed Sep 30 22:16:15 2026] 127.0.0.1:56730 Closing
-  thrown in /app/actions/request_otp.php on line 31
-[Wed Sep 30 06:49:54 2026] 127.0.0.1:51246 Closing
-[Wed Sep 30 06:51:50 2026] 127.0.0.1:40298 Accepted
-[Wed Sep 30 06:51:50 2026] 127.0.0.1:40298 [200]: GET /login.php
-[Wed Sep 30 06:51:50 2026] 127.0.0.1:40298 Closing
-[Wed Sep 30 06:51:50 2026] 127.0.0.1:40310 Accepted
-[Wed Sep 30 06:51:50 2026] 127.0.0.1:40320 Accepted
-[Wed Sep 30 06:51:50 2026] 127.0.0.1:40310 Closing
-[Wed Sep 30 06:51:50 2026] 127.0.0.1:40320 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 06:51:50 2026] 127.0.0.1:40320 Closing
-[Wed Sep 30 06:51:50 2026] 127.0.0.1:40324 Accepted
-[Wed Sep 30 06:51:50 2026] 127.0.0.1:40324 Closing
-[Wed Sep 30 06:51:50 2026] 127.0.0.1:40334 Accepted
-[Wed Sep 30 06:51:50 2026] 127.0.0.1:40334 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 06:51:50 2026] 127.0.0.1:40334 Closing
-[Wed Sep 30 06:51:51 2026] 127.0.0.1:40348 Accepted
-[Wed Sep 30 06:51:51 2026] 127.0.0.1:40348 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 06:51:51 2026] 127.0.0.1:40348 Closing
-[Wed Sep 30 06:51:52 2026] 127.0.0.1:40356 Accepted
-[Wed Sep 30 06:51:52 2026] 127.0.0.1:40356 [200]: GET /forgot_password.php
-[Wed Sep 30 06:51:52 2026] 127.0.0.1:40356 Closing
-[Wed Sep 30 06:51:52 2026] 127.0.0.1:40372 Accepted
-[Wed Sep 30 06:51:52 2026] 127.0.0.1:40378 Accepted
-[Wed Sep 30 06:51:52 2026] 127.0.0.1:40372 Closing
-[Wed Sep 30 06:51:52 2026] 127.0.0.1:40378 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 06:51:52 2026] 127.0.0.1:40378 Closing
-[Wed Sep 30 06:51:52 2026] 127.0.0.1:40386 Accepted
-[Wed Sep 30 06:51:52 2026] 127.0.0.1:40392 Accepted
-[Wed Sep 30 06:51:52 2026] 127.0.0.1:40386 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 06:51:52 2026] 127.0.0.1:40386 Closing
-[Wed Sep 30 06:51:52 2026] 127.0.0.1:40392 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 06:51:52 2026] 127.0.0.1:40392 Closing
-[Wed Sep 30 06:51:52 2026] 127.0.0.1:40396 Accepted
-[Wed Sep 30 06:51:52 2026] 127.0.0.1:40396 Closing
-[Wed Sep 30 06:51:54 2026] 127.0.0.1:40408 Accepted
-sh: 1: /usr/sbin/sendmail: not found
-[Wed Sep 30 06:51:54 2026] 127.0.0.1:40408 [302]: POST /actions/request_otp.php
-[Wed Sep 30 06:51:54 2026] 127.0.0.1:40408 Closing
-[Wed Sep 30 06:51:54 2026] 127.0.0.1:40416 Accepted
-[Wed Sep 30 06:51:54 2026] 127.0.0.1:40416 [200]: GET /forgot_password.php?step=verify&email=sjenkins%40clinicflow.com
-[Wed Sep 30 06:51:54 2026] 127.0.0.1:40416 Closing
-[Wed Sep 30 06:51:54 2026] 127.0.0.1:40418 Accepted
-[Wed Sep 30 06:51:54 2026] 127.0.0.1:40434 Accepted
-[Wed Sep 30 06:51:54 2026] 127.0.0.1:40418 Closing
-[Wed Sep 30 06:51:54 2026] 127.0.0.1:40434 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 06:51:54 2026] 127.0.0.1:40434 Closing
-[Wed Sep 30 06:51:54 2026] 127.0.0.1:40448 Accepted
-[Wed Sep 30 06:51:54 2026] 127.0.0.1:40450 Accepted
-[Wed Sep 30 06:51:54 2026] 127.0.0.1:40448 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 06:51:54 2026] 127.0.0.1:40450 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 06:51:54 2026] 127.0.0.1:40448 Closing
-[Wed Sep 30 06:51:54 2026] 127.0.0.1:40450 Closing
-[Wed Sep 30 06:51:54 2026] 127.0.0.1:40458 Accepted
-[Wed Sep 30 06:51:54 2026] 127.0.0.1:40458 Closing
-[Wed Sep 30 07:37:28 2026] 127.0.0.1:40078 Accepted
-[Wed Sep 30 07:37:28 2026] 127.0.0.1:40078 [200]: GET /login.php
-[Wed Sep 30 07:37:28 2026] 127.0.0.1:40078 Closing
-[Wed Sep 30 07:37:28 2026] 127.0.0.1:40088 Accepted
-[Wed Sep 30 07:37:28 2026] 127.0.0.1:40096 Accepted
-[Wed Sep 30 07:37:28 2026] 127.0.0.1:40088 Closing
-[Wed Sep 30 07:37:28 2026] 127.0.0.1:40096 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 07:37:28 2026] 127.0.0.1:40096 Closing
-[Wed Sep 30 07:37:28 2026] 127.0.0.1:40110 Accepted
-[Wed Sep 30 07:37:28 2026] 127.0.0.1:40122 Accepted
-[Wed Sep 30 07:37:28 2026] 127.0.0.1:40110 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 07:37:28 2026] 127.0.0.1:40122 Closing
-[Wed Sep 30 07:37:28 2026] 127.0.0.1:40126 Accepted
-[Wed Sep 30 07:37:28 2026] 127.0.0.1:40110 Closing
-[Wed Sep 30 07:37:28 2026] 127.0.0.1:40126 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 07:37:28 2026] 127.0.0.1:40126 Closing
-[Wed Sep 30 07:37:30 2026] 127.0.0.1:35018 Accepted
-[Wed Sep 30 07:37:30 2026] 127.0.0.1:35018 [302]: POST /actions/login.php
-[Wed Sep 30 07:37:30 2026] 127.0.0.1:35018 Closing
-[Wed Sep 30 07:37:30 2026] 127.0.0.1:35034 Accepted
-[Wed Sep 30 07:37:30 2026] 127.0.0.1:35034 [200]: GET /login.php
-[Wed Sep 30 07:37:30 2026] 127.0.0.1:35034 Closing
-[Wed Sep 30 07:37:30 2026] 127.0.0.1:35038 Accepted
-[Wed Sep 30 07:37:30 2026] 127.0.0.1:35046 Accepted
-[Wed Sep 30 07:37:30 2026] 127.0.0.1:35038 Closing
-[Wed Sep 30 07:37:30 2026] 127.0.0.1:35046 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 07:37:30 2026] 127.0.0.1:35046 Closing
-[Wed Sep 30 07:37:30 2026] 127.0.0.1:35060 Accepted
-[Wed Sep 30 07:37:30 2026] 127.0.0.1:35060 Closing
-[Wed Sep 30 07:37:30 2026] 127.0.0.1:35072 Accepted
-[Wed Sep 30 07:37:30 2026] 127.0.0.1:35078 Accepted
-[Wed Sep 30 07:37:30 2026] 127.0.0.1:35072 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 07:37:30 2026] 127.0.0.1:35078 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 07:37:30 2026] 127.0.0.1:35072 Closing
-[Wed Sep 30 07:37:30 2026] 127.0.0.1:35078 Closing
-[Wed Sep 30 07:37:31 2026] 127.0.0.1:35094 Accepted
-[Wed Sep 30 07:37:31 2026] 127.0.0.1:35094 [302]: GET /print_prescription.php?patient_id=pat-1
-[Wed Sep 30 07:37:31 2026] 127.0.0.1:35094 Closing
-[Wed Sep 30 07:37:31 2026] 127.0.0.1:35098 Accepted
-[Wed Sep 30 07:37:31 2026] 127.0.0.1:35098 [200]: GET /login.php
-[Wed Sep 30 07:37:31 2026] 127.0.0.1:35098 Closing
-[Wed Sep 30 07:37:31 2026] 127.0.0.1:35100 Accepted
-[Wed Sep 30 07:37:31 2026] 127.0.0.1:35114 Accepted
-[Wed Sep 30 07:37:31 2026] 127.0.0.1:35100 Closing
-[Wed Sep 30 07:37:31 2026] 127.0.0.1:35114 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 07:37:31 2026] 127.0.0.1:35114 Closing
-[Wed Sep 30 07:37:31 2026] 127.0.0.1:35116 Accepted
-[Wed Sep 30 07:37:31 2026] 127.0.0.1:35118 Accepted
-[Wed Sep 30 07:37:31 2026] 127.0.0.1:35116 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 07:37:31 2026] 127.0.0.1:35118 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 07:37:31 2026] 127.0.0.1:35116 Closing
-[Wed Sep 30 07:37:31 2026] 127.0.0.1:35118 Closing
-[Wed Sep 30 07:37:31 2026] 127.0.0.1:35126 Accepted
-[Wed Sep 30 07:37:31 2026] 127.0.0.1:35126 Closing
-[Wed Sep 30 07:38:36 2026] 127.0.0.1:45606 Accepted
-[Wed Sep 30 07:38:36 2026] 127.0.0.1:45606 [200]: GET /login.php
-[Wed Sep 30 07:38:36 2026] 127.0.0.1:45606 Closing
-[Wed Sep 30 07:38:36 2026] 127.0.0.1:45618 Accepted
-[Wed Sep 30 07:38:36 2026] 127.0.0.1:45624 Accepted
-[Wed Sep 30 07:38:36 2026] 127.0.0.1:45618 Closing
-[Wed Sep 30 07:38:36 2026] 127.0.0.1:45624 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 07:38:36 2026] 127.0.0.1:45624 Closing
-[Wed Sep 30 07:38:36 2026] 127.0.0.1:45638 Accepted
-[Wed Sep 30 07:38:36 2026] 127.0.0.1:45638 Closing
-[Wed Sep 30 07:38:36 2026] 127.0.0.1:45646 Accepted
-[Wed Sep 30 07:38:36 2026] 127.0.0.1:45648 Accepted
-[Wed Sep 30 07:38:36 2026] 127.0.0.1:45646 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 07:38:36 2026] 127.0.0.1:45648 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 07:38:36 2026] 127.0.0.1:45646 Closing
-[Wed Sep 30 07:38:36 2026] 127.0.0.1:45648 Closing
-[Wed Sep 30 07:38:37 2026] 127.0.0.1:45650 Accepted
-[Wed Sep 30 07:38:38 2026] 127.0.0.1:45650 [302]: POST /actions/login.php
-[Wed Sep 30 07:38:38 2026] 127.0.0.1:45650 Closing
-[Wed Sep 30 07:38:38 2026] 127.0.0.1:45660 Accepted
-[Wed Sep 30 07:38:38 2026] 127.0.0.1:45660 [200]: GET /login.php
-[Wed Sep 30 07:38:38 2026] 127.0.0.1:45660 Closing
-[Wed Sep 30 07:38:38 2026] 127.0.0.1:45676 Accepted
-[Wed Sep 30 07:38:38 2026] 127.0.0.1:45688 Accepted
-[Wed Sep 30 07:38:38 2026] 127.0.0.1:45676 Closing
-[Wed Sep 30 07:38:38 2026] 127.0.0.1:45688 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 07:38:38 2026] 127.0.0.1:45688 Closing
-[Wed Sep 30 07:38:38 2026] 127.0.0.1:45692 Accepted
-[Wed Sep 30 07:38:38 2026] 127.0.0.1:45704 Accepted
-[Wed Sep 30 07:38:38 2026] 127.0.0.1:45692 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 07:38:38 2026] 127.0.0.1:45704 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 07:38:38 2026] 127.0.0.1:45692 Closing
-[Wed Sep 30 07:38:38 2026] 127.0.0.1:45704 Closing
-[Wed Sep 30 07:38:38 2026] 127.0.0.1:45712 Accepted
-[Wed Sep 30 07:38:38 2026] 127.0.0.1:45712 Closing
-[Wed Sep 30 07:38:39 2026] 127.0.0.1:45728 Accepted
-[Wed Sep 30 07:38:39 2026] 127.0.0.1:45728 [302]: GET /print_prescription.php?patient_id=pat-1
-[Wed Sep 30 07:38:39 2026] 127.0.0.1:45728 Closing
-[Wed Sep 30 07:38:39 2026] 127.0.0.1:45736 Accepted
-[Wed Sep 30 07:38:39 2026] 127.0.0.1:45736 [200]: GET /login.php
-[Wed Sep 30 07:38:39 2026] 127.0.0.1:45736 Closing
-[Wed Sep 30 07:38:39 2026] 127.0.0.1:45742 Accepted
-[Wed Sep 30 07:38:39 2026] 127.0.0.1:45748 Accepted
-[Wed Sep 30 07:38:39 2026] 127.0.0.1:45742 Closing
-[Wed Sep 30 07:38:39 2026] 127.0.0.1:45748 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 07:38:39 2026] 127.0.0.1:45748 Closing
-[Wed Sep 30 07:38:39 2026] 127.0.0.1:45756 Accepted
-[Wed Sep 30 07:38:39 2026] 127.0.0.1:45772 Accepted
-[Wed Sep 30 07:38:39 2026] 127.0.0.1:45756 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 07:38:39 2026] 127.0.0.1:45772 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 07:38:39 2026] 127.0.0.1:45756 Closing
-[Wed Sep 30 07:38:39 2026] 127.0.0.1:45772 Closing
-[Wed Sep 30 07:38:39 2026] 127.0.0.1:45782 Accepted
-[Wed Sep 30 07:38:39 2026] 127.0.0.1:45782 Closing
-[Wed Sep 30 07:38:40 2026] 127.0.0.1:56940 Accepted
-[Wed Sep 30 07:38:40 2026] 127.0.0.1:56940 [200]: GET /verify_prescription.php?token=RXV-TEST1234
-[Wed Sep 30 07:38:40 2026] 127.0.0.1:56940 Closing
-[Wed Sep 30 07:40:15 2026] 127.0.0.1:55144 Accepted
-[Wed Sep 30 07:40:15 2026] 127.0.0.1:55144 [200]: GET /login.php
-[Wed Sep 30 07:40:15 2026] 127.0.0.1:55144 Closing
-[Wed Sep 30 07:40:15 2026] 127.0.0.1:55154 Accepted
-[Wed Sep 30 07:40:15 2026] 127.0.0.1:55160 Accepted
-[Wed Sep 30 07:40:15 2026] 127.0.0.1:55154 Closing
-[Wed Sep 30 07:40:15 2026] 127.0.0.1:55160 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 07:40:15 2026] 127.0.0.1:55160 Closing
-[Wed Sep 30 07:40:15 2026] 127.0.0.1:55172 Accepted
-[Wed Sep 30 07:40:15 2026] 127.0.0.1:55184 Accepted
-[Wed Sep 30 07:40:15 2026] 127.0.0.1:55172 Closing
-[Wed Sep 30 07:40:15 2026] 127.0.0.1:55184 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 07:40:15 2026] 127.0.0.1:55188 Accepted
-[Wed Sep 30 07:40:15 2026] 127.0.0.1:55184 Closing
-[Wed Sep 30 07:40:15 2026] 127.0.0.1:55188 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 07:40:15 2026] 127.0.0.1:55188 Closing
-[Wed Sep 30 07:40:16 2026] 127.0.0.1:55198 Accepted
-[Wed Sep 30 07:40:16 2026] 127.0.0.1:55198 [302]: POST /actions/login.php
-[Wed Sep 30 07:40:16 2026] 127.0.0.1:55198 Closing
-[Wed Sep 30 07:40:16 2026] 127.0.0.1:55212 Accepted
-[Wed Sep 30 07:40:16 2026] 127.0.0.1:55212 [200]: GET /login.php
-[Wed Sep 30 07:40:16 2026] 127.0.0.1:55212 Closing
-[Wed Sep 30 07:40:16 2026] 127.0.0.1:55222 Accepted
-[Wed Sep 30 07:40:16 2026] 127.0.0.1:55230 Accepted
-[Wed Sep 30 07:40:16 2026] 127.0.0.1:55222 Closing
-[Wed Sep 30 07:40:16 2026] 127.0.0.1:55230 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 07:40:16 2026] 127.0.0.1:55230 Closing
-[Wed Sep 30 07:40:16 2026] 127.0.0.1:55244 Accepted
-[Wed Sep 30 07:40:16 2026] 127.0.0.1:55258 Accepted
-[Wed Sep 30 07:40:16 2026] 127.0.0.1:55244 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 07:40:16 2026] 127.0.0.1:55258 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 07:40:16 2026] 127.0.0.1:55244 Closing
-[Wed Sep 30 07:40:16 2026] 127.0.0.1:55258 Closing
-[Wed Sep 30 07:40:16 2026] 127.0.0.1:55264 Accepted
-[Wed Sep 30 07:40:16 2026] 127.0.0.1:55264 Closing
-[Wed Sep 30 07:40:17 2026] 127.0.0.1:55278 Accepted
-[Wed Sep 30 07:40:17 2026] 127.0.0.1:55278 [302]: GET /print_prescription.php?patient_id=pat-1
-[Wed Sep 30 07:40:17 2026] 127.0.0.1:55278 Closing
-[Wed Sep 30 07:40:17 2026] 127.0.0.1:55282 Accepted
-[Wed Sep 30 07:40:17 2026] 127.0.0.1:55282 [200]: GET /login.php
-[Wed Sep 30 07:40:17 2026] 127.0.0.1:55282 Closing
-[Wed Sep 30 07:40:17 2026] 127.0.0.1:55284 Accepted
-[Wed Sep 30 07:40:17 2026] 127.0.0.1:55298 Accepted
-[Wed Sep 30 07:40:17 2026] 127.0.0.1:55284 Closing
-[Wed Sep 30 07:40:17 2026] 127.0.0.1:55298 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 07:40:17 2026] 127.0.0.1:55298 Closing
-[Wed Sep 30 07:40:17 2026] 127.0.0.1:55312 Accepted
-[Wed Sep 30 07:40:17 2026] 127.0.0.1:55316 Accepted
-[Wed Sep 30 07:40:17 2026] 127.0.0.1:55312 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 07:40:17 2026] 127.0.0.1:55316 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 07:40:17 2026] 127.0.0.1:55312 Closing
-[Wed Sep 30 07:40:17 2026] 127.0.0.1:55316 Closing
-[Wed Sep 30 07:40:17 2026] 127.0.0.1:55322 Accepted
-[Wed Sep 30 07:40:17 2026] 127.0.0.1:55322 Closing
-[Wed Sep 30 07:40:18 2026] 127.0.0.1:55330 Accepted
-[Wed Sep 30 07:40:18 2026] 127.0.0.1:55330 [200]: GET /verify_prescription.php?token=RXV-TEST1234
-[Wed Sep 30 07:40:18 2026] 127.0.0.1:55330 Closing
-[Wed Sep 30 07:42:39 2026] 127.0.0.1:50700 Accepted
-[Wed Sep 30 07:42:39 2026] 127.0.0.1:50700 [200]: GET /login.php
-[Wed Sep 30 07:42:39 2026] 127.0.0.1:50700 Closing
-[Wed Sep 30 07:42:39 2026] 127.0.0.1:50710 Accepted
-[Wed Sep 30 07:42:39 2026] 127.0.0.1:50726 Accepted
-[Wed Sep 30 07:42:39 2026] 127.0.0.1:50710 Closing
-[Wed Sep 30 07:42:39 2026] 127.0.0.1:50726 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 07:42:39 2026] 127.0.0.1:50726 Closing
-[Wed Sep 30 07:42:39 2026] 127.0.0.1:50730 Accepted
-[Wed Sep 30 07:42:39 2026] 127.0.0.1:50740 Accepted
-[Wed Sep 30 07:42:39 2026] 127.0.0.1:50730 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 07:42:39 2026] 127.0.0.1:50740 Closing
-[Wed Sep 30 07:42:39 2026] 127.0.0.1:50730 Closing
-[Wed Sep 30 07:42:39 2026] 127.0.0.1:50756 Accepted
-[Wed Sep 30 07:42:39 2026] 127.0.0.1:50756 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 07:42:39 2026] 127.0.0.1:50756 Closing
-[Wed Sep 30 07:42:40 2026] 127.0.0.1:60880 Accepted
-[Wed Sep 30 07:42:40 2026] 127.0.0.1:60880 [302]: POST /actions/login.php
-[Wed Sep 30 07:42:40 2026] 127.0.0.1:60880 Closing
-[Wed Sep 30 07:42:40 2026] 127.0.0.1:60896 Accepted
-[Wed Sep 30 07:42:40 2026] 127.0.0.1:60896 [200]: GET /login.php
-[Wed Sep 30 07:42:40 2026] 127.0.0.1:60896 Closing
-[Wed Sep 30 07:42:40 2026] 127.0.0.1:60902 Accepted
-[Wed Sep 30 07:42:40 2026] 127.0.0.1:60908 Accepted
-[Wed Sep 30 07:42:40 2026] 127.0.0.1:60902 Closing
-[Wed Sep 30 07:42:40 2026] 127.0.0.1:60908 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 07:42:40 2026] 127.0.0.1:60908 Closing
-[Wed Sep 30 07:42:40 2026] 127.0.0.1:60916 Accepted
-[Wed Sep 30 07:42:40 2026] 127.0.0.1:60920 Accepted
-[Wed Sep 30 07:42:40 2026] 127.0.0.1:60916 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 07:42:40 2026] 127.0.0.1:60920 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 07:42:40 2026] 127.0.0.1:60916 Closing
-[Wed Sep 30 07:42:40 2026] 127.0.0.1:60920 Closing
-[Wed Sep 30 07:42:40 2026] 127.0.0.1:60928 Accepted
-[Wed Sep 30 07:42:40 2026] 127.0.0.1:60928 Closing
-[Wed Sep 30 07:42:41 2026] 127.0.0.1:60942 Accepted
-[Wed Sep 30 07:42:41 2026] 127.0.0.1:60942 [302]: GET /print_prescription.php?patient_id=pat-1
-[Wed Sep 30 07:42:41 2026] 127.0.0.1:60942 Closing
-[Wed Sep 30 07:42:41 2026] 127.0.0.1:60950 Accepted
-[Wed Sep 30 07:42:41 2026] 127.0.0.1:60950 [200]: GET /login.php
-[Wed Sep 30 07:42:41 2026] 127.0.0.1:60950 Closing
-[Wed Sep 30 07:42:41 2026] 127.0.0.1:60952 Accepted
-[Wed Sep 30 07:42:41 2026] 127.0.0.1:60968 Accepted
-[Wed Sep 30 07:42:41 2026] 127.0.0.1:60952 Closing
-[Wed Sep 30 07:42:41 2026] 127.0.0.1:60968 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 07:42:41 2026] 127.0.0.1:60968 Closing
-[Wed Sep 30 07:42:41 2026] 127.0.0.1:60972 Accepted
-[Wed Sep 30 07:42:41 2026] 127.0.0.1:60988 Accepted
-[Wed Sep 30 07:42:41 2026] 127.0.0.1:60972 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 07:42:41 2026] 127.0.0.1:60988 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 07:42:41 2026] 127.0.0.1:60972 Closing
-[Wed Sep 30 07:42:41 2026] 127.0.0.1:60988 Closing
-[Wed Sep 30 07:42:41 2026] 127.0.0.1:60990 Accepted
-[Wed Sep 30 07:42:41 2026] 127.0.0.1:60990 Closing
-[Wed Sep 30 07:43:16 2026] 127.0.0.1:47984 Accepted
-[Wed Sep 30 07:43:16 2026] 127.0.0.1:47984 [200]: GET /login.php
-[Wed Sep 30 07:43:16 2026] 127.0.0.1:47984 Closing
-[Wed Sep 30 07:43:16 2026] 127.0.0.1:47994 Accepted
-[Wed Sep 30 07:43:16 2026] 127.0.0.1:48002 Accepted
-[Wed Sep 30 07:43:16 2026] 127.0.0.1:47994 Closing
-[Wed Sep 30 07:43:16 2026] 127.0.0.1:48002 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 07:43:16 2026] 127.0.0.1:48002 Closing
-[Wed Sep 30 07:43:16 2026] 127.0.0.1:48012 Accepted
-[Wed Sep 30 07:43:16 2026] 127.0.0.1:48012 Closing
-[Wed Sep 30 07:43:16 2026] 127.0.0.1:48028 Accepted
-[Wed Sep 30 07:43:16 2026] 127.0.0.1:48044 Accepted
-[Wed Sep 30 07:43:16 2026] 127.0.0.1:48028 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 07:43:16 2026] 127.0.0.1:48044 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 07:43:16 2026] 127.0.0.1:48028 Closing
-[Wed Sep 30 07:43:16 2026] 127.0.0.1:48044 Closing
-[Wed Sep 30 07:43:17 2026] 127.0.0.1:48054 Accepted
-[Wed Sep 30 07:43:17 2026] 127.0.0.1:48054 [302]: POST /actions/login.php
-[Wed Sep 30 07:43:17 2026] 127.0.0.1:48054 Closing
-[Wed Sep 30 07:43:17 2026] 127.0.0.1:48068 Accepted
-[Wed Sep 30 07:43:17 2026] 127.0.0.1:48068 [200]: GET /login.php
-[Wed Sep 30 07:43:17 2026] 127.0.0.1:48068 Closing
-[Wed Sep 30 07:43:17 2026] 127.0.0.1:48070 Accepted
-[Wed Sep 30 07:43:17 2026] 127.0.0.1:48078 Accepted
-[Wed Sep 30 07:43:17 2026] 127.0.0.1:48070 Closing
-[Wed Sep 30 07:43:17 2026] 127.0.0.1:48078 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 07:43:17 2026] 127.0.0.1:48078 Closing
-[Wed Sep 30 07:43:17 2026] 127.0.0.1:48082 Accepted
-[Wed Sep 30 07:43:17 2026] 127.0.0.1:48086 Accepted
-[Wed Sep 30 07:43:17 2026] 127.0.0.1:48082 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 07:43:17 2026] 127.0.0.1:48086 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 07:43:17 2026] 127.0.0.1:48082 Closing
-[Wed Sep 30 07:43:17 2026] 127.0.0.1:48086 Closing
-[Wed Sep 30 07:43:17 2026] 127.0.0.1:48098 Accepted
-[Wed Sep 30 07:43:17 2026] 127.0.0.1:48098 Closing
-[Wed Sep 30 07:43:18 2026] 127.0.0.1:48106 Accepted
-[Wed Sep 30 07:43:18 2026] 127.0.0.1:48106 [302]: GET /print_prescription.php?patient_id=pat-1
-[Wed Sep 30 07:43:18 2026] 127.0.0.1:48106 Closing
-[Wed Sep 30 07:43:18 2026] 127.0.0.1:48118 Accepted
-[Wed Sep 30 07:43:18 2026] 127.0.0.1:48118 [200]: GET /login.php
-[Wed Sep 30 07:43:18 2026] 127.0.0.1:48118 Closing
-[Wed Sep 30 07:43:18 2026] 127.0.0.1:48120 Accepted
-[Wed Sep 30 07:43:18 2026] 127.0.0.1:48132 Accepted
-[Wed Sep 30 07:43:18 2026] 127.0.0.1:48120 Closing
-[Wed Sep 30 07:43:18 2026] 127.0.0.1:48132 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 07:43:18 2026] 127.0.0.1:48132 Closing
-[Wed Sep 30 07:43:18 2026] 127.0.0.1:48140 Accepted
-[Wed Sep 30 07:43:18 2026] 127.0.0.1:48150 Accepted
-[Wed Sep 30 07:43:18 2026] 127.0.0.1:48140 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 07:43:18 2026] 127.0.0.1:48140 Closing
-[Wed Sep 30 07:43:18 2026] 127.0.0.1:48150 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 07:43:18 2026] 127.0.0.1:48150 Closing
-[Wed Sep 30 07:43:18 2026] 127.0.0.1:48164 Accepted
-[Wed Sep 30 07:43:18 2026] 127.0.0.1:48164 Closing
-[Wed Sep 30 07:45:33 2026] 127.0.0.1:33192 Accepted
-[Wed Sep 30 07:45:33 2026] 127.0.0.1:33192 [200]: GET /login.php
-[Wed Sep 30 07:45:33 2026] 127.0.0.1:33192 Closing
-[Wed Sep 30 07:45:33 2026] 127.0.0.1:33208 Accepted
-[Wed Sep 30 07:45:33 2026] 127.0.0.1:33214 Accepted
-[Wed Sep 30 07:45:33 2026] 127.0.0.1:33208 Closing
-[Wed Sep 30 07:45:33 2026] 127.0.0.1:33214 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 07:45:33 2026] 127.0.0.1:33214 Closing
-[Wed Sep 30 07:45:33 2026] 127.0.0.1:33224 Accepted
-[Wed Sep 30 07:45:33 2026] 127.0.0.1:33226 Accepted
-[Wed Sep 30 07:45:33 2026] 127.0.0.1:33224 Closing
-[Wed Sep 30 07:45:33 2026] 127.0.0.1:33226 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 07:45:33 2026] 127.0.0.1:33226 Closing
-[Wed Sep 30 07:45:33 2026] 127.0.0.1:33242 Accepted
-[Wed Sep 30 07:45:33 2026] 127.0.0.1:33242 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 07:45:33 2026] 127.0.0.1:33242 Closing
-[Wed Sep 30 07:45:34 2026] 127.0.0.1:33256 Accepted
-[Wed Sep 30 07:45:34 2026] 127.0.0.1:33256 [302]: POST /actions/login.php
-[Wed Sep 30 07:45:34 2026] 127.0.0.1:33256 Closing
-[Wed Sep 30 07:45:34 2026] 127.0.0.1:33258 Accepted
-[Wed Sep 30 07:45:34 2026] 127.0.0.1:33258 [200]: GET /index.php
-[Wed Sep 30 07:45:34 2026] 127.0.0.1:33258 Closing
-[Wed Sep 30 07:45:34 2026] 127.0.0.1:33264 Accepted
-[Wed Sep 30 07:45:34 2026] 127.0.0.1:33264 [200]: GET /assets/css/custom.css
-[Wed Sep 30 07:45:34 2026] 127.0.0.1:33264 Closing
-[Wed Sep 30 07:45:34 2026] 127.0.0.1:33276 Accepted
-[Wed Sep 30 07:45:34 2026] 127.0.0.1:33276 [200]: GET /assets/images/nuvis_medico_logo.png
-[Wed Sep 30 07:45:34 2026] 127.0.0.1:33276 Closing
-[Wed Sep 30 07:45:35 2026] 127.0.0.1:33286 Accepted
-[Wed Sep 30 07:45:39 2026] 127.0.0.1:33286 Closing
-[Wed Sep 30 07:45:39 2026] 127.0.0.1:33290 Accepted
-[Wed Sep 30 07:45:39 2026] 127.0.0.1:33290 [200]: GET /print_prescription.php?patient_id=pat-1
-[Wed Sep 30 07:45:39 2026] 127.0.0.1:33290 Closing
-[Wed Sep 30 07:45:40 2026] 127.0.0.1:58990 Accepted
-[Wed Sep 30 07:45:40 2026] 127.0.0.1:58990 [200]: GET /verify_prescription.php?token=RXV-A33BF02935A579C8D236
-[Wed Sep 30 07:45:40 2026] 127.0.0.1:58990 Closing
-[Wed Sep 30 20:51:42 2026] 127.0.0.1:47250 Accepted
-[Wed Sep 30 20:51:42 2026] 127.0.0.1:47250 [200]: GET /login.php
-[Wed Sep 30 20:51:42 2026] 127.0.0.1:47250 Closing
-[Wed Sep 30 20:51:42 2026] 127.0.0.1:46122 Accepted
-[Wed Sep 30 20:51:42 2026] 127.0.0.1:46132 Accepted
-[Wed Sep 30 20:51:42 2026] 127.0.0.1:46122 Closing
-[Wed Sep 30 20:51:42 2026] 127.0.0.1:46132 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 20:51:42 2026] 127.0.0.1:46136 Accepted
-[Wed Sep 30 20:51:42 2026] 127.0.0.1:46132 Closing
-[Wed Sep 30 20:51:42 2026] 127.0.0.1:46136 Closing
-[Wed Sep 30 20:51:42 2026] 127.0.0.1:46152 Accepted
-[Wed Sep 30 20:51:42 2026] 127.0.0.1:46156 Accepted
-[Wed Sep 30 20:51:42 2026] 127.0.0.1:46152 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 20:51:42 2026] 127.0.0.1:46156 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 20:51:42 2026] 127.0.0.1:46152 Closing
-[Wed Sep 30 20:51:42 2026] 127.0.0.1:46156 Closing
-[Wed Sep 30 20:51:44 2026] 127.0.0.1:46168 Accepted
-[Wed Sep 30 20:51:44 2026] 127.0.0.1:46168 [302]: POST /actions/login.php
-[Wed Sep 30 20:51:44 2026] 127.0.0.1:46168 Closing
-[Wed Sep 30 20:51:44 2026] 127.0.0.1:46172 Accepted
-[Wed Sep 30 20:51:44 2026] 127.0.0.1:46172 [200]: GET /login.php
-[Wed Sep 30 20:51:44 2026] 127.0.0.1:46172 Closing
-[Wed Sep 30 20:51:44 2026] 127.0.0.1:46174 Accepted
-[Wed Sep 30 20:51:44 2026] 127.0.0.1:46188 Accepted
-[Wed Sep 30 20:51:44 2026] 127.0.0.1:46174 Closing
-[Wed Sep 30 20:51:44 2026] 127.0.0.1:46188 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 20:51:44 2026] 127.0.0.1:46188 Closing
-[Wed Sep 30 20:51:44 2026] 127.0.0.1:46190 Accepted
-[Wed Sep 30 20:51:44 2026] 127.0.0.1:46204 Accepted
-[Wed Sep 30 20:51:44 2026] 127.0.0.1:46190 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 20:51:44 2026] 127.0.0.1:46204 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 20:51:44 2026] 127.0.0.1:46190 Closing
-[Wed Sep 30 20:51:44 2026] 127.0.0.1:46204 Closing
-[Wed Sep 30 20:51:44 2026] 127.0.0.1:46210 Accepted
-[Wed Sep 30 20:51:44 2026] 127.0.0.1:46210 Closing
-[Wed Sep 30 20:51:45 2026] 127.0.0.1:46218 Accepted
-[Wed Sep 30 20:51:45 2026] 127.0.0.1:46218 [302]: GET /patients.php
-[Wed Sep 30 20:51:45 2026] 127.0.0.1:46218 Closing
-[Wed Sep 30 20:51:45 2026] 127.0.0.1:46232 Accepted
-[Wed Sep 30 20:51:45 2026] 127.0.0.1:46232 [200]: GET /login.php?expired=1
-[Wed Sep 30 20:51:45 2026] 127.0.0.1:46232 Closing
-[Wed Sep 30 20:51:45 2026] 127.0.0.1:46246 Accepted
-[Wed Sep 30 20:51:45 2026] 127.0.0.1:46262 Accepted
-[Wed Sep 30 20:51:45 2026] 127.0.0.1:46246 Closing
-[Wed Sep 30 20:51:45 2026] 127.0.0.1:46262 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 20:51:45 2026] 127.0.0.1:46262 Closing
-[Wed Sep 30 20:51:45 2026] 127.0.0.1:46278 Accepted
-[Wed Sep 30 20:51:45 2026] 127.0.0.1:46282 Accepted
-[Wed Sep 30 20:51:45 2026] 127.0.0.1:46278 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 20:51:45 2026] 127.0.0.1:46282 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 20:51:45 2026] 127.0.0.1:46278 Closing
-[Wed Sep 30 20:51:45 2026] 127.0.0.1:46282 Closing
-[Wed Sep 30 20:51:45 2026] 127.0.0.1:46294 Accepted
-[Wed Sep 30 20:51:45 2026] 127.0.0.1:46294 Closing
-[Wed Sep 30 21:53:14 2026] 127.0.0.1:57758 Accepted
-[Wed Sep 30 21:53:14 2026] 127.0.0.1:57758 [200]: GET /login.php
-[Wed Sep 30 21:53:14 2026] 127.0.0.1:57758 Closing
-[Wed Sep 30 21:53:14 2026] 127.0.0.1:57774 Accepted
-[Wed Sep 30 21:53:14 2026] 127.0.0.1:57782 Accepted
-[Wed Sep 30 21:53:14 2026] 127.0.0.1:57774 Closing
-[Wed Sep 30 21:53:14 2026] 127.0.0.1:57782 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 21:53:14 2026] 127.0.0.1:57782 Closing
-[Wed Sep 30 21:53:14 2026] 127.0.0.1:57794 Accepted
-[Wed Sep 30 21:53:14 2026] 127.0.0.1:57794 Closing
-[Wed Sep 30 21:53:14 2026] 127.0.0.1:57800 Accepted
-[Wed Sep 30 21:53:14 2026] 127.0.0.1:57802 Accepted
-[Wed Sep 30 21:53:14 2026] 127.0.0.1:57800 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 21:53:14 2026] 127.0.0.1:57802 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 21:53:14 2026] 127.0.0.1:57800 Closing
-[Wed Sep 30 21:53:14 2026] 127.0.0.1:57802 Closing
-[Wed Sep 30 21:53:15 2026] 127.0.0.1:57814 Accepted
-[Wed Sep 30 21:53:15 2026] 127.0.0.1:57814 [302]: POST /actions/login.php
-[Wed Sep 30 21:53:15 2026] 127.0.0.1:57814 Closing
-[Wed Sep 30 21:53:15 2026] 127.0.0.1:57816 Accepted
-[Wed Sep 30 21:53:15 2026] 127.0.0.1:57816 [200]: GET /login.php
-[Wed Sep 30 21:53:15 2026] 127.0.0.1:57816 Closing
-[Wed Sep 30 21:53:15 2026] 127.0.0.1:57832 Accepted
-[Wed Sep 30 21:53:15 2026] 127.0.0.1:57846 Accepted
-[Wed Sep 30 21:53:15 2026] 127.0.0.1:57832 Closing
-[Wed Sep 30 21:53:15 2026] 127.0.0.1:57846 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 21:53:15 2026] 127.0.0.1:57846 Closing
-[Wed Sep 30 21:53:15 2026] 127.0.0.1:57854 Accepted
-[Wed Sep 30 21:53:15 2026] 127.0.0.1:57858 Accepted
-[Wed Sep 30 21:53:15 2026] 127.0.0.1:57854 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 21:53:15 2026] 127.0.0.1:57858 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 21:53:15 2026] 127.0.0.1:57854 Closing
-[Wed Sep 30 21:53:15 2026] 127.0.0.1:57858 Closing
-[Wed Sep 30 21:53:16 2026] 127.0.0.1:57864 Accepted
-[Wed Sep 30 21:53:16 2026] 127.0.0.1:57864 Closing
-[Wed Sep 30 21:53:16 2026] 127.0.0.1:57874 Accepted
-[Wed Sep 30 21:53:16 2026] 127.0.0.1:57874 [302]: GET /patients.php
-[Wed Sep 30 21:53:16 2026] 127.0.0.1:57874 Closing
-[Wed Sep 30 21:53:16 2026] 127.0.0.1:57876 Accepted
-[Wed Sep 30 21:53:16 2026] 127.0.0.1:57876 [200]: GET /login.php?expired=1
-[Wed Sep 30 21:53:16 2026] 127.0.0.1:57876 Closing
-[Wed Sep 30 21:53:16 2026] 127.0.0.1:57890 Accepted
-[Wed Sep 30 21:53:16 2026] 127.0.0.1:57898 Accepted
-[Wed Sep 30 21:53:16 2026] 127.0.0.1:57890 Closing
-[Wed Sep 30 21:53:16 2026] 127.0.0.1:57898 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 21:53:16 2026] 127.0.0.1:57898 Closing
-[Wed Sep 30 21:53:16 2026] 127.0.0.1:57904 Accepted
-[Wed Sep 30 21:53:16 2026] 127.0.0.1:57912 Accepted
-[Wed Sep 30 21:53:16 2026] 127.0.0.1:57904 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 21:53:16 2026] 127.0.0.1:57904 Closing
-[Wed Sep 30 21:53:16 2026] 127.0.0.1:57912 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 21:53:16 2026] 127.0.0.1:57912 Closing
-[Wed Sep 30 21:53:17 2026] 127.0.0.1:57914 Accepted
-[Wed Sep 30 21:53:17 2026] 127.0.0.1:57914 Closing
-[Wed Sep 30 21:54:33 2026] 127.0.0.1:43148 Accepted
-[Wed Sep 30 21:54:33 2026] 127.0.0.1:43148 [200]: GET /login.php
-[Wed Sep 30 21:54:33 2026] 127.0.0.1:43148 Closing
-[Wed Sep 30 21:54:33 2026] 127.0.0.1:43162 Accepted
-[Wed Sep 30 21:54:33 2026] 127.0.0.1:43174 Accepted
-[Wed Sep 30 21:54:33 2026] 127.0.0.1:43162 Closing
-[Wed Sep 30 21:54:33 2026] 127.0.0.1:43174 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 21:54:33 2026] 127.0.0.1:43174 Closing
-[Wed Sep 30 21:54:33 2026] 127.0.0.1:43182 Accepted
-[Wed Sep 30 21:54:33 2026] 127.0.0.1:43182 Closing
-[Wed Sep 30 21:54:33 2026] 127.0.0.1:43196 Accepted
-[Wed Sep 30 21:54:33 2026] 127.0.0.1:43196 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 21:54:33 2026] 127.0.0.1:43196 Closing
-[Wed Sep 30 21:54:33 2026] 127.0.0.1:43206 Accepted
-[Wed Sep 30 21:54:33 2026] 127.0.0.1:43206 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 21:54:33 2026] 127.0.0.1:43206 Closing
-[Wed Sep 30 21:54:34 2026] 127.0.0.1:43216 Accepted
-[Wed Sep 30 21:54:34 2026] 127.0.0.1:43216 [302]: POST /actions/login.php
-[Wed Sep 30 21:54:34 2026] 127.0.0.1:43216 Closing
-[Wed Sep 30 21:54:34 2026] 127.0.0.1:43228 Accepted
-[Wed Sep 30 21:54:34 2026] 127.0.0.1:43228 [200]: GET /login.php
-[Wed Sep 30 21:54:34 2026] 127.0.0.1:43228 Closing
-[Wed Sep 30 21:54:35 2026] 127.0.0.1:43232 Accepted
-[Wed Sep 30 21:54:35 2026] 127.0.0.1:43238 Accepted
-[Wed Sep 30 21:54:35 2026] 127.0.0.1:43232 Closing
-[Wed Sep 30 21:54:35 2026] 127.0.0.1:43238 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 21:54:35 2026] 127.0.0.1:43238 Closing
-[Wed Sep 30 21:54:35 2026] 127.0.0.1:43240 Accepted
-[Wed Sep 30 21:54:35 2026] 127.0.0.1:43254 Accepted
-[Wed Sep 30 21:54:35 2026] 127.0.0.1:43240 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 21:54:35 2026] 127.0.0.1:43254 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 21:54:35 2026] 127.0.0.1:43240 Closing
-[Wed Sep 30 21:54:35 2026] 127.0.0.1:43254 Closing
-[Wed Sep 30 21:54:35 2026] 127.0.0.1:43256 Accepted
-[Wed Sep 30 21:54:35 2026] 127.0.0.1:43256 Closing
-[Wed Sep 30 21:54:36 2026] 127.0.0.1:43258 Accepted
-[Wed Sep 30 21:54:36 2026] 127.0.0.1:43258 [302]: GET /patients.php
-[Wed Sep 30 21:54:36 2026] 127.0.0.1:43258 Closing
-[Wed Sep 30 21:54:36 2026] 127.0.0.1:43274 Accepted
-[Wed Sep 30 21:54:36 2026] 127.0.0.1:43274 [200]: GET /login.php?expired=1
-[Wed Sep 30 21:54:36 2026] 127.0.0.1:43274 Closing
-[Wed Sep 30 21:54:36 2026] 127.0.0.1:43278 Accepted
-[Wed Sep 30 21:54:36 2026] 127.0.0.1:43290 Accepted
-[Wed Sep 30 21:54:36 2026] 127.0.0.1:43278 Closing
-[Wed Sep 30 21:54:36 2026] 127.0.0.1:43290 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 21:54:36 2026] 127.0.0.1:43290 Closing
-[Wed Sep 30 21:54:36 2026] 127.0.0.1:43302 Accepted
-[Wed Sep 30 21:54:36 2026] 127.0.0.1:43310 Accepted
-[Wed Sep 30 21:54:36 2026] 127.0.0.1:43302 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 21:54:36 2026] 127.0.0.1:43310 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 21:54:36 2026] 127.0.0.1:43302 Closing
-[Wed Sep 30 21:54:36 2026] 127.0.0.1:43310 Closing
-[Wed Sep 30 21:54:36 2026] 127.0.0.1:43312 Accepted
-[Wed Sep 30 21:54:36 2026] 127.0.0.1:43312 Closing
-[Wed Sep 30 22:32:46 2026] 127.0.0.1:58606 Accepted
-[Wed Sep 30 22:32:46 2026] 127.0.0.1:58606 [200]: GET /login.php
-[Wed Sep 30 22:32:46 2026] 127.0.0.1:58606 Closing
-[Wed Sep 30 22:32:46 2026] 127.0.0.1:58618 Accepted
-[Wed Sep 30 22:32:46 2026] 127.0.0.1:58634 Accepted
-[Wed Sep 30 22:32:46 2026] 127.0.0.1:58618 Closing
-[Wed Sep 30 22:32:46 2026] 127.0.0.1:58634 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 22:32:46 2026] 127.0.0.1:58634 Closing
-[Wed Sep 30 22:32:46 2026] 127.0.0.1:58644 Accepted
-[Wed Sep 30 22:32:46 2026] 127.0.0.1:58644 Closing
-[Wed Sep 30 22:32:46 2026] 127.0.0.1:58654 Accepted
-[Wed Sep 30 22:32:46 2026] 127.0.0.1:58666 Accepted
-[Wed Sep 30 22:32:46 2026] 127.0.0.1:58654 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 22:32:46 2026] 127.0.0.1:58666 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 22:32:46 2026] 127.0.0.1:58654 Closing
-[Wed Sep 30 22:32:46 2026] 127.0.0.1:58666 Closing
-[Wed Sep 30 22:32:48 2026] 127.0.0.1:58672 Accepted
-[Wed Sep 30 22:32:48 2026] 127.0.0.1:58672 [302]: POST /actions/login.php
-[Wed Sep 30 22:32:48 2026] 127.0.0.1:58672 Closing
-[Wed Sep 30 22:32:48 2026] 127.0.0.1:58680 Accepted
-[Wed Sep 30 22:32:48 2026] 127.0.0.1:58680 [200]: GET /login.php
-[Wed Sep 30 22:32:48 2026] 127.0.0.1:58680 Closing
-[Wed Sep 30 22:32:48 2026] 127.0.0.1:58694 Accepted
-[Wed Sep 30 22:32:48 2026] 127.0.0.1:58698 Accepted
-[Wed Sep 30 22:32:48 2026] 127.0.0.1:58694 Closing
-[Wed Sep 30 22:32:48 2026] 127.0.0.1:58698 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 22:32:48 2026] 127.0.0.1:58698 Closing
-[Wed Sep 30 22:32:48 2026] 127.0.0.1:58712 Accepted
-[Wed Sep 30 22:32:48 2026] 127.0.0.1:58712 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 22:32:48 2026] 127.0.0.1:58728 Accepted
-[Wed Sep 30 22:32:48 2026] 127.0.0.1:58712 Closing
-[Wed Sep 30 22:32:48 2026] 127.0.0.1:58728 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 22:32:48 2026] 127.0.0.1:58728 Closing
-[Wed Sep 30 22:32:48 2026] 127.0.0.1:58738 Accepted
-[Wed Sep 30 22:32:48 2026] 127.0.0.1:58738 Closing
-[Wed Sep 30 22:32:49 2026] 127.0.0.1:58742 Accepted
-[Wed Sep 30 22:32:49 2026] 127.0.0.1:58742 [302]: GET /patients.php
-[Wed Sep 30 22:32:49 2026] 127.0.0.1:58742 Closing
-[Wed Sep 30 22:32:49 2026] 127.0.0.1:58758 Accepted
-[Wed Sep 30 22:32:49 2026] 127.0.0.1:58758 [200]: GET /login.php?expired=1
-[Wed Sep 30 22:32:49 2026] 127.0.0.1:58758 Closing
-[Wed Sep 30 22:32:49 2026] 127.0.0.1:58762 Accepted
-[Wed Sep 30 22:32:49 2026] 127.0.0.1:58778 Accepted
-[Wed Sep 30 22:32:49 2026] 127.0.0.1:58762 Closing
-[Wed Sep 30 22:32:49 2026] 127.0.0.1:58778 [200]: GET /assets/images/stethoscope_heart.png
-[Wed Sep 30 22:32:49 2026] 127.0.0.1:58778 Closing
-[Wed Sep 30 22:32:49 2026] 127.0.0.1:58788 Accepted
-[Wed Sep 30 22:32:49 2026] 127.0.0.1:58792 Accepted
-[Wed Sep 30 22:32:49 2026] 127.0.0.1:58788 [200]: GET /assets/images/caduceus_logo.png
-[Wed Sep 30 22:32:49 2026] 127.0.0.1:58792 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
-[Wed Sep 30 22:32:49 2026] 127.0.0.1:58788 Closing
-[Wed Sep 30 22:32:49 2026] 127.0.0.1:58792 Closing
-[Wed Sep 30 22:32:49 2026] 127.0.0.1:58808 Accepted
-[Wed Sep 30 22:32:49 2026] 127.0.0.1:58808 Closing
+#0 {main}
+  thrown in /app/developer.php on line 10
+[Thu Oct  1 04:31:51 2026] 127.0.0.1:58284 Closing
+[Thu Oct  1 04:33:25 2026] 127.0.0.1:33580 Accepted
+[Thu Oct  1 04:33:25 2026] 127.0.0.1:33580 [200]: GET /login.php
+[Thu Oct  1 04:33:25 2026] 127.0.0.1:33580 Closing
+[Thu Oct  1 04:33:25 2026] 127.0.0.1:33584 Accepted
+[Thu Oct  1 04:33:25 2026] 127.0.0.1:33594 Accepted
+[Thu Oct  1 04:33:25 2026] 127.0.0.1:33584 [200]: GET /assets/images/NuvisMedcareX_banner%20(1).jpg
+[Thu Oct  1 04:33:25 2026] 127.0.0.1:33584 Closing
+[Thu Oct  1 04:33:25 2026] 127.0.0.1:33594 [200]: GET /assets/images/stethoscope_heart.png
+[Thu Oct  1 04:33:25 2026] 127.0.0.1:33594 Closing
+[Thu Oct  1 04:33:25 2026] 127.0.0.1:33596 Accepted
+[Thu Oct  1 04:33:25 2026] 127.0.0.1:33608 Accepted
+[Thu Oct  1 04:33:25 2026] 127.0.0.1:33596 [200]: GET /assets/images/caduceus_logo.png
+[Thu Oct  1 04:33:25 2026] 127.0.0.1:33596 Closing
+[Thu Oct  1 04:33:25 2026] 127.0.0.1:33608 [200]: GET /assets/images/NuvisMedcareX_login_sidepanel.jpg
+[Thu Oct  1 04:33:25 2026] 127.0.0.1:33608 Closing
+[Thu Oct  1 04:33:26 2026] 127.0.0.1:33614 Accepted
+[Thu Oct  1 04:33:27 2026] 127.0.0.1:33614 [302]: POST /actions/login.php
+[Thu Oct  1 04:33:27 2026] 127.0.0.1:33614 Closing
+[Thu Oct  1 04:33:27 2026] 127.0.0.1:33626 Accepted
+[Thu Oct  1 04:33:27 2026] 127.0.0.1:33626 [200]: GET /index.php
+[Thu Oct  1 04:33:27 2026] 127.0.0.1:33626 Closing
+[Thu Oct  1 04:33:27 2026] 127.0.0.1:33642 Accepted
+[Thu Oct  1 04:33:27 2026] 127.0.0.1:33644 Accepted
+[Thu Oct  1 04:33:27 2026] 127.0.0.1:33642 [200]: GET /assets/css/custom.css
+[Thu Oct  1 04:33:27 2026] 127.0.0.1:33644 [200]: GET /assets/images/nuvis_medico_logo.png
+[Thu Oct  1 04:33:27 2026] 127.0.0.1:33642 Closing
+[Thu Oct  1 04:33:27 2026] 127.0.0.1:33644 Closing
+[Thu Oct  1 04:33:27 2026] 127.0.0.1:33652 Accepted
+[Thu Oct  1 04:33:27 2026] 127.0.0.1:33652 [404]: GET /api/notifications/stream - No such file or directory
+[Thu Oct  1 04:33:27 2026] 127.0.0.1:33652 Closing
+[Thu Oct  1 04:33:28 2026] 127.0.0.1:33660 Accepted
+[Thu Oct  1 04:33:28 2026] 127.0.0.1:33660 [200]: GET /inventory.php
+[Thu Oct  1 04:33:28 2026] 127.0.0.1:33660 Closing
+[Thu Oct  1 04:33:28 2026] 127.0.0.1:33662 Accepted
+[Thu Oct  1 04:33:28 2026] 127.0.0.1:33666 Accepted
+[Thu Oct  1 04:33:28 2026] 127.0.0.1:33662 [200]: GET /assets/css/custom.css
+[Thu Oct  1 04:33:28 2026] 127.0.0.1:33666 [200]: GET /assets/images/nuvis_medico_logo.png
+[Thu Oct  1 04:33:28 2026] 127.0.0.1:33662 Closing
+[Thu Oct  1 04:33:28 2026] 127.0.0.1:33666 Closing
+[Thu Oct  1 04:33:29 2026] 127.0.0.1:40078 Accepted
+[Thu Oct  1 04:33:29 2026] 127.0.0.1:40078 [200]: GET /billing.php
+[Thu Oct  1 04:33:29 2026] 127.0.0.1:40078 Closing
+[Thu Oct  1 04:33:29 2026] 127.0.0.1:40084 Accepted
+[Thu Oct  1 04:33:29 2026] 127.0.0.1:40094 Accepted
+[Thu Oct  1 04:33:29 2026] 127.0.0.1:40084 [200]: GET /assets/css/custom.css
+[Thu Oct  1 04:33:29 2026] 127.0.0.1:40094 [200]: GET /assets/images/nuvis_medico_logo.png
+[Thu Oct  1 04:33:29 2026] 127.0.0.1:40084 Closing
+[Thu Oct  1 04:33:29 2026] 127.0.0.1:40094 Closing
+[Thu Oct  1 04:33:30 2026] 127.0.0.1:40104 Accepted
+[Thu Oct  1 04:33:30 2026] 127.0.0.1:40104 [200]: GET /patient_detail.php?id=pat-1
+[Thu Oct  1 04:33:30 2026] 127.0.0.1:40104 Closing
+[Thu Oct  1 04:33:30 2026] 127.0.0.1:40108 Accepted
+[Thu Oct  1 04:33:30 2026] 127.0.0.1:40122 Accepted
+[Thu Oct  1 04:33:30 2026] 127.0.0.1:40108 [200]: GET /assets/css/custom.css
+[Thu Oct  1 04:33:30 2026] 127.0.0.1:40122 [200]: GET /assets/images/nuvis_medico_logo.png
+[Thu Oct  1 04:33:30 2026] 127.0.0.1:40108 Closing
+[Thu Oct  1 04:33:30 2026] 127.0.0.1:40122 Closing
+[Thu Oct  1 04:33:32 2026] 127.0.0.1:40138 Accepted
+[Thu Oct  1 04:33:32 2026] 127.0.0.1:40138 [200]: GET /developer.php?dev_tab=rbac
+[Thu Oct  1 04:33:32 2026] 127.0.0.1:40138 Closing
+[Thu Oct  1 04:33:32 2026] 127.0.0.1:40152 Accepted
+[Thu Oct  1 04:33:32 2026] 127.0.0.1:40154 Accepted
+[Thu Oct  1 04:33:32 2026] 127.0.0.1:40152 [200]: GET /assets/css/custom.css
+[Thu Oct  1 04:33:32 2026] 127.0.0.1:40154 [200]: GET /assets/images/nuvis_medico_logo.png
+[Thu Oct  1 04:33:32 2026] 127.0.0.1:40152 Closing
+[Thu Oct  1 04:33:32 2026] 127.0.0.1:40154 Closing
+[Thu Oct  1 04:33:32 2026] 127.0.0.1:40160 Accepted
+[Thu Oct  1 04:33:32 2026] 127.0.0.1:40172 Accepted
+[Thu Oct  1 04:33:32 2026] 127.0.0.1:40160 [200]: GET /actions/git_actions.php?action=git_status
+[Thu Oct  1 04:33:32 2026] 127.0.0.1:40160 Closing
+[Thu Oct  1 04:33:32 2026] 127.0.0.1:40172 [200]: GET /actions/git_actions.php?action=get_error_logs
+[Thu Oct  1 04:33:32 2026] 127.0.0.1:40172 Closing

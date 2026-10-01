@@ -2,6 +2,7 @@
 $patientId = $_GET['id'] ?? 'pat-1';
 
 require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/includes/pagination.php';
 $pdo = getDB();
 
 $stmt = $pdo->prepare("SELECT * FROM patients WHERE id = ?");
@@ -22,6 +23,10 @@ $pvStmt = $pdo->prepare("SELECT * FROM past_visits WHERE patient_id = ? ORDER BY
 $pvStmt->execute([$patientId]);
 $pastVisits = $pvStmt->fetchAll();
 
+$totalPastVisitsCount = count($pastVisits);
+$paginationPV = getPaginationParams(5, [5, 10, 25], $pdo);
+$paginatedPastVisits = array_slice($pastVisits, $paginationPV['offset'], $paginationPV['limit']);
+
 // Fetch appointments
 $aptStmt = $pdo->prepare("SELECT * FROM appointments WHERE patient_id = ? ORDER BY appointment_date DESC");
 $aptStmt->execute([$patientId]);
@@ -31,10 +36,18 @@ $patientAppts = $aptStmt->fetchAll();
 $labOrderService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\LabOrderService::class);
 $patientLabOrders = $labOrderService->getOrdersByPatient($patientId);
 
+$totalLabOrdersCount = count($patientLabOrders);
+$paginationLab = getPaginationParams(5, [5, 10, 25], $pdo);
+$paginatedLabOrders = array_slice($patientLabOrders, $paginationLab['offset'], $paginationLab['limit']);
+
 // Fetch Medical Certificates
 $mcStmt = $pdo->prepare("SELECT * FROM medical_certificates WHERE patient_id = ? ORDER BY issue_date DESC, created_at DESC");
 $mcStmt->execute([$patientId]);
 $medCerts = $mcStmt->fetchAll();
+
+$totalMedCertsCount = count($medCerts);
+$paginationMC = getPaginationParams(5, [5, 10, 25], $pdo);
+$paginatedMedCerts = array_slice($medCerts, $paginationMC['offset'], $paginationMC['limit']);
 
 // Fetch default settings for Medical Certificate modal defaults
 $settingsRows = $pdo->query("SELECT * FROM clinic_settings")->fetchAll();
@@ -170,7 +183,7 @@ foreach ($settingsRows as $sr) {
                 <p class="text-xs text-outline italic">No lab or diagnostic orders recorded for this patient.</p>
             <?php else: ?>
                 <div class="space-y-3">
-                    <?php foreach ($patientLabOrders as $lo): ?>
+                    <?php foreach ($paginatedLabOrders as $lo): ?>
                         <div class="p-3 bg-surface-container-low rounded-xl border border-outline-variant/30 text-xs space-y-2">
                             <div class="flex items-center justify-between">
                                 <div>
@@ -211,6 +224,7 @@ foreach ($settingsRows as $sr) {
                         </div>
                     <?php endforeach; ?>
                 </div>
+                <?= renderPagination($totalLabOrdersCount, $paginationLab['page'], $paginationLab['limit'], 'patient_detail.php', ['id' => $patientId], [5, 10, 25]) ?>
             <?php endif; ?>
         </div>
 
@@ -232,7 +246,7 @@ foreach ($settingsRows as $sr) {
                 </div>
             <?php else: ?>
                 <div class="space-y-3">
-                    <?php foreach ($medCerts as $cert): ?>
+                    <?php foreach ($paginatedMedCerts as $cert): ?>
                         <div class="p-4 rounded-xl bg-surface-container-low/40 border border-outline-variant/20 flex flex-col md:flex-row md:items-center justify-between gap-3">
                             <div class="space-y-1">
                                 <div class="flex items-center gap-2">
@@ -256,6 +270,7 @@ foreach ($settingsRows as $sr) {
                         </div>
                     <?php endforeach; ?>
                 </div>
+                <?= renderPagination($totalMedCertsCount, $paginationMC['page'], $paginationMC['limit'], 'patient_detail.php', ['id' => $patientId], [5, 10, 25]) ?>
             <?php endif; ?>
         </div>
 
@@ -272,7 +287,7 @@ foreach ($settingsRows as $sr) {
                 </div>
             <?php else: ?>
                 <div class="space-y-4">
-                    <?php foreach ($pastVisits as $pv): ?>
+                    <?php foreach ($paginatedPastVisits as $pv): ?>
                         <div class="p-4 rounded-xl bg-surface-container-low/40 border border-outline-variant/20">
                             <div class="flex items-center justify-between mb-2">
                                 <h3 class="font-bold text-xs text-on-surface"><?= htmlspecialchars($pv['title']) ?></h3>
@@ -295,6 +310,7 @@ foreach ($settingsRows as $sr) {
                         </div>
                     <?php endforeach; ?>
                 </div>
+                <?= renderPagination($totalPastVisitsCount, $paginationPV['page'], $paginationPV['limit'], 'patient_detail.php', ['id' => $patientId], [5, 10, 25]) ?>
             <?php endif; ?>
         </div>
     </div>
