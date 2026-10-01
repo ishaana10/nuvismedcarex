@@ -6,6 +6,8 @@ $patientId = $_GET['patient_id'] ?? null;
 $visitId = $_GET['visit_id'] ?? null;
 $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 
+require_once __DIR__ . '/includes/pagination.php';
+
 // IF NO PATIENT ID IS SUPPLIED -> SHOW ENCOUNTER DIRECTORY LIST VIEW
 if (empty($patientId)) {
     $pageTitle = "Clinical Encounters - NuvisMedcareX";
@@ -13,6 +15,27 @@ if (empty($patientId)) {
     include __DIR__ . '/includes/header.php';
 
     $search = trim($_GET['q'] ?? '');
+
+    // Pagination for Active Queue Encounters
+    $qPagination = getPaginationParams(10, [5, 10, 25, 50, 100], $pdo, 'q_page', 'q_limit');
+    $qLimit = $qPagination['limit'];
+    $qOffset = $qPagination['offset'];
+    $qCurrentPage = $qPagination['page'];
+
+    // Count Active Queue
+    $qCountSql = "SELECT COUNT(*) FROM queue q WHERE q.tenant_id = :tid";
+    if ($search !== '') {
+        $qCountSql .= " AND (q.patient_name LIKE :s1 OR q.mrn LIKE :s2 OR q.doctor_name LIKE :s3)";
+    }
+    $qCountStmt = $pdo->prepare($qCountSql);
+    $qCountParams = ['tid' => $currentTenantId];
+    if ($search !== '') {
+        $qCountParams['s1'] = "%$search%";
+        $qCountParams['s2'] = "%$search%";
+        $qCountParams['s3'] = "%$search%";
+    }
+    $qCountStmt->execute($qCountParams);
+    $totalActiveEncounters = (int)$qCountStmt->fetchColumn();
 
     // 1. Fetch active queue items (waiting/in room encounters)
     $queueQuery = "SELECT q.*, p.dob, p.age, p.gender, p.known_allergies
@@ -22,18 +45,45 @@ if (empty($patientId)) {
     if ($search !== '') {
         $queueQuery .= " AND (q.patient_name LIKE :s1 OR q.mrn LIKE :s2 OR q.doctor_name LIKE :s3)";
     }
-    $queueQuery .= " ORDER BY q.created_at ASC";
+    $queueQuery .= " ORDER BY q.created_at ASC LIMIT :q_limit OFFSET :q_offset";
     $qStmt = $pdo->prepare($queueQuery);
-    $qParams = ['tid' => $currentTenantId];
+    $qStmt->bindValue(':tid', $currentTenantId);
     if ($search !== '') {
-        $qParams['s1'] = "%$search%";
-        $qParams['s2'] = "%$search%";
-        $qParams['s3'] = "%$search%";
+        $qStmt->bindValue(':s1', "%$search%");
+        $qStmt->bindValue(':s2', "%$search%");
+        $qStmt->bindValue(':s3', "%$search%");
     }
-    $qStmt->execute($qParams);
+    $qStmt->bindValue(':q_limit', $qLimit, PDO::PARAM_INT);
+    $qStmt->bindValue(':q_offset', $qOffset, PDO::PARAM_INT);
+    $qStmt->execute();
     $activeEncounters = $qStmt->fetchAll() ?: [];
 
-    // 2. Fetch recent finalized past visits
+    // Pagination for Finalized Encounters
+    $pPagination = getPaginationParams(10, [5, 10, 25, 50, 100], $pdo, 'p_page', 'p_limit');
+    $pLimit = $pPagination['limit'];
+    $pOffset = $pPagination['offset'];
+    $pCurrentPage = $pPagination['page'];
+
+    // Count Finalized Encounters
+    $pCountSql = "SELECT COUNT(*) FROM past_visits pv
+                  LEFT JOIN patients p ON pv.patient_id = p.id AND pv.tenant_id = p.tenant_id
+                  WHERE pv.tenant_id = :tid";
+    if ($search !== '') {
+        $pCountSql .= " AND (p.first_name LIKE :ps1 OR p.last_name LIKE :ps2 OR p.mrn LIKE :ps3 OR pv.title LIKE :ps4 OR pv.doctor_name LIKE :ps5)";
+    }
+    $pCountStmt = $pdo->prepare($pCountSql);
+    $pCountParams = ['tid' => $currentTenantId];
+    if ($search !== '') {
+        $pCountParams['ps1'] = "%$search%";
+        $pCountParams['ps2'] = "%$search%";
+        $pCountParams['ps3'] = "%$search%";
+        $pCountParams['ps4'] = "%$search%";
+        $pCountParams['ps5'] = "%$search%";
+    }
+    $pCountStmt->execute($pCountParams);
+    $totalPastEncounters = (int)$pCountStmt->fetchColumn();
+
+    // 2. Fetch finalized past visits
     $pastQuery = "SELECT pv.*, p.first_name, p.last_name, p.mrn, p.age, p.gender, p.known_allergies
                   FROM past_visits pv
                   LEFT JOIN patients p ON pv.patient_id = p.id AND pv.tenant_id = p.tenant_id
@@ -41,17 +91,19 @@ if (empty($patientId)) {
     if ($search !== '') {
         $pastQuery .= " AND (p.first_name LIKE :ps1 OR p.last_name LIKE :ps2 OR p.mrn LIKE :ps3 OR pv.title LIKE :ps4 OR pv.doctor_name LIKE :ps5)";
     }
-    $pastQuery .= " ORDER BY pv.created_at DESC LIMIT 50";
+    $pastQuery .= " ORDER BY pv.created_at DESC LIMIT :p_limit OFFSET :p_offset";
     $pStmt = $pdo->prepare($pastQuery);
-    $pParams = ['tid' => $currentTenantId];
+    $pStmt->bindValue(':tid', $currentTenantId);
     if ($search !== '') {
-        $pParams['ps1'] = "%$search%";
-        $pParams['ps2'] = "%$search%";
-        $pParams['ps3'] = "%$search%";
-        $pParams['ps4'] = "%$search%";
-        $pParams['ps5'] = "%$search%";
+        $pStmt->bindValue(':ps1', "%$search%");
+        $pStmt->bindValue(':ps2', "%$search%");
+        $pStmt->bindValue(':ps3', "%$search%");
+        $pStmt->bindValue(':ps4', "%$search%");
+        $pStmt->bindValue(':ps5', "%$search%");
     }
-    $pStmt->execute($pParams);
+    $pStmt->bindValue(':p_limit', $pLimit, PDO::PARAM_INT);
+    $pStmt->bindValue(':p_offset', $pOffset, PDO::PARAM_INT);
+    $pStmt->execute();
     $pastEncounters = $pStmt->fetchAll() ?: [];
 
     // 3. Fetch all active patients for "Start New Encounter" modal select
@@ -78,7 +130,7 @@ if (empty($patientId)) {
             <input type="text" name="q" value="<?= htmlspecialchars($search) ?>" placeholder="Search encounter by patient, MRN, doctor..." class="form-input pl-10">
         </form>
         <p class="text-xs text-slate-500 font-medium">
-            Active Encounters: <span class="font-bold text-primary"><?= count($activeEncounters) ?></span> &nbsp;|&nbsp; Finalized: <span class="font-bold text-slate-700"><?= count($pastEncounters) ?></span>
+            Active Encounters: <span class="font-bold text-primary"><?= $totalActiveEncounters ?></span> &nbsp;|&nbsp; Finalized: <span class="font-bold text-slate-700"><?= $totalPastEncounters ?></span>
         </p>
     </div>
 
@@ -144,6 +196,7 @@ if (empty($patientId)) {
                     </tbody>
                 </table>
             </div>
+            <?= renderPagination($totalActiveEncounters, $qCurrentPage, $qLimit, 'clinical_visit.php', array_filter(['q' => $search]), [5, 10, 25, 50, 100], 'q_page', 'q_limit') ?>
         </div>
     </div>
 
@@ -204,6 +257,7 @@ if (empty($patientId)) {
                     </tbody>
                 </table>
             </div>
+            <?= renderPagination($totalPastEncounters, $pCurrentPage, $pLimit, 'clinical_visit.php', array_filter(['q' => $search]), [5, 10, 25, 50, 100], 'p_page', 'p_limit') ?>
         </div>
     </div>
 
