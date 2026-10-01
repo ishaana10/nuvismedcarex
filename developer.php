@@ -26,6 +26,7 @@ foreach ($settingsRows as $r) {
 $tenantService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\TenantService::class);
 $tenantsList = $tenantService->getAllTenants();
 $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+$labOrderService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\LabOrderService::class);
 ?>
 
 <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">

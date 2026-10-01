@@ -10,7 +10,8 @@ if (empty($_SESSION['authenticated'])) {
 require_once __DIR__ . '/../config/database.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header("Location: ../admin.php");
+    $redirect = $_SERVER['HTTP_REFERER'] ?? '../admin.php';
+    header("Location: " . $redirect);
     exit;
 }
 
@@ -163,5 +164,6 @@ foreach ($settings as $key => $val) {
 }
 
 setToast("Settings Saved", "Clinic branding and prescription settings updated successfully.");
-header("Location: ../admin.php");
+$redirect = $_SERVER['HTTP_REFERER'] ?? '../admin.php';
+header("Location: " . $redirect);
 exit;
