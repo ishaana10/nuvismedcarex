@@ -3,19 +3,33 @@ $pageTitle = "Appointments & Calendar - NuvisMedcareX";
 $activePage = "calendar";
 include __DIR__ . '/includes/header.php';
 
+require_once __DIR__ . '/includes/pagination.php';
+
 $appts = [];
 $patients = [];
 $doctorsList = [];
+$totalAppts = 0;
+
+$pagination = getPaginationParams(10, [5, 10, 25, 50, 100], $pdo);
+$limit = $pagination['limit'];
+$offset = $pagination['offset'];
+$currentPage = $pagination['page'];
 
 try {
-    // Fetch all appointments
-    $apptsStmt = $pdo->query("SELECT a.*, p.first_name, p.last_name, p.mrn, p.avatar, p.initials
+    // Fetch total appointment count
+    $countStmt = $pdo->query("SELECT COUNT(*) FROM appointments");
+    $totalAppts = (int)($countStmt ? $countStmt->fetchColumn() : 0);
+
+    // Fetch paginated appointments
+    $apptsStmt = $pdo->prepare("SELECT a.*, p.first_name, p.last_name, p.mrn, p.avatar, p.initials
                               FROM appointments a
                               LEFT JOIN patients p ON a.patient_id = p.id
-                              ORDER BY a.appointment_date DESC, a.time ASC");
-    if ($apptsStmt) {
-        $appts = $apptsStmt->fetchAll() ?: [];
-    }
+                              ORDER BY a.appointment_date DESC, a.time ASC
+                              LIMIT :limit OFFSET :offset");
+    $apptsStmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+    $apptsStmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+    $apptsStmt->execute();
+    $appts = $apptsStmt->fetchAll() ?: [];
 } catch (\Throwable $e) {
     error_log("Calendar appts query error: " . $e->getMessage());
 }
@@ -192,6 +206,7 @@ $selectedPatientId = $_GET['patient_id'] ?? '';
             </tbody>
         </table>
     </div>
+    <?= renderPagination($totalAppts, $currentPage, $limit, 'calendar.php') ?>
 </div>
 
 <?php include __DIR__ . '/includes/footer.php'; ?>

@@ -11,8 +11,14 @@ if (!function_exists('getPaginationParams')) {
      * @param array $allowedLimits Allowed limits dropdown values.
      * @return array Array containing 'page', 'limit', and 'offset'.
      */
-    function getPaginationParams(int $defaultLimit = 10, array $allowedLimits = [5, 10, 25, 50, 100], ?PDO $pdo = null): array {
-        if ($pdo !== null && !isset($_GET['limit'])) {
+    function getPaginationParams(
+        int $defaultLimit = 10,
+        array $allowedLimits = [5, 10, 25, 50, 100],
+        ?PDO $pdo = null,
+        string $pageParam = 'page',
+        string $limitParam = 'limit'
+    ): array {
+        if ($pdo !== null && !isset($_GET[$limitParam])) {
             try {
                 $stmt = $pdo->prepare("SELECT setting_value FROM clinic_settings WHERE setting_key = 'default_pagination_limit'");
                 $stmt->execute();
@@ -25,12 +31,12 @@ if (!function_exists('getPaginationParams')) {
             }
         }
 
-        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : $defaultLimit;
+        $limit = isset($_GET[$limitParam]) ? (int)$_GET[$limitParam] : $defaultLimit;
         if (!in_array($limit, $allowedLimits, true)) {
             $limit = $defaultLimit;
         }
 
-        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $page = isset($_GET[$pageParam]) ? (int)$_GET[$pageParam] : 1;
         if ($page < 1) {
             $page = 1;
         }
@@ -63,7 +69,9 @@ if (!function_exists('renderPagination')) {
         int $limit,
         string $baseUrl,
         array $extraParams = [],
-        array $allowedLimits = [5, 10, 25, 50, 100]
+        array $allowedLimits = [5, 10, 25, 50, 100],
+        string $pageParam = 'page',
+        string $limitParam = 'limit'
     ): string {
         $totalPages = (int)ceil($totalItems / max($limit, 1));
         if ($totalPages < 1) {
@@ -77,10 +85,10 @@ if (!function_exists('renderPagination')) {
         $startItem = $totalItems > 0 ? (($currentPage - 1) * $limit) + 1 : 0;
         $endItem = min($currentPage * $limit, $totalItems);
 
-        $buildUrl = function(int $targetPage, int $targetLimit) use ($baseUrl, $extraParams) {
+        $buildUrl = function(int $targetPage, int $targetLimit) use ($baseUrl, $extraParams, $pageParam, $limitParam) {
             $params = array_merge($extraParams, [
-                'page' => $targetPage,
-                'limit' => $targetLimit,
+                $pageParam => $targetPage,
+                $limitParam => $targetLimit,
             ]);
             return htmlspecialchars($baseUrl . '?' . http_build_query($params));
         };
