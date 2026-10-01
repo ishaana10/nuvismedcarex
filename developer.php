@@ -45,44 +45,6 @@ $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
     </div>
 </div>
 
-<script>
-function switchDevTab(tab) {
-    if (document.getElementById('dev-panel-git')) document.getElementById('dev-panel-git').classList.add('hidden');
-    if (document.getElementById('dev-panel-tenants')) document.getElementById('dev-panel-tenants').classList.add('hidden');
-    if (document.getElementById('dev-panel-vms')) document.getElementById('dev-panel-vms').classList.add('hidden');
-    if (document.getElementById('dev-panel-pagination')) document.getElementById('dev-panel-pagination').classList.add('hidden');
-    if (document.getElementById('dev-panel-rbac')) document.getElementById('dev-panel-rbac').classList.add('hidden');
-    if (document.getElementById('dev-panel-logs')) document.getElementById('dev-panel-logs').classList.add('hidden');
-
-    if (document.getElementById('dev-tab-btn-git')) document.getElementById('dev-tab-btn-git').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
-    if (document.getElementById('dev-tab-btn-tenants')) document.getElementById('dev-tab-btn-tenants').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
-    if (document.getElementById('dev-tab-btn-vms')) document.getElementById('dev-tab-btn-vms').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
-    if (document.getElementById('dev-tab-btn-pagination')) document.getElementById('dev-tab-btn-pagination').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
-    if (document.getElementById('dev-tab-btn-rbac')) document.getElementById('dev-tab-btn-rbac').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
-    if (document.getElementById('dev-tab-btn-logs')) document.getElementById('dev-tab-btn-logs').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
-
-    if (tab === 'git') {
-        if (document.getElementById('dev-panel-git')) document.getElementById('dev-panel-git').classList.remove('hidden');
-        if (document.getElementById('dev-tab-btn-git')) document.getElementById('dev-tab-btn-git').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
-    } else if (tab === 'tenants') {
-        if (document.getElementById('dev-panel-tenants')) document.getElementById('dev-panel-tenants').classList.remove('hidden');
-        if (document.getElementById('dev-tab-btn-tenants')) document.getElementById('dev-tab-btn-tenants').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
-    } else if (tab === 'vms') {
-        if (document.getElementById('dev-panel-vms')) document.getElementById('dev-panel-vms').classList.remove('hidden');
-        if (document.getElementById('dev-tab-btn-vms')) document.getElementById('dev-tab-btn-vms').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
-    } else if (tab === 'pagination') {
-        if (document.getElementById('dev-panel-pagination')) document.getElementById('dev-panel-pagination').classList.remove('hidden');
-        if (document.getElementById('dev-tab-btn-pagination')) document.getElementById('dev-tab-btn-pagination').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
-    } else if (tab === 'rbac') {
-        if (document.getElementById('dev-panel-rbac')) document.getElementById('dev-panel-rbac').classList.remove('hidden');
-        if (document.getElementById('dev-tab-btn-rbac')) document.getElementById('dev-tab-btn-rbac').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
-    } else if (tab === 'logs') {
-        if (document.getElementById('dev-panel-logs')) document.getElementById('dev-panel-logs').classList.remove('hidden');
-        if (document.getElementById('dev-tab-btn-logs')) document.getElementById('dev-tab-btn-logs').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
-    }
-}
-</script>
-
 <!-- Developer Child Tabs Navigation -->
 <div class="flex border-b border-outline-variant/30 mb-6 space-x-2 text-xs font-bold flex-wrap">
     <button type="button" onclick="switchDevTab('git')" id="dev-tab-btn-git" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white">
@@ -96,6 +58,10 @@ function switchDevTab(tab) {
     <button type="button" onclick="switchDevTab('vms')" id="dev-tab-btn-vms" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">point_of_sale</span>
         <span>VMS Fiscal Settings</span>
+    </button>
+    <button type="button" onclick="switchDevTab('lab')" id="dev-tab-btn-lab" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+        <span class="material-symbols-outlined text-base">science</span>
+        <span>Lab Catalog & Customization</span>
     </button>
     <button type="button" onclick="switchDevTab('pagination')" id="dev-tab-btn-pagination" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">format_list_numbered</span>
@@ -182,6 +148,37 @@ function switchDevTab(tab) {
             </div>
         </div>
     </div> <!-- End dev-panel-tenants -->
+
+    <!-- Lab Catalog Customization Panel -->
+    <div id="dev-panel-lab" class="hidden space-y-6">
+        <?php
+        $labCatalog = $labOrderService->getLabCatalog();
+        $labCatalogJson = json_encode($labCatalog, JSON_PRETTY_PRINT);
+        ?>
+        <form action="actions/admin_save_settings.php" method="POST" class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-5">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>">
+            <div class="flex items-center justify-between border-b border-outline-variant/20 pb-3">
+                <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base">science</span>
+                    <span>Customizable Laboratory & Diagnostic Test Catalog</span>
+                </h2>
+                <span class="text-xs text-outline font-medium">Developer configuration for clinic lab procedures and categories</span>
+            </div>
+
+            <div class="space-y-2">
+                <label class="block font-bold text-slate-700 text-xs mb-1">Lab Catalog JSON Configuration</label>
+                <textarea name="lab_catalog_json" rows="14" class="w-full bg-slate-950 text-emerald-400 p-4 rounded-xl font-mono text-xs border border-slate-800 leading-relaxed shadow-inner focus:outline-none focus:ring-2 focus:ring-primary"><?= htmlspecialchars($labCatalogJson) ?></textarea>
+                <p class="text-[11px] text-slate-500">Developers can modify categories and available test procedure templates in JSON format.</p>
+            </div>
+
+            <div class="flex justify-end pt-3 border-t border-outline-variant/20">
+                <button type="submit" class="px-6 py-2.5 bg-primary text-white text-xs font-semibold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base">save</span>
+                    <span>Save Lab Catalog Configuration</span>
+                </button>
+            </div>
+        </form>
+    </div> <!-- End dev-panel-lab -->
 
     <!-- Pagination Settings Panel -->
     <div id="dev-panel-pagination" class="hidden space-y-6">
@@ -607,6 +604,47 @@ function switchDevTab(tab) {
     </div> <!-- End dev-panel-logs -->
 </div>
 
+<script>
+function switchDevTab(tab) {
+    if (document.getElementById('dev-panel-git')) document.getElementById('dev-panel-git').classList.add('hidden');
+    if (document.getElementById('dev-panel-tenants')) document.getElementById('dev-panel-tenants').classList.add('hidden');
+    if (document.getElementById('dev-panel-vms')) document.getElementById('dev-panel-vms').classList.add('hidden');
+    if (document.getElementById('dev-panel-lab')) document.getElementById('dev-panel-lab').classList.add('hidden');
+    if (document.getElementById('dev-panel-pagination')) document.getElementById('dev-panel-pagination').classList.add('hidden');
+    if (document.getElementById('dev-panel-rbac')) document.getElementById('dev-panel-rbac').classList.add('hidden');
+    if (document.getElementById('dev-panel-logs')) document.getElementById('dev-panel-logs').classList.add('hidden');
+
+    if (document.getElementById('dev-tab-btn-git')) document.getElementById('dev-tab-btn-git').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
+    if (document.getElementById('dev-tab-btn-tenants')) document.getElementById('dev-tab-btn-tenants').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
+    if (document.getElementById('dev-tab-btn-vms')) document.getElementById('dev-tab-btn-vms').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
+    if (document.getElementById('dev-tab-btn-lab')) document.getElementById('dev-tab-btn-lab').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
+    if (document.getElementById('dev-tab-btn-pagination')) document.getElementById('dev-tab-btn-pagination').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
+    if (document.getElementById('dev-tab-btn-rbac')) document.getElementById('dev-tab-btn-rbac').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
+    if (document.getElementById('dev-tab-btn-logs')) document.getElementById('dev-tab-btn-logs').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
+
+    if (tab === 'git') {
+        if (document.getElementById('dev-panel-git')) document.getElementById('dev-panel-git').classList.remove('hidden');
+        if (document.getElementById('dev-tab-btn-git')) document.getElementById('dev-tab-btn-git').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
+    } else if (tab === 'tenants') {
+        if (document.getElementById('dev-panel-tenants')) document.getElementById('dev-panel-tenants').classList.remove('hidden');
+        if (document.getElementById('dev-tab-btn-tenants')) document.getElementById('dev-tab-btn-tenants').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
+    } else if (tab === 'vms') {
+        if (document.getElementById('dev-panel-vms')) document.getElementById('dev-panel-vms').classList.remove('hidden');
+        if (document.getElementById('dev-tab-btn-vms')) document.getElementById('dev-tab-btn-vms').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
+    } else if (tab === 'lab') {
+        if (document.getElementById('dev-panel-lab')) document.getElementById('dev-panel-lab').classList.remove('hidden');
+        if (document.getElementById('dev-tab-btn-lab')) document.getElementById('dev-tab-btn-lab').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
+    } else if (tab === 'pagination') {
+        if (document.getElementById('dev-panel-pagination')) document.getElementById('dev-panel-pagination').classList.remove('hidden');
+        if (document.getElementById('dev-tab-btn-pagination')) document.getElementById('dev-tab-btn-pagination').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
+    } else if (tab === 'rbac') {
+        if (document.getElementById('dev-panel-rbac')) document.getElementById('dev-panel-rbac').classList.remove('hidden');
+        if (document.getElementById('dev-tab-btn-rbac')) document.getElementById('dev-tab-btn-rbac').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
+    } else if (tab === 'logs') {
+        if (document.getElementById('dev-panel-logs')) document.getElementById('dev-panel-logs').classList.remove('hidden');
+        if (document.getElementById('dev-tab-btn-logs')) document.getElementById('dev-tab-btn-logs').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
+    }
+}
 document.addEventListener('DOMContentLoaded', function() {
     refreshGitStatus();
     fetchDeveloperErrorLogs();

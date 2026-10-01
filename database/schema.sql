@@ -388,6 +388,44 @@ CREATE TABLE IF NOT EXISTS medical_certificates (
 
 CREATE INDEX idx_medcert_tenant_patient ON medical_certificates(tenant_id, patient_id);
 
+CREATE TABLE IF NOT EXISTS lab_orders (
+    id VARCHAR(50) PRIMARY KEY,
+    tenant_id VARCHAR(50) NOT NULL,
+    patient_id VARCHAR(50) NOT NULL,
+    order_type VARCHAR(50) NOT NULL DEFAULT 'Lab',
+    test_name VARCHAR(255) NOT NULL,
+    category VARCHAR(100) DEFAULT 'General',
+    status VARCHAR(50) NOT NULL DEFAULT 'Ordered',
+    is_abnormal TINYINT(1) DEFAULT 0,
+    results TEXT,
+    ordered_by VARCHAR(255) DEFAULT 'Doctor',
+    clinical_notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+    FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_lab_orders_tenant_patient ON lab_orders(tenant_id, patient_id);
+
+CREATE TABLE IF NOT EXISTS lab_order_items (
+    id VARCHAR(50) PRIMARY KEY,
+    tenant_id VARCHAR(50) NOT NULL,
+    lab_order_id VARCHAR(50) NOT NULL,
+    test_name VARCHAR(255) NOT NULL,
+    category VARCHAR(100) DEFAULT 'General',
+    instructions TEXT,
+    status VARCHAR(50) NOT NULL DEFAULT 'Ordered',
+    is_abnormal TINYINT(1) DEFAULT 0,
+    results TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+    FOREIGN KEY (lab_order_id) REFERENCES lab_orders(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_lab_order_items_tenant_order ON lab_order_items(tenant_id, lab_order_id);
+
 CREATE TABLE IF NOT EXISTS audit_logs (
     id VARCHAR(50) PRIMARY KEY,
     tenant_id VARCHAR(50) NOT NULL,
