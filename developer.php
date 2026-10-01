@@ -26,6 +26,7 @@ foreach ($settingsRows as $r) {
 $tenantService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\TenantService::class);
 $tenantsList = $tenantService->getAllTenants();
 $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+$labOrderService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\LabOrderService::class);
 ?>
 
 <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -62,6 +63,7 @@ $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
     <button type="button" onclick="switchDevTab('lab')" id="dev-tab-btn-lab" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">science</span>
         <span>Lab Catalog & Customization</span>
+    </button>
     <button type="button" onclick="switchDevTab('pagination')" id="dev-tab-btn-pagination" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">format_list_numbered</span>
         <span>Pagination Settings</span>
@@ -168,6 +170,17 @@ $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
                 <label class="block font-bold text-slate-700 text-xs mb-1">Lab Catalog JSON Configuration</label>
                 <textarea name="lab_catalog_json" rows="14" class="w-full bg-slate-950 text-emerald-400 p-4 rounded-xl font-mono text-xs border border-slate-800 leading-relaxed shadow-inner focus:outline-none focus:ring-2 focus:ring-primary"><?= htmlspecialchars($labCatalogJson) ?></textarea>
                 <p class="text-[11px] text-slate-500">Developers can modify categories and available test procedure templates in JSON format.</p>
+            </div>
+
+            <div class="flex justify-end pt-3 border-t border-outline-variant/20">
+                <button type="submit" class="px-6 py-2.5 bg-primary text-white text-xs font-semibold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base">save</span>
+                    <span>Save Lab Catalog Configuration</span>
+                </button>
+            </div>
+        </form>
+    </div> <!-- End dev-panel-lab -->
+
     <!-- Pagination Settings Panel -->
     <div id="dev-panel-pagination" class="hidden space-y-6">
         <form action="actions/admin_save_settings.php" method="POST" class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-5">
@@ -194,11 +207,6 @@ $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
             <div class="flex justify-end pt-3 border-t border-outline-variant/20">
                 <button type="submit" class="px-6 py-2.5 bg-primary text-white text-xs font-semibold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-2">
                     <span class="material-symbols-outlined text-base">save</span>
-                    <span>Save Lab Catalog Configuration</span>
-                </button>
-            </div>
-        </form>
-    </div> <!-- End dev-panel-lab -->
                     <span>Save Pagination Settings</span>
                 </button>
             </div>
