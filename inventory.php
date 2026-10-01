@@ -7,6 +7,8 @@ require_once __DIR__ . '/includes/security.php';
 $userRole = $_SESSION['user_role'] ?? 'Staff';
 $isAdminOrDev = in_array($userRole, ['Administrator', 'Developer']);
 
+require_once __DIR__ . '/includes/pagination.php';
+$pdo = getDB();
 $inventoryService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\InventoryService::class);
 
 // Fetch Clinic Inventory Settings & Custom Fields Definition
@@ -24,7 +26,7 @@ $activeTab = trim($_GET['tab'] ?? 'inventory'); // inventory or logs
 $items = $inventoryService->searchAndFilterItems($searchQuery, $categoryFilter, $statusFilter);
 
 // Calculate Stats
-$totalItems = count($items);
+$totalItemsCount = count($items);
 $lowStockCount = 0;
 $outOfStockCount = 0;
 $totalValuation = 0.0;
@@ -37,6 +39,10 @@ foreach ($items as $item) {
     }
     $totalValuation += ((int)$item['current_stock'] * (float)$item['unit_price']);
 }
+
+// Pagination setup
+$pagination = getPaginationParams(10, [5, 10, 25, 50, 100], $pdo);
+$paginatedItems = array_slice($items, $pagination['offset'], $pagination['limit']);
 
 // Fetch Inventory Logs via InventoryService
 $inventoryLogs = $inventoryService->getInventoryLogs(100);
@@ -69,7 +75,7 @@ $csrfToken = getCsrfToken();
     <div class="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/30 shadow-xs flex items-center justify-between">
         <div>
             <div class="text-[11px] font-bold tracking-wider text-outline uppercase">Total Catalog Items</div>
-            <div class="text-2xl font-bold text-on-surface mt-1"><?= number_format($totalItems) ?></div>
+            <div class="text-2xl font-bold text-on-surface mt-1"><?= number_format($totalItemsCount) ?></div>
         </div>
         <div class="p-3 bg-blue-50 text-blue-600 rounded-xl">
             <span class="material-symbols-outlined text-2xl">inventory_2</span>
@@ -161,7 +167,7 @@ $csrfToken = getCsrfToken();
                 </tr>
             </thead>
             <tbody class="divide-y divide-outline-variant/20">
-                <?php if (empty($items)): ?>
+                <?php if (empty($paginatedItems)): ?>
                     <tr>
                         <td colspan="7" class="py-8 text-center text-outline">
                             <span class="material-symbols-outlined text-4xl text-outline/50 block mb-1">inventory</span>
@@ -169,7 +175,7 @@ $csrfToken = getCsrfToken();
                         </td>
                     </tr>
                 <?php else: ?>
-                    <?php foreach ($items as $item): ?>
+                    <?php foreach ($paginatedItems as $item): ?>
                         <?php
                             $cStock = (int)$item['current_stock'];
                             $mThresh = (int)$item['min_threshold'];
@@ -281,6 +287,9 @@ $csrfToken = getCsrfToken();
             </tbody>
         </table>
     </div>
+
+    <!-- Pagination Controls -->
+    <?= renderPagination($totalItemsCount, $pagination['page'], $pagination['limit'], 'inventory.php', array_filter(['q' => $searchQuery, 'category' => $categoryFilter, 'status' => $statusFilter])) ?>
 </div>
 
 <!-- MODAL 1: ADD NEW INVENTORY ITEM -->

@@ -14,6 +14,7 @@ if ($currentUserRole !== 'Developer') {
 
 $pageTitle = "Developer Options - NuvisMedcareX";
 $activePage = "developer";
+require_once __DIR__ . '/includes/pagination.php';
 include __DIR__ . '/includes/header.php';
 
 $pdo = getDB();
@@ -385,6 +386,10 @@ $labOrderService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\
 
     $usersStmt = $pdo->query("SELECT id, name, email, role, is_active FROM doctors ORDER BY name ASC");
     $allUsers = $usersStmt->fetchAll();
+
+    $totalUsersCount = count($allUsers);
+    $paginationUsers = getPaginationParams(10, [5, 10, 25, 50, 100], $pdo);
+    $paginatedUsers = array_slice($allUsers, $paginationUsers['offset'], $paginationUsers['limit']);
     ?>
     <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-5">
         <div class="flex items-center justify-between border-b border-outline-variant/20 pb-3">
@@ -543,7 +548,12 @@ $labOrderService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-outline-variant/20">
-                        <?php foreach ($allUsers as $u): ?>
+                        <?php if (empty($paginatedUsers)): ?>
+                            <tr>
+                                <td colspan="5" class="py-6 text-center text-outline italic">No users found.</td>
+                            </tr>
+                        <?php else: ?>
+                        <?php foreach ($paginatedUsers as $u): ?>
                             <tr class="hover:bg-surface-container-low/50">
                                 <td class="py-2.5 px-3 font-bold text-on-surface"><?= htmlspecialchars($u['name']) ?></td>
                                 <td class="py-2.5 px-3 text-slate-600"><?= htmlspecialchars($u['email']) ?></td>
@@ -567,9 +577,11 @@ $labOrderService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\
                                 </td>
                             </tr>
                         <?php endforeach; ?>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
+            <?= renderPagination($totalUsersCount, $paginationUsers['page'], $paginationUsers['limit'], 'developer.php', ['dev_tab' => 'rbac']) ?>
         </div>
     </div>
 
@@ -649,6 +661,11 @@ function switchDevTab(tab) {
 document.addEventListener('DOMContentLoaded', function() {
     refreshGitStatus();
     fetchDeveloperErrorLogs();
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeDevTab = urlParams.get('dev_tab');
+    if (activeDevTab) {
+        switchDevTab(activeDevTab);
+    }
 });
 
 function fetchDeveloperErrorLogs() {

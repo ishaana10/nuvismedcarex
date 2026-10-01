@@ -2,6 +2,7 @@
 $pageTitle = "Billing & VMS Fiscal Invoices - NuvisMedcareX";
 $activePage = "billing";
 require_once __DIR__ . '/includes/autoloader.php';
+require_once __DIR__ . '/includes/pagination.php';
 include __DIR__ . '/includes/header.php';
 
 use ClinicFlow\Services\VMSService;
@@ -35,6 +36,10 @@ $totalCollected = array_reduce($invoices, fn($acc, $i) => $i['status'] === 'Paid
 $totalVat = array_reduce($invoices, fn($acc, $i) => $acc + (float)($i['total_tax'] ?? 0), 0);
 
 $activeTab = $_GET['tab'] ?? 'invoices';
+
+$totalInvoicesCount = count($invoices);
+$paginationInvoices = getPaginationParams(10, [5, 10, 25, 50, 100], $pdo);
+$paginatedInvoices = array_slice($invoices, $paginationInvoices['offset'], $paginationInvoices['limit']);
 $selectedDate = $_GET['report_date'] ?? date('Y-m-d');
 $zReportData = $vmsService->getDailyFiscalReport($selectedDate);
 ?>
@@ -149,8 +154,12 @@ $zReportData = $vmsService->getDailyFiscalReport($selectedDate);
                 </tr>
             </thead>
             <tbody class="divide-y divide-outline-variant/20">
-                <?php foreach ($invoices as $inv): ?>
-                    <tr class="hover:bg-surface-container-low transition">
+                <?php if (empty($paginatedInvoices)): ?>
+                    <tr>
+                        <td colspan="8" class="py-6 text-center text-outline italic">No invoices found.</td>
+                    </tr>
+                <?php else: ?>
+                <?php foreach ($paginatedInvoices as $inv): ?>
                         <td class="py-3 px-3 font-mono font-bold text-primary">
                             <?= htmlspecialchars($inv['invoice_number']) ?>
                             <span class="block text-[10px] font-sans font-bold text-slate-500 uppercase">
@@ -213,9 +222,11 @@ $zReportData = $vmsService->getDailyFiscalReport($selectedDate);
                         </td>
                     </tr>
                 <?php endforeach; ?>
+                <?php endif; ?>
             </tbody>
         </table>
     </div>
+    <?= renderPagination($totalInvoicesCount, $paginationInvoices['page'], $paginationInvoices['limit'], 'billing.php', ['tab' => 'invoices']) ?>
 </div>
 
 <?php elseif ($activeTab === 'insurance'): ?>
@@ -224,6 +235,10 @@ $zReportData = $vmsService->getDailyFiscalReport($selectedDate);
 $insuranceClaimsStmt = $pdo->prepare("SELECT * FROM insurance_claims WHERE tenant_id = ? ORDER BY created_at DESC");
 $insuranceClaimsStmt->execute([$currentTenantId]);
 $insuranceClaims = $insuranceClaimsStmt->fetchAll();
+
+$totalClaimsCount = count($insuranceClaims);
+$paginationClaims = getPaginationParams(10, [5, 10, 25, 50, 100], $pdo);
+$paginatedClaims = array_slice($insuranceClaims, $paginationClaims['offset'], $paginationClaims['limit']);
 ?>
 <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 overflow-hidden shadow-xs">
     <div class="p-4 bg-surface-container-low border-b border-outline-variant/30 flex items-center justify-between">
@@ -250,12 +265,12 @@ $insuranceClaims = $insuranceClaimsStmt->fetchAll();
                 </tr>
             </thead>
             <tbody class="divide-y divide-outline-variant/20 font-medium">
-                <?php if (empty($insuranceClaims)): ?>
+                <?php if (empty($paginatedClaims)): ?>
                     <tr>
                         <td colspan="7" class="py-6 text-center text-outline italic">No insurance claims submitted yet.</td>
                     </tr>
                 <?php else: ?>
-                    <?php foreach ($insuranceClaims as $claim): ?>
+                    <?php foreach ($paginatedClaims as $claim): ?>
                         <tr class="hover:bg-surface-container-low/50">
                             <td class="py-3 px-4 font-mono font-bold"><?= htmlspecialchars(substr($claim['id'], 0, 8)) ?></td>
                             <td class="py-3 px-4 font-mono"><?= htmlspecialchars($claim['invoice_id']) ?></td>
@@ -282,6 +297,7 @@ $insuranceClaims = $insuranceClaimsStmt->fetchAll();
             </tbody>
         </table>
     </div>
+    <?= renderPagination($totalClaimsCount, $paginationClaims['page'], $paginationClaims['limit'], 'billing.php', ['tab' => 'insurance']) ?>
 </div>
 
 <!-- Modal Submit Insurance Claim -->
