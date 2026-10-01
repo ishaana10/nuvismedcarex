@@ -68,6 +68,9 @@ if ($action === 'create_lab_order') {
 if ($action === 'edit_lab_order' || $action === 'update_lab_order') {
     $orderId = trim($_POST['order_id'] ?? '');
     $notes = trim($_POST['clinical_notes'] ?? '');
+    $status = trim($_POST['status'] ?? 'Ordered');
+    $results = trim($_POST['results'] ?? '');
+    $isAbnormal = !empty($_POST['is_abnormal']);
 
     $rawItems = $_POST['items'] ?? [];
     $items = [];
@@ -80,17 +83,30 @@ if ($action === 'edit_lab_order' || $action === 'update_lab_order') {
                     'test_name' => $testName,
                     'category' => trim($raw['category'] ?? 'General'),
                     'instructions' => trim($raw['instructions'] ?? ''),
-                    'status' => trim($raw['status'] ?? 'Ordered'),
-                    'results' => trim($raw['results'] ?? ''),
-                    'is_abnormal' => !empty($raw['is_abnormal'])
+                    'status' => trim($raw['status'] ?? $status ?? 'Ordered'),
+                    'results' => trim($raw['results'] ?? $results ?? ''),
+                    'is_abnormal' => !empty($raw['is_abnormal']) || $isAbnormal
                 ];
             }
         }
     }
 
+    // Fallback if no array items passed, create single item from submitted order test name or default
+    if (empty($items)) {
+        $singleTest = trim($_POST['test_name'] ?? 'Lab Request');
+        $items[] = [
+            'test_name' => $singleTest,
+            'category' => trim($_POST['category'] ?? 'General'),
+            'instructions' => trim($_POST['instructions'] ?? ''),
+            'status' => $status,
+            'results' => $results,
+            'is_abnormal' => $isAbnormal
+        ];
+    }
+
     if (!empty($orderId) && !empty($items)) {
         try {
-            $labOrderService->updateOrder($orderId, $items, $notes);
+            $labOrderService->updateOrder($orderId, $items, $notes, $status, $results, $isAbnormal);
             setToast('Lab Order Updated', 'Lab order and test items updated successfully.');
         } catch (\Throwable $e) {
             $logger->error("Error updating lab order: " . $e->getMessage());

@@ -86,7 +86,7 @@ class LabOrderService {
     /**
      * Edit/Update an existing lab order and its test items.
      */
-    public function updateOrder(string $orderId, array $items, ?string $notes = null, ?string $tenantId = null): ?array {
+    public function updateOrder(string $orderId, array $items, ?string $notes = null, ?string $status = null, ?string $results = null, ?bool $isAbnormal = null, ?string $tenantId = null): ?array {
         $tenantId = $tenantId ?? TenantContext::getTenantId();
         $order = $this->getOrderById($orderId, $tenantId);
 
@@ -104,15 +104,22 @@ class LabOrderService {
             $primaryTestName .= ' (+' . (count($items) - 1) . ' more)';
         }
 
+        $statusVal = $status ?? $order['status'] ?? 'Ordered';
+        $resultsVal = $results ?? $order['results'] ?? null;
+        $isAbnormalVal = $isAbnormal !== null ? ($isAbnormal ? 1 : 0) : ($order['is_abnormal'] ?? 0);
+
         $stmt = $this->db->prepare("
             UPDATE lab_orders
-            SET test_name = :test, category = :cat, clinical_notes = :notes, updated_at = CURRENT_TIMESTAMP
+            SET test_name = :test, category = :cat, clinical_notes = :notes, status = :status, results = :results, is_abnormal = :abnormal, updated_at = CURRENT_TIMESTAMP
             WHERE id = :id AND tenant_id = :tid
         ");
         $stmt->execute([
             'test' => $primaryTestName,
             'cat' => $primaryCategory,
             'notes' => $notes,
+            'status' => $statusVal,
+            'results' => $resultsVal,
+            'abnormal' => $isAbnormalVal,
             'id' => $orderId,
             'tid' => $tenantId
         ]);
@@ -137,9 +144,9 @@ class LabOrderService {
                 'test' => $testName,
                 'cat' => $item['category'] ?? 'General',
                 'inst' => $item['instructions'] ?? '',
-                'status' => $item['status'] ?? 'Ordered',
-                'results' => $item['results'] ?? null,
-                'is_abnormal' => !empty($item['is_abnormal']) ? 1 : 0
+                'status' => $item['status'] ?? $statusVal ?? 'Ordered',
+                'results' => $item['results'] ?? $resultsVal ?? null,
+                'is_abnormal' => !empty($item['is_abnormal']) ? 1 : ($isAbnormalVal ? 1 : 0)
             ]);
         }
 
