@@ -82,6 +82,85 @@ $labOrderService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\
 <div class="space-y-6">
     <!-- 1. System Updates (Git Updater) -->
     <div id="dev-panel-git" class="space-y-6">
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-5">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-outline-variant/20 pb-3">
+                <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base">update</span>
+                    <span>Continuous System Updates (1-Click Git Updater)</span>
+                </h2>
+                <div class="flex gap-2">
+                    <button type="button" onclick="switchGitSubTab('console')" id="btn-git-console" class="px-3 py-1 bg-primary text-white text-[11px] font-bold rounded-lg transition">Terminal Status</button>
+                    <button type="button" onclick="switchGitSubTab('history')" id="btn-git-history" class="px-3 py-1 bg-surface-container-high text-on-surface text-[11px] font-bold rounded-lg transition">Commit History</button>
+                </div>
+            </div>
+
+            <!-- Terminal Console Tab -->
+            <div id="git-tab-console" class="space-y-4 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Git Repository Terminal Status</label>
+                    <div id="git-status-console" class="font-mono text-xs bg-slate-900 text-emerald-400 p-4 rounded-xl border border-slate-800 h-40 overflow-y-auto whitespace-pre-wrap leading-relaxed shadow-inner">
+                        Querying Git repository status...
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Executable Path</label>
+                        <input type="text" id="git_path" value="<?= htmlspecialchars($settings['git_path'] ?? 'git') ?>" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Repository Directory</label>
+                        <input type="text" id="git_repo_dir" value="<?= htmlspecialchars($settings['git_repo_dir'] ?? __DIR__) ?>" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Update Branch</label>
+                        <select id="update_branch" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-bold">
+                            <option value="main">main</option>
+                            <option value="master">master</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-outline-variant/20">
+                    <button type="button" onclick="saveGitSettings()" class="px-4 py-2 bg-surface-container-high text-on-surface text-xs font-semibold rounded-xl hover:bg-surface-variant transition flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-sm">settings</span>
+                        <span>Save Git Settings</span>
+                    </button>
+
+                    <div class="flex gap-2">
+                        <button type="button" onclick="refreshGitStatus()" class="px-4 py-2 bg-slate-200 text-slate-800 text-xs font-semibold rounded-xl hover:bg-slate-300 transition flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-sm">sync</span>
+                            <span>Check Status</span>
+                        </button>
+                        <button type="button" onclick="triggerGitPull()" class="px-5 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 transition shadow-xs flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-sm">download</span>
+                            <span>Pull Updates from Git</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Initialize / Link Git Repo Form (if missing) -->
+                <div id="git-init-card" class="mt-4 p-4 rounded-xl bg-amber-50 border border-amber-200 space-y-3">
+                    <p class="font-bold text-amber-900 text-xs flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-sm text-amber-700">link</span>
+                        <span>Link Remote Git Repository</span>
+                    </p>
+                    <div class="flex gap-2">
+                        <input type="text" id="git_remote_url" placeholder="https://github.com/username/repository.git" value="<?= htmlspecialchars($settings['git_remote_url'] ?? '') ?>" class="flex-1 bg-white px-3 py-2 rounded-xl border border-amber-300 text-xs font-mono">
+                        <button type="button" onclick="initializeGitRepo()" class="px-4 py-2 bg-amber-800 text-white font-bold rounded-xl text-xs hover:bg-amber-900 transition">
+                            Link & Sync
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Commit History Tab -->
+            <div id="git-tab-history" class="hidden space-y-3 text-xs">
+                <div id="git-commit-list" class="space-y-2 max-h-60 overflow-y-auto">
+                    <p class="text-slate-500 italic">Loading commit logs...</p>
+                </div>
+            </div>
+        </div>
     </div> <!-- End dev-panel-git -->
 
     <!-- Multi-Tenancy Clinics Panel -->
@@ -280,88 +359,6 @@ $labOrderService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\
             </div>
         </form>
     </div> <!-- End dev-panel-vms -->
-
-    <div id="dev-panel-git-content" class="space-y-6">
-    <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-5">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-outline-variant/20 pb-3">
-            <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
-                <span class="material-symbols-outlined text-base">update</span>
-                <span>Continuous System Updates (1-Click Git Updater)</span>
-            </h2>
-            <div class="flex gap-2">
-                <button type="button" onclick="switchGitSubTab('console')" id="btn-git-console" class="px-3 py-1 bg-primary text-white text-[11px] font-bold rounded-lg transition">Terminal Status</button>
-                <button type="button" onclick="switchGitSubTab('history')" id="btn-git-history" class="px-3 py-1 bg-surface-container-high text-on-surface text-[11px] font-bold rounded-lg transition">Commit History</button>
-            </div>
-        </div>
-
-        <!-- Terminal Console Tab -->
-        <div id="git-tab-console" class="space-y-4 text-xs">
-            <div>
-                <label class="block font-bold text-slate-700 mb-1">Git Repository Terminal Status</label>
-                <div id="git-status-console" class="font-mono text-xs bg-slate-900 text-emerald-400 p-4 rounded-xl border border-slate-800 h-40 overflow-y-auto whitespace-pre-wrap leading-relaxed shadow-inner">
-                    Querying Git repository status...
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Executable Path</label>
-                    <input type="text" id="git_path" value="<?= htmlspecialchars($settings['git_path'] ?? 'git') ?>" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Repository Directory</label>
-                    <input type="text" id="git_repo_dir" value="<?= htmlspecialchars($settings['git_repo_dir'] ?? __DIR__) ?>" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Update Branch</label>
-                    <select id="update_branch" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-bold">
-                        <option value="main">main</option>
-                        <option value="master">master</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-outline-variant/20">
-                <button type="button" onclick="saveGitSettings()" class="px-4 py-2 bg-surface-container-high text-on-surface text-xs font-semibold rounded-xl hover:bg-surface-variant transition flex items-center gap-1.5">
-                    <span class="material-symbols-outlined text-sm">settings</span>
-                    <span>Save Git Settings</span>
-                </button>
-
-                <div class="flex gap-2">
-                    <button type="button" onclick="refreshGitStatus()" class="px-4 py-2 bg-slate-200 text-slate-800 text-xs font-semibold rounded-xl hover:bg-slate-300 transition flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-sm">sync</span>
-                        <span>Check Status</span>
-                    </button>
-                    <button type="button" onclick="triggerGitPull()" class="px-5 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 transition shadow-xs flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-sm">download</span>
-                        <span>Pull Updates from Git</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Initialize / Link Git Repo Form (if missing) -->
-            <div id="git-init-card" class="mt-4 p-4 rounded-xl bg-amber-50 border border-amber-200 space-y-3">
-                <p class="font-bold text-amber-900 text-xs flex items-center gap-1.5">
-                    <span class="material-symbols-outlined text-sm text-amber-700">link</span>
-                    <span>Link Remote Git Repository</span>
-                </p>
-                <div class="flex gap-2">
-                    <input type="text" id="git_remote_url" placeholder="https://github.com/username/repository.git" value="<?= htmlspecialchars($settings['git_remote_url'] ?? '') ?>" class="flex-1 bg-white px-3 py-2 rounded-xl border border-amber-300 text-xs font-mono">
-                    <button type="button" onclick="initializeGitRepo()" class="px-4 py-2 bg-amber-800 text-white font-bold rounded-xl text-xs hover:bg-amber-900 transition">
-                        Link & Sync
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Commit History Tab -->
-        <div id="git-tab-history" class="hidden space-y-3 text-xs">
-            <div id="git-commit-list" class="space-y-2 max-h-60 overflow-y-auto">
-                <p class="text-slate-500 italic">Loading commit logs...</p>
-            </div>
-        </div>
-    </div>
-    </div> <!-- End dev-panel-git -->
 
     <!-- 2. Role Permissions & User Access Level Matrix Module -->
     <div id="dev-panel-rbac" class="hidden space-y-6">
