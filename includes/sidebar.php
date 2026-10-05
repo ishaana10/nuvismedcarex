@@ -13,6 +13,7 @@ $navItems = [
     ['id' => 'clinical-visit', 'label' => 'Clinical Encounter', 'icon' => 'clinical_notes', 'url' => 'clinical_visit.php'],
     ['id' => 'billing', 'label' => 'Billing & Financials', 'icon' => 'payments', 'url' => 'billing.php'],
     ['id' => 'inventory', 'label' => 'Inventory', 'icon' => 'inventory_2', 'url' => 'inventory.php'],
+    ['id' => 'uploads', 'label' => 'Upload Documents', 'icon' => 'cloud_upload', 'url' => 'uploads.php'],
     ['id' => 'register-patient', 'label' => 'Register Patient', 'icon' => 'person_add', 'url' => 'register_patient.php'],
     ['id' => 'admin', 'label' => 'Administrator', 'icon' => 'admin_panel_settings', 'url' => 'admin.php'],
 ];
