@@ -806,6 +806,19 @@ $usersList = $usersStmt->fetchAll();
                     <label class="block font-bold text-slate-700 mb-1">Email</label>
                     <input type="email" name="email" placeholder="lautoka@clinicflow.com.fj" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-medium">
                 </div>
+
+                <div class="md:col-span-2">
+                    <label class="block font-bold text-slate-700 mb-1">Drive Storage Allocation Plan</label>
+                    <select name="storage_limit_mb" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-bold text-primary">
+                        <option value="250">250 MB (Starter Tier)</option>
+                        <option value="500" selected>500 MB (Standard Tier)</option>
+                        <option value="1024">1 GB (1,024 MB - Professional)</option>
+                        <option value="2048">2 GB (2,048 MB - Professional Plus)</option>
+                        <option value="5120">5 GB (5,120 MB - Enterprise)</option>
+                        <option value="10240">10 GB (10,240 MB - Enterprise Max)</option>
+                        <option value="51200">50 GB (51,200 MB - Unlimited Scale)</option>
+                    </select>
+                </div>
             </div>
 
             <div class="flex items-center justify-between pt-3 border-t border-slate-200">

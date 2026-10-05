@@ -27,6 +27,70 @@ class FileUploadService
     }
 
     /**
+     * Get tenant drive storage allocation usage and limit
+     */
+    public function getStorageUsage(?string $tenantId = null): array
+    {
+        $tenantId = $tenantId ?? $this->getTenantId();
+
+        // Fetch tenant's storage_limit_mb
+        $limitMb = 500;
+        try {
+            $stmt = $this->db->prepare("SELECT storage_limit_mb FROM tenants WHERE id = ? LIMIT 1");
+            $stmt->execute([$tenantId]);
+            $val = $stmt->fetchColumn();
+            if ($val !== false && $val !== null && (int)$val > 0) {
+                $limitMb = (int)$val;
+            }
+        } catch (\Throwable $e) {
+            // fallback
+        }
+
+        $limitBytes = $limitMb * 1024 * 1024;
+
+        // Sum server storage usage
+        $usedBytes = 0;
+        try {
+            $stmt = $this->db->prepare("SELECT COALESCE(SUM(file_size), 0) FROM uploaded_files WHERE tenant_id = ? AND storage_provider = 'server'");
+            $stmt->execute([$tenantId]);
+            $usedBytes = (int)$stmt->fetchColumn();
+        } catch (\Throwable $e) {
+            // fallback
+        }
+
+        $usedMb = round($usedBytes / (1024 * 1024), 2);
+        $remainingBytes = max(0, $limitBytes - $usedBytes);
+        $percentage = $limitBytes > 0 ? min(100, round(($usedBytes / $limitBytes) * 100, 1)) : 0;
+
+        return [
+            'used_bytes' => $usedBytes,
+            'limit_bytes' => $limitBytes,
+            'used_mb' => $usedMb,
+            'limit_mb' => $limitMb,
+            'remaining_bytes' => $remainingBytes,
+            'remaining_mb' => round($remainingBytes / (1024 * 1024), 2),
+            'percentage' => $percentage,
+            'formatted_used' => $this->formatBytes($usedBytes),
+            'formatted_limit' => $this->formatBytes($limitBytes),
+            'formatted_remaining' => $this->formatBytes($remainingBytes),
+        ];
+    }
+
+    /**
+     * Format bytes into human readable format
+     */
+    public function formatBytes(int $bytes, int $precision = 1): string
+    {
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        $bytes = max($bytes, 0);
+        $pow = (int)floor(($bytes ? log($bytes) : 0) / log(1024));
+        $pow = min($pow, count($units) - 1);
+        $bytes /= pow(1024, $pow);
+
+        return round($bytes, $precision) . ' ' . $units[$pow];
+    }
+
+    /**
      * Get cloud storage settings from clinic_settings
      */
     public function getCloudSettings(): array
@@ -112,9 +176,15 @@ class FileUploadService
         }
 
         $fileSize = (int)$fileArray['size'];
-        $maxSize = 25 * 1024 * 1024; // 25MB
-        if ($fileSize > $maxSize) {
-            throw new RuntimeException("File size exceeds 25MB limit.");
+        $maxSingleSize = 25 * 1024 * 1024; // 25MB
+        if ($fileSize > $maxSingleSize) {
+            throw new RuntimeException("File size exceeds 25MB single file upload limit.");
+        }
+
+        // Storage limit quota check for tenant
+        $usage = $this->getStorageUsage($tenantId);
+        if (($usage['used_bytes'] + $fileSize) > $usage['limit_bytes']) {
+            throw new RuntimeException("Tenant drive storage quota exceeded. Allocated: {$usage['formatted_limit']}, Current Usage: {$usage['formatted_used']}. Please upgrade tenant drive plan.");
         }
 
         $mimeType = $fileArray['type'] ?? (function_exists('mime_content_type') ? @mime_content_type($fileArray['tmp_name']) : null) ?: 'application/octet-stream';

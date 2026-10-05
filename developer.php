@@ -204,7 +204,8 @@ $labOrderService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\
                                 <div><span class="text-slate-400">Code:</span> <?= htmlspecialchars($tnt['code']) ?></div>
                                 <div><span class="text-slate-400">Plan:</span> <span class="uppercase font-bold text-primary"><?= htmlspecialchars($tnt['plan']) ?></span></div>
                                 <div><span class="text-slate-400">Status:</span> <?= htmlspecialchars($tnt['status']) ?></div>
-                                <div><span class="text-slate-400">Tenant ID:</span> <?= htmlspecialchars($tnt['id']) ?></div>
+                                <div><span class="text-slate-400">Drive Cap:</span> <span class="font-bold text-slate-800"><?= ((int)($tnt['storage_limit_mb'] ?? 500) >= 1024) ? round(($tnt['storage_limit_mb'] ?? 500) / 1024, 1) . ' GB' : ($tnt['storage_limit_mb'] ?? 500) . ' MB' ?></span></div>
+                                <div class="col-span-2"><span class="text-slate-400">Tenant ID:</span> <?= htmlspecialchars($tnt['id']) ?></div>
                             </div>
 
                             <p class="text-[11px] text-slate-600 flex items-center gap-1">

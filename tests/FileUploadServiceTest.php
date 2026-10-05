@@ -3,6 +3,7 @@
 namespace Tests;
 
 use ClinicFlow\Services\FileUploadService;
+use ClinicFlow\Services\TenantService;
 use ClinicFlow\Services\MigrationRunner;
 use ClinicFlow\Shared\TenantContext;
 use PHPUnit\Framework\TestCase;
@@ -141,5 +142,68 @@ class FileUploadServiceTest extends TestCase
         $deleted = $this->service->deleteFile($gdFile['id']);
         $this->assertTrue($deleted);
         $this->assertCount(0, $this->service->listFiles());
+    }
+
+    public function testStorageUsageAndTenantQuotaEnforcement(): void
+    {
+        $tenantService = new TenantService($this->pdo);
+
+        // Save a tenant with 1MB storage allocation limit
+        $tenantService->saveTenant([
+            'id' => 'test-tenant-1',
+            'name' => 'Quota Test Clinic',
+            'code' => 'QTC-01',
+            'plan' => 'standard',
+            'storage_limit_mb' => 1
+        ]);
+
+        $usage = $this->service->getStorageUsage('test-tenant-1');
+        $this->assertEquals(1, $usage['limit_mb']);
+        $this->assertEquals(0, $usage['used_bytes']);
+
+        // 1. Upload file within limit (100 KB)
+        $smallFile = sys_get_temp_dir() . '/small_file.txt';
+        file_put_contents($smallFile, str_repeat('A', 100 * 1024));
+
+        $fileArray = [
+            'name' => 'small_file.txt',
+            'type' => 'text/plain',
+            'tmp_name' => $smallFile,
+            'error' => UPLOAD_ERR_OK,
+            'size' => filesize($smallFile),
+        ];
+
+        $uploaded = $this->service->uploadToServer($fileArray);
+        $this->assertNotNull($uploaded);
+
+        $usageAfter = $this->service->getStorageUsage('test-tenant-1');
+        $this->assertEquals(100 * 1024, $usageAfter['used_bytes']);
+
+        if (file_exists($smallFile)) {
+            unlink($smallFile);
+        }
+
+        // 2. Attempt upload exceeding 1MB limit (1.5 MB)
+        $largeFile = sys_get_temp_dir() . '/large_file.zip';
+        file_put_contents($largeFile, str_repeat('B', (int)(1.5 * 1024 * 1024)));
+
+        $largeFileArray = [
+            'name' => 'large_file.zip',
+            'type' => 'application/zip',
+            'tmp_name' => $largeFile,
+            'error' => UPLOAD_ERR_OK,
+            'size' => filesize($largeFile),
+        ];
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Tenant drive storage quota exceeded');
+
+        try {
+            $this->service->uploadToServer($largeFileArray);
+        } finally {
+            if (file_exists($largeFile)) {
+                unlink($largeFile);
+            }
+        }
     }
 }
