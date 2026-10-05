@@ -47,9 +47,13 @@ $usersList = $usersStmt->fetchAll();
 
     <!-- Navigation Tabs -->
     <div class="flex items-center gap-2 bg-surface-container-low p-1.5 rounded-2xl border border-outline-variant/30 text-xs font-bold flex-wrap">
-        <button type="button" onclick="switchAdminTab('users')" id="tab-btn-users" class="px-4 py-2 rounded-xl transition flex items-center gap-1.5 <?= ($activeTab === 'users' || $activeTab === 'tenants') ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high' ?>">
+        <button type="button" onclick="switchAdminTab('users')" id="tab-btn-users" class="px-4 py-2 rounded-xl transition flex items-center gap-1.5 <?= ($activeTab === 'users') ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high' ?>">
             <span class="material-symbols-outlined text-base">group</span>
             <span>User Management</span>
+        </button>
+        <button type="button" onclick="switchAdminTab('tenants')" id="tab-btn-tenants" class="px-4 py-2 rounded-xl transition flex items-center gap-1.5 <?= $activeTab === 'tenants' ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high' ?>">
+            <span class="material-symbols-outlined text-base">apartment</span>
+            <span>Multi-Tenancy Clinics</span>
         </button>
         <button type="button" onclick="switchAdminTab('clinic')" id="tab-btn-clinic" class="px-4 py-2 rounded-xl transition flex items-center gap-1.5 <?= $activeTab === 'clinic' ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high' ?>">
             <span class="material-symbols-outlined text-base">domain</span>
@@ -59,10 +63,20 @@ $usersList = $usersStmt->fetchAll();
             <span class="material-symbols-outlined text-base">mail</span>
             <span>Email Setup</span>
         </button>
+        <button type="button" onclick="switchAdminTab('vms')" id="tab-btn-vms" class="px-4 py-2 rounded-xl transition flex items-center gap-1.5 <?= $activeTab === 'vms' ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high' ?>">
+            <span class="material-symbols-outlined text-base">point_of_sale</span>
+            <span>VMS Fiscal Settings</span>
+        </button>
         <button type="button" onclick="switchAdminTab('inventory')" id="tab-btn-inventory" class="px-4 py-2 rounded-xl transition flex items-center gap-1.5 <?= $activeTab === 'inventory' ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high' ?>">
             <span class="material-symbols-outlined text-base">inventory_2</span>
             <span>Inventory Settings</span>
         </button>
+        <?php if ($isDeveloper): ?>
+        <button type="button" onclick="switchAdminTab('developer')" id="tab-btn-developer" class="px-4 py-2 rounded-xl transition flex items-center gap-1.5 <?= $activeTab === 'developer' ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high' ?>">
+            <span class="material-symbols-outlined text-base">code</span>
+            <span>Developer Updates</span>
+        </button>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -1018,36 +1032,22 @@ function closeTenantModal() {
 }
 
 function switchAdminTab(tab) {
-    document.getElementById('admin-tab-users').classList.add('hidden');
-    document.getElementById('admin-tab-clinic').classList.add('hidden');
-    if (document.getElementById('admin-tab-email')) document.getElementById('admin-tab-email').classList.add('hidden');
-    if (document.getElementById('admin-tab-inventory')) document.getElementById('admin-tab-inventory').classList.add('hidden');
+    const panels = ['users', 'tenants', 'clinic', 'email', 'vms', 'inventory', 'developer'];
+    panels.forEach(p => {
+        const el = document.getElementById('admin-tab-' + p);
+        if (el) el.classList.add('hidden');
+        const btn = document.getElementById('tab-btn-' + p);
+        if (btn) btn.className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
+    });
 
-    document.getElementById('tab-btn-users').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
-    document.getElementById('tab-btn-clinic').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
-    if (document.getElementById('tab-btn-email')) document.getElementById('tab-btn-email').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
-    if (document.getElementById('tab-btn-inventory')) document.getElementById('tab-btn-inventory').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
+    const activeEl = document.getElementById('admin-tab-' + tab);
+    if (activeEl) activeEl.classList.remove('hidden');
+    const activeBtn = document.getElementById('tab-btn-' + tab);
+    if (activeBtn) activeBtn.className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 bg-primary text-white shadow-xs';
 
-    if (tab === 'users') {
-        document.getElementById('admin-tab-users').classList.remove('hidden');
-        document.getElementById('tab-btn-users').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 bg-primary text-white shadow-xs';
-    } else if (tab === 'clinic') {
-        document.getElementById('admin-tab-clinic').classList.remove('hidden');
-        document.getElementById('tab-btn-clinic').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 bg-primary text-white shadow-xs';
-    } else if (tab === 'email') {
-        if (document.getElementById('admin-tab-email')) document.getElementById('admin-tab-email').classList.remove('hidden');
-        if (document.getElementById('tab-btn-email')) document.getElementById('tab-btn-email').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 bg-primary text-white shadow-xs';
-    } else if (tab === 'vms') {
-        if (document.getElementById('admin-tab-vms')) document.getElementById('admin-tab-vms').classList.remove('hidden');
-        if (document.getElementById('tab-btn-vms')) document.getElementById('tab-btn-vms').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 bg-primary text-white shadow-xs';
-    } else if (tab === 'inventory') {
-        if (document.getElementById('admin-tab-inventory')) document.getElementById('admin-tab-inventory').classList.remove('hidden');
-        if (document.getElementById('tab-btn-inventory')) document.getElementById('tab-btn-inventory').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 bg-primary text-white shadow-xs';
-    } else if (tab === 'developer') {
-        if (document.getElementById('admin-tab-developer')) document.getElementById('admin-tab-developer').classList.remove('hidden');
-        if (document.getElementById('tab-btn-developer')) document.getElementById('tab-btn-developer').className = 'px-4 py-2 rounded-xl transition flex items-center gap-1.5 bg-primary text-white shadow-xs';
-        refreshGitStatus();
-        fetchDeveloperErrorLogs();
+    if (tab === 'developer') {
+        if (typeof refreshGitStatus === 'function') refreshGitStatus();
+        if (typeof fetchDeveloperErrorLogs === 'function') fetchDeveloperErrorLogs();
     }
 }
 
