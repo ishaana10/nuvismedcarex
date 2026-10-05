@@ -194,8 +194,50 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
             }
         }
 
+        // Auto-migrate tenants table columns
+        try {
+            $tntCols = [];
+            $stmt = $pdo->query("DESCRIBE tenants");
+            while ($row = $stmt->fetch()) {
+                $tntCols[] = strtolower($row['Field']);
+            }
+            if (!in_array('storage_limit_mb', $tntCols)) {
+                $pdo->exec("ALTER TABLE tenants ADD COLUMN storage_limit_mb INT NOT NULL DEFAULT 500");
+            }
+        } catch (Throwable $te) {}
+
+        // Auto-migrate user_tenants table columns
+        try {
+            $utCols = [];
+            $stmt = $pdo->query("DESCRIBE user_tenants");
+            while ($row = $stmt->fetch()) {
+                $utCols[] = strtolower($row['Field']);
+            }
+            if (!in_array('tenant_id', $utCols)) {
+                $pdo->exec("ALTER TABLE user_tenants ADD COLUMN tenant_id VARCHAR(50) NOT NULL DEFAULT 'default-clinic'");
+            }
+            if (!in_array('user_id', $utCols)) {
+                $pdo->exec("ALTER TABLE user_tenants ADD COLUMN user_id VARCHAR(50) NOT NULL DEFAULT 'doc-1'");
+            }
+            if (!in_array('is_default', $utCols)) {
+                $pdo->exec("ALTER TABLE user_tenants ADD COLUMN is_default TINYINT(1) NOT NULL DEFAULT 0");
+            }
+        } catch (Throwable $te) {}
+
+        // Auto-migrate tenant_settings table columns
+        try {
+            $tsCols = [];
+            $stmt = $pdo->query("DESCRIBE tenant_settings");
+            while ($row = $stmt->fetch()) {
+                $tsCols[] = strtolower($row['Field']);
+            }
+            if (!in_array('tenant_id', $tsCols)) {
+                $pdo->exec("ALTER TABLE tenant_settings ADD COLUMN tenant_id VARCHAR(50) NOT NULL DEFAULT 'default-clinic'");
+            }
+        } catch (Throwable $te) {}
+
         // Ensure tenant_id column exists on all business tables in MySQL
-        $tenantTables = ['patients', 'appointments', 'queue', 'vitals', 'soap_notes', 'prescriptions', 'past_visits', 'activities', 'invoices', 'invoice_items', 'inventory', 'inventory_logs', 'medical_certificates', 'audit_logs', 'vms_logs'];
+        $tenantTables = ['doctors', 'patients', 'appointments', 'queue', 'vitals', 'soap_notes', 'prescriptions', 'past_visits', 'activities', 'invoices', 'invoice_items', 'inventory', 'inventory_logs', 'medical_certificates', 'audit_logs', 'vms_logs', 'user_tenants', 'tenant_settings', 'uploaded_files'];
         foreach ($tenantTables as $tTable) {
             try {
                 $tCols = [];
