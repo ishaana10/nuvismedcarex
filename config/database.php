@@ -54,25 +54,8 @@ function getDB(): PDO {
         seedDefaultUsersIfEmpty($pdo);
         return $pdo;
     } catch (PDOException $e) {
-        $env = getenv('APP_ENV') ?: ($cfg['app_env'] ?? 'development');
-        if ($cfg['db_driver'] === 'mysql' && $env === 'production') {
-            error_log("Database Connection Failure (Production MySQL): " . $e->getMessage());
-            throw new RuntimeException("Database connection error: Unable to connect to MySQL database in production mode.", 500, $e);
-        }
-
-        // Development SQLite fallback
-        $dbDir = __DIR__ . '/../database';
-        if (!is_dir($dbDir)) {
-            mkdir($dbDir, 0755, true);
-        }
-        $sqliteFile = $dbDir . '/clinicflow.sqlite';
-        $pdo = new PDO("sqlite:" . $sqliteFile, null, null, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        ]);
-        runDatabaseMigrations($pdo);
-        seedDefaultUsersIfEmpty($pdo);
-        return $pdo;
+        error_log("Database Connection Failure (MySQL): " . $e->getMessage());
+        throw new RuntimeException("Database connection error: Unable to connect to MySQL database. Please check MySQL service status and credentials in config/config.php.", 500, $e);
     }
 }
 
