@@ -45,7 +45,12 @@ class PrescriptionVerificationService
     {
         $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
         $host = $_SERVER['HTTP_HOST'] ?? 'localhost:8000';
-        return "{$protocol}://{$host}/verify_prescription.php?token=" . urlencode($token);
+
+        $scriptName = $_SERVER['SCRIPT_NAME'] ?? $_SERVER['PHP_SELF'] ?? '/index.php';
+        $dir = dirname($scriptName);
+        $basePath = ($dir === '/' || $dir === '\\') ? '' : rtrim(str_replace('\\', '/', $dir), '/');
+
+        return "{$protocol}://{$host}{$basePath}/verify_prescription.php?token=" . urlencode($token);
     }
 
     /**
