@@ -464,3 +464,25 @@ CREATE TABLE IF NOT EXISTS prescription_verifications (
 
 CREATE INDEX idx_rx_verifications_token ON prescription_verifications(verification_token);
 CREATE INDEX idx_rx_verifications_pv ON prescription_verifications(patient_id, visit_id);
+
+CREATE TABLE IF NOT EXISTS uploaded_files (
+    id VARCHAR(50) PRIMARY KEY,
+    tenant_id VARCHAR(50) NOT NULL,
+    patient_id VARCHAR(50) NULL,
+    file_name VARCHAR(255) NOT NULL,
+    original_name VARCHAR(255) NOT NULL,
+    file_path VARCHAR(500) NULL,
+    storage_provider VARCHAR(50) NOT NULL DEFAULT 'server',
+    file_size BIGINT UNSIGNED DEFAULT 0,
+    file_type VARCHAR(100) NULL,
+    external_id VARCHAR(255) NULL,
+    external_url TEXT NULL,
+    uploaded_by VARCHAR(100) NULL,
+    category VARCHAR(100) DEFAULT 'General',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_uploaded_files_tenant ON uploaded_files(tenant_id);
+CREATE INDEX idx_uploaded_files_patient ON uploaded_files(patient_id);
+CREATE INDEX idx_uploaded_files_provider ON uploaded_files(storage_provider);
