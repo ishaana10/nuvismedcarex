@@ -381,6 +381,11 @@ $historicalRxStmt = $pdo->prepare("SELECT * FROM prescriptions WHERE patient_id 
 $historicalRxStmt->execute([$patientId, $visitId]);
 $historicalPrescriptions = $historicalRxStmt->fetchAll();
 
+// Fetch active inventory items for VMS Invoice Modal in Clinical Encounter
+$inventoryStmt = $pdo->prepare("SELECT id, name, sku, current_stock, unit_price, vms_tax_code FROM inventory WHERE tenant_id = ? AND is_active = 1 ORDER BY name ASC");
+$inventoryStmt->execute([$currentTenantId]);
+$inventoryList = $inventoryStmt->fetchAll() ?: [];
+
 $pageTitle = "Clinical Encounter - " . htmlspecialchars($patient['first_name'] . ' ' . $patient['last_name']);
 $activePage = "clinical-visit";
 include __DIR__ . '/includes/header.php';
@@ -852,68 +857,156 @@ function toggleFinalizeInvoiceFields() {
     </div>
 </div>
 
-<!-- Modal: Create Invoice for Current Encounter -->
-<div id="createInvoiceModal" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-surface-container-lowest rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-outline-variant/30">
-        <div class="flex items-center justify-between mb-4 pb-3 border-b border-outline-variant/20">
-            <h3 class="text-base font-bold text-on-surface flex items-center gap-2">
-                <span class="material-symbols-outlined text-blue-600">receipt_long</span>
-                <span>Create Invoice for Current Encounter</span>
-            </h3>
-            <button type="button" onclick="document.getElementById('createInvoiceModal').classList.add('hidden')" class="text-outline hover:text-on-surface">
-                <span class="material-symbols-outlined">close</span>
-            </button>
+<!-- Modal: Create VMS Fiscal Invoice (POS Mode) for Current Encounter -->
+<div id="createInvoiceModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 w-full max-w-3xl p-6 shadow-xl max-h-[90vh] overflow-y-auto text-xs">
+        <div class="flex items-center justify-between pb-3 border-b border-outline-variant/30 mb-4">
+            <h2 class="text-base font-bold text-on-surface flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">receipt</span>
+                <span>New VMS Fiscal Invoice (POS Mode)</span>
+            </h2>
+            <button type="button" onclick="document.getElementById('createInvoiceModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times;</button>
         </div>
 
-        <form action="actions/encounter_save.php" method="POST" class="space-y-4 text-xs">
-            <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
-            <input type="hidden" name="action" value="create_invoice">
+        <form action="actions/vms_create_invoice.php" method="POST" class="space-y-4">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getCsrfToken()) ?>">
             <input type="hidden" name="patient_id" value="<?= htmlspecialchars($patient['id']) ?>">
-            <input type="hidden" name="visit_id" value="<?= htmlspecialchars($visitId) ?>">
+            <input type="hidden" name="redirect_to" value="../clinical_visit.php?patient_id=<?= htmlspecialchars($patient['id']) ?>&visit_id=<?= htmlspecialchars($visitId) ?>">
 
-            <div>
-                <label class="block font-bold text-slate-700 mb-1">Patient Name & MRN</label>
-                <input type="text" readonly value="<?= htmlspecialchars($patient['first_name'] . ' ' . $patient['last_name'] . ' (' . $patient['mrn'] . ')') ?>" class="w-full bg-slate-100 px-3 py-2 rounded-xl border border-slate-300 font-bold text-slate-700">
-            </div>
-
-            <div>
-                <label class="block font-bold text-slate-700 mb-1">Service Description <span class="text-red-500">*</span></label>
-                <input type="text" name="service_description" value="Clinical Consultation & Examination" required class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-medium">
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="grid grid-cols-2 gap-3">
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Total Amount ($)</label>
-                    <input type="number" step="0.01" min="0" name="amount" id="inv_amount" value="150.00" oninput="calculateInvoiceOwed()" required class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-mono font-bold text-on-surface">
+                    <label class="block font-bold text-outline mb-1">Patient Name *</label>
+                    <input type="text" name="patient_name" value="<?= htmlspecialchars($patient['first_name'] . ' ' . $patient['last_name']) ?>" required readonly class="w-full px-3 py-2 border border-outline-variant/40 rounded-xl bg-slate-100 font-bold text-slate-700">
                 </div>
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Insurance ($)</label>
-                    <input type="number" step="0.01" min="0" name="insurance_covered" id="inv_insurance" value="100.00" oninput="calculateInvoiceOwed()" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-mono font-bold text-on-surface">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Patient Owed ($)</label>
-                    <input type="number" step="0.01" min="0" name="patient_owed" id="inv_patient_owed" value="50.00" readonly class="w-full bg-slate-100 px-3 py-2 rounded-xl border border-slate-300 font-mono font-bold text-blue-700">
+                    <label class="block font-bold text-outline mb-1">Patient MRN *</label>
+                    <input type="text" name="patient_mrn" value="<?= htmlspecialchars($patient['mrn']) ?>" required readonly class="w-full px-3 py-2 border border-outline-variant/40 rounded-xl bg-slate-100 font-mono font-bold text-slate-700">
                 </div>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Service Date</label>
-                    <input type="date" name="service_date" value="<?= date('Y-m-d') ?>" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-medium" required>
+                    <label class="block font-bold text-outline mb-1">Invoice Type</label>
+                    <select name="invoice_type" class="w-full px-3 py-2 border border-outline-variant/40 rounded-xl font-bold text-primary bg-white">
+                        <option value="Normal">Normal Invoice</option>
+                        <option value="Advance">Advance Invoice</option>
+                        <option value="Proforma">Proforma Invoice</option>
+                        <option value="Copy">Copy Invoice</option>
+                        <option value="Training">Training Invoice</option>
+                    </select>
                 </div>
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Due Date</label>
-                    <input type="date" name="due_date" value="<?= date('Y-m-d', strtotime('+30 days')) ?>" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-medium" required>
+                    <label class="block font-bold text-outline mb-1">Transaction Type</label>
+                    <select name="transaction_type" class="w-full px-3 py-2 border border-outline-variant/40 rounded-xl font-bold bg-white">
+                        <option value="Sale">Sale (+)</option>
+                        <option value="Refund">Refund (-)</option>
+                    </select>
                 </div>
             </div>
 
-            <div class="flex items-center justify-end gap-3 pt-4 border-t border-outline-variant/20">
-                <button type="button" onclick="document.getElementById('createInvoiceModal').classList.add('hidden')" class="px-4 py-2 bg-surface-container-high text-on-surface font-semibold rounded-xl hover:bg-surface-variant transition">
+            <div class="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <div>
+                    <label class="block font-bold text-outline mb-1">Buyer TIN (Optional for B2B / Cancel)</label>
+                    <input type="text" name="buyer_tin" placeholder="e.g. 502579006" class="w-full px-3 py-2 border border-outline-variant/40 rounded-xl font-mono bg-white">
+                </div>
+                <div>
+                    <label class="block font-bold text-outline mb-1">Buyer Cost Center (Optional)</label>
+                    <input type="text" name="buyer_cost_center" placeholder="e.g. COST-01" class="w-full px-3 py-2 border border-outline-variant/40 rounded-xl font-mono bg-white">
+                </div>
+            </div>
+
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <label class="font-bold text-on-surface">Invoice Line Items</label>
+                    <button type="button" onclick="addInvoiceRowCv()" class="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-[11px] font-bold hover:bg-emerald-700 transition flex items-center gap-1">
+                        <span class="material-symbols-outlined text-xs">add</span> Add Custom Row
+                    </button>
+                </div>
+
+                <div class="border border-outline-variant/30 rounded-xl overflow-hidden">
+                    <table class="w-full text-left" id="invoiceItemsTableCv">
+                        <thead class="bg-surface-container-high text-[10px] font-bold uppercase text-outline">
+                            <tr>
+                                <th class="py-2 px-3">Select Inventory Item or Custom Service</th>
+                                <th class="py-2 px-2">SKU / GTIN</th>
+                                <th class="py-2 px-2 w-16">Qty</th>
+                                <th class="py-2 px-2 w-24">Price ($)</th>
+                                <th class="py-2 px-2 w-20">Tax Label</th>
+                                <th class="py-2 px-2 w-10"></th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-outline-variant/20">
+                            <tr>
+                                <td class="py-2 px-3 space-y-1">
+                                    <select onchange="onInventoryItemSelectCv(this)" class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-semibold text-xs text-primary bg-white">
+                                        <option value="">-- Choose from Inventory Stock (Optional) --</option>
+                                        <?php foreach ($inventoryList as $invItem): ?>
+                                            <option value="<?= htmlspecialchars($invItem['id']) ?>"
+                                                    data-name="<?= htmlspecialchars($invItem['name']) ?>"
+                                                    data-sku="<?= htmlspecialchars($invItem['sku']) ?>"
+                                                    data-price="<?= htmlspecialchars($invItem['unit_price']) ?>"
+                                                    data-tax="<?= htmlspecialchars($invItem['vms_tax_code'] ?: 'A') ?>"
+                                                    data-stock="<?= (int)$invItem['current_stock'] ?>">
+                                                <?= htmlspecialchars($invItem['name']) ?> (Stock: <?= (int)$invItem['current_stock'] ?> | $<?= number_format($invItem['unit_price'], 2) ?>)
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <input type="hidden" name="inventory_id[]" value="">
+                                    <input type="text" name="item_name[]" value="Medical Consultation & Diagnosis" required placeholder="Item / Service Name" class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg text-xs font-medium">
+                                </td>
+                                <td class="py-2 px-2">
+                                    <input type="text" name="gtin[]" value="10009812" placeholder="SKU/GTIN" class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-mono text-[11px]">
+                                </td>
+                                <td class="py-2 px-2">
+                                    <input type="number" step="0.5" name="quantity[]" value="1" required class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-mono">
+                                </td>
+                                <td class="py-2 px-2">
+                                    <input type="number" step="0.01" name="unit_price[]" value="150.00" required class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-mono">
+                                </td>
+                                <td class="py-2 px-2">
+                                    <select name="tax_label[]" class="w-full px-1 py-1 border border-outline-variant/40 rounded-lg font-bold bg-white">
+                                        <option value="A" selected>A (15% VAT)</option>
+                                        <option value="E">E (Exempt 0%)</option>
+                                        <option value="F">F (Zero 0%)</option>
+                                        <option value="P">P (0.25%)</option>
+                                    </select>
+                                </td>
+                                <td class="py-2 px-2 text-center">
+                                    <button type="button" onclick="this.closest('tr').remove()" class="text-red-500 font-bold">&times;</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-bold text-on-surface mb-1">Payment Method</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <select name="payment_type[]" class="w-full px-3 py-2 border border-outline-variant/40 rounded-xl font-bold bg-white">
+                            <option value="Cash">Cash</option>
+                            <option value="Card">Card</option>
+                            <option value="Check">Check</option>
+                            <option value="Wire Transfer">Wire Transfer</option>
+                            <option value="Voucher">Voucher</option>
+                            <option value="Mobile Money">Mobile Money</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <input type="number" step="0.01" name="payment_amount[]" placeholder="Amount Paid ($)" class="w-full px-3 py-2 border border-outline-variant/40 rounded-xl font-mono">
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-3 border-t border-outline-variant/30 flex items-center justify-end gap-2">
+                <button type="button" onclick="document.getElementById('createInvoiceModal').classList.add('hidden')" class="px-4 py-2 bg-surface-container-high text-outline rounded-xl font-bold hover:bg-surface-container-highest transition">
                     Cancel
                 </button>
-                <button type="submit" class="px-5 py-2 bg-blue-700 text-white font-bold rounded-xl hover:bg-blue-800 transition shadow-xs flex items-center gap-2">
-                    <span class="material-symbols-outlined text-base">receipt_long</span>
-                    <span>Generate Invoice</span>
+                <button type="submit" class="px-5 py-2 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-base">task_alt</span>
+                    Create & Fiscalize Invoice
                 </button>
             </div>
         </form>
@@ -921,11 +1014,77 @@ function toggleFinalizeInvoiceFields() {
 </div>
 
 <script>
-function calculateInvoiceOwed() {
-    const amount = parseFloat(document.getElementById('inv_amount').value) || 0;
-    const ins = parseFloat(document.getElementById('inv_insurance').value) || 0;
-    const owed = Math.max(0, amount - ins);
-    document.getElementById('inv_patient_owed').value = owed.toFixed(2);
+const cvInventoryList = <?= json_encode($inventoryList, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+
+function onInventoryItemSelectCv(select) {
+    const tr = select.closest('tr');
+    const opt = select.options[select.selectedIndex];
+
+    const invIdInput = tr.querySelector('input[name="inventory_id[]"]');
+    const itemNameInput = tr.querySelector('input[name="item_name[]"]');
+    const gtinInput = tr.querySelector('input[name="gtin[]"]');
+    const unitPriceInput = tr.querySelector('input[name="unit_price[]"]');
+    const taxSelect = tr.querySelector('select[name="tax_label[]"]');
+
+    if (opt.value) {
+        invIdInput.value = opt.value;
+        itemNameInput.value = opt.getAttribute('data-name') || '';
+        gtinInput.value = opt.getAttribute('data-sku') || '';
+        unitPriceInput.value = parseFloat(opt.getAttribute('data-price') || 0).toFixed(2);
+
+        const taxCode = opt.getAttribute('data-tax') || 'A';
+        if (taxSelect) {
+            taxSelect.value = taxCode;
+        }
+    } else {
+        invIdInput.value = '';
+    }
+}
+
+function addInvoiceRowCv() {
+    const tbody = document.querySelector('#invoiceItemsTableCv tbody');
+    const tr = document.createElement('tr');
+
+    let invOptions = '<option value="">-- Choose from Inventory Stock (Optional) --</option>';
+    if (Array.isArray(cvInventoryList)) {
+        cvInventoryList.forEach(item => {
+            const stock = parseInt(item.current_stock) || 0;
+            const price = parseFloat(item.unit_price) || 0;
+            const tax = item.vms_tax_code || 'A';
+            invOptions += `<option value="${item.id}" data-name="${item.name}" data-sku="${item.sku}" data-price="${price}" data-tax="${tax}" data-stock="${stock}">${item.name} (Stock: ${stock} | $${price.toFixed(2)})</option>`;
+        });
+    }
+
+    tr.innerHTML = `
+        <td class="py-2 px-3 space-y-1">
+            <select onchange="onInventoryItemSelectCv(this)" class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-semibold text-xs text-primary bg-white">
+                ${invOptions}
+            </select>
+            <input type="hidden" name="inventory_id[]" value="">
+            <input type="text" name="item_name[]" placeholder="Item / Service Name" required class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg text-xs font-medium">
+        </td>
+        <td class="py-2 px-2">
+            <input type="text" name="gtin[]" placeholder="SKU/GTIN" class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-mono text-[11px]">
+        </td>
+        <td class="py-2 px-2">
+            <input type="number" step="0.5" name="quantity[]" value="1" required class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-mono">
+        </td>
+        <td class="py-2 px-2">
+            <input type="number" step="0.01" name="unit_price[]" value="0.00" required class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-mono">
+        </td>
+        <td class="py-2 px-2">
+            <select name="tax_label[]" class="w-full px-1 py-1 border border-outline-variant/40 rounded-lg font-bold bg-white">
+                <option value="A">A (15% VAT)</option>
+                <option value="E">E (Exempt 0%)</option>
+                <option value="F">F (Zero 0%)</option>
+                <option value="P">P (0.25%)</option>
+            </select>
+        </td>
+        <td class="py-2 px-2 text-center">
+            <button type="button" onclick="this.closest('tr').remove()" class="text-red-500 font-bold">&times;</button>
+        </td>
+    `;
+    tbody.appendChild(tr);
 }
 
 function openAddRxModal() {
