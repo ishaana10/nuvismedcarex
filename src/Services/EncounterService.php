@@ -134,4 +134,70 @@ class EncounterService {
             'soap' => $soapData
         ];
     }
+
+    public function saveEncounterData(string $patientId, array $vitalsData, array $soapData, ?string $visitId = null, ?string $tenantId = null): array {
+        return $this->saveEncounter($patientId, $vitalsData, $soapData, [], false, $visitId, $tenantId);
+    }
+
+    public function finalizeEncounter(string $patientId, ?string $visitId = null, array $finalizeOptions = [], ?string $tenantId = null): array {
+        // Fetch current prescriptions for visit
+        $tenantId = $tenantId ?? TenantContext::getTenantId();
+        $rxStmt = $this->db->prepare("SELECT medication_name, dosage, frequency, duration, instructions FROM prescriptions WHERE patient_id = ? AND tenant_id = ?");
+        $rxStmt->execute([$patientId, $tenantId]);
+        $prescriptions = $rxStmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        // Fetch vitals
+        $vStmt = $this->db->prepare("SELECT * FROM vitals WHERE patient_id = ? AND tenant_id = ? LIMIT 1");
+        $vStmt->execute([$patientId, $tenantId]);
+        $vitalsRow = $vStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+        // Fetch soap
+        $sStmt = $this->db->prepare("SELECT * FROM soap_notes WHERE patient_id = ? AND tenant_id = ? LIMIT 1");
+        $sStmt->execute([$patientId, $tenantId]);
+        $soapRow = $sStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+        $vitalsData = [
+            'blood_pressure' => $vitalsRow['blood_pressure'] ?? '120/80',
+            'heart_rate' => $vitalsRow['heart_rate'] ?? 72,
+            'temperature' => $vitalsRow['temperature'] ?? 98.6,
+            'oxygen_sat' => $vitalsRow['oxygen_sat'] ?? 99
+        ];
+
+        $subjective = !empty($soapRow['subjective']) ? Encryption::decrypt($soapRow['subjective']) : '';
+        $objective = !empty($soapRow['objective']) ? Encryption::decrypt($soapRow['objective']) : '';
+        $plan = !empty($soapRow['plan']) ? Encryption::decrypt($soapRow['plan']) : '';
+        $codes = json_decode($soapRow['assessment_codes'] ?? '[]', true) ?: [];
+        $icdCode = $codes[0]['code'] ?? 'J01.90';
+
+        $soapData = [
+            'subjective' => $subjective,
+            'objective' => $objective,
+            'icd_code' => $icdCode,
+            'plan' => $plan
+        ];
+
+        $res = $this->saveEncounter($patientId, $vitalsData, $soapData, $prescriptions, true, $visitId, $tenantId);
+
+        if (!empty($finalizeOptions['create_invoice'])) {
+            $billingService = new BillingService($this->db);
+            $pStmt = $this->db->prepare("SELECT * FROM patients WHERE id = ?");
+            $pStmt->execute([$patientId]);
+            $patient = $pStmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($patient) {
+                $billingService->createInvoice([
+                    'patient_id' => $patientId,
+                    'patient_name' => $patient['first_name'] . ' ' . $patient['last_name'],
+                    'patient_mrn' => $patient['mrn'],
+                    'service_date' => date('Y-m-d'),
+                    'due_date' => date('Y-m-d', strtotime('+30 days')),
+                    'amount' => $finalizeOptions['amount'] ?? 150.00,
+                    'insurance_covered' => $finalizeOptions['insurance_covered'] ?? 0.00,
+                    'services' => [$finalizeOptions['service_description'] ?? 'Clinical Consultation & Examination']
+                ]);
+            }
+        }
+
+        return $res;
+    }
 }
