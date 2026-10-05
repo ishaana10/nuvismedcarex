@@ -122,6 +122,17 @@ class EncounterService {
             // Remove patient from queue
             $qStmt = $this->db->prepare("DELETE FROM queue WHERE patient_id = ? AND tenant_id = ?");
             $qStmt->execute([$patientId, $tenantId]);
+
+            // Update appointment status to Completed if appointment_id is provided or matched
+            $appointmentId = $_REQUEST['appointment_id'] ?? null;
+            if ($appointmentId) {
+                $apptStmt = $this->db->prepare("UPDATE appointments SET status = 'Completed', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND tenant_id = ?");
+                $apptStmt->execute([$appointmentId, $tenantId]);
+            } else {
+                // Otherwise update any active or in-progress appointment for this patient today/recent
+                $apptStmt = $this->db->prepare("UPDATE appointments SET status = 'Completed', updated_at = CURRENT_TIMESTAMP WHERE patient_id = ? AND tenant_id = ? AND (status != 'Completed' OR status IS NULL)");
+                $apptStmt->execute([$patientId, $tenantId]);
+            }
         }
 
         $this->audit->log($finalize ? 'FINALIZE_ENCOUNTER' : 'SAVE_ENCOUNTER', "Patient $patientId encounter saved", null, null, null, $tenantId);
