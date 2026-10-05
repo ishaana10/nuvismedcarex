@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/includes/security.php';
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -60,6 +61,10 @@ $labOrderService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\
     <button type="button" onclick="switchDevTab('vms')" id="dev-tab-btn-vms" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">point_of_sale</span>
         <span>VMS Fiscal Settings</span>
+    </button>
+    <button type="button" onclick="switchDevTab('cloud')" id="dev-tab-btn-cloud" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+        <span class="material-symbols-outlined text-base">cloud</span>
+        <span>Cloud Storage & Drive</span>
     </button>
     <button type="button" onclick="switchDevTab('lab')" id="dev-tab-btn-lab" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">science</span>
@@ -204,7 +209,8 @@ $labOrderService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\
                                 <div><span class="text-slate-400">Code:</span> <?= htmlspecialchars($tnt['code']) ?></div>
                                 <div><span class="text-slate-400">Plan:</span> <span class="uppercase font-bold text-primary"><?= htmlspecialchars($tnt['plan']) ?></span></div>
                                 <div><span class="text-slate-400">Status:</span> <?= htmlspecialchars($tnt['status']) ?></div>
-                                <div><span class="text-slate-400">Tenant ID:</span> <?= htmlspecialchars($tnt['id']) ?></div>
+                                <div><span class="text-slate-400">Drive Cap:</span> <span class="font-bold text-slate-800"><?= ((int)($tnt['storage_limit_mb'] ?? 500) >= 1024) ? round(($tnt['storage_limit_mb'] ?? 500) / 1024, 1) . ' GB' : ($tnt['storage_limit_mb'] ?? 500) . ' MB' ?></span></div>
+                                <div class="col-span-2"><span class="text-slate-400">Tenant ID:</span> <?= htmlspecialchars($tnt['id']) ?></div>
                             </div>
 
                             <p class="text-[11px] text-slate-600 flex items-center gap-1">
@@ -584,6 +590,75 @@ $labOrderService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\
 
     </div> <!-- End dev-panel-rbac -->
 
+    <!-- Cloud Storage & Drive Integration Panel -->
+    <div id="dev-panel-cloud" class="hidden space-y-6">
+        <form action="actions/cloud_storage_settings.php" method="POST" class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-5">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>">
+            <div class="flex items-center justify-between border-b border-outline-variant/20 pb-3">
+                <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base">cloud</span>
+                    <span>Cloud Storage Integration & Drive API Credentials</span>
+                </h2>
+                <span class="text-xs text-outline font-medium">Configure Microsoft OneDrive and Google Drive OAuth credentials & options</span>
+            </div>
+
+            <!-- Microsoft OneDrive Configuration -->
+            <div class="p-4 rounded-xl bg-surface-container-low border border-outline-variant/30 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-bold text-on-surface text-xs flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-base text-blue-600">cloud_queue</span>
+                        <span>Microsoft OneDrive Integration</span>
+                    </h3>
+                    <label class="inline-flex items-center gap-1.5 cursor-pointer">
+                        <input type="checkbox" name="onedrive_enabled" value="1" <?= ($settings['onedrive_enabled'] ?? '0') === '1' ? 'checked' : '' ?> class="rounded text-primary focus:ring-primary">
+                        <span class="text-xs font-bold text-slate-700">Enable OneDrive</span>
+                    </label>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">OneDrive Client ID (Application ID)</label>
+                        <input type="text" name="onedrive_client_id" value="<?= htmlspecialchars($settings['onedrive_client_id'] ?? '') ?>" placeholder="e.g. 00000000-0000-0000-0000-000000000000" class="w-full bg-white px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">OneDrive Client Secret</label>
+                        <input type="password" name="onedrive_client_secret" value="<?= htmlspecialchars($settings['onedrive_client_secret'] ?? '') ?>" placeholder="••••••••••••••••" class="w-full bg-white px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Google Drive Configuration -->
+            <div class="p-4 rounded-xl bg-surface-container-low border border-outline-variant/30 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-bold text-on-surface text-xs flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-base text-emerald-600">add_to_drive</span>
+                        <span>Google Drive Integration</span>
+                    </h3>
+                    <label class="inline-flex items-center gap-1.5 cursor-pointer">
+                        <input type="checkbox" name="googledrive_enabled" value="1" <?= ($settings['googledrive_enabled'] ?? '0') === '1' ? 'checked' : '' ?> class="rounded text-primary focus:ring-primary">
+                        <span class="text-xs font-bold text-slate-700">Enable Google Drive</span>
+                    </label>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Google Drive Client ID</label>
+                        <input type="text" name="googledrive_client_id" value="<?= htmlspecialchars($settings['googledrive_client_id'] ?? '') ?>" placeholder="e.g. 1234567890-abc.apps.googleusercontent.com" class="w-full bg-white px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Google Drive API Key</label>
+                        <input type="password" name="googledrive_api_key" value="<?= htmlspecialchars($settings['googledrive_api_key'] ?? '') ?>" placeholder="••••••••••••••••" class="w-full bg-white px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-3 border-t border-outline-variant/20">
+                <button type="submit" class="px-6 py-2.5 bg-primary text-white text-xs font-semibold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base">save</span>
+                    <span>Save Cloud Storage Configuration</span>
+                </button>
+            </div>
+        </form>
+    </div> <!-- End dev-panel-cloud -->
+
     <!-- 3. Developer Error Logger Module -->
     <div id="dev-panel-logs" class="hidden space-y-6">
     <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-5">
@@ -619,6 +694,7 @@ function switchDevTab(tab) {
     if (document.getElementById('dev-panel-git')) document.getElementById('dev-panel-git').classList.add('hidden');
     if (document.getElementById('dev-panel-tenants')) document.getElementById('dev-panel-tenants').classList.add('hidden');
     if (document.getElementById('dev-panel-vms')) document.getElementById('dev-panel-vms').classList.add('hidden');
+    if (document.getElementById('dev-panel-cloud')) document.getElementById('dev-panel-cloud').classList.add('hidden');
     if (document.getElementById('dev-panel-lab')) document.getElementById('dev-panel-lab').classList.add('hidden');
     if (document.getElementById('dev-panel-pagination')) document.getElementById('dev-panel-pagination').classList.add('hidden');
     if (document.getElementById('dev-panel-rbac')) document.getElementById('dev-panel-rbac').classList.add('hidden');
@@ -627,6 +703,7 @@ function switchDevTab(tab) {
     if (document.getElementById('dev-tab-btn-git')) document.getElementById('dev-tab-btn-git').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
     if (document.getElementById('dev-tab-btn-tenants')) document.getElementById('dev-tab-btn-tenants').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
     if (document.getElementById('dev-tab-btn-vms')) document.getElementById('dev-tab-btn-vms').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
+    if (document.getElementById('dev-tab-btn-cloud')) document.getElementById('dev-tab-btn-cloud').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
     if (document.getElementById('dev-tab-btn-lab')) document.getElementById('dev-tab-btn-lab').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
     if (document.getElementById('dev-tab-btn-pagination')) document.getElementById('dev-tab-btn-pagination').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
     if (document.getElementById('dev-tab-btn-rbac')) document.getElementById('dev-tab-btn-rbac').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
@@ -641,6 +718,9 @@ function switchDevTab(tab) {
     } else if (tab === 'vms') {
         if (document.getElementById('dev-panel-vms')) document.getElementById('dev-panel-vms').classList.remove('hidden');
         if (document.getElementById('dev-tab-btn-vms')) document.getElementById('dev-tab-btn-vms').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
+    } else if (tab === 'cloud') {
+        if (document.getElementById('dev-panel-cloud')) document.getElementById('dev-panel-cloud').classList.remove('hidden');
+        if (document.getElementById('dev-tab-btn-cloud')) document.getElementById('dev-tab-btn-cloud').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
     } else if (tab === 'lab') {
         if (document.getElementById('dev-panel-lab')) document.getElementById('dev-panel-lab').classList.remove('hidden');
         if (document.getElementById('dev-tab-btn-lab')) document.getElementById('dev-tab-btn-lab').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';

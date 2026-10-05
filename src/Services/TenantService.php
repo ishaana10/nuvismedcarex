@@ -18,15 +18,22 @@ class TenantService {
             $stmt = $this->db->prepare("SELECT id FROM tenants WHERE id = 'default-clinic' LIMIT 1");
             $stmt->execute();
             if (!$stmt->fetch()) {
-                $ins = $this->db->prepare("INSERT INTO tenants (id, name, code, status, plan, address, phone, email, is_active) VALUES ('default-clinic', 'Main Suva Central Clinic', 'default-clinic', 'active', 'enterprise', '2 Woodstand Road, Suva', '+679 330 1234', 'suva@clinicflow.org', 1)");
+                $ins = $this->db->prepare("INSERT INTO tenants (id, name, code, status, plan, address, phone, email, storage_limit_mb, is_active) VALUES ('default-clinic', 'Main Suva Central Clinic', 'default-clinic', 'active', 'enterprise', '2 Woodstand Road, Suva', '+679 330 1234', 'suva@clinicflow.org', 500, 1)");
                 $ins->execute();
             }
         } catch (\Throwable $e) {
             // Ignore if tenants table not ready
         }
 
-        $stmt = $this->db->query("SELECT id, name, code, status, plan, address, phone, email, is_active FROM tenants ORDER BY CASE WHEN id = 'default-clinic' THEN 0 ELSE 1 END, name ASC");
+        $stmt = $this->db->query("SELECT id, name, code, status, plan, address, phone, email, storage_limit_mb, is_active FROM tenants ORDER BY CASE WHEN id = 'default-clinic' THEN 0 ELSE 1 END, name ASC");
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getTenantById(string $id): ?array {
+        $stmt = $this->db->prepare("SELECT id, name, code, status, plan, address, phone, email, storage_limit_mb, is_active FROM tenants WHERE id = :id LIMIT 1");
+        $stmt->execute(['id' => $id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
     }
 
     public function getUserTenants(string $userId): array {
@@ -46,7 +53,7 @@ class TenantService {
             $stmt = $this->db->prepare("SELECT id FROM tenants WHERE id = 'default-clinic' LIMIT 1");
             $stmt->execute();
             if (!$stmt->fetch()) {
-                $ins = $this->db->prepare("INSERT INTO tenants (id, name, code, status, plan, is_active) VALUES ('default-clinic', 'Nuvis Medico Healthcare', 'default-clinic', 'active', 'enterprise', 1)");
+                $ins = $this->db->prepare("INSERT INTO tenants (id, name, code, status, plan, storage_limit_mb, is_active) VALUES ('default-clinic', 'Nuvis Medico Healthcare', 'default-clinic', 'active', 'enterprise', 500, 1)");
                 $ins->execute();
             } else {
                 $upd = $this->db->prepare("UPDATE tenants SET is_active = 1, status = 'active' WHERE id = 'default-clinic'");
@@ -76,20 +83,51 @@ class TenantService {
     }
 
     public function saveTenant(array $data): void {
-        $stmt = $this->db->prepare("
-            INSERT INTO tenants (id, name, code, status, plan, address, phone, email)
-            VALUES (:id, :name, :code, :status, :plan, :address, :phone, :email)
-            ON DUPLICATE KEY UPDATE name = VALUES(name), code = VALUES(code), status = VALUES(status), plan = VALUES(plan), address = VALUES(address), phone = VALUES(phone), email = VALUES(email)
-        ");
-        $stmt->execute([
-            'id' => $data['id'],
-            'name' => $data['name'],
-            'code' => $data['code'],
-            'status' => $data['status'] ?? 'active',
-            'plan' => $data['plan'] ?? 'standard',
-            'address' => $data['address'] ?? '',
-            'phone' => $data['phone'] ?? '',
-            'email' => $data['email'] ?? ''
-        ]);
+        $id = $data['id'];
+        $name = $data['name'];
+        $code = $data['code'];
+        $status = $data['status'] ?? 'active';
+        $plan = $data['plan'] ?? 'standard';
+        $address = $data['address'] ?? '';
+        $phone = $data['phone'] ?? '';
+        $email = $data['email'] ?? '';
+        $storageLimitMb = (int)($data['storage_limit_mb'] ?? 500);
+
+        $stmt = $this->db->prepare("SELECT id FROM tenants WHERE id = :id LIMIT 1");
+        $stmt->execute(['id' => $id]);
+        if ($stmt->fetch()) {
+            $upd = $this->db->prepare("
+                UPDATE tenants
+                SET name = :name, code = :code, status = :status, plan = :plan, address = :address, phone = :phone, email = :email, storage_limit_mb = :storage_limit_mb
+                WHERE id = :id
+            ");
+            $upd->execute([
+                'id' => $id,
+                'name' => $name,
+                'code' => $code,
+                'status' => $status,
+                'plan' => $plan,
+                'address' => $address,
+                'phone' => $phone,
+                'email' => $email,
+                'storage_limit_mb' => $storageLimitMb
+            ]);
+        } else {
+            $ins = $this->db->prepare("
+                INSERT INTO tenants (id, name, code, status, plan, address, phone, email, storage_limit_mb)
+                VALUES (:id, :name, :code, :status, :plan, :address, :phone, :email, :storage_limit_mb)
+            ");
+            $ins->execute([
+                'id' => $id,
+                'name' => $name,
+                'code' => $code,
+                'status' => $status,
+                'plan' => $plan,
+                'address' => $address,
+                'phone' => $phone,
+                'email' => $email,
+                'storage_limit_mb' => $storageLimitMb
+            ]);
+        }
     }
 }

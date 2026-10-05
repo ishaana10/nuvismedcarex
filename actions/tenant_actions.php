@@ -38,6 +38,7 @@ if ($action === 'save_tenant') {
     $address = trim($_POST['address'] ?? '');
     $phone = trim($_POST['phone'] ?? '');
     $email = trim($_POST['email'] ?? '');
+    $storageLimitMb = (int)($_POST['storage_limit_mb'] ?? 500);
 
     if ($id === '' || $name === '' || $code === '') {
         setToast('Validation Error', 'Tenant ID, Name, and Code are required.', 'error');
@@ -54,15 +55,16 @@ if ($action === 'save_tenant') {
             'plan' => $plan,
             'address' => $address,
             'phone' => $phone,
-            'email' => $email
+            'email' => $email,
+            'storage_limit_mb' => $storageLimitMb
         ]);
-        setToast('Clinic Saved', "Clinic tenant '{$name}' saved successfully.");
+        setToast('Clinic Saved', "Clinic tenant '{$name}' saved successfully with {$storageLimitMb}MB storage allocation.");
     } catch (\Throwable $e) {
         $logger->error("Failed to save clinic tenant: " . $e->getMessage());
         setToast('Error', 'Failed to save clinic tenant.', 'error');
     }
 
-    header('Location: ../admin.php?tab=tenants');
+    header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '../admin.php?tab=tenants'));
     exit;
 }
 

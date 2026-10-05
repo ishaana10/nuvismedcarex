@@ -195,18 +195,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($action === 'finish') {
                 $encounterService->finalizeEncounter($patientId, $visitId, [
                     'create_invoice' => !empty($_POST['create_invoice_on_finalize']),
-                    'invoice_type' => trim($_POST['invoice_type'] ?? 'Normal'),
-                    'transaction_type' => trim($_POST['transaction_type'] ?? 'Sale'),
-                    'buyer_tin' => trim($_POST['buyer_tin'] ?? ''),
-                    'buyer_cost_center' => trim($_POST['buyer_cost_center'] ?? ''),
-                    'inventory_id' => $_POST['inventory_id'] ?? [],
-                    'item_name' => $_POST['item_name'] ?? [],
-                    'gtin' => $_POST['gtin'] ?? [],
-                    'quantity' => $_POST['quantity'] ?? [],
-                    'unit_price' => $_POST['unit_price'] ?? [],
-                    'tax_label' => $_POST['tax_label'] ?? [],
-                    'payment_type' => $_POST['payment_type'] ?? [],
-                    'payment_amount' => $_POST['payment_amount'] ?? [],
                     'service_description' => trim($_POST['service_description'] ?? 'Clinical Consultation & Examination'),
                     'amount' => (float)($_POST['amount'] ?? 150.00),
                     'insurance_covered' => (float)($_POST['insurance_covered'] ?? 0.00)

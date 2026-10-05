@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS tenants (
     feature_flags TEXT,
     custom_fields TEXT,
     billing_info TEXT,
+    storage_limit_mb INT DEFAULT 500,
     is_active TINYINT(1) DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

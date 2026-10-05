@@ -10,8 +10,9 @@ $pdo = getDB();
 $container = \ClinicFlow\Shared\Container::getInstance();
 $uploadService = $container->get(\ClinicFlow\Services\FileUploadService::class);
 
-// Fetch cloud drive settings
+// Fetch cloud drive settings & storage quota
 $cloudSettings = $uploadService->getCloudSettings();
+$storageUsage = $uploadService->getStorageUsage();
 
 // Filter parameters
 $search = trim($_GET['search'] ?? '');
@@ -90,14 +91,23 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
         </div>
     </div>
 
-    <div class="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/30 shadow-2xs flex items-center gap-4">
-        <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
-            <span class="material-symbols-outlined text-2xl">dns</span>
+    <div class="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/30 shadow-2xs flex flex-col justify-between gap-2">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold shrink-0">
+                <span class="material-symbols-outlined text-2xl">dns</span>
+            </div>
+            <div class="min-w-0">
+                <div class="text-xs text-outline font-semibold">Server Allocation Plan</div>
+                <div class="text-sm font-bold text-on-surface flex items-center gap-1">
+                    <span><?= htmlspecialchars($storageUsage['formatted_used']) ?></span>
+                    <span class="text-slate-400 font-normal text-xs">/ <?= htmlspecialchars($storageUsage['formatted_limit']) ?></span>
+                </div>
+                <div class="text-[10px] text-emerald-700 font-medium truncate"><?= htmlspecialchars($storageUsage['formatted_remaining']) ?> free space remaining</div>
+            </div>
         </div>
-        <div>
-            <div class="text-xs text-outline font-semibold">Local Server Storage</div>
-            <div class="text-xl font-bold text-on-surface"><?= number_format($serverCount) ?></div>
-            <div class="text-[11px] text-emerald-700 font-medium">On-Premise Isolated</div>
+        <!-- Storage Usage Progress Bar -->
+        <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-1">
+            <div class="h-full rounded-full transition-all duration-500 <?= $storageUsage['percentage'] > 85 ? 'bg-red-500' : ($storageUsage['percentage'] > 60 ? 'bg-amber-500' : 'bg-primary') ?>" style="width: <?= max(2, $storageUsage['percentage']) ?>%"></div>
         </div>
     </div>
 

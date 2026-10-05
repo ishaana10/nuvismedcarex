@@ -17,17 +17,20 @@ def run_cuj(page):
     page.goto("http://127.0.0.1:8000/uploads.php")
     page.wait_for_timeout(1000)
 
-    # Open Upload Modal
-    page.click("button:has-text('Upload Document')")
-    page.wait_for_timeout(500)
-    page.screenshot(path="/home/jules/verification/screenshots/upload_modal.png")
-
-    # Close Upload Modal
-    page.click("#modal-upload-document button:has-text('Cancel')")
-    page.wait_for_timeout(500)
-
-    # Take screenshot of Uploads Hub main page
+    # Take screenshot of Uploads Hub main page (with Storage Allocation Plan card)
     page.screenshot(path="/home/jules/verification/screenshots/uploads_hub.png")
+    page.wait_for_timeout(500)
+
+    # Navigate to Admin Tenants
+    page.goto("http://127.0.0.1:8000/admin.php?tab=tenants")
+    page.wait_for_timeout(1000)
+
+    # Open Tenant Modal
+    page.click("button:has-text('Add New Clinic Tenant')")
+    page.wait_for_timeout(500)
+
+    # Take screenshot of Tenant Allocation Modal
+    page.screenshot(path="/home/jules/verification/screenshots/tenant_allocation_modal.png")
     page.wait_for_timeout(500)
 
 if __name__ == "__main__":

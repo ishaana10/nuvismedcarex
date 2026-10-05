@@ -36,16 +36,9 @@ $taxLabels = $_POST['tax_label'] ?? [];
 $paymentTypes = $_POST['payment_type'] ?? [];
 $paymentAmounts = $_POST['payment_amount'] ?? [];
 
-$redirectTo = $_POST['redirect_to'] ?? '';
-
 if (empty($patientName) || empty($itemNames)) {
     $_SESSION['flash_error'] = "Please provide patient information and at least one line item.";
-    if ($redirectTo !== '') {
-        setToast("Error", "Please provide patient information and at least one line item.", "error");
-        header("Location: " . $redirectTo);
-    } else {
-        header("Location: ../billing.php");
-    }
+    header("Location: ../billing.php");
     exit;
 }
 
@@ -218,19 +211,13 @@ try {
     }
 
     $_SESSION['flash_success'] = "Invoice {$invoiceNumber} successfully created and fiscalized with VMS!";
-    setToast("Invoice Created", "Invoice {$invoiceNumber} generated and fiscalized successfully.");
 } catch (\Throwable $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
     $logger->error("Failed to create VMS invoice: " . $e->getMessage());
     $_SESSION['flash_error'] = "Failed to create invoice.";
-    setToast("Error", "Failed to create invoice.", "error");
 }
 
-if ($redirectTo !== '') {
-    header("Location: " . $redirectTo);
-} else {
-    header("Location: ../billing.php");
-}
+header("Location: ../billing.php");
 exit;
