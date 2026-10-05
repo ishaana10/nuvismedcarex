@@ -4,7 +4,18 @@ $pdo = getDB();
 
 $patientId = $_GET['patient_id'] ?? null;
 $visitId = $_GET['visit_id'] ?? null;
+$appointmentId = $_GET['appointment_id'] ?? $_POST['appointment_id'] ?? null;
 $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+
+// If appointment_id is passed when launching visit, mark appointment as "In Progress"
+if ($patientId && $appointmentId) {
+    try {
+        $updateApptStmt = $pdo->prepare("UPDATE appointments SET status = 'In Progress', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND tenant_id = ? AND status != 'Completed'");
+        $updateApptStmt->execute([$appointmentId, $currentTenantId]);
+    } catch (\Throwable $e) {
+        error_log("Error updating appointment status to In Progress: " . $e->getMessage());
+    }
+}
 
 require_once __DIR__ . '/includes/pagination.php';
 
@@ -434,6 +445,7 @@ include __DIR__ . '/includes/header.php';
     <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
     <input type="hidden" name="patient_id" value="<?= htmlspecialchars($patient['id']) ?>">
     <input type="hidden" name="visit_id" value="<?= htmlspecialchars($visitId) ?>">
+    <input type="hidden" name="appointment_id" value="<?= htmlspecialchars($appointmentId ?? '') ?>">
     <input type="hidden" name="action" value="save">
 
     <!-- Left Column (2 Cols): Vitals & SOAP Notes -->
@@ -674,6 +686,7 @@ include __DIR__ . '/includes/header.php';
             <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
             <input type="hidden" name="patient_id" value="<?= htmlspecialchars($patient['id']) ?>">
             <input type="hidden" name="visit_id" value="<?= htmlspecialchars($visitId) ?>">
+            <input type="hidden" name="appointment_id" value="<?= htmlspecialchars($appointmentId ?? '') ?>">
             <input type="hidden" name="action" value="finish">
 
             <div class="p-3 bg-surface-container-low rounded-xl border border-outline-variant/30 space-y-2">

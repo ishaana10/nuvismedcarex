@@ -10,22 +10,55 @@ $patients = [];
 $doctorsList = [];
 $totalAppts = 0;
 
+$tab = $_GET['tab'] ?? 'active';
+if (!in_array($tab, ['active', 'completed', 'all'], true)) {
+    $tab = 'active';
+}
+
 $pagination = getPaginationParams(10, [5, 10, 25, 50, 100], $pdo);
 $limit = $pagination['limit'];
 $offset = $pagination['offset'];
 $currentPage = $pagination['page'];
 
+$activeCount = 0;
+$completedCount = 0;
+$allCount = 0;
+
 try {
-    // Fetch total appointment count
-    $countStmt = $pdo->query("SELECT COUNT(*) FROM appointments");
-    $totalAppts = (int)($countStmt ? $countStmt->fetchColumn() : 0);
+    $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+
+    // Counts for tabs
+    $activeStmt = $pdo->prepare("SELECT COUNT(*) FROM appointments WHERE tenant_id = ? AND (status != 'Completed' OR status IS NULL)");
+    $activeStmt->execute([$tenantId]);
+    $activeCount = (int)$activeStmt->fetchColumn();
+
+    $compStmt = $pdo->prepare("SELECT COUNT(*) FROM appointments WHERE tenant_id = ? AND status = 'Completed'");
+    $compStmt->execute([$tenantId]);
+    $completedCount = (int)$compStmt->fetchColumn();
+
+    $allStmt = $pdo->prepare("SELECT COUNT(*) FROM appointments WHERE tenant_id = ?");
+    $allStmt->execute([$tenantId]);
+    $allCount = (int)$allStmt->fetchColumn();
+
+    $where = "WHERE a.tenant_id = :tid";
+    if ($tab === 'active') {
+        $where .= " AND (a.status != 'Completed' OR a.status IS NULL)";
+        $totalAppts = $activeCount;
+    } elseif ($tab === 'completed') {
+        $where .= " AND a.status = 'Completed'";
+        $totalAppts = $completedCount;
+    } else {
+        $totalAppts = $allCount;
+    }
 
     // Fetch paginated appointments
     $apptsStmt = $pdo->prepare("SELECT a.*, p.first_name, p.last_name, p.mrn, p.avatar, p.initials
                               FROM appointments a
-                              LEFT JOIN patients p ON a.patient_id = p.id
+                              LEFT JOIN patients p ON a.patient_id = p.id AND a.tenant_id = p.tenant_id
+                              {$where}
                               ORDER BY a.appointment_date DESC, a.time ASC
                               LIMIT :limit OFFSET :offset");
+    $apptsStmt->bindValue(':tid', $tenantId);
     $apptsStmt->bindValue(':limit', $limit, PDO::PARAM_INT);
     $apptsStmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $apptsStmt->execute();
@@ -143,6 +176,22 @@ $selectedPatientId = $_GET['patient_id'] ?? '';
 </div>
 <?php endif; ?>
 
+<!-- Navigation Tabs: Active vs Completed -->
+<div class="flex items-center gap-2 mb-4 border-b border-outline-variant/30 pb-2">
+    <a href="calendar.php?tab=active" class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 <?= $tab === 'active' ? 'bg-primary text-white shadow-xs' : 'bg-surface-container-low text-slate-600 hover:bg-surface-container' ?>">
+        <span class="material-symbols-outlined text-sm">schedule</span>
+        <span>Active / Upcoming (<?= $activeCount ?>)</span>
+    </a>
+    <a href="calendar.php?tab=completed" class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 <?= $tab === 'completed' ? 'bg-primary text-white shadow-xs' : 'bg-surface-container-low text-slate-600 hover:bg-surface-container' ?>">
+        <span class="material-symbols-outlined text-sm">check_circle</span>
+        <span>Completed (<?= $completedCount ?>)</span>
+    </a>
+    <a href="calendar.php?tab=all" class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 <?= $tab === 'all' ? 'bg-primary text-white shadow-xs' : 'bg-surface-container-low text-slate-600 hover:bg-surface-container' ?>">
+        <span class="material-symbols-outlined text-sm">list</span>
+        <span>All Appointments (<?= $allCount ?>)</span>
+    </a>
+</div>
+
 <!-- Appointments Overview List -->
 <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-5 shadow-xs">
     <div class="overflow-x-auto">
@@ -197,7 +246,7 @@ $selectedPatientId = $_GET['patient_id'] ?? '';
                             </span>
                         </td>
                         <td class="py-3 px-3 text-right">
-                            <a href="clinical_visit.php?patient_id=<?= htmlspecialchars($a['patient_id'] ?? '') ?>" class="px-2.5 py-1 bg-primary text-white rounded-lg text-[11px] font-semibold hover:bg-primary/90 transition">
+                            <a href="clinical_visit.php?patient_id=<?= htmlspecialchars($a['patient_id'] ?? '') ?>&appointment_id=<?= htmlspecialchars($a['id'] ?? '') ?>" class="px-2.5 py-1 bg-primary text-white rounded-lg text-[11px] font-semibold hover:bg-primary/90 transition">
                                 Launch Visit
                             </a>
                         </td>
@@ -206,7 +255,7 @@ $selectedPatientId = $_GET['patient_id'] ?? '';
             </tbody>
         </table>
     </div>
-    <?= renderPagination($totalAppts, $currentPage, $limit, 'calendar.php') ?>
+    <?= renderPagination($totalAppts, $currentPage, $limit, 'calendar.php', ['tab' => $tab]) ?>
 </div>
 
 <?php include __DIR__ . '/includes/footer.php'; ?>

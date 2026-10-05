@@ -117,6 +117,10 @@ class DomainServicesTest extends TestCase {
     }
 
     public function testEncounterServiceSaveDataAndFinalizeHelpers(): void {
+        $this->pdo->exec("INSERT INTO patients (id, tenant_id, mrn, first_name, last_name, dob, age, gender, registration_date) VALUES ('p2', 'default-clinic', 'MRN2', 'Jane', 'Doe', '1995-01-01', 29, 'Female', '2025-01-01')");
+        $this->pdo->exec("INSERT INTO doctors (id, tenant_id, name, specialty) VALUES ('d1', 'default-clinic', 'Dr. Smith', 'General')");
+        $this->pdo->exec("INSERT INTO appointments (id, tenant_id, patient_id, patient_name, patient_mrn, doctor_id, doctor_name, appointment_date, time, time_slot, type, status) VALUES ('appt-1', 'default-clinic', 'p2', 'Jane Doe', 'MRN2', 'd1', 'Dr. Smith', '2025-01-01', '09:00', '09:00', 'Consultation', 'Scheduled')");
+
         $encounter = new EncounterService($this->pdo);
         $encounter->saveEncounterData('p2', [
             'blood_pressure' => '120/80',
@@ -128,8 +132,13 @@ class DomainServicesTest extends TestCase {
             'plan' => 'Routine checkup'
         ], 'visit-p2');
 
+        $_REQUEST['appointment_id'] = 'appt-1';
         $fin = $encounter->finalizeEncounter('p2', 'visit-p2');
         $this->assertTrue($fin['finalized']);
+
+        $stmt = $this->pdo->prepare("SELECT status FROM appointments WHERE id = ?");
+        $stmt->execute(['appt-1']);
+        $this->assertEquals('Completed', $stmt->fetchColumn());
 
         $history = $encounter->getEncountersByPatient('p2');
         $this->assertCount(1, $history);
