@@ -278,7 +278,11 @@ class LabOrderService {
         $json = json_encode($catalog, JSON_PRETTY_PRINT);
 
         // Save in clinic_settings
-        $stmt = $this->db->prepare("INSERT OR REPLACE INTO clinic_settings (setting_key, setting_value) VALUES ('lab_catalog', :val)");
+        $isSqlite = ($this->db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite');
+        $querySettings = $isSqlite
+            ? "INSERT INTO clinic_settings (setting_key, setting_value) VALUES ('lab_catalog', :val) ON CONFLICT(setting_key) DO UPDATE SET setting_value = :val"
+            : "INSERT INTO clinic_settings (setting_key, setting_value) VALUES ('lab_catalog', :val) ON DUPLICATE KEY UPDATE setting_value = :val";
+        $stmt = $this->db->prepare($querySettings);
         $stmt->execute(['val' => $json]);
 
         // Also save in tenant_settings if tenant_id present

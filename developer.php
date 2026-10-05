@@ -691,55 +691,31 @@ $labOrderService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\
 
 <script>
 function switchDevTab(tab) {
-    if (document.getElementById('dev-panel-git')) document.getElementById('dev-panel-git').classList.add('hidden');
-    if (document.getElementById('dev-panel-tenants')) document.getElementById('dev-panel-tenants').classList.add('hidden');
-    if (document.getElementById('dev-panel-vms')) document.getElementById('dev-panel-vms').classList.add('hidden');
-    if (document.getElementById('dev-panel-cloud')) document.getElementById('dev-panel-cloud').classList.add('hidden');
-    if (document.getElementById('dev-panel-lab')) document.getElementById('dev-panel-lab').classList.add('hidden');
-    if (document.getElementById('dev-panel-pagination')) document.getElementById('dev-panel-pagination').classList.add('hidden');
-    if (document.getElementById('dev-panel-rbac')) document.getElementById('dev-panel-rbac').classList.add('hidden');
-    if (document.getElementById('dev-panel-logs')) document.getElementById('dev-panel-logs').classList.add('hidden');
+    const panels = ['git', 'tenants', 'vms', 'cloud', 'lab', 'pagination', 'rbac', 'logs'];
+    panels.forEach(p => {
+        const el = document.getElementById('dev-panel-' + p);
+        if (el) el.classList.add('hidden');
+        const btn = document.getElementById('dev-tab-btn-' + p);
+        if (btn) btn.className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
+    });
 
-    if (document.getElementById('dev-tab-btn-git')) document.getElementById('dev-tab-btn-git').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
-    if (document.getElementById('dev-tab-btn-tenants')) document.getElementById('dev-tab-btn-tenants').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
-    if (document.getElementById('dev-tab-btn-vms')) document.getElementById('dev-tab-btn-vms').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
-    if (document.getElementById('dev-tab-btn-cloud')) document.getElementById('dev-tab-btn-cloud').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
-    if (document.getElementById('dev-tab-btn-lab')) document.getElementById('dev-tab-btn-lab').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
-    if (document.getElementById('dev-tab-btn-pagination')) document.getElementById('dev-tab-btn-pagination').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
-    if (document.getElementById('dev-tab-btn-rbac')) document.getElementById('dev-tab-btn-rbac').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
-    if (document.getElementById('dev-tab-btn-logs')) document.getElementById('dev-tab-btn-logs').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high';
+    const activeEl = document.getElementById('dev-panel-' + tab);
+    if (activeEl) activeEl.classList.remove('hidden');
+    const activeBtn = document.getElementById('dev-tab-btn-' + tab);
+    if (activeBtn) activeBtn.className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
 
     if (tab === 'git') {
-        if (document.getElementById('dev-panel-git')) document.getElementById('dev-panel-git').classList.remove('hidden');
-        if (document.getElementById('dev-tab-btn-git')) document.getElementById('dev-tab-btn-git').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
-    } else if (tab === 'tenants') {
-        if (document.getElementById('dev-panel-tenants')) document.getElementById('dev-panel-tenants').classList.remove('hidden');
-        if (document.getElementById('dev-tab-btn-tenants')) document.getElementById('dev-tab-btn-tenants').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
-    } else if (tab === 'vms') {
-        if (document.getElementById('dev-panel-vms')) document.getElementById('dev-panel-vms').classList.remove('hidden');
-        if (document.getElementById('dev-tab-btn-vms')) document.getElementById('dev-tab-btn-vms').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
-    } else if (tab === 'cloud') {
-        if (document.getElementById('dev-panel-cloud')) document.getElementById('dev-panel-cloud').classList.remove('hidden');
-        if (document.getElementById('dev-tab-btn-cloud')) document.getElementById('dev-tab-btn-cloud').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
-    } else if (tab === 'lab') {
-        if (document.getElementById('dev-panel-lab')) document.getElementById('dev-panel-lab').classList.remove('hidden');
-        if (document.getElementById('dev-tab-btn-lab')) document.getElementById('dev-tab-btn-lab').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
-    } else if (tab === 'pagination') {
-        if (document.getElementById('dev-panel-pagination')) document.getElementById('dev-panel-pagination').classList.remove('hidden');
-        if (document.getElementById('dev-tab-btn-pagination')) document.getElementById('dev-tab-btn-pagination').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
-    } else if (tab === 'rbac') {
-        if (document.getElementById('dev-panel-rbac')) document.getElementById('dev-panel-rbac').classList.remove('hidden');
-        if (document.getElementById('dev-tab-btn-rbac')) document.getElementById('dev-tab-btn-rbac').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
+        if (typeof refreshGitStatus === 'function') refreshGitStatus();
     } else if (tab === 'logs') {
-        if (document.getElementById('dev-panel-logs')) document.getElementById('dev-panel-logs').classList.remove('hidden');
-        if (document.getElementById('dev-tab-btn-logs')) document.getElementById('dev-tab-btn-logs').className = 'px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white';
+        if (typeof fetchDeveloperErrorLogs === 'function') fetchDeveloperErrorLogs();
     }
 }
+
 document.addEventListener('DOMContentLoaded', function() {
     refreshGitStatus();
     fetchDeveloperErrorLogs();
     const urlParams = new URLSearchParams(window.location.search);
-    const activeDevTab = urlParams.get('dev_tab');
+    const activeDevTab = urlParams.get('dev_tab') || urlParams.get('tab');
     if (activeDevTab) {
         switchDevTab(activeDevTab);
     }
