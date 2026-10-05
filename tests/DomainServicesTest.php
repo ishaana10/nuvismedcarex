@@ -115,4 +115,23 @@ class DomainServicesTest extends TestCase {
         $encounters = $encounter->getEncountersByPatient('p1');
         $this->assertCount(1, $encounters);
     }
+
+    public function testEncounterServiceSaveDataAndFinalizeHelpers(): void {
+        $encounter = new EncounterService($this->pdo);
+        $encounter->saveEncounterData('p2', [
+            'blood_pressure' => '120/80',
+            'heart_rate' => 72
+        ], [
+            'subjective' => 'Checkup',
+            'objective' => 'Normal',
+            'icd_code' => 'Z00.00',
+            'plan' => 'Routine checkup'
+        ], 'visit-p2');
+
+        $fin = $encounter->finalizeEncounter('p2', 'visit-p2');
+        $this->assertTrue($fin['finalized']);
+
+        $history = $encounter->getEncountersByPatient('p2');
+        $this->assertCount(1, $history);
+    }
 }
