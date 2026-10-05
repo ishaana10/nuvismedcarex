@@ -54,9 +54,18 @@ class PrescriptionVerificationTest extends TestCase {
     public function testVerificationUrlGeneration(): void {
         $service = new PrescriptionVerificationService();
         $token = 'RXV-TESTTOKEN1234';
-        $url = $service->getVerificationUrl($token);
 
-        $this->assertStringContainsString('/verify_prescription.php?token=RXV-TESTTOKEN1234', $url);
+        $_SERVER['HTTP_HOST'] = 'ict-fj.com';
+        $_SERVER['SCRIPT_NAME'] = '/NuvisMedCareX/print_prescription.php';
+        $urlSubdir = $service->getVerificationUrl($token);
+
+        $this->assertEquals('http://ict-fj.com/NuvisMedCareX/verify_prescription.php?token=RXV-TESTTOKEN1234', $urlSubdir);
+
+        $_SERVER['SCRIPT_NAME'] = '/print_prescription.php';
+        $urlRoot = $service->getVerificationUrl($token);
+        $this->assertEquals('http://ict-fj.com/verify_prescription.php?token=RXV-TESTTOKEN1234', $urlRoot);
+
+        unset($_SERVER['HTTP_HOST'], $_SERVER['SCRIPT_NAME']);
     }
 
     public function testVerificationDetailsResolution(): void {
