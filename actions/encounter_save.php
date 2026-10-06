@@ -358,11 +358,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                             $invStmt = $pdo->prepare("
                                 INSERT INTO invoices (
-                                    id, tenant_id, invoice_number, patient_id, patient_name, patient_mrn, service_date, due_date,
+                                    id, tenant_id, ref_no, invoice_number, patient_id, patient_name, patient_mrn, service_date, due_date,
                                     amount, status, insurance_covered, patient_owed, services, invoice_type, transaction_type,
                                     payment_methods
                                 ) VALUES (
-                                    ?, ?, ?, ?, ?, ?, ?, ?,
+                                    ?, ?, ?, ?, ?, ?, ?, ?, ?,
                                     ?, 'Paid', ?, ?, ?, ?, ?,
                                     ?
                                 )
@@ -371,6 +371,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $invStmt->execute([
                                 $invoiceId,
                                 $tenantId,
+                                $visitId,
                                 $invNumber,
                                 $patientId,
                                 $patientRow['first_name'] . ' ' . $patientRow['last_name'],
