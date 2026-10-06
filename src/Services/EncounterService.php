@@ -152,10 +152,15 @@ class EncounterService {
     }
 
     public function finalizeEncounter(string $patientId, ?string $visitId = null, array $finalizeOptions = [], ?string $tenantId = null): array {
-        // Fetch current prescriptions for visit
+        // Fetch current prescriptions specifically for this visit
         $tenantId = $tenantId ?? TenantContext::getTenantId();
-        $rxStmt = $this->db->prepare("SELECT medication_name, dosage, frequency, duration, instructions FROM prescriptions WHERE patient_id = ? AND tenant_id = ?");
-        $rxStmt->execute([$patientId, $tenantId]);
+        if ($visitId) {
+            $rxStmt = $this->db->prepare("SELECT medication_name, dosage, frequency, duration, instructions FROM prescriptions WHERE patient_id = ? AND visit_id = ? AND tenant_id = ?");
+            $rxStmt->execute([$patientId, $visitId, $tenantId]);
+        } else {
+            $rxStmt = $this->db->prepare("SELECT medication_name, dosage, frequency, duration, instructions FROM prescriptions WHERE patient_id = ? AND (visit_id IS NULL OR visit_id = '') AND tenant_id = ?");
+            $rxStmt->execute([$patientId, $tenantId]);
+        }
         $prescriptions = $rxStmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
         // Fetch vitals
