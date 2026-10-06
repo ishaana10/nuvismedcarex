@@ -45,6 +45,18 @@ if ($user && !empty($user['password_hash'])) {
     $valid = password_verify($password, $user['password_hash']);
 }
 
+// MFA Verification Check if MFA is enabled for user
+if ($valid && $user && !empty($user['mfa_enabled']) && (int)$user['mfa_enabled'] === 1) {
+    $mfaCode = trim($_POST['mfa_code'] ?? '');
+    $mfaService = new \ClinicFlow\Services\MfaService();
+    if (empty($mfaCode) || !$mfaService->verifyCode($user['mfa_secret'] ?? '', $mfaCode)) {
+        recordLoginAttempt($clientIp, $email);
+        setToast('MFA Verification Failed', 'Invalid multi-factor authentication code provided.', 'error');
+        header("Location: ../login.php?mfa_required=1&email=" . urlencode($email));
+        exit;
+    }
+}
+
 if ($valid && $user) {
     clearLoginAttempts();
     session_regenerate_id(true);

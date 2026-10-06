@@ -14,6 +14,14 @@ if (!$patient) {
     exit;
 }
 
+// Immutable Read Audit Log
+try {
+    $auditService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\AuditService::class);
+    $auditService->logPatientRead($patient['id'], "Viewed patient medical chart for " . $patient['first_name'] . " " . $patient['last_name']);
+} catch (\Throwable $e) {
+    // Ignore audit log error if container unavailable
+}
+
 $pageTitle = htmlspecialchars($patient['first_name'] . ' ' . $patient['last_name']) . " - Patient Chart";
 $activePage = "patients";
 include __DIR__ . '/includes/header.php';

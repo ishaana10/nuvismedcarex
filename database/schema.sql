@@ -433,6 +433,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     user_id VARCHAR(50),
     user_name VARCHAR(100),
     user_role VARCHAR(50),
+    patient_id VARCHAR(50) DEFAULT NULL,
     action VARCHAR(100),
     details TEXT,
     ip_address VARCHAR(45),

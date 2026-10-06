@@ -1,4 +1,9 @@
 <?php
+use ClinicFlow\Http\SecurityHeadersMiddleware;
+
+require_once __DIR__ . '/includes/autoloader.php';
+SecurityHeadersMiddleware::applyHeaders();
+
 $uri = strtok($_SERVER['REQUEST_URI'] ?? '', '?');
 
 if (str_starts_with($uri, '/assets/')) {

@@ -11,8 +11,20 @@ class RbacService {
 
     // Granular permissions matrix by role
     private array $rolePermissions = [
+        'System Admin' => [
+            'view_patients', 'create_patient', 'edit_patient', 'delete_patient',
+            'view_billing', 'create_invoice', 'process_payment', 'vms_fiscalize',
+            'view_inventory', 'manage_inventory', 'restock_inventory',
+            'manage_settings', 'view_audit_logs', 'manage_users', 'switch_tenant'
+        ],
         'Developer' => [
             'view_patients', 'create_patient', 'edit_patient', 'delete_patient',
+            'view_billing', 'create_invoice', 'process_payment', 'vms_fiscalize',
+            'view_inventory', 'manage_inventory', 'restock_inventory',
+            'manage_settings', 'view_audit_logs', 'manage_users', 'switch_tenant'
+        ],
+        'Clinic Admin' => [
+            'view_patients', 'create_patient', 'edit_patient',
             'view_billing', 'create_invoice', 'process_payment', 'vms_fiscalize',
             'view_inventory', 'manage_inventory', 'restock_inventory',
             'manage_settings', 'view_audit_logs', 'manage_users', 'switch_tenant'
@@ -22,6 +34,11 @@ class RbacService {
             'view_billing', 'create_invoice', 'process_payment', 'vms_fiscalize',
             'view_inventory', 'manage_inventory', 'restock_inventory',
             'manage_settings', 'view_audit_logs', 'manage_users', 'switch_tenant'
+        ],
+        'Doctor/Physician' => [
+            'view_patients', 'create_patient', 'edit_patient', 'create_encounter',
+            'order_labs', 'prescribe_medication', 'view_billing', 'create_invoice',
+            'view_inventory', 'restock_inventory'
         ],
         'Doctor' => [
             'view_patients', 'create_patient', 'edit_patient', 'create_encounter',
@@ -34,6 +51,9 @@ class RbacService {
         'Receptionist' => [
             'view_patients', 'create_patient', 'manage_appointments', 'manage_queue',
             'view_billing', 'process_payment'
+        ],
+        'Patient' => [
+            'view_own_profile', 'view_own_records', 'view_own_appointments'
         ]
     ];
 
