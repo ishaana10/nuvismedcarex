@@ -275,10 +275,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'oxygen_sat' => (int)($_POST['oxygen_sat'] ?? 99)
         ];
 
+        $icdInput = trim($_POST['icd_code'] ?? '');
+        if (empty($icdInput)) {
+            $icdInput = 'ENC-' . date('Ymd') . '-' . sprintf('%04d', rand(1, 9999));
+        }
+
         $soapData = [
             'subjective' => trim($_POST['subjective'] ?? ''),
             'objective' => trim($_POST['objective'] ?? ''),
-            'icd_code' => trim($_POST['icd_code'] ?? 'J01.90'),
+            'icd_code' => $icdInput,
             'plan' => trim($_POST['plan'] ?? '')
         ];
 
