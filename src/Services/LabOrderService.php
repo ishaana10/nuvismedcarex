@@ -278,8 +278,8 @@ class LabOrderService {
         $json = json_encode($catalog, JSON_PRETTY_PRINT);
 
         // Save in clinic_settings
-        $isSqlite = ($this->db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite');
-        $querySettings = $isSqlite
+        $driver = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME);
+        $querySettings = ($driver === 'sqlite')
             ? "INSERT INTO clinic_settings (setting_key, setting_value) VALUES ('lab_catalog', :val) ON CONFLICT(setting_key) DO UPDATE SET setting_value = :val"
             : "INSERT INTO clinic_settings (setting_key, setting_value) VALUES ('lab_catalog', :val) ON DUPLICATE KEY UPDATE setting_value = :val";
         $stmt = $this->db->prepare($querySettings);
@@ -288,8 +288,7 @@ class LabOrderService {
         // Also save in tenant_settings if tenant_id present
         if ($tenantId) {
             $id = Uuid::uuidv7();
-            $isSqlite = ($this->db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite');
-            $query = $isSqlite
+            $query = ($driver === 'sqlite')
                 ? "INSERT INTO tenant_settings (id, tenant_id, setting_key, setting_value) VALUES (:id, :tid, 'lab_catalog', :val) ON CONFLICT(tenant_id, setting_key) DO UPDATE SET setting_value = :val"
                 : "INSERT INTO tenant_settings (id, tenant_id, setting_key, setting_value) VALUES (:id, :tid, 'lab_catalog', :val) ON DUPLICATE KEY UPDATE setting_value = :val, updated_at = CURRENT_TIMESTAMP";
             $stmt = $this->db->prepare($query);
