@@ -36,6 +36,9 @@ $todayDate = date('Y-m-d');
 $queueItems = [];
 $todayApptsCount = 0;
 $totalPatientsCount = 0;
+$pendingBillingSum = 0.0;
+$overdueInvoicesCount = 0;
+$lowStockCount = 0;
 $appointments = [];
 $activities = [];
 
@@ -57,7 +60,7 @@ $waitingCount = count(array_filter($queueItems, fn($q) => ($q['status'] ?? '') =
 $inRoomCount = count(array_filter($queueItems, fn($q) => ($q['status'] ?? '') === 'In Room'));
 
 try {
-    $todayApptsStmt = $pdo->prepare("SELECT COUNT(*) FROM appointments WHERE tenant_id = ? AND (appointment_date = ? OR appointment_date = '2023-10-24')");
+    $todayApptsStmt = $pdo->prepare("SELECT COUNT(*) FROM appointments WHERE tenant_id = ? AND appointment_date = ?");
     if ($todayApptsStmt) {
         $todayApptsStmt->execute([$currentTenantId, $todayDate]);
         $todayApptsCount = (int) $todayApptsStmt->fetchColumn();
@@ -74,6 +77,34 @@ try {
     }
 } catch (\Throwable $e) {
     error_log("Dashboard patients count query error: " . $e->getMessage());
+}
+
+try {
+    // Pending Billing Metrics (Tenant Scoped)
+    $billingStmt = $pdo->prepare("SELECT COALESCE(SUM(patient_owed), 0) FROM invoices WHERE tenant_id = ? AND status = 'Pending'");
+    if ($billingStmt) {
+        $billingStmt->execute([$currentTenantId]);
+        $pendingBillingSum = (float) $billingStmt->fetchColumn();
+    }
+
+    $overdueStmt = $pdo->prepare("SELECT COUNT(*) FROM invoices WHERE tenant_id = ? AND status = 'Pending' AND due_date < ?");
+    if ($overdueStmt) {
+        $overdueStmt->execute([$currentTenantId, $todayDate]);
+        $overdueInvoicesCount = (int) $overdueStmt->fetchColumn();
+    }
+} catch (\Throwable $e) {
+    error_log("Dashboard billing metrics query error: " . $e->getMessage());
+}
+
+try {
+    // Low Stock Alerts (Tenant Scoped)
+    $stockStmt = $pdo->prepare("SELECT COUNT(*) FROM inventory WHERE tenant_id = ? AND is_active = 1 AND current_stock <= min_threshold");
+    if ($stockStmt) {
+        $stockStmt->execute([$currentTenantId]);
+        $lowStockCount = (int) $stockStmt->fetchColumn();
+    }
+} catch (\Throwable $e) {
+    error_log("Dashboard low stock query error: " . $e->getMessage());
 }
 
 try {
@@ -112,7 +143,7 @@ try {
     </div>
 </div>
 
-<!-- 4 Top Metric Cards (Exact match to Dashboard.png) -->
+<!-- 4 Top Metric Cards (Tenant Scoped Dynamic Real Data) -->
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <!-- Today's Appointments -->
     <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col justify-between">
@@ -120,32 +151,31 @@ try {
             <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white">
                 <span class="material-symbols-outlined text-xl">group</span>
             </div>
-            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700">+12%</span>
+            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700">Today</span>
         </div>
         <div class="mt-4">
             <p class="text-xs font-medium text-slate-500">Today's Appointments</p>
             <div class="flex items-baseline gap-1 mt-1">
-                <span class="text-2xl font-bold text-slate-900"><?= $todayApptsCount ?: 42 ?></span>
-                <span class="text-xs font-medium text-slate-400">/ 48</span>
+                <span class="text-2xl font-bold text-slate-900"><?= $todayApptsCount ?></span>
             </div>
-            <!-- Progress Bar -->
+            <!-- Dynamic Progress Bar -->
             <div class="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
-                <div class="bg-blue-600 h-full rounded-full" style="width: 87.5%;"></div>
+                <div class="bg-blue-600 h-full rounded-full" style="width: <?= min(100, $todayApptsCount * 10) ?>%;"></div>
             </div>
         </div>
     </div>
 
-    <!-- New Patients (Week) -->
+    <!-- New Patients -->
     <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col justify-between">
         <div class="flex items-start justify-between">
             <div class="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center text-white">
                 <span class="material-symbols-outlined text-xl">person_add</span>
             </div>
-            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700">+5%</span>
+            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700">Total</span>
         </div>
         <div class="mt-4">
-            <p class="text-xs font-medium text-slate-500">New Patients (Week)</p>
-            <span class="text-2xl font-bold text-slate-900 mt-1 block"><?= $totalPatientsCount ?: 18 ?></span>
+            <p class="text-xs font-medium text-slate-500">Total Patients</p>
+            <span class="text-2xl font-bold text-slate-900 mt-1 block"><?= $totalPatientsCount ?></span>
         </div>
     </div>
 
@@ -158,26 +188,30 @@ try {
         </div>
         <div class="mt-4">
             <p class="text-xs font-medium text-slate-500">Pending Billing</p>
-            <span class="text-2xl font-bold text-slate-900 mt-1 block">$4,250</span>
-            <p class="text-[11px] text-amber-600 font-semibold mt-1 flex items-center gap-1">
-                <span class="material-symbols-outlined text-xs">warning</span>
-                <span>12 invoices overdue</span>
+            <span class="text-2xl font-bold text-slate-900 mt-1 block">$<?= number_format($pendingBillingSum, 2) ?></span>
+            <p class="text-[11px] <?= $overdueInvoicesCount > 0 ? 'text-amber-600 font-semibold' : 'text-slate-400' ?> mt-1 flex items-center gap-1">
+                <span class="material-symbols-outlined text-xs"><?= $overdueInvoicesCount > 0 ? 'warning' : 'check_circle' ?></span>
+                <span><?= $overdueInvoicesCount ?> invoices overdue</span>
             </p>
         </div>
     </div>
 
     <!-- Low Stock Alerts -->
-    <div class="bg-white p-5 rounded-2xl border border-red-200 shadow-2xs flex flex-col justify-between">
+    <div class="bg-white p-5 rounded-2xl border <?= $lowStockCount > 0 ? 'border-red-200' : 'border-slate-200/80' ?> shadow-2xs flex flex-col justify-between">
         <div class="flex items-start justify-between">
-            <div class="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center text-red-600">
+            <div class="w-10 h-10 rounded-xl <?= $lowStockCount > 0 ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-600' ?> flex items-center justify-center">
                 <span class="material-symbols-outlined text-xl">inventory_2</span>
             </div>
-            <span class="w-2 h-2 rounded-full bg-red-500"></span>
+            <?php if ($lowStockCount > 0): ?>
+                <span class="w-2 h-2 rounded-full bg-red-500"></span>
+            <?php endif; ?>
         </div>
         <div class="mt-4">
             <p class="text-xs font-medium text-slate-500">Low Stock Alerts</p>
-            <span class="text-2xl font-bold text-red-600 mt-1 block">3</span>
-            <p class="text-[11px] text-red-600 font-semibold mt-1">Items need reorder</p>
+            <span class="text-2xl font-bold <?= $lowStockCount > 0 ? 'text-red-600' : 'text-slate-900' ?> mt-1 block"><?= $lowStockCount ?></span>
+            <p class="text-[11px] <?= $lowStockCount > 0 ? 'text-red-600 font-semibold' : 'text-slate-400' ?> mt-1">
+                <?= $lowStockCount > 0 ? 'Items need reorder' : 'All stock levels normal' ?>
+            </p>
         </div>
     </div>
 </div>
@@ -295,57 +329,48 @@ try {
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 font-medium">
-                        <?php
-                        $mockAppts = [
-                            ['time' => '09:00 AM', 'name' => 'Robert Johnson', 'mrn' => 'MRN: #48291', 'doctor' => 'Dr. S. Jenkins', 'type' => 'Follow-up', 'status' => 'Arrived', 'badge' => 'bg-slate-200 text-slate-800', 'initials' => 'RJ'],
-                            ['time' => '09:30 AM', 'name' => 'Elena Rodriguez', 'mrn' => 'MRN: #55102', 'doctor' => 'Dr. M. Chen', 'type' => 'Consultation', 'status' => 'In Progress', 'badge' => 'bg-amber-100 text-amber-800', 'initials' => 'ER'],
-                            ['time' => '10:00 AM', 'name' => 'Arthur Smith', 'mrn' => 'MRN: #22941', 'doctor' => 'Dr. S. Jenkins', 'type' => 'Urgent Care', 'status' => 'Waiting', 'badge' => 'bg-red-100 text-red-700', 'initials' => 'AS', 'urgent' => true],
-                            ['time' => '10:45 AM', 'name' => 'Marcus Williams', 'mrn' => 'MRN: #88210', 'doctor' => 'Dr. A. Patel', 'type' => 'Routine Check', 'status' => 'Scheduled', 'badge' => 'bg-blue-100 text-blue-800', 'initials' => 'MW'],
-                            ['time' => '11:30 AM', 'name' => 'Linda Jones', 'mrn' => 'MRN: #10293', 'doctor' => 'Dr. S. Jenkins', 'type' => 'Lab Results', 'status' => 'Scheduled', 'badge' => 'bg-blue-100 text-blue-800', 'initials' => 'LJ'],
-                        ];
-                        $displayAppts = !empty($appointments) ? array_map(function($a) {
-                            return [
-                                'time' => $a['time'] ?? '09:00 AM',
-                                'name' => $a['patient_name'] ?? 'Patient',
-                                'mrn' => 'MRN: ' . ($a['patient_mrn'] ?? '#00000'),
-                                'doctor' => $a['doctor_name'] ?? 'Dr. Jenkins',
-                                'type' => $a['type'] ?? 'Consultation',
-                                'status' => $a['status'] ?? 'Scheduled',
-                                'badge' => ($a['status'] === 'Arrived' ? 'bg-slate-200 text-slate-800' : ($a['status'] === 'In Progress' ? 'bg-amber-100 text-amber-800' : ($a['status'] === 'Waiting' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-800'))),
-                                'initials' => strtoupper(substr($a['patient_name'] ?? 'P', 0, 2)),
-                                'urgent' => !empty($a['is_urgent'])
-                            ];
-                        }, $appointments) : $mockAppts;
-
-                        foreach ($displayAppts as $row):
-                        ?>
-                            <tr class="hover:bg-slate-50/80 transition">
-                                <td class="py-3 px-3 text-slate-900 font-semibold">
-                                    <?php if (!empty($row['urgent'])): ?>
-                                        <span class="text-red-500 font-bold mr-1">!</span>
-                                    <?php endif; ?>
-                                    <?= htmlspecialchars($row['time']) ?>
-                                </td>
-                                <td class="py-3 px-3">
-                                    <div class="flex items-center gap-2.5">
-                                        <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-800 text-xs font-bold flex items-center justify-center shrink-0">
-                                            <?= htmlspecialchars($row['initials']) ?>
-                                        </div>
-                                        <div>
-                                            <div class="font-bold text-slate-900"><?= htmlspecialchars($row['name']) ?></div>
-                                            <div class="text-[10px] text-slate-400 font-normal"><?= htmlspecialchars($row['mrn']) ?></div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="py-3 px-3 text-slate-600"><?= htmlspecialchars($row['doctor']) ?></td>
-                                <td class="py-3 px-3 text-slate-600"><?= htmlspecialchars($row['type']) ?></td>
-                                <td class="py-3 px-3 text-right">
-                                    <span class="inline-block px-2.5 py-1 rounded-full text-[11px] font-semibold <?= $row['badge'] ?>">
-                                        • <?= htmlspecialchars($row['status']) ?>
-                                    </span>
-                                </td>
+                        <?php if (empty($appointments)): ?>
+                            <tr>
+                                <td colspan="5" class="py-6 text-center text-slate-400 text-xs">No upcoming scheduled appointments for this clinic.</td>
                             </tr>
-                        <?php endforeach; ?>
+                        <?php else: ?>
+                            <?php foreach ($appointments as $a):
+                                $statusBadge = match($a['status'] ?? '') {
+                                    'Arrived' => 'bg-slate-200 text-slate-800',
+                                    'In Progress' => 'bg-amber-100 text-amber-800',
+                                    'Waiting' => 'bg-red-100 text-red-700',
+                                    default => 'bg-blue-100 text-blue-800'
+                                };
+                                $initials = strtoupper(substr($a['patient_name'] ?? 'P', 0, 2));
+                            ?>
+                                <tr class="hover:bg-slate-50/80 transition">
+                                    <td class="py-3 px-3 text-slate-900 font-semibold">
+                                        <?php if (!empty($a['is_urgent'])): ?>
+                                            <span class="text-red-500 font-bold mr-1">!</span>
+                                        <?php endif; ?>
+                                        <?= htmlspecialchars($a['time'] ?? '') ?>
+                                    </td>
+                                    <td class="py-3 px-3">
+                                        <div class="flex items-center gap-2.5">
+                                            <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-800 text-xs font-bold flex items-center justify-center shrink-0">
+                                                <?= htmlspecialchars($initials) ?>
+                                            </div>
+                                            <div>
+                                                <div class="font-bold text-slate-900"><?= htmlspecialchars($a['patient_name'] ?? '') ?></div>
+                                                <div class="text-[10px] text-slate-400 font-normal">MRN: <?= htmlspecialchars($a['patient_mrn'] ?? '') ?></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="py-3 px-3 text-slate-600"><?= htmlspecialchars($a['doctor_name'] ?? '') ?></td>
+                                    <td class="py-3 px-3 text-slate-600"><?= htmlspecialchars($a['type'] ?? '') ?></td>
+                                    <td class="py-3 px-3 text-right">
+                                        <span class="inline-block px-2.5 py-1 rounded-full text-[11px] font-semibold <?= $statusBadge ?>">
+                                            • <?= htmlspecialchars($a['status'] ?? 'Scheduled') ?>
+                                        </span>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -379,50 +404,42 @@ try {
                 <span>Recent Activity</span>
             </h2>
             <div class="space-y-4">
-                <div class="flex items-start gap-3">
-                    <div class="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
-                        <span class="material-symbols-outlined text-base">person_add</span>
-                    </div>
-                    <div>
-                        <p class="text-xs font-bold text-slate-900">New Patient Registered: <span class="font-normal text-slate-700">David Kim</span></p>
-                        <p class="text-[10px] text-slate-400 mt-0.5">10 mins ago • via Portal</p>
-                    </div>
-                </div>
-
-                <div class="flex items-start gap-3">
-                    <div class="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 mt-0.5">
-                        <span class="material-symbols-outlined text-base">check_circle</span>
-                    </div>
-                    <div>
-                        <p class="text-xs font-bold text-slate-900">Visit Completed: <span class="font-normal text-slate-700">Sarah Connor</span></p>
-                        <p class="text-[10px] text-slate-400 mt-0.5">45 mins ago • Dr. Jenkins</p>
-                    </div>
-                </div>
-
-                <div class="flex items-start gap-3">
-                    <div class="w-7 h-7 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 mt-0.5">
-                        <span class="material-symbols-outlined text-base">science</span>
-                    </div>
-                    <div>
-                        <p class="text-xs font-bold text-slate-900">Lab Results Received: <span class="font-normal text-slate-700">James Wilson</span></p>
-                        <p class="text-[10px] text-slate-400 mt-0.5">2 hours ago • Blood Panel</p>
-                    </div>
-                </div>
-
-                <div class="flex items-start gap-3">
-                    <div class="w-7 h-7 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 mt-0.5">
-                        <span class="material-symbols-outlined text-base">event_busy</span>
-                    </div>
-                    <div>
-                        <p class="text-xs font-bold text-slate-900">Appointment Cancelled: <span class="font-normal text-slate-700">Emily Davis</span></p>
-                        <p class="text-[10px] text-slate-400 mt-0.5">3 hours ago • Patient requested</p>
-                    </div>
-                </div>
+                <?php if (empty($activities)): ?>
+                    <p class="text-xs text-slate-400 italic text-center py-4">No recent activity recorded for this clinic.</p>
+                <?php else: ?>
+                    <?php foreach ($activities as $act):
+                        $badgeBg = match($act['badge_type'] ?? 'blue') {
+                            'emerald', 'green' => 'bg-emerald-100 text-emerald-700',
+                            'amber', 'yellow' => 'bg-amber-100 text-amber-800',
+                            'red' => 'bg-red-100 text-red-700',
+                            default => 'bg-blue-100 text-blue-700'
+                        };
+                        $icon = match($act['type'] ?? '') {
+                            'patient_registration' => 'person_add',
+                            'encounter_complete' => 'check_circle',
+                            'lab_results' => 'science',
+                            'appointment_cancel' => 'event_busy',
+                            default => 'notifications'
+                        };
+                    ?>
+                        <div class="flex items-start gap-3">
+                            <div class="w-7 h-7 rounded-full <?= $badgeBg ?> flex items-center justify-center shrink-0 mt-0.5">
+                                <span class="material-symbols-outlined text-base"><?= $icon ?></span>
+                            </div>
+                            <div>
+                                <p class="text-xs font-bold text-slate-900"><?= htmlspecialchars($act['title'] ?? 'Activity') ?>: <span class="font-normal text-slate-700"><?= htmlspecialchars($act['detail'] ?? '') ?></span></p>
+                                <p class="text-[10px] text-slate-400 mt-0.5"><?= htmlspecialchars($act['timestamp'] ?? 'Recently') ?></p>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </div>
 
-            <button class="w-full mt-4 py-2 text-center text-xs font-bold text-blue-600 hover:text-blue-800 uppercase tracking-wider border-t border-slate-100 pt-3">
-                LOAD MORE
-            </button>
+            <?php if (!empty($activities)): ?>
+                <button class="w-full mt-4 py-2 text-center text-xs font-bold text-blue-600 hover:text-blue-800 uppercase tracking-wider border-t border-slate-100 pt-3">
+                    LOAD MORE
+                </button>
+            <?php endif; ?>
         </div>
     </div>
 </div>
