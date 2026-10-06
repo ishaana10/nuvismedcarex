@@ -334,6 +334,10 @@ foreach ($settingsRows as $sr) {
                                 <span>Attending: <strong class="text-slate-700"><?= htmlspecialchars($pv['doctor_name']) ?></strong></span>
                                 <div class="flex items-center gap-2">
                                     <?php if (!empty($pv['invoice_id'])): ?>
+                                        <button type="button" disabled class="px-3 py-1 bg-slate-300 text-slate-600 cursor-not-allowed font-bold text-xs rounded-lg flex items-center gap-1 shadow-xs opacity-75">
+                                            <span class="material-symbols-outlined text-sm">check_circle</span>
+                                            <span>Invoiced</span>
+                                        </button>
                                         <a href="print_invoice.php?id=<?= htmlspecialchars($pv['invoice_id']) ?>" target="_blank" class="px-3 py-1 bg-emerald-600 text-white font-bold text-xs rounded-lg hover:bg-emerald-700 transition flex items-center gap-1 shadow-xs">
                                             <span class="material-symbols-outlined text-sm">receipt</span>
                                             <span>View Invoice</span>
@@ -635,10 +639,31 @@ function openPastVisitModal(pv) {
 
     const invBtn = document.getElementById('pv_create_invoice_btn');
     if (invBtn) {
-        invBtn.onclick = function() {
-            closePastVisitModal();
-            openCreateInvoiceForVisit(pv);
-        };
+        if (pv.invoice_id) {
+            invBtn.outerHTML = `
+                <div class="flex items-center gap-2">
+                    <button type="button" disabled class="px-4 py-2 bg-slate-300 text-slate-600 cursor-not-allowed font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs opacity-75">
+                        <span class="material-symbols-outlined text-sm">check_circle</span>
+                        <span>Invoiced</span>
+                    </button>
+                    <a href="print_invoice.php?id=${pv.invoice_id}" target="_blank" class="px-4 py-2 bg-emerald-600 text-white font-bold text-xs rounded-xl hover:bg-emerald-700 transition flex items-center gap-1.5 shadow-xs">
+                        <span class="material-symbols-outlined text-sm">receipt</span>
+                        <span>View Invoice</span>
+                    </a>
+                </div>
+            `;
+        } else {
+            invBtn.outerHTML = `
+                <button type="button" id="pv_create_invoice_btn" class="px-4 py-2 bg-blue-700 text-white font-bold text-xs rounded-xl hover:bg-blue-800 transition flex items-center gap-1.5 shadow-xs">
+                    <span class="material-symbols-outlined text-sm">receipt_long</span>
+                    <span>Create Invoice for Visit</span>
+                </button>
+            `;
+            document.getElementById('pv_create_invoice_btn').onclick = function() {
+                closePastVisitModal();
+                openCreateInvoiceForVisit(pv);
+            };
+        }
     }
 
     document.getElementById('viewPastVisitModal').classList.remove('hidden');
