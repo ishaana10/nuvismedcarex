@@ -98,15 +98,22 @@ function runDatabaseMigrations(PDO $pdo): void {
 }
 
 function ensureDoctorColumnsExist(PDO $pdo): void {
+    $getField = function(array $row): string {
+        $val = $row['Field'] ?? $row['field'] ?? array_values($row)[0] ?? '';
+        return strtolower((string)$val);
+    };
+
     // Doctors table columns
     try {
         $cols = [];
         $stmt = $pdo->query("DESCRIBE doctors");
         while ($row = $stmt->fetch()) {
-            $cols[] = strtolower($row['Field']);
+            $fieldName = $getField($row);
+            if ($fieldName !== '') $cols[] = $fieldName;
         }
 
         $newCols = [
+            'tenant_id' => "VARCHAR(50) NOT NULL DEFAULT 'default-clinic'",
             'prc_number' => 'VARCHAR(100)',
             'ptr_number' => 'VARCHAR(100)',
             'esignature' => 'TEXT',
@@ -116,7 +123,9 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
 
         foreach ($newCols as $colName => $colDef) {
             if (!in_array($colName, $cols)) {
-                $pdo->exec("ALTER TABLE doctors ADD COLUMN {$colName} {$colDef}");
+                try {
+                    $pdo->exec("ALTER TABLE doctors ADD COLUMN {$colName} {$colDef}");
+                } catch (Throwable $ex) {}
             }
         }
     } catch (Throwable $e) {}
@@ -126,11 +135,14 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
         $rxCols = [];
         $stmt = $pdo->query("DESCRIBE prescriptions");
         while ($row = $stmt->fetch()) {
-            $rxCols[] = strtolower($row['Field']);
+            $fieldName = $getField($row);
+            if ($fieldName !== '') $rxCols[] = $fieldName;
         }
 
         if (!in_array('visit_id', $rxCols)) {
-            $pdo->exec("ALTER TABLE prescriptions ADD COLUMN visit_id VARCHAR(100)");
+            try {
+                $pdo->exec("ALTER TABLE prescriptions ADD COLUMN visit_id VARCHAR(100)");
+            } catch (Throwable $ex) {}
         }
     } catch (Throwable $e) {}
 
@@ -139,7 +151,8 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
         $pvCols = [];
         $stmt = $pdo->query("DESCRIBE past_visits");
         while ($row = $stmt->fetch()) {
-            $pvCols[] = strtolower($row['Field']);
+            $fieldName = $getField($row);
+            if ($fieldName !== '') $pvCols[] = $fieldName;
         }
 
         $newPvCols = [
@@ -151,7 +164,9 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
 
         foreach ($newPvCols as $colName => $colDef) {
             if (!in_array($colName, $pvCols)) {
-                $pdo->exec("ALTER TABLE past_visits ADD COLUMN {$colName} {$colDef}");
+                try {
+                    $pdo->exec("ALTER TABLE past_visits ADD COLUMN {$colName} {$colDef}");
+                } catch (Throwable $ex) {}
             }
         }
     } catch (Throwable $e) {}
@@ -161,7 +176,8 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
         $invCols = [];
         $stmt = $pdo->query("DESCRIBE inventory");
         while ($row = $stmt->fetch()) {
-            $invCols[] = strtolower($row['Field']);
+            $fieldName = $getField($row);
+            if ($fieldName !== '') $invCols[] = $fieldName;
         }
 
         $newInvCols = [
@@ -176,7 +192,9 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
 
         foreach ($newInvCols as $colName => $colDef) {
             if (!in_array($colName, $invCols)) {
-                $pdo->exec("ALTER TABLE inventory ADD COLUMN {$colName} {$colDef}");
+                try {
+                    $pdo->exec("ALTER TABLE inventory ADD COLUMN {$colName} {$colDef}");
+                } catch (Throwable $ex) {}
             }
         }
     } catch (Throwable $e) {}
@@ -186,10 +204,13 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
         $tntCols = [];
         $stmt = $pdo->query("DESCRIBE tenants");
         while ($row = $stmt->fetch()) {
-            $tntCols[] = strtolower($row['Field']);
+            $fieldName = $getField($row);
+            if ($fieldName !== '') $tntCols[] = $fieldName;
         }
         if (!in_array('storage_limit_mb', $tntCols)) {
-            $pdo->exec("ALTER TABLE tenants ADD COLUMN storage_limit_mb INT NOT NULL DEFAULT 500");
+            try {
+                $pdo->exec("ALTER TABLE tenants ADD COLUMN storage_limit_mb INT NOT NULL DEFAULT 500");
+            } catch (Throwable $ex) {}
         }
     } catch (Throwable $te) {}
 
@@ -198,16 +219,20 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
         $utCols = [];
         $stmt = $pdo->query("DESCRIBE user_tenants");
         while ($row = $stmt->fetch()) {
-            $utCols[] = strtolower($row['Field']);
+            $fieldName = $getField($row);
+            if ($fieldName !== '') $utCols[] = $fieldName;
         }
-        if (!in_array('tenant_id', $utCols)) {
-            $pdo->exec("ALTER TABLE user_tenants ADD COLUMN tenant_id VARCHAR(50) NOT NULL DEFAULT 'default-clinic'");
-        }
-        if (!in_array('user_id', $utCols)) {
-            $pdo->exec("ALTER TABLE user_tenants ADD COLUMN user_id VARCHAR(50) NOT NULL DEFAULT 'doc-1'");
-        }
-        if (!in_array('is_default', $utCols)) {
-            $pdo->exec("ALTER TABLE user_tenants ADD COLUMN is_default TINYINT(1) NOT NULL DEFAULT 0");
+        $utNewCols = [
+            'tenant_id' => "VARCHAR(50) NOT NULL DEFAULT 'default-clinic'",
+            'user_id' => "VARCHAR(50) NOT NULL DEFAULT 'doc-1'",
+            'is_default' => "TINYINT(1) NOT NULL DEFAULT 0"
+        ];
+        foreach ($utNewCols as $colName => $colDef) {
+            if (!in_array($colName, $utCols)) {
+                try {
+                    $pdo->exec("ALTER TABLE user_tenants ADD COLUMN {$colName} {$colDef}");
+                } catch (Throwable $ex) {}
+            }
         }
     } catch (Throwable $te) {}
 
@@ -216,10 +241,13 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
         $tsCols = [];
         $stmt = $pdo->query("DESCRIBE tenant_settings");
         while ($row = $stmt->fetch()) {
-            $tsCols[] = strtolower($row['Field']);
+            $fieldName = $getField($row);
+            if ($fieldName !== '') $tsCols[] = $fieldName;
         }
         if (!in_array('tenant_id', $tsCols)) {
-            $pdo->exec("ALTER TABLE tenant_settings ADD COLUMN tenant_id VARCHAR(50) NOT NULL DEFAULT 'default-clinic'");
+            try {
+                $pdo->exec("ALTER TABLE tenant_settings ADD COLUMN tenant_id VARCHAR(50) NOT NULL DEFAULT 'default-clinic'");
+            } catch (Throwable $ex) {}
         }
     } catch (Throwable $te) {}
 
@@ -230,10 +258,13 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
             $tCols = [];
             $tStmt = $pdo->query("DESCRIBE {$tTable}");
             while ($tRow = $tStmt->fetch()) {
-                $tCols[] = strtolower($tRow['Field']);
+                $fieldName = $getField($tRow);
+                if ($fieldName !== '') $tCols[] = $fieldName;
             }
             if (!in_array('tenant_id', $tCols)) {
-                $pdo->exec("ALTER TABLE {$tTable} ADD COLUMN tenant_id VARCHAR(50) NOT NULL DEFAULT 'default-clinic'");
+                try {
+                    $pdo->exec("ALTER TABLE {$tTable} ADD COLUMN tenant_id VARCHAR(50) NOT NULL DEFAULT 'default-clinic'");
+                } catch (Throwable $ex) {}
             }
         } catch (Throwable $te) {
             // Table might not exist yet
@@ -245,7 +276,8 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
         $invTableCols = [];
         $stmt = $pdo->query("DESCRIBE invoices");
         while ($row = $stmt->fetch()) {
-            $invTableCols[] = strtolower($row['Field']);
+            $fieldName = $getField($row);
+            if ($fieldName !== '') $invTableCols[] = $fieldName;
         }
 
         if (!empty($invTableCols)) {
@@ -273,7 +305,9 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
 
             foreach ($newInvoiceCols as $colName => $colDef) {
                 if (!in_array($colName, $invTableCols)) {
-                    $pdo->exec("ALTER TABLE invoices ADD COLUMN {$colName} {$colDef}");
+                    try {
+                        $pdo->exec("ALTER TABLE invoices ADD COLUMN {$colName} {$colDef}");
+                    } catch (Throwable $ex) {}
                 }
             }
         }
