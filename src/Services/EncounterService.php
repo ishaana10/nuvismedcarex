@@ -78,6 +78,8 @@ class EncounterService {
         $rawSoapJson = json_encode($soapData);
         $encryptedSoap = Encryption::encrypt($rawSoapJson);
 
+        $icdCode = !empty($soapData['icd_code']) ? $soapData['icd_code'] : ('ENC-' . date('Ymd') . '-' . sprintf('%04d', rand(1, 9999)));
+
         $sInsert = $this->db->prepare(
             "INSERT INTO soap_notes (id, tenant_id, patient_id, subjective, objective, assessment_codes, plan) " .
             "VALUES (:id, :tid, :pid, :sub, :obj, :codes, :plan)"
@@ -88,7 +90,7 @@ class EncounterService {
             'pid' => $patientId,
             'sub' => Encryption::encrypt($soapData['subjective'] ?? ''),
             'obj' => Encryption::encrypt($soapData['objective'] ?? ''),
-            'codes' => json_encode([['code' => $soapData['icd_code'] ?? 'J01.90', 'label' => $soapData['icd_code'] ?? 'J01.90']]),
+            'codes' => json_encode([['code' => $icdCode, 'label' => $icdCode]]),
             'plan' => Encryption::encrypt($soapData['plan'] ?? '')
         ]);
 
@@ -96,7 +98,6 @@ class EncounterService {
 
         if ($finalize) {
             $pastVisitId = Uuid::uuidv7();
-            $icdCode = $soapData['icd_code'] ?? 'J01.90';
             $title = "Clinical Encounter ({$icdCode})";
             $planText = $soapData['plan'] ?? '';
             $summary = !empty($planText) ? (substr($planText, 0, 120) . (strlen($planText) > 120 ? '...' : '')) : "Clinical encounter completed.";
@@ -178,7 +179,7 @@ class EncounterService {
         $objective = !empty($soapRow['objective']) ? Encryption::decrypt($soapRow['objective']) : '';
         $plan = !empty($soapRow['plan']) ? Encryption::decrypt($soapRow['plan']) : '';
         $codes = json_decode($soapRow['assessment_codes'] ?? '[]', true) ?: [];
-        $icdCode = $codes[0]['code'] ?? 'J01.90';
+        $icdCode = !empty($codes[0]['code']) ? $codes[0]['code'] : ('ENC-' . date('Ymd') . '-' . sprintf('%04d', rand(1, 9999)));
 
         $soapData = [
             'subjective' => $subjective,
