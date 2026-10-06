@@ -148,6 +148,22 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
         }
     } catch (Throwable $e) {}
 
+    // Auto-migrate lab_orders table columns
+    try {
+        $labCols = [];
+        $stmt = $pdo->query("DESCRIBE lab_orders");
+        while ($row = $stmt->fetch()) {
+            $fieldName = $getField($row);
+            if ($fieldName !== '') $labCols[] = $fieldName;
+        }
+
+        if (!in_array('clinical_notes', $labCols)) {
+            try {
+                $pdo->exec("ALTER TABLE lab_orders ADD COLUMN clinical_notes TEXT");
+            } catch (Throwable $ex) {}
+        }
+    } catch (Throwable $e) {}
+
     // Auto-migrate visit_id for prescriptions table
     try {
         $rxCols = [];
