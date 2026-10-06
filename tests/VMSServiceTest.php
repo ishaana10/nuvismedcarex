@@ -25,6 +25,7 @@ class VMSServiceTest extends TestCase
 
             CREATE TABLE invoices (
                 id TEXT PRIMARY KEY,
+                tenant_id TEXT DEFAULT 'default-clinic',
                 invoice_number TEXT UNIQUE NOT NULL,
                 patient_id TEXT,
                 patient_name TEXT NOT NULL,

@@ -40,8 +40,44 @@ $activeTab = $_GET['tab'] ?? 'invoices';
 $totalInvoicesCount = count($invoices);
 $paginationInvoices = getPaginationParams(10, [5, 10, 25, 50, 100], $pdo);
 $paginatedInvoices = array_slice($invoices, $paginationInvoices['offset'], $paginationInvoices['limit']);
+
+// Date range report parameters
 $selectedDate = $_GET['report_date'] ?? date('Y-m-d');
-$zReportData = $vmsService->getDailyFiscalReport($selectedDate);
+$fromDate = $_GET['from_date'] ?? null;
+$toDate = $_GET['to_date'] ?? null;
+$preset = $_GET['preset'] ?? null;
+
+if ($preset === 'quarterly') {
+    $month = (int)date('n');
+    $quarter = ceil($month / 3);
+    $startMonth = ($quarter - 1) * 3 + 1;
+    $endMonth = $quarter * 3;
+    $fromDate = date("Y-") . sprintf("%02d", $startMonth) . "-01";
+    $toDate = date("Y-m-t", strtotime(date("Y-") . sprintf("%02d", $endMonth) . "-01"));
+} elseif ($preset === 'half_yearly') {
+    $month = (int)date('n');
+    if ($month <= 6) {
+        $fromDate = date("Y-01-01");
+        $toDate = date("Y-06-30");
+    } else {
+        $fromDate = date("Y-07-01");
+        $toDate = date("Y-12-31");
+    }
+} elseif ($preset === 'yearly') {
+    $fromDate = date("Y-01-01");
+    $toDate = date("Y-12-31");
+}
+
+if (!empty($_GET['custom_range']) && !empty($_GET['from_date']) && !empty($_GET['to_date'])) {
+    $fromDate = $_GET['from_date'];
+    $toDate = $_GET['to_date'];
+}
+
+if ($fromDate && $toDate) {
+    $zReportData = $vmsService->getDailyFiscalReport($selectedDate, $fromDate, $toDate, $currentTenantId);
+} else {
+    $zReportData = $vmsService->getDailyFiscalReport($selectedDate, null, null, $currentTenantId);
+}
 ?>
 
 <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -353,22 +389,70 @@ $paginatedClaims = array_slice($insuranceClaims, $paginationClaims['offset'], $p
 </div>
 
 <?php elseif ($activeTab === 'zreport'): ?>
-<!-- Daily Z-Report View -->
-<div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs max-w-3xl">
-    <form method="GET" action="billing.php" class="flex items-center gap-3 mb-6">
-        <input type="hidden" name="tab" value="zreport">
-        <label class="text-xs font-bold text-on-surface">Select Date:</label>
-        <input type="date" name="report_date" value="<?= htmlspecialchars($selectedDate) ?>" class="px-3 py-1.5 border border-outline-variant/40 rounded-xl text-xs font-medium focus:ring-1 focus:ring-primary">
-        <button type="submit" class="px-3 py-1.5 bg-primary text-on-primary rounded-xl text-xs font-bold hover:bg-primary-hover transition">
-            Generate Report
-        </button>
-    </form>
+<!-- Daily Z-Report & Range Summary View -->
+<div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs max-w-4xl space-y-6">
+    <!-- Filter Bar & Preset Period Selectors -->
+    <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-xl">tune</span>
+                <span class="font-bold text-xs text-slate-800">Quick Period Presets</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 text-xs">
+                <a href="billing.php?tab=zreport&preset=quarterly" class="px-3 py-1.5 bg-white border border-slate-300 rounded-xl font-semibold text-slate-700 hover:bg-slate-100 transition <?= $preset === 'quarterly' ? 'bg-primary text-white border-primary' : '' ?>">
+                    Quarterly Report
+                </a>
+                <a href="billing.php?tab=zreport&preset=half_yearly" class="px-3 py-1.5 bg-white border border-slate-300 rounded-xl font-semibold text-slate-700 hover:bg-slate-100 transition <?= $preset === 'half_yearly' ? 'bg-primary text-white border-primary' : '' ?>">
+                    Half-Yearly Report
+                </a>
+                <a href="billing.php?tab=zreport&preset=yearly" class="px-3 py-1.5 bg-white border border-slate-300 rounded-xl font-semibold text-slate-700 hover:bg-slate-100 transition <?= $preset === 'yearly' ? 'bg-primary text-white border-primary' : '' ?>">
+                    Yearly Report
+                </a>
+            </div>
+        </div>
 
-    <div class="border border-outline-variant/30 rounded-xl p-5 font-mono text-xs bg-slate-50">
-        <div class="text-center pb-4 border-b border-dashed border-slate-300">
-            <h2 class="text-base font-bold text-slate-800 uppercase">FRCS EFD DAILY FISCAL REPORT (Z-REPORT)</h2>
+        <form method="GET" action="billing.php" class="flex flex-col sm:flex-row items-center gap-3 text-xs pt-3 border-t border-slate-200">
+            <input type="hidden" name="tab" value="zreport">
+            <input type="hidden" name="custom_range" value="1">
+            <div class="flex items-center gap-2">
+                <label class="font-bold text-slate-700">From:</label>
+                <input type="date" name="from_date" value="<?= htmlspecialchars($fromDate ?: $selectedDate) ?>" class="px-3 py-1.5 border border-slate-300 rounded-xl font-medium focus:ring-1 focus:ring-primary">
+            </div>
+            <div class="flex items-center gap-2">
+                <label class="font-bold text-slate-700">To:</label>
+                <input type="date" name="to_date" value="<?= htmlspecialchars($toDate ?: $selectedDate) ?>" class="px-3 py-1.5 border border-slate-300 rounded-xl font-medium focus:ring-1 focus:ring-primary">
+            </div>
+            <div class="flex items-center gap-2">
+                <button type="submit" class="px-4 py-1.5 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 transition shadow-xs">
+                    Filter Range
+                </button>
+                <?php
+                $pdfParams = "report_date=" . urlencode($selectedDate);
+                if ($fromDate && $toDate) {
+                    $pdfParams .= "&from_date=" . urlencode($fromDate) . "&to_date=" . urlencode($toDate);
+                }
+                if ($preset) {
+                    $pdfParams .= "&preset=" . urlencode($preset);
+                }
+                ?>
+                <a href="print_zreport.php?<?= $pdfParams ?>" target="_blank" class="px-4 py-1.5 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition shadow-xs flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-base">picture_as_pdf</span>
+                    <span>Export to PDF / Print</span>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Printable Z-Report Summary Box -->
+    <div class="border border-outline-variant/30 rounded-2xl p-6 font-mono text-xs bg-slate-50 shadow-2xs">
+        <div class="text-center pb-4 border-b border-dashed border-slate-300 space-y-1">
+            <h2 class="text-base font-bold text-slate-800 uppercase">FRCS EFD FISCAL SUMMARY REPORT</h2>
+            <?php if ($fromDate && $toDate): ?>
+                <p class="text-xs font-bold text-primary">Period: <?= htmlspecialchars(date('M d, Y', strtotime($fromDate))) ?> &mdash; <?= htmlspecialchars(date('M d, Y', strtotime($toDate))) ?></p>
+            <?php else: ?>
+                <p class="text-xs font-bold text-primary">Daily Report Date: <?= htmlspecialchars($zReportData['date']) ?></p>
+            <?php endif; ?>
             <p class="text-[11px] text-slate-500">TIN: <?= htmlspecialchars($vmsSettings['vms_seller_tin'] ?? '502579006') ?> | POS ID: <?= htmlspecialchars($vmsSettings['vms_pos_number'] ?? 'ASDF238/1.2') ?></p>
-            <p class="text-[11px] text-slate-500">Date: <?= htmlspecialchars($zReportData['date']) ?></p>
         </div>
 
         <div class="py-4 border-b border-dashed border-slate-300 space-y-2">
