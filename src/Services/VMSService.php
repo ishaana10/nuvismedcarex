@@ -372,13 +372,25 @@ class VMSService
     /**
      * Generates a Daily Fiscal Summary Report (Z-Report data) for a given date
      */
-    public function getDailyFiscalReport(string $date): array
+    public function getDailyFiscalReport(string $date, ?string $fromDate = null, ?string $toDate = null, ?string $tenantId = null): array
     {
-        $stmt = $this->pdo->prepare("
-            SELECT * FROM invoices
-            WHERE is_fiscalized = 1 AND DATE(created_at) = ?
-        ");
-        $stmt->execute([$date]);
+        $tenantId = $tenantId ?? \ClinicFlow\Shared\TenantContext::getTenantId();
+
+        if ($fromDate !== null && $toDate !== null) {
+            $stmt = $this->pdo->prepare("
+                SELECT * FROM invoices
+                WHERE tenant_id = ? AND is_fiscalized = 1 AND DATE(created_at) BETWEEN ? AND ?
+                ORDER BY created_at ASC
+            ");
+            $stmt->execute([$tenantId, $fromDate, $toDate]);
+        } else {
+            $stmt = $this->pdo->prepare("
+                SELECT * FROM invoices
+                WHERE tenant_id = ? AND is_fiscalized = 1 AND DATE(created_at) = ?
+                ORDER BY created_at ASC
+            ");
+            $stmt->execute([$tenantId, $date]);
+        }
         $invoices = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $summary = [
