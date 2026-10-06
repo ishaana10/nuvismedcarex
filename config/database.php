@@ -98,10 +98,7 @@ function runDatabaseMigrations(PDO $pdo): void {
 }
 
 function ensureDoctorColumnsExist(PDO $pdo): void {
-    static $checked = false;
-    if ($checked) return;
-    $checked = true;
-
+    // Doctors table columns
     try {
         $cols = [];
         $stmt = $pdo->query("DESCRIBE doctors");
@@ -122,8 +119,10 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
                 $pdo->exec("ALTER TABLE doctors ADD COLUMN {$colName} {$colDef}");
             }
         }
+    } catch (Throwable $e) {}
 
-        // Auto-migrate visit_id for prescriptions table
+    // Auto-migrate visit_id for prescriptions table
+    try {
         $rxCols = [];
         $stmt = $pdo->query("DESCRIBE prescriptions");
         while ($row = $stmt->fetch()) {
@@ -133,8 +132,10 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
         if (!in_array('visit_id', $rxCols)) {
             $pdo->exec("ALTER TABLE prescriptions ADD COLUMN visit_id VARCHAR(100)");
         }
+    } catch (Throwable $e) {}
 
-        // Auto-migrate columns for past_visits table
+    // Auto-migrate columns for past_visits table
+    try {
         $pvCols = [];
         $stmt = $pdo->query("DESCRIBE past_visits");
         while ($row = $stmt->fetch()) {
@@ -153,8 +154,10 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
                 $pdo->exec("ALTER TABLE past_visits ADD COLUMN {$colName} {$colDef}");
             }
         }
+    } catch (Throwable $e) {}
 
-        // Auto-migrate inventory table
+    // Auto-migrate inventory table
+    try {
         $invCols = [];
         $stmt = $pdo->query("DESCRIBE inventory");
         while ($row = $stmt->fetch()) {
@@ -176,67 +179,69 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
                 $pdo->exec("ALTER TABLE inventory ADD COLUMN {$colName} {$colDef}");
             }
         }
+    } catch (Throwable $e) {}
 
-        // Auto-migrate tenants table columns
-        try {
-            $tntCols = [];
-            $stmt = $pdo->query("DESCRIBE tenants");
-            while ($row = $stmt->fetch()) {
-                $tntCols[] = strtolower($row['Field']);
-            }
-            if (!in_array('storage_limit_mb', $tntCols)) {
-                $pdo->exec("ALTER TABLE tenants ADD COLUMN storage_limit_mb INT NOT NULL DEFAULT 500");
-            }
-        } catch (Throwable $te) {}
-
-        // Auto-migrate user_tenants table columns
-        try {
-            $utCols = [];
-            $stmt = $pdo->query("DESCRIBE user_tenants");
-            while ($row = $stmt->fetch()) {
-                $utCols[] = strtolower($row['Field']);
-            }
-            if (!in_array('tenant_id', $utCols)) {
-                $pdo->exec("ALTER TABLE user_tenants ADD COLUMN tenant_id VARCHAR(50) NOT NULL DEFAULT 'default-clinic'");
-            }
-            if (!in_array('user_id', $utCols)) {
-                $pdo->exec("ALTER TABLE user_tenants ADD COLUMN user_id VARCHAR(50) NOT NULL DEFAULT 'doc-1'");
-            }
-            if (!in_array('is_default', $utCols)) {
-                $pdo->exec("ALTER TABLE user_tenants ADD COLUMN is_default TINYINT(1) NOT NULL DEFAULT 0");
-            }
-        } catch (Throwable $te) {}
-
-        // Auto-migrate tenant_settings table columns
-        try {
-            $tsCols = [];
-            $stmt = $pdo->query("DESCRIBE tenant_settings");
-            while ($row = $stmt->fetch()) {
-                $tsCols[] = strtolower($row['Field']);
-            }
-            if (!in_array('tenant_id', $tsCols)) {
-                $pdo->exec("ALTER TABLE tenant_settings ADD COLUMN tenant_id VARCHAR(50) NOT NULL DEFAULT 'default-clinic'");
-            }
-        } catch (Throwable $te) {}
-
-        // Ensure tenant_id column exists on all business tables in MySQL
-        $tenantTables = ['doctors', 'patients', 'appointments', 'queue', 'vitals', 'soap_notes', 'prescriptions', 'past_visits', 'activities', 'invoices', 'invoice_items', 'inventory', 'inventory_logs', 'medical_certificates', 'audit_logs', 'vms_logs', 'user_tenants', 'tenant_settings', 'uploaded_files'];
-        foreach ($tenantTables as $tTable) {
-            try {
-                $tCols = [];
-                $tStmt = $pdo->query("DESCRIBE {$tTable}");
-                while ($tRow = $tStmt->fetch()) {
-                    $tCols[] = strtolower($tRow['Field']);
-                }
-                if (!in_array('tenant_id', $tCols)) {
-                    $pdo->exec("ALTER TABLE {$tTable} ADD COLUMN tenant_id VARCHAR(50) NOT NULL DEFAULT 'default-clinic'");
-                }
-            } catch (Throwable $te) {
-                // Table might not exist yet
-            }
+    // Auto-migrate tenants table columns
+    try {
+        $tntCols = [];
+        $stmt = $pdo->query("DESCRIBE tenants");
+        while ($row = $stmt->fetch()) {
+            $tntCols[] = strtolower($row['Field']);
         }
+        if (!in_array('storage_limit_mb', $tntCols)) {
+            $pdo->exec("ALTER TABLE tenants ADD COLUMN storage_limit_mb INT NOT NULL DEFAULT 500");
+        }
+    } catch (Throwable $te) {}
 
-        // Auto-migrate invoices table columns
+    // Auto-migrate user_tenants table columns
+    try {
+        $utCols = [];
+        $stmt = $pdo->query("DESCRIBE user_tenants");
+        while ($row = $stmt->fetch()) {
+            $utCols[] = strtolower($row['Field']);
+        }
+        if (!in_array('tenant_id', $utCols)) {
+            $pdo->exec("ALTER TABLE user_tenants ADD COLUMN tenant_id VARCHAR(50) NOT NULL DEFAULT 'default-clinic'");
+        }
+        if (!in_array('user_id', $utCols)) {
+            $pdo->exec("ALTER TABLE user_tenants ADD COLUMN user_id VARCHAR(50) NOT NULL DEFAULT 'doc-1'");
+        }
+        if (!in_array('is_default', $utCols)) {
+            $pdo->exec("ALTER TABLE user_tenants ADD COLUMN is_default TINYINT(1) NOT NULL DEFAULT 0");
+        }
+    } catch (Throwable $te) {}
+
+    // Auto-migrate tenant_settings table columns
+    try {
+        $tsCols = [];
+        $stmt = $pdo->query("DESCRIBE tenant_settings");
+        while ($row = $stmt->fetch()) {
+            $tsCols[] = strtolower($row['Field']);
+        }
+        if (!in_array('tenant_id', $tsCols)) {
+            $pdo->exec("ALTER TABLE tenant_settings ADD COLUMN tenant_id VARCHAR(50) NOT NULL DEFAULT 'default-clinic'");
+        }
+    } catch (Throwable $te) {}
+
+    // Ensure tenant_id column exists on all business tables in MySQL
+    $tenantTables = ['doctors', 'patients', 'appointments', 'queue', 'vitals', 'soap_notes', 'prescriptions', 'past_visits', 'activities', 'invoices', 'invoice_items', 'inventory', 'inventory_logs', 'medical_certificates', 'audit_logs', 'vms_logs', 'user_tenants', 'tenant_settings', 'uploaded_files'];
+    foreach ($tenantTables as $tTable) {
+        try {
+            $tCols = [];
+            $tStmt = $pdo->query("DESCRIBE {$tTable}");
+            while ($tRow = $tStmt->fetch()) {
+                $tCols[] = strtolower($tRow['Field']);
+            }
+            if (!in_array('tenant_id', $tCols)) {
+                $pdo->exec("ALTER TABLE {$tTable} ADD COLUMN tenant_id VARCHAR(50) NOT NULL DEFAULT 'default-clinic'");
+            }
+        } catch (Throwable $te) {
+            // Table might not exist yet
+        }
+    }
+
+    // Auto-migrate invoices table columns
+    try {
         $invTableCols = [];
         $stmt = $pdo->query("DESCRIBE invoices");
         while ($row = $stmt->fetch()) {
@@ -272,8 +277,10 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
                 }
             }
         }
+    } catch (Throwable $e) {}
 
-        // Auto-create inventory_logs if missing
+    // Auto-create inventory_logs if missing
+    try {
         $pdo->exec("CREATE TABLE IF NOT EXISTS inventory_logs (
             id VARCHAR(50) PRIMARY KEY,
             inventory_id VARCHAR(50) NOT NULL,
@@ -287,9 +294,7 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
             created_by VARCHAR(255) DEFAULT 'System',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );");
-    } catch (Exception $e) {
-        // Table might not exist yet during fresh install
-    }
+    } catch (Throwable $e) {}
 }
 
 /**
