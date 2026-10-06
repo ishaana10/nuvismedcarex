@@ -118,7 +118,9 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
             'ptr_number' => 'VARCHAR(100)',
             'esignature' => 'TEXT',
             'digital_stamp' => 'TEXT',
-            'is_active' => 'INTEGER DEFAULT 1'
+            'is_active' => 'INTEGER DEFAULT 1',
+            'mfa_secret' => 'VARCHAR(255) DEFAULT NULL',
+            'mfa_enabled' => 'TINYINT(1) DEFAULT 0'
         ];
 
         foreach ($newCols as $colName => $colDef) {
@@ -127,6 +129,22 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
                     $pdo->exec("ALTER TABLE doctors ADD COLUMN {$colName} {$colDef}");
                 } catch (Throwable $ex) {}
             }
+        }
+    } catch (Throwable $e) {}
+
+    // Audit logs table columns
+    try {
+        $auditCols = [];
+        $stmt = $pdo->query("DESCRIBE audit_logs");
+        while ($row = $stmt->fetch()) {
+            $fieldName = $getField($row);
+            if ($fieldName !== '') $auditCols[] = $fieldName;
+        }
+
+        if (!in_array('patient_id', $auditCols)) {
+            try {
+                $pdo->exec("ALTER TABLE audit_logs ADD COLUMN patient_id VARCHAR(50) DEFAULT NULL");
+            } catch (Throwable $ex) {}
         }
     } catch (Throwable $e) {}
 
@@ -402,6 +420,11 @@ function executeAutoSchemaMigrations(PDO $pdo): array {
     ensureDoctorColumnsExist($pdo);
 
     return $results;
+}
+
+// Apply Security Headers globally
+if (class_exists('ClinicFlow\\Http\\SecurityHeadersMiddleware')) {
+    \ClinicFlow\Http\SecurityHeadersMiddleware::applyHeaders();
 }
 
 // Session & Toast helper

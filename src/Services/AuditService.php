@@ -12,7 +12,7 @@ class AuditService {
         $this->db = $db;
     }
 
-    public function log(string $action, string $details, ?string $userId = null, ?string $userName = null, ?string $userRole = null, ?string $tenantId = null): string {
+    public function log(string $action, string $details, ?string $userId = null, ?string $userName = null, ?string $userRole = null, ?string $tenantId = null, ?string $patientId = null): string {
         $tenantId = $tenantId ?? TenantContext::getTenantId();
         $userId = $userId ?? ($_SESSION['user_id'] ?? 'SYS-001');
         $userName = $userName ?? ($_SESSION['user_name'] ?? 'System Admin');
@@ -21,8 +21,8 @@ class AuditService {
         $logId = 'audit-' . uniqid();
 
         $stmt = $this->db->prepare(
-            "INSERT INTO audit_logs (id, tenant_id, user_id, user_name, user_role, action, details, ip_address, created_at) " .
-            "VALUES (:id, :tenant_id, :user_id, :user_name, :user_role, :action, :details, :ip, :created_at)"
+            "INSERT INTO audit_logs (id, tenant_id, user_id, user_name, user_role, patient_id, action, details, ip_address, created_at) " .
+            "VALUES (:id, :tenant_id, :user_id, :user_name, :user_role, :patient_id, :action, :details, :ip, :created_at)"
         );
 
         $stmt->execute([
@@ -31,6 +31,7 @@ class AuditService {
             'user_id' => $userId,
             'user_name' => $userName,
             'user_role' => $userRole,
+            'patient_id' => $patientId,
             'action' => $action,
             'details' => $details,
             'ip' => $ip,
@@ -38,6 +39,13 @@ class AuditService {
         ]);
 
         return $logId;
+    }
+
+    /**
+     * Log patient health record read access
+     */
+    public function logPatientRead(string $patientId, string $details = 'Accessed patient medical record', ?string $userId = null, ?string $tenantId = null): string {
+        return $this->log('READ_PATIENT_RECORD', $details, $userId, null, null, $tenantId, $patientId);
     }
 
     public function logInventoryChange(string $inventoryId, string $action, int $changeAmount, array $meta = [], ?string $tenantId = null): string {
