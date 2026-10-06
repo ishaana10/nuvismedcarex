@@ -26,9 +26,22 @@ $pageTitle = htmlspecialchars($patient['first_name'] . ' ' . $patient['last_name
 $activePage = "patients";
 include __DIR__ . '/includes/header.php';
 
-// Fetch past visits
-$pvStmt = $pdo->prepare("SELECT * FROM past_visits WHERE patient_id = ? ORDER BY id DESC");
-$pvStmt->execute([$patientId]);
+// Fetch active inventory items for VMS invoice creation in past encounters
+$currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+$inventoryStmt = $pdo->prepare("SELECT id, name, sku, current_stock, unit_price, vms_tax_code FROM inventory WHERE tenant_id = ? AND is_active = 1 ORDER BY name ASC");
+$inventoryStmt->execute([$currentTenantId]);
+$inventoryList = $inventoryStmt->fetchAll();
+
+// Fetch past visits with linked invoice statuses
+$pvStmt = $pdo->prepare("
+    SELECT pv.*, i.id as invoice_id, i.invoice_number, i.status as invoice_status, i.amount as invoice_amount, i.patient_owed as invoice_patient_owed, i.is_fiscalized
+    FROM past_visits pv
+    LEFT JOIN invoices i ON (pv.visit_id = i.ref_no OR pv.visit_id = i.id OR (i.patient_id = pv.patient_id AND i.service_date = pv.visit_date)) AND i.tenant_id = pv.tenant_id
+    WHERE pv.patient_id = ? AND pv.tenant_id = ?
+    GROUP BY pv.id
+    ORDER BY pv.id DESC
+");
+$pvStmt->execute([$patientId, $currentTenantId]);
 $pastVisits = $pvStmt->fetchAll();
 
 $totalPastVisitsCount = count($pastVisits);
@@ -298,17 +311,39 @@ foreach ($settingsRows as $sr) {
                     <?php foreach ($paginatedPastVisits as $pv): ?>
                         <div class="p-4 rounded-xl bg-surface-container-low/40 border border-outline-variant/20">
                             <div class="flex items-center justify-between mb-2">
-                                <h3 class="font-bold text-xs text-on-surface"><?= htmlspecialchars($pv['title']) ?></h3>
+                                <div class="flex items-center gap-2">
+                                    <h3 class="font-bold text-xs text-on-surface"><?= htmlspecialchars($pv['title']) ?></h3>
+                                    <?php if (!empty($pv['invoice_status'])): ?>
+                                        <?php
+                                        $invBadgeStyle = match($pv['invoice_status']) {
+                                            'Paid' => 'bg-emerald-100 text-emerald-800',
+                                            'Pending' => 'bg-amber-100 text-amber-800',
+                                            'Overdue' => 'bg-red-100 text-red-800',
+                                            default => 'bg-slate-200 text-slate-700'
+                                        };
+                                        ?>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold <?= $invBadgeStyle ?>">
+                                            Invoiced (<?= htmlspecialchars($pv['invoice_status']) ?> - $<?= number_format((float)($pv['invoice_amount'] ?? 0), 2) ?>)
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
                                 <span class="text-[11px] text-outline font-medium"><?= htmlspecialchars($pv['visit_date']) ?></span>
                             </div>
                             <p class="text-xs text-on-surface-variant mb-2"><?= htmlspecialchars($pv['summary']) ?></p>
                             <div class="flex items-center justify-between text-[11px] text-outline pt-2 border-t border-outline-variant/20">
                                 <span>Attending: <strong class="text-slate-700"><?= htmlspecialchars($pv['doctor_name']) ?></strong></span>
                                 <div class="flex items-center gap-2">
-                                    <button type="button" onclick='openCreateInvoiceForVisit(<?= htmlspecialchars(json_encode($pv), ENT_QUOTES, "UTF-8") ?>)' class="px-3 py-1 bg-blue-700 text-white font-bold text-xs rounded-lg hover:bg-blue-800 transition flex items-center gap-1 shadow-xs">
-                                        <span class="material-symbols-outlined text-sm">receipt_long</span>
-                                        <span>Create Invoice</span>
-                                    </button>
+                                    <?php if (!empty($pv['invoice_id'])): ?>
+                                        <a href="print_invoice.php?id=<?= htmlspecialchars($pv['invoice_id']) ?>" target="_blank" class="px-3 py-1 bg-emerald-600 text-white font-bold text-xs rounded-lg hover:bg-emerald-700 transition flex items-center gap-1 shadow-xs">
+                                            <span class="material-symbols-outlined text-sm">receipt</span>
+                                            <span>View Invoice</span>
+                                        </a>
+                                    <?php else: ?>
+                                        <button type="button" onclick='openCreateInvoiceForVisit(<?= htmlspecialchars(json_encode($pv), ENT_QUOTES, "UTF-8") ?>)' class="px-3 py-1 bg-blue-700 text-white font-bold text-xs rounded-lg hover:bg-blue-800 transition flex items-center gap-1 shadow-xs">
+                                            <span class="material-symbols-outlined text-sm">receipt_long</span>
+                                            <span>Create Invoice</span>
+                                        </button>
+                                    <?php endif; ?>
                                     <button type="button" onclick='openPastVisitModal(<?= htmlspecialchars(json_encode($pv), ENT_QUOTES, "UTF-8") ?>)' class="px-3 py-1 bg-primary text-white font-bold text-xs rounded-lg hover:bg-primary/90 transition flex items-center gap-1 shadow-xs">
                                         <span class="material-symbols-outlined text-sm">visibility</span>
                                         <span>View Details</span>
@@ -614,20 +649,20 @@ function closePastVisitModal() {
 }
 </script>
 
-<!-- Modal: Create Invoice for Finalized Visit -->
+<!-- Modal: Create VMS Fiscal Invoice for Past Visit -->
 <div id="createInvoiceModal" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-surface-container-lowest rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-outline-variant/30">
-        <div class="flex items-center justify-between mb-4 pb-3 border-b border-outline-variant/20">
+    <div class="bg-surface-container-lowest rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-outline-variant/30 space-y-4 max-h-[90vh] overflow-y-auto text-xs">
+        <div class="flex items-center justify-between pb-3 border-b border-outline-variant/20">
             <h3 class="text-base font-bold text-on-surface flex items-center gap-2">
                 <span class="material-symbols-outlined text-blue-600">receipt_long</span>
-                <span>Create Invoice for Visit</span>
+                <span>Issue VMS Fiscal Invoice for Encounter</span>
             </h3>
             <button type="button" onclick="document.getElementById('createInvoiceModal').classList.add('hidden')" class="text-outline hover:text-on-surface">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
 
-        <form action="actions/encounter_save.php" method="POST" class="space-y-4 text-xs">
+        <form action="actions/encounter_save.php" method="POST" class="space-y-4">
             <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
             <input type="hidden" name="action" value="create_invoice">
             <input type="hidden" name="patient_id" value="<?= htmlspecialchars($patient['id']) ?>">
@@ -639,34 +674,100 @@ function closePastVisitModal() {
                 <input type="text" readonly value="<?= htmlspecialchars($patient['first_name'] . ' ' . $patient['last_name'] . ' (' . $patient['mrn'] . ')') ?>" class="w-full bg-slate-100 px-3 py-2 rounded-xl border border-slate-300 font-bold text-slate-700">
             </div>
 
-            <div>
-                <label class="block font-bold text-slate-700 mb-1">Service Description <span class="text-red-500">*</span></label>
-                <input type="text" name="service_description" id="inv_service_desc" value="Clinical Consultation & Examination" required class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-medium">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-outline mb-1">Invoice Type</label>
+                    <select name="invoice_type" class="w-full px-2.5 py-1.5 border border-outline-variant/40 rounded-xl font-bold text-primary bg-white">
+                        <option value="Normal">Normal Invoice</option>
+                        <option value="Advance">Advance Invoice</option>
+                        <option value="Proforma">Proforma Invoice</option>
+                        <option value="Copy">Copy Invoice</option>
+                        <option value="Training">Training Invoice</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-bold text-outline mb-1">Transaction Type</label>
+                    <select name="transaction_type" class="w-full px-2.5 py-1.5 border border-outline-variant/40 rounded-xl font-bold bg-white">
+                        <option value="Sale">Sale (+)</option>
+                        <option value="Refund">Refund (-)</option>
+                    </select>
+                </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Total Amount ($)</label>
-                    <input type="number" step="0.01" min="0" name="amount" id="inv_amount" value="150.00" oninput="calculateInvoiceOwed()" required class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-mono font-bold text-on-surface">
+            <div>
+                <div class="flex items-center justify-between mb-1.5">
+                    <label class="font-bold text-on-surface">VMS Line Items</label>
+                    <button type="button" onclick="addPastInvoiceRow()" class="px-2 py-0.5 bg-emerald-600 text-white rounded-lg text-[10px] font-bold hover:bg-emerald-700 transition">
+                        + Add Line Item
+                    </button>
                 </div>
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Insurance ($)</label>
-                    <input type="number" step="0.01" min="0" name="insurance_covered" id="inv_insurance" value="100.00" oninput="calculateInvoiceOwed()" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-mono font-bold text-on-surface">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Patient Owed ($)</label>
-                    <input type="number" step="0.01" min="0" name="patient_owed" id="inv_patient_owed" value="50.00" readonly class="w-full bg-slate-100 px-3 py-2 rounded-xl border border-slate-300 font-mono font-bold text-blue-700">
+
+                <div class="border border-outline-variant/30 rounded-xl overflow-hidden bg-white">
+                    <table class="w-full text-left" id="pastInvoiceItemsTable">
+                        <thead class="bg-surface-container-high text-[10px] font-bold uppercase text-outline">
+                            <tr>
+                                <th class="py-1.5 px-2">Item / Service Name</th>
+                                <th class="py-1.5 px-1 w-12">Qty</th>
+                                <th class="py-1.5 px-1 w-20">Price ($)</th>
+                                <th class="py-1.5 px-1 w-16">Tax</th>
+                                <th class="py-1.5 px-1 w-8"></th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-outline-variant/20 text-xs">
+                            <tr>
+                                <td class="py-1.5 px-2 space-y-1">
+                                    <select onchange="onPastInventorySelect(this)" class="w-full px-1.5 py-1 border border-outline-variant/40 rounded-lg font-semibold text-[11px] text-primary bg-white">
+                                        <option value="">-- Choose Inventory Stock Item (Optional) --</option>
+                                        <?php foreach ($inventoryList as $invItem): ?>
+                                            <option value="<?= htmlspecialchars($invItem['id']) ?>"
+                                                    data-name="<?= htmlspecialchars($invItem['name']) ?>"
+                                                    data-sku="<?= htmlspecialchars($invItem['sku']) ?>"
+                                                    data-price="<?= htmlspecialchars($invItem['unit_price']) ?>"
+                                                    data-tax="<?= htmlspecialchars($invItem['vms_tax_code'] ?: 'A') ?>">
+                                                <?= htmlspecialchars($invItem['name']) ?> ($<?= number_format($invItem['unit_price'], 2) ?>)
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <input type="hidden" name="inventory_id[]" value="">
+                                    <input type="text" name="item_name[]" id="inv_service_desc" value="Clinical Consultation & Examination" required placeholder="Item / Service Name" class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg text-xs font-medium">
+                                </td>
+                                <td class="py-1.5 px-1">
+                                    <input type="number" step="0.5" name="quantity[]" value="1" required class="w-full px-1.5 py-1 border border-outline-variant/40 rounded-lg font-mono">
+                                </td>
+                                <td class="py-1.5 px-1">
+                                    <input type="number" step="0.01" name="unit_price[]" value="150.00" required class="w-full px-1.5 py-1 border border-outline-variant/40 rounded-lg font-mono">
+                                </td>
+                                <td class="py-1.5 px-1">
+                                    <select name="tax_label[]" class="w-full px-1 py-1 border border-outline-variant/40 rounded-lg font-bold text-[10px]">
+                                        <option value="A" selected>A (15%)</option>
+                                        <option value="E">E (0%)</option>
+                                        <option value="F">F (0%)</option>
+                                        <option value="P">P (0.25%)</option>
+                                    </select>
+                                </td>
+                                <td class="py-1.5 px-1 text-center">
+                                    <button type="button" onclick="this.closest('tr').remove()" class="text-red-500 font-bold">&times;</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Service Date</label>
-                    <input type="date" name="service_date" id="inv_service_date" value="<?= date('Y-m-d') ?>" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-medium" required>
+                    <label class="block font-bold text-outline mb-1">Payment Method</label>
+                    <select name="payment_type" class="w-full px-2.5 py-1.5 border border-outline-variant/40 rounded-xl font-bold bg-white">
+                        <option value="Cash">Cash</option>
+                        <option value="Card">Card</option>
+                        <option value="Check">Check</option>
+                        <option value="Wire Transfer">Wire Transfer</option>
+                        <option value="Mobile Money">Mobile Money</option>
+                    </select>
                 </div>
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Due Date</label>
-                    <input type="date" name="due_date" value="<?= date('Y-m-d', strtotime('+30 days')) ?>" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-medium" required>
+                    <label class="block font-bold text-outline mb-1">Insurance Portion ($)</label>
+                    <input type="number" step="0.01" min="0" name="insurance_covered" value="0.00" class="w-full px-2.5 py-1.5 border border-outline-variant/40 rounded-xl font-mono font-bold bg-white">
                 </div>
             </div>
 
@@ -676,7 +777,7 @@ function closePastVisitModal() {
                 </button>
                 <button type="submit" class="px-5 py-2 bg-blue-700 text-white font-bold rounded-xl hover:bg-blue-800 transition shadow-xs flex items-center gap-2">
                     <span class="material-symbols-outlined text-base">receipt_long</span>
-                    <span>Generate Invoice</span>
+                    <span>Generate VMS Fiscal Invoice</span>
                 </button>
             </div>
         </form>
@@ -684,24 +785,76 @@ function closePastVisitModal() {
 </div>
 
 <script>
-function calculateInvoiceOwed() {
-    const amount = parseFloat(document.getElementById('inv_amount').value) || 0;
-    const ins = parseFloat(document.getElementById('inv_insurance').value) || 0;
-    const owed = Math.max(0, amount - ins);
-    document.getElementById('inv_patient_owed').value = owed.toFixed(2);
+const pastInventoryList = <?= json_encode($inventoryList, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+
+function onPastInventorySelect(select) {
+    const tr = select.closest('tr');
+    const opt = select.options[select.selectedIndex];
+
+    const invIdInput = tr.querySelector('input[name="inventory_id[]"]');
+    const itemNameInput = tr.querySelector('input[name="item_name[]"]');
+    const unitPriceInput = tr.querySelector('input[name="unit_price[]"]');
+    const taxSelect = tr.querySelector('select[name="tax_label[]"]');
+
+    if (opt.value) {
+        invIdInput.value = opt.value;
+        itemNameInput.value = opt.getAttribute('data-name') || '';
+        unitPriceInput.value = parseFloat(opt.getAttribute('data-price') || 0).toFixed(2);
+        const taxCode = opt.getAttribute('data-tax') || 'A';
+        if (taxSelect) {
+            taxSelect.value = taxCode;
+        }
+    } else {
+        invIdInput.value = '';
+    }
+}
+
+function addPastInvoiceRow() {
+    const tbody = document.querySelector('#pastInvoiceItemsTable tbody');
+    const tr = document.createElement('tr');
+
+    let invOptions = '<option value="">-- Choose Inventory Stock Item (Optional) --</option>';
+    if (Array.isArray(pastInventoryList)) {
+        pastInventoryList.forEach(item => {
+            const price = parseFloat(item.unit_price) || 0;
+            const tax = item.vms_tax_code || 'A';
+            invOptions += `<option value="${item.id}" data-name="${item.name}" data-sku="${item.sku}" data-price="${price}" data-tax="${tax}">${item.name} ($${price.toFixed(2)})</option>`;
+        });
+    }
+
+    tr.innerHTML = `
+        <td class="py-1.5 px-2 space-y-1">
+            <select onchange="onPastInventorySelect(this)" class="w-full px-1.5 py-1 border border-outline-variant/40 rounded-lg font-semibold text-[11px] text-primary bg-white">
+                ${invOptions}
+            </select>
+            <input type="hidden" name="inventory_id[]" value="">
+            <input type="text" name="item_name[]" placeholder="Item / Service Name" required class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg text-xs font-medium">
+        </td>
+        <td class="py-1.5 px-1">
+            <input type="number" step="0.5" name="quantity[]" value="1" required class="w-full px-1.5 py-1 border border-outline-variant/40 rounded-lg font-mono">
+        </td>
+        <td class="py-1.5 px-1">
+            <input type="number" step="0.01" name="unit_price[]" value="0.00" required class="w-full px-1.5 py-1 border border-outline-variant/40 rounded-lg font-mono">
+        </td>
+        <td class="py-1.5 px-1">
+            <select name="tax_label[]" class="w-full px-1 py-1 border border-outline-variant/40 rounded-lg font-bold text-[10px]">
+                <option value="A">A (15%)</option>
+                <option value="E">E (0%)</option>
+                <option value="F">F (0%)</option>
+                <option value="P">P (0.25%)</option>
+            </select>
+        </td>
+        <td class="py-1.5 px-1 text-center">
+            <button type="button" onclick="this.closest('tr').remove()" class="text-red-500 font-bold">&times;</button>
+        </td>
+    `;
+    tbody.appendChild(tr);
 }
 
 function openCreateInvoiceForVisit(pv) {
     document.getElementById('inv_visit_id').value = pv.visit_id || '';
     if (pv.title) {
         document.getElementById('inv_service_desc').value = pv.title;
-    }
-    if (pv.visit_date) {
-        // try to parse date if YYYY-MM-DD, else keep current date
-        const d = new Date(pv.visit_date);
-        if (!isNaN(d.getTime())) {
-            document.getElementById('inv_service_date').value = d.toISOString().split('T')[0];
-        }
     }
     document.getElementById('createInvoiceModal').classList.remove('hidden');
 }
