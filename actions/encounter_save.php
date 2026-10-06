@@ -193,12 +193,133 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $encounterService->saveEncounterData($patientId, $vitalsData, $soapData);
 
             if ($action === 'finish') {
+                $createInvoiceOnFinalize = !empty($_POST['create_invoice_on_finalize']);
                 $encounterService->finalizeEncounter($patientId, $visitId, [
-                    'create_invoice' => !empty($_POST['create_invoice_on_finalize']),
-                    'service_description' => trim($_POST['service_description'] ?? 'Clinical Consultation & Examination'),
-                    'amount' => (float)($_POST['amount'] ?? 150.00),
-                    'insurance_covered' => (float)($_POST['insurance_covered'] ?? 0.00)
+                    'create_invoice' => false
                 ]);
+
+                if ($createInvoiceOnFinalize) {
+                    try {
+                        $vmsService = Container::getInstance()->get(\ClinicFlow\Services\VMSService::class);
+                        $inventoryService = Container::getInstance()->get(\ClinicFlow\Services\InventoryService::class);
+
+                        $pStmt = $pdo->prepare("SELECT * FROM patients WHERE id = ?");
+                        $pStmt->execute([$patientId]);
+                        $patientRow = $pStmt->fetch();
+
+                        if ($patientRow) {
+                            $invoiceType = trim($_POST['invoice_type'] ?? 'Normal');
+                            $transactionType = trim($_POST['transaction_type'] ?? 'Sale');
+                            $paymentType = trim($_POST['payment_type'] ?? 'Cash');
+                            $insuranceCovered = (float)($_POST['insurance_covered'] ?? 0.00);
+
+                            $itemNames = $_POST['item_name'] ?? ['Clinical Consultation & Examination'];
+                            $inventoryIds = $_POST['inventory_id'] ?? [];
+                            $quantities = $_POST['quantity'] ?? [1];
+                            $unitPrices = $_POST['unit_price'] ?? [150.00];
+                            $taxLabels = $_POST['tax_label'] ?? ['A'];
+
+                            $invoiceId = 'inv-' . uniqid();
+                            $invNumber = 'INV-' . date('Ymd') . '-' . rand(1000, 9999);
+
+                            $totalAmount = 0.00;
+                            $totalTax = 0.00;
+                            $invoiceItemsData = [];
+
+                            foreach ($itemNames as $idx => $name) {
+                                $name = trim($name);
+                                if ($name === '') continue;
+
+                                $qty = (float)($quantities[$idx] ?? 1.0);
+                                $price = (float)($unitPrices[$idx] ?? 0.00);
+                                $lineTotal = round($qty * $price, 2);
+                                $totalAmount += $lineTotal;
+
+                                $taxLabel = $taxLabels[$idx] ?? 'A';
+                                $taxCalc = $vmsService->calculateItemTax($lineTotal, $taxLabel);
+                                $totalTax += round($taxCalc['tax_amount'], 2);
+
+                                $invItemId = $inventoryIds[$idx] ?? null;
+                                if (!empty($invItemId)) {
+                                    try {
+                                        $inventoryService->deductStock($invItemId, (int)ceil($qty), "Invoiced on finalized encounter $visitId", $_SESSION['user_name'] ?? 'System');
+                                    } catch (\Throwable $ex) {}
+                                }
+
+                                $invoiceItemsData[] = [
+                                    'id' => 'item-' . uniqid(),
+                                    'invoice_id' => $invoiceId,
+                                    'name' => $name,
+                                    'gtin' => '10009812',
+                                    'unit_price' => $price,
+                                    'quantity' => $qty,
+                                    'total_price' => $lineTotal,
+                                    'tax_label' => $taxLabel,
+                                    'tax_rate' => $taxCalc['tax_rate'],
+                                    'tax_amount' => round($taxCalc['tax_amount'], 2)
+                                ];
+                            }
+
+                            $patientOwed = max(0.00, $totalAmount - $insuranceCovered);
+                            $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+
+                            $invStmt = $pdo->prepare("
+                                INSERT INTO invoices (
+                                    id, tenant_id, invoice_number, patient_id, patient_name, patient_mrn, service_date, due_date,
+                                    amount, status, insurance_covered, patient_owed, services, invoice_type, transaction_type,
+                                    payment_methods
+                                ) VALUES (
+                                    ?, ?, ?, ?, ?, ?, ?, ?,
+                                    ?, 'Paid', ?, ?, ?, ?, ?,
+                                    ?
+                                )
+                            ");
+
+                            $invStmt->execute([
+                                $invoiceId,
+                                $tenantId,
+                                $invNumber,
+                                $patientId,
+                                $patientRow['first_name'] . ' ' . $patientRow['last_name'],
+                                $patientRow['mrn'],
+                                date('Y-m-d'),
+                                date('Y-m-d', strtotime('+30 days')),
+                                $totalAmount,
+                                $insuranceCovered,
+                                $patientOwed,
+                                json_encode(array_column($invoiceItemsData, 'name')),
+                                $invoiceType,
+                                $transactionType,
+                                json_encode([['type' => $paymentType, 'amount' => $totalAmount]])
+                            ]);
+
+                            $itemStmt = $pdo->prepare("
+                                INSERT INTO invoice_items (id, tenant_id, invoice_id, name, gtin, unit_price, quantity, total_price, tax_label, tax_rate, tax_amount)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            ");
+
+                            foreach ($invoiceItemsData as $item) {
+                                $itemStmt->execute([
+                                    $item['id'],
+                                    $tenantId,
+                                    $item['invoice_id'],
+                                    $item['name'],
+                                    $item['gtin'],
+                                    $item['unit_price'],
+                                    $item['quantity'],
+                                    $item['total_price'],
+                                    $item['tax_label'],
+                                    $item['tax_rate'],
+                                    $item['tax_amount']
+                                ]);
+                            }
+
+                            $vmsService->fiscalizeInvoice($invoiceId);
+                        }
+                    } catch (\Throwable $e) {
+                        $logger->error("Error generating VMS invoice on finalize: " . $e->getMessage());
+                    }
+                }
 
                 // Automatically send prescription email if prescriptions exist & patient has email
                 try {
