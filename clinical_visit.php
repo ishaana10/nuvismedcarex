@@ -358,12 +358,23 @@ $vitals = $vitalsStmt->fetch() ?: [
 // Fetch SOAP notes
 $soapStmt = $pdo->prepare("SELECT * FROM soap_notes WHERE patient_id = ? ORDER BY updated_at DESC LIMIT 1");
 $soapStmt->execute([$patientId]);
-$soap = $soapStmt->fetch() ?: [
-    'subjective' => 'Patient reports for clinical evaluation.',
-    'objective' => 'Vitals stable. Alert and oriented x4.',
-    'assessment_codes' => json_encode([['code' => 'J01.90', 'label' => 'Acute sinusitis, unspecified']]),
-    'plan' => 'Advised rest and hydration. Follow up PRN.'
-];
+$rawSoap = $soapStmt->fetch();
+
+if ($rawSoap) {
+    $soap = [
+        'subjective' => \ClinicFlow\Utils\Encryption::decrypt($rawSoap['subjective'] ?? ''),
+        'objective' => \ClinicFlow\Utils\Encryption::decrypt($rawSoap['objective'] ?? ''),
+        'assessment_codes' => $rawSoap['assessment_codes'] ?? '',
+        'plan' => \ClinicFlow\Utils\Encryption::decrypt($rawSoap['plan'] ?? '')
+    ];
+} else {
+    $soap = [
+        'subjective' => 'Patient reports for clinical evaluation.',
+        'objective' => 'Vitals stable. Alert and oriented x4.',
+        'assessment_codes' => json_encode([['code' => 'J01.90', 'label' => 'Acute sinusitis, unspecified']]),
+        'plan' => 'Advised rest and hydration. Follow up PRN.'
+    ];
+}
 
 $assessmentCodes = json_decode($soap['assessment_codes'] ?? '[]', true) ?: [];
 
