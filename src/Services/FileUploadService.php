@@ -288,14 +288,7 @@ class FileUploadService
     public function getFileById(string $id): ?array
     {
         $tenantId = $this->getTenantId();
-        $driver = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME);
-
-        if ($driver === 'sqlite') {
-            $stmt = $this->db->prepare("SELECT f.*, (COALESCE(p.first_name, '') || ' ' || COALESCE(p.last_name, '')) AS patient_name, p.mrn FROM uploaded_files f LEFT JOIN patients p ON f.patient_id = p.id WHERE f.id = ? AND f.tenant_id = ?");
-        } else {
-            $stmt = $this->db->prepare("SELECT f.*, CONCAT(p.first_name, ' ', p.last_name) AS patient_name, p.mrn FROM uploaded_files f LEFT JOIN patients p ON f.patient_id = p.id WHERE f.id = ? AND f.tenant_id = ?");
-        }
-
+        $stmt = $this->db->prepare("SELECT f.*, CONCAT(p.first_name, ' ', p.last_name) AS patient_name, p.mrn FROM uploaded_files f LEFT JOIN patients p ON f.patient_id = p.id WHERE f.id = ? AND f.tenant_id = ?");
         $stmt->execute([$id, $tenantId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
@@ -307,13 +300,7 @@ class FileUploadService
     public function listFiles(?string $patientId = null, ?string $provider = null, ?string $category = null, ?string $search = null): array
     {
         $tenantId = $this->getTenantId();
-        $driver = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME);
-
-        if ($driver === 'sqlite') {
-            $sql = "SELECT f.*, (COALESCE(p.first_name, '') || ' ' || COALESCE(p.last_name, '')) AS patient_name, p.mrn FROM uploaded_files f LEFT JOIN patients p ON f.patient_id = p.id WHERE f.tenant_id = ?";
-        } else {
-            $sql = "SELECT f.*, CONCAT(p.first_name, ' ', p.last_name) AS patient_name, p.mrn FROM uploaded_files f LEFT JOIN patients p ON f.patient_id = p.id WHERE f.tenant_id = ?";
-        }
+        $sql = "SELECT f.*, CONCAT(p.first_name, ' ', p.last_name) AS patient_name, p.mrn FROM uploaded_files f LEFT JOIN patients p ON f.patient_id = p.id WHERE f.tenant_id = ?";
 
         $params = [$tenantId];
 
