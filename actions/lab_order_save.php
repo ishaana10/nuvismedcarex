@@ -23,11 +23,30 @@ if ($action === 'create_lab_order') {
     $orderType = trim($_POST['order_type'] ?? 'Lab');
     $notes = trim($_POST['clinical_notes'] ?? '');
 
-    // Parse multi-item array if submitted
-    $rawItems = $_POST['items'] ?? [];
     $items = [];
 
-    if (is_array($rawItems) && !empty($rawItems)) {
+    // 1. Parse structured checklist tests array
+    $checklist = $_POST['checklist_tests'] ?? [];
+    if (is_array($checklist)) {
+        foreach ($checklist as $chk) {
+            $parts = explode('|', $chk, 2);
+            if (count($parts) === 2) {
+                $cat = trim($parts[0]);
+                $tName = trim($parts[1]);
+                if (!empty($tName)) {
+                    $items[] = [
+                        'test_name' => $tName,
+                        'category' => $cat,
+                        'instructions' => ''
+                    ];
+                }
+            }
+        }
+    }
+
+    // 2. Parse custom multi-item array if submitted
+    $rawItems = $_POST['items'] ?? [];
+    if (is_array($rawItems)) {
         foreach ($rawItems as $raw) {
             $testName = trim($raw['test_name'] ?? '');
             if (!empty($testName)) {
@@ -40,7 +59,7 @@ if ($action === 'create_lab_order') {
         }
     }
 
-    // Fallback single test_name if items array empty
+    // 3. Fallback single test_name if items array empty
     if (empty($items)) {
         $singleTest = trim($_POST['test_name'] ?? '');
         if (!empty($singleTest)) {
@@ -72,9 +91,32 @@ if ($action === 'edit_lab_order' || $action === 'update_lab_order') {
     $results = trim($_POST['results'] ?? '');
     $isAbnormal = !empty($_POST['is_abnormal']);
 
-    $rawItems = $_POST['items'] ?? [];
     $items = [];
 
+    // 1. Parse structured checklist tests array
+    $checklist = $_POST['checklist_tests'] ?? [];
+    if (is_array($checklist)) {
+        foreach ($checklist as $chk) {
+            $parts = explode('|', $chk, 2);
+            if (count($parts) === 2) {
+                $cat = trim($parts[0]);
+                $tName = trim($parts[1]);
+                if (!empty($tName)) {
+                    $items[] = [
+                        'test_name' => $tName,
+                        'category' => $cat,
+                        'instructions' => '',
+                        'status' => $status,
+                        'results' => $results,
+                        'is_abnormal' => $isAbnormal
+                    ];
+                }
+            }
+        }
+    }
+
+    // 2. Parse custom multi-item array if submitted
+    $rawItems = $_POST['items'] ?? [];
     if (is_array($rawItems)) {
         foreach ($rawItems as $raw) {
             $testName = trim($raw['test_name'] ?? '');
@@ -91,7 +133,7 @@ if ($action === 'edit_lab_order' || $action === 'update_lab_order') {
         }
     }
 
-    // Fallback if no array items passed, create single item from submitted order test name or default
+    // 3. Fallback if no array items passed, create single item from submitted order test name or default
     if (empty($items)) {
         $singleTest = trim($_POST['test_name'] ?? 'Lab Request');
         $items[] = [
