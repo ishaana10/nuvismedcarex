@@ -314,7 +314,7 @@ try {
                     <span class="material-symbols-outlined text-blue-600 text-lg">calendar_month</span>
                     <span>Upcoming Appointments</span>
                 </h2>
-                <a href="calendar.php" class="text-xs font-bold text-blue-600 hover:text-blue-800 transition uppercase tracking-wider">VIEW ALL</a>
+                <a href="appointment.php" class="text-xs font-bold text-blue-600 hover:text-blue-800 transition uppercase tracking-wider">VIEW ALL</a>
             </div>
 
             <div class="overflow-x-auto">
@@ -390,7 +390,7 @@ try {
                     <span class="material-symbols-outlined text-base">person_add</span>
                     <span>Register New Patient</span>
                 </a>
-                <a href="calendar.php?action=book" class="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-blue-50 border border-blue-200 text-blue-800 hover:bg-blue-100 font-semibold text-xs rounded-xl transition">
+                <a href="appointment.php?action=book" class="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-blue-50 border border-blue-200 text-blue-800 hover:bg-blue-100 font-semibold text-xs rounded-xl transition">
                     <span class="material-symbols-outlined text-base">calendar_add_on</span>
                     <span>Book Appointment</span>
                 </a>
