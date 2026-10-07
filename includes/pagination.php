@@ -104,7 +104,7 @@ if (!function_exists('renderPagination')) {
 
                 <div class="flex items-center gap-1.5 ml-2">
                     <label for="pagination_limit_select" class="text-outline font-medium text-[11px]">Per page:</label>
-                    <select id="pagination_limit_select" onchange="window.location.href=this.value;" class="bg-surface-container-lowest border border-outline-variant/40 rounded-lg px-2 py-1 text-xs font-bold text-primary focus:outline-none focus:ring-1 focus:ring-primary">
+                    <select id="pagination_limit_select" onchange="window.location.href=this.value;" class="bg-surface-container-lowest border border-outline-variant/40 rounded-lg pl-2.5 pr-7 py-1 text-xs font-bold text-primary focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer min-w-[68px]">
                         <?php foreach ($allowedLimits as $opt): ?>
                             <option value="<?= $buildUrl(1, $opt) ?>" <?= $opt === $limit ? 'selected' : '' ?>>
                                 <?= $opt ?>
