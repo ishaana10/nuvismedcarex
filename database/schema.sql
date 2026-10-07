@@ -399,6 +399,8 @@ CREATE TABLE IF NOT EXISTS lab_orders (
     status VARCHAR(50) NOT NULL DEFAULT 'Ordered',
     is_abnormal TINYINT(1) DEFAULT 0,
     results TEXT,
+    result_file_id VARCHAR(64),
+    result_file_path VARCHAR(512),
     ordered_by VARCHAR(255) DEFAULT 'Doctor',
     clinical_notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

@@ -615,6 +615,11 @@ include __DIR__ . '/includes/header.php';
                                     <button type="button" onclick='openEditLabModal(<?= htmlspecialchars(json_encode($lo), ENT_QUOTES) ?>)' class="px-2 py-1 bg-primary text-white hover:bg-primary/90 rounded-lg text-[11px] font-bold flex items-center gap-1 transition">
                                         <span class="material-symbols-outlined text-xs">edit</span> View / Edit
                                     </button>
+                                    <?php if (!empty($lo['result_file_path']) || !empty($lo['result_file_id'])): ?>
+                                        <a href="<?= htmlspecialchars(!empty($lo['result_file_path']) ? $lo['result_file_path'] : ('actions/download_file.php?id=' . $lo['result_file_id'])) ?>" target="_blank" class="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[11px] font-bold flex items-center gap-1 transition shadow-2xs">
+                                            <span class="material-symbols-outlined text-xs">attachment</span> View Result File
+                                        </a>
+                                    <?php endif; ?>
                                     <a href="print_lab_order.php?id=<?= e($lo['id']) ?>" target="_blank" class="px-2 py-1 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg text-[11px] font-bold flex items-center gap-1 transition">
                                         <span class="material-symbols-outlined text-xs">print</span> Print
                                     </a>

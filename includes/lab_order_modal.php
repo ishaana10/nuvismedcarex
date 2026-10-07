@@ -129,7 +129,7 @@ $labCategories = [
             </button>
         </div>
 
-        <form action="actions/lab_order_save.php" method="POST" class="p-6 space-y-4 text-xs overflow-y-auto grow">
+        <form action="actions/lab_order_save.php" method="POST" enctype="multipart/form-data" class="p-6 space-y-4 text-xs overflow-y-auto grow">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getCsrfToken()) ?>">
             <input type="hidden" name="action" value="edit_lab_order">
             <input type="hidden" name="order_id" id="edit-lab-order-id">
@@ -194,10 +194,36 @@ $labCategories = [
                 <textarea name="clinical_notes" id="edit-lab-notes" rows="2" placeholder="Clinical reasons for requesting lab tests..." class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-medium text-on-surface focus:outline-none focus:border-primary"></textarea>
             </div>
 
-            <div class="p-3 bg-amber-50 border border-amber-200 rounded-2xl space-y-2">
-                <label class="block font-bold text-amber-900 text-xs">Laboratory Results & Findings Summary</label>
+            <div class="p-3 bg-amber-50 border border-amber-200 rounded-2xl space-y-3">
+                <div class="flex items-center justify-between">
+                    <label class="block font-bold text-amber-900 text-xs">Laboratory Results & Findings Summary</label>
+                    <!-- Link to view attached result file if present -->
+                    <div id="edit-lab-file-link-container" class="hidden">
+                        <a id="edit-lab-file-link" href="#" target="_blank" class="px-2.5 py-1 bg-amber-600 text-white rounded-lg font-bold text-[11px] hover:bg-amber-700 transition flex items-center gap-1 shadow-2xs">
+                            <span class="material-symbols-outlined text-xs">attachment</span>
+                            <span>View Attached Result Document</span>
+                        </a>
+                    </div>
+                </div>
+
                 <textarea name="results" id="edit-lab-results" rows="3" placeholder="Enter test results, numerical values, findings, or radiologist report..." class="w-full bg-white p-2.5 rounded-xl border border-amber-300 font-mono text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
-                <p class="text-[10px] text-amber-800">Updating results will allow doctors and clinical staff to view findings directly in patient chart.</p>
+
+                <div class="pt-2 border-t border-amber-200/60 grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-bold text-amber-900 text-[11px] mb-1">Attach Lab Result Document / Scan (PDF/Img)</label>
+                        <input type="file" name="result_file" class="block w-full text-xs text-slate-700 bg-white border border-amber-300 rounded-lg cursor-pointer file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-amber-100 file:text-amber-800 hover:file:bg-amber-200">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-amber-900 text-[11px] mb-1">Storage Destination</label>
+                        <select name="storage_provider" class="w-full bg-white px-2 py-1 rounded-lg border border-amber-300 text-xs text-amber-900 font-medium">
+                            <option value="server">Local Clinic Server (Default)</option>
+                            <option value="onedrive">Microsoft OneDrive</option>
+                            <option value="googledrive">Google Drive</option>
+                        </select>
+                    </div>
+                </div>
+
+                <p class="text-[10px] text-amber-800">Doctors can manually write notes above and/or attach PDF/scanned report files. Attached documents can be viewed/downloaded anytime via the link above.</p>
             </div>
 
             <div class="flex items-center justify-end gap-2 pt-3 border-t border-outline-variant/20 shrink-0">
@@ -250,6 +276,18 @@ function openEditLabModal(order) {
     document.getElementById('edit-lab-notes').value = order.clinical_notes || '';
     document.getElementById('edit-lab-results').value = order.results || '';
     document.getElementById('edit-lab-is-abnormal').checked = Boolean(order.is_abnormal && order.is_abnormal != '0');
+
+    // Handle result file attachment link
+    const linkContainer = document.getElementById('edit-lab-file-link-container');
+    const linkEl = document.getElementById('edit-lab-file-link');
+    const filePath = order.result_file_path || (order.result_file_id ? ('actions/download_file.php?id=' + order.result_file_id) : '');
+
+    if (filePath && linkContainer && linkEl) {
+        linkEl.href = filePath;
+        linkContainer.classList.remove('hidden');
+    } else if (linkContainer) {
+        linkContainer.classList.add('hidden');
+    }
 
     // Reset all edit checkboxes
     const checkBoxes = document.querySelectorAll('.edit-lab-chk');
