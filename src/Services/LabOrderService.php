@@ -86,7 +86,7 @@ class LabOrderService {
     /**
      * Edit/Update an existing lab order and its test items.
      */
-    public function updateOrder(string $orderId, array $items, ?string $notes = null, ?string $status = null, ?string $results = null, ?bool $isAbnormal = null, ?string $tenantId = null): ?array {
+    public function updateOrder(string $orderId, array $items, ?string $notes = null, ?string $status = null, ?string $results = null, ?bool $isAbnormal = null, ?string $fileId = null, ?string $filePath = null, ?string $tenantId = null): ?array {
         $tenantId = $tenantId ?? TenantContext::getTenantId();
         $order = $this->getOrderById($orderId, $tenantId);
 
@@ -107,10 +107,12 @@ class LabOrderService {
         $statusVal = $status ?? $order['status'] ?? 'Ordered';
         $resultsVal = $results ?? $order['results'] ?? null;
         $isAbnormalVal = $isAbnormal !== null ? ($isAbnormal ? 1 : 0) : ($order['is_abnormal'] ?? 0);
+        $fileIdVal = $fileId ?? $order['result_file_id'] ?? null;
+        $filePathVal = $filePath ?? $order['result_file_path'] ?? null;
 
         $stmt = $this->db->prepare("
             UPDATE lab_orders
-            SET test_name = :test, category = :cat, clinical_notes = :notes, status = :status, results = :results, is_abnormal = :abnormal, updated_at = CURRENT_TIMESTAMP
+            SET test_name = :test, category = :cat, clinical_notes = :notes, status = :status, results = :results, result_file_id = :file_id, result_file_path = :file_path, is_abnormal = :abnormal, updated_at = CURRENT_TIMESTAMP
             WHERE id = :id AND tenant_id = :tid
         ");
         $stmt->execute([
@@ -119,6 +121,8 @@ class LabOrderService {
             'notes' => $notes,
             'status' => $statusVal,
             'results' => $resultsVal,
+            'file_id' => $fileIdVal,
+            'file_path' => $filePathVal,
             'abnormal' => $isAbnormalVal,
             'id' => $orderId,
             'tid' => $tenantId
@@ -191,15 +195,17 @@ class LabOrderService {
         return $orders;
     }
 
-    public function attachResults(string $id, string $results, bool $isAbnormal = false, ?string $tenantId = null): array {
+    public function attachResults(string $id, string $results, bool $isAbnormal = false, ?string $fileId = null, ?string $filePath = null, ?string $tenantId = null): array {
         $tenantId = $tenantId ?? TenantContext::getTenantId();
         $stmt = $this->db->prepare("
-            UPDATE lab_orders SET results = :res, is_abnormal = :abnormal, status = 'Completed', updated_at = CURRENT_TIMESTAMP
+            UPDATE lab_orders SET results = :res, is_abnormal = :abnormal, result_file_id = COALESCE(:file_id, result_file_id), result_file_path = COALESCE(:file_path, result_file_path), status = 'Completed', updated_at = CURRENT_TIMESTAMP
             WHERE id = :id AND tenant_id = :tid
         ");
         $stmt->execute([
             'res' => $results,
             'abnormal' => $isAbnormal ? 1 : 0,
+            'file_id' => $fileId,
+            'file_path' => $filePath,
             'id' => $id,
             'tid' => $tenantId
         ]);

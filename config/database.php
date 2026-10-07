@@ -162,6 +162,16 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
                 $pdo->exec("ALTER TABLE lab_orders ADD COLUMN clinical_notes TEXT");
             } catch (Throwable $ex) {}
         }
+        if (!in_array('result_file_id', $labCols)) {
+            try {
+                $pdo->exec("ALTER TABLE lab_orders ADD COLUMN result_file_id VARCHAR(64)");
+            } catch (Throwable $ex) {}
+        }
+        if (!in_array('result_file_path', $labCols)) {
+            try {
+                $pdo->exec("ALTER TABLE lab_orders ADD COLUMN result_file_path VARCHAR(512)");
+            } catch (Throwable $ex) {}
+        }
     } catch (Throwable $e) {}
 
     // Auto-migrate visit_id for prescriptions table

@@ -7,13 +7,16 @@ require_once __DIR__ . '/../includes/security.php';
 
 use ClinicFlow\Shared\Container;
 use ClinicFlow\Services\LabOrderService;
+use ClinicFlow\Services\FileUploadService;
 use ClinicFlow\Shared\Logger;
 
 requireAuth();
 validateCsrfRequest();
 
-$labOrderService = Container::getInstance()->get(LabOrderService::class);
-$logger = Container::getInstance()->get(Logger::class);
+$container = Container::getInstance();
+$labOrderService = $container->get(LabOrderService::class);
+$fileUploadService = $container->get(FileUploadService::class);
+$logger = $container->get(Logger::class);
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 $patientId = $_POST['patient_id'] ?? $_GET['patient_id'] ?? '';
@@ -146,9 +149,56 @@ if ($action === 'edit_lab_order' || $action === 'update_lab_order') {
         ];
     }
 
+    // Handle result file attachment upload
+    $resultFileId = null;
+    $resultFilePath = null;
+    if (isset($_FILES['result_file']) && $_FILES['result_file']['error'] === UPLOAD_ERR_OK) {
+        try {
+            $storageProvider = trim($_POST['storage_provider'] ?? 'server');
+            $uploadedBy = $_SESSION['user_name'] ?? 'Doctor';
+
+            if ($storageProvider === 'onedrive' && !empty($_POST['onedrive_url'])) {
+                $fileRecord = $fileUploadService->linkOneDriveFile(
+                    $_FILES['result_file']['name'],
+                    trim($_POST['onedrive_url']),
+                    null,
+                    $patientId ?: null,
+                    'Lab Results',
+                    (int)$_FILES['result_file']['size'],
+                    $uploadedBy
+                );
+            } elseif ($storageProvider === 'googledrive' && !empty($_POST['googledrive_url'])) {
+                $fileRecord = $fileUploadService->linkGoogleDriveFile(
+                    $_FILES['result_file']['name'],
+                    trim($_POST['googledrive_url']),
+                    null,
+                    $patientId ?: null,
+                    'Lab Results',
+                    (int)$_FILES['result_file']['size'],
+                    $uploadedBy
+                );
+            } else {
+                $fileRecord = $fileUploadService->uploadToServer(
+                    $_FILES['result_file'],
+                    $patientId ?: null,
+                    'Lab Results',
+                    $uploadedBy
+                );
+            }
+
+            if (!empty($fileRecord)) {
+                $resultFileId = $fileRecord['id'];
+                $resultFilePath = $fileRecord['external_url'] ?? $fileRecord['file_path'];
+            }
+        } catch (\Throwable $e) {
+            $logger->error("Error uploading lab result file: " . $e->getMessage());
+            setToast('Upload Notice', 'Lab order saved, but result file upload failed: ' . $e->getMessage(), 'warning');
+        }
+    }
+
     if (!empty($orderId) && !empty($items)) {
         try {
-            $labOrderService->updateOrder($orderId, $items, $notes, $status, $results, $isAbnormal);
+            $labOrderService->updateOrder($orderId, $items, $notes, $status, $results, $isAbnormal, $resultFileId, $resultFilePath);
             setToast('Lab Order Updated', 'Lab order and test items updated successfully.');
         } catch (\Throwable $e) {
             $logger->error("Error updating lab order: " . $e->getMessage());
