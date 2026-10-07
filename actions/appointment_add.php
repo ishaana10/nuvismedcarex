@@ -9,7 +9,7 @@ requireAuth();
 validateCsrfRequest();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header("Location: ../calendar.php");
+    header("Location: ../appointment.php");
     exit;
 }
 
@@ -29,7 +29,7 @@ $patient = $pStmt->fetch();
 
 if (!$patient) {
     setToast('Error', 'Please select a valid patient.', 'error');
-    header("Location: ../calendar.php?action=book");
+    header("Location: ../appointment.php?action=book");
     exit;
 }
 
@@ -69,5 +69,5 @@ $actStmt->execute([
 ]);
 
 setToast("Appointment Scheduled", "Appointment for $patientName on $appointmentDate at $time booked.");
-header("Location: ../calendar.php");
+header("Location: ../appointment.php");
 exit;

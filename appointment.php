@@ -1,5 +1,5 @@
 <?php
-$pageTitle = "Appointments & Calendar - NuvisMedcareX";
+$pageTitle = "Appointments - NuvisMedcareX";
 $activePage = "calendar";
 include __DIR__ . '/includes/header.php';
 
@@ -91,10 +91,10 @@ $selectedPatientId = $_GET['patient_id'] ?? '';
 
 <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
     <div>
-        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Appointments & Calendar</h1>
+        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Appointments</h1>
         <p class="text-xs text-slate-500 font-medium">Schedule, track, and manage patient visits across attending physicians</p>
     </div>
-    <a href="calendar.php?action=book" class="btn-primary">
+    <a href="appointment.php?action=book" class="btn-primary">
         <span class="material-symbols-outlined text-base">calendar_add_on</span>
         <span>Book Appointment</span>
     </a>
@@ -109,7 +109,7 @@ $selectedPatientId = $_GET['patient_id'] ?? '';
                 <span class="material-symbols-outlined text-primary">event</span>
                 <span>Schedule Patient Appointment</span>
             </h2>
-            <a href="calendar.php" class="text-outline hover:text-on-surface">
+            <a href="appointment.php" class="text-outline hover:text-on-surface">
                 <span class="material-symbols-outlined">close</span>
             </a>
         </div>
@@ -168,7 +168,7 @@ $selectedPatientId = $_GET['patient_id'] ?? '';
             </div>
 
             <div class="flex items-center justify-end gap-2 pt-3 border-t border-outline-variant/30">
-                <a href="calendar.php" class="px-4 py-2 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition">Cancel</a>
+                <a href="appointment.php" class="px-4 py-2 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition">Cancel</a>
                 <button type="submit" class="px-5 py-2 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition shadow-xs">Confirm Schedule</button>
             </div>
         </form>
@@ -178,15 +178,15 @@ $selectedPatientId = $_GET['patient_id'] ?? '';
 
 <!-- Navigation Tabs: Active vs Completed -->
 <div class="flex items-center gap-2 mb-4 border-b border-outline-variant/30 pb-2">
-    <a href="calendar.php?tab=active" class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 <?= $tab === 'active' ? 'bg-primary text-white shadow-xs' : 'bg-surface-container-low text-slate-600 hover:bg-surface-container' ?>">
+    <a href="appointment.php?tab=active" class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 <?= $tab === 'active' ? 'bg-primary text-white shadow-xs' : 'bg-surface-container-low text-slate-600 hover:bg-surface-container' ?>">
         <span class="material-symbols-outlined text-sm">schedule</span>
         <span>Active / Upcoming (<?= $activeCount ?>)</span>
     </a>
-    <a href="calendar.php?tab=completed" class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 <?= $tab === 'completed' ? 'bg-primary text-white shadow-xs' : 'bg-surface-container-low text-slate-600 hover:bg-surface-container' ?>">
+    <a href="appointment.php?tab=completed" class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 <?= $tab === 'completed' ? 'bg-primary text-white shadow-xs' : 'bg-surface-container-low text-slate-600 hover:bg-surface-container' ?>">
         <span class="material-symbols-outlined text-sm">check_circle</span>
         <span>Completed (<?= $completedCount ?>)</span>
     </a>
-    <a href="calendar.php?tab=all" class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 <?= $tab === 'all' ? 'bg-primary text-white shadow-xs' : 'bg-surface-container-low text-slate-600 hover:bg-surface-container' ?>">
+    <a href="appointment.php?tab=all" class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 <?= $tab === 'all' ? 'bg-primary text-white shadow-xs' : 'bg-surface-container-low text-slate-600 hover:bg-surface-container' ?>">
         <span class="material-symbols-outlined text-sm">list</span>
         <span>All Appointments (<?= $allCount ?>)</span>
     </a>
@@ -255,7 +255,7 @@ $selectedPatientId = $_GET['patient_id'] ?? '';
             </tbody>
         </table>
     </div>
-    <?= renderPagination($totalAppts, $currentPage, $limit, 'calendar.php', ['tab' => $tab]) ?>
+    <?= renderPagination($totalAppts, $currentPage, $limit, 'appointment.php', ['tab' => $tab]) ?>
 </div>
 
 <?php include __DIR__ . '/includes/footer.php'; ?>

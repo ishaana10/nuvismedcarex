@@ -9,7 +9,7 @@ $userRole = $_SESSION['user_role'] ?? $_SESSION['role'] ?? 'Doctor';
 $navItems = [
     ['id' => 'dashboard', 'label' => 'Dashboard', 'icon' => 'dashboard', 'url' => 'index.php'],
     ['id' => 'patients', 'label' => 'Patients', 'icon' => 'group', 'url' => 'patients.php'],
-    ['id' => 'calendar', 'label' => 'Appointments', 'icon' => 'calendar_month', 'url' => 'calendar.php'],
+    ['id' => 'calendar', 'label' => 'Appointments', 'icon' => 'calendar_month', 'url' => 'appointment.php'],
     ['id' => 'clinical-visit', 'label' => 'Clinical Encounter', 'icon' => 'clinical_notes', 'url' => 'clinical_visit.php'],
     ['id' => 'billing', 'label' => 'Billing & Financials', 'icon' => 'payments', 'url' => 'billing.php'],
     ['id' => 'inventory', 'label' => 'Inventory', 'icon' => 'inventory_2', 'url' => 'inventory.php'],
@@ -110,7 +110,7 @@ if ($userRole === 'Developer') {
             <span class="material-symbols-outlined text-base">person_add</span>
             <span>Register Patient</span>
         </a>
-        <a href="calendar.php?action=book" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-container text-white text-xs font-semibold rounded-xl shadow-xs">
+        <a href="appointment.php?action=book" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-container text-white text-xs font-semibold rounded-xl shadow-xs">
             <span class="material-symbols-outlined text-base">calendar_add_on</span>
             <span>Book Appointment</span>
         </a>
