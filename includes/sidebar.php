@@ -9,7 +9,7 @@ $userRole = $_SESSION['user_role'] ?? $_SESSION['role'] ?? 'Doctor';
 $navItems = [
     ['id' => 'dashboard', 'label' => 'Dashboard', 'icon' => 'dashboard', 'url' => 'index.php'],
     ['id' => 'patients', 'label' => 'Patients', 'icon' => 'group', 'url' => 'patients.php'],
-    ['id' => 'calendar', 'label' => 'Calendar', 'icon' => 'calendar_month', 'url' => 'calendar.php'],
+    ['id' => 'calendar', 'label' => 'Appointments', 'icon' => 'calendar_month', 'url' => 'calendar.php'],
     ['id' => 'clinical-visit', 'label' => 'Clinical Encounter', 'icon' => 'clinical_notes', 'url' => 'clinical_visit.php'],
     ['id' => 'billing', 'label' => 'Billing & Financials', 'icon' => 'payments', 'url' => 'billing.php'],
     ['id' => 'inventory', 'label' => 'Inventory', 'icon' => 'inventory_2', 'url' => 'inventory.php'],
