@@ -112,12 +112,15 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
             if ($fieldName !== '') $cols[] = $fieldName;
         }
 
+        $isMysql = ($driverName === 'mysql');
+        $longTextType = $isMysql ? 'LONGTEXT' : 'TEXT';
+
         $newCols = [
             'tenant_id' => "VARCHAR(50) NOT NULL DEFAULT 'default-clinic'",
             'prc_number' => 'VARCHAR(100)',
             'ptr_number' => 'VARCHAR(100)',
-            'esignature' => 'TEXT',
-            'digital_stamp' => 'TEXT',
+            'esignature' => $longTextType,
+            'digital_stamp' => $longTextType,
             'is_active' => 'INTEGER DEFAULT 1',
             'mfa_secret' => 'VARCHAR(255) DEFAULT NULL',
             'mfa_enabled' => 'TINYINT(1) DEFAULT 0'
@@ -127,6 +130,10 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
             if (!in_array($colName, $cols)) {
                 try {
                     $pdo->exec("ALTER TABLE doctors ADD COLUMN {$colName} {$colDef}");
+                } catch (Throwable $ex) {}
+            } elseif ($isMysql && in_array($colName, ['esignature', 'digital_stamp'])) {
+                try {
+                    $pdo->exec("ALTER TABLE doctors MODIFY COLUMN {$colName} LONGTEXT");
                 } catch (Throwable $ex) {}
             }
         }

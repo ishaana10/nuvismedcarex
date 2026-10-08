@@ -884,14 +884,23 @@ $usersList = $usersStmt->fetchAll();
                 </div>
             </div>
 
-            <div class="space-y-2">
+            <div class="space-y-3">
                 <div class="p-3 bg-surface-container-low rounded-xl border border-outline-variant/30 flex items-center justify-between">
                     <span class="font-bold text-on-surface">Digital e-Signature:</span>
                     <span id="view-card-sig-status" class="px-2 py-0.5 rounded text-[10px] font-bold"></span>
                 </div>
+                <div id="view-card-sig-container" class="p-3 bg-white rounded-xl border border-slate-200 hidden text-center">
+                    <p class="text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Attending Physician E-Signature</p>
+                    <img id="view-card-sig-img" src="" class="max-h-24 max-w-full object-contain mx-auto" alt="E-Signature Preview">
+                </div>
+
                 <div class="p-3 bg-surface-container-low rounded-xl border border-outline-variant/30 flex items-center justify-between">
                     <span class="font-bold text-on-surface">Digital Stamp:</span>
                     <span id="view-card-stamp-status" class="px-2 py-0.5 rounded text-[10px] font-bold"></span>
+                </div>
+                <div id="view-card-stamp-container" class="p-3 bg-white rounded-xl border border-slate-200 hidden text-center">
+                    <p class="text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Official Clinic Digital Stamp</p>
+                    <img id="view-card-stamp-img" src="" class="max-h-32 max-w-full object-contain mx-auto" alt="Digital Stamp Preview">
                 </div>
             </div>
 
@@ -985,13 +994,13 @@ $usersList = $usersStmt->fetchAll();
             <div class="space-y-2">
                 <label class="block font-bold text-slate-700">Official E-Signature (Image File or Data URL)</label>
                 <div class="flex items-center gap-3">
-                    <input type="file" name="esignature_file" accept="image/*" class="text-xs text-slate-600">
+                    <input type="file" name="esignature_file" id="usr_esignature_file" accept="image/*" class="text-xs text-slate-600">
                     <span class="text-xs text-slate-400 font-semibold">OR Data String:</span>
                 </div>
                 <textarea name="esignature_data" id="usr_esignature_data" rows="2" placeholder="data:image/png;base64,..." class="w-full bg-slate-50 p-2.5 rounded-xl border border-slate-300 font-mono text-[11px]"></textarea>
-                <div id="esignature_preview" class="p-2 border border-slate-200 rounded-xl bg-slate-50 hidden">
-                    <p class="text-[10px] text-slate-500 font-bold mb-1">E-Signature Preview:</p>
-                    <img id="img_esignature_preview" src="" class="h-12 object-contain" alt="Signature Preview">
+                <div id="esignature_preview" class="p-3 border border-slate-200 rounded-xl bg-white hidden text-center shadow-2xs">
+                    <p class="text-[10px] text-slate-500 font-bold mb-1 uppercase tracking-wider">E-Signature Preview</p>
+                    <img id="img_esignature_preview" src="" class="max-h-24 max-w-full object-contain mx-auto" alt="Signature Preview">
                 </div>
             </div>
 
@@ -999,13 +1008,13 @@ $usersList = $usersStmt->fetchAll();
             <div class="space-y-2">
                 <label class="block font-bold text-slate-700">Official Digital Stamp (Image File or Data URL)</label>
                 <div class="flex items-center gap-3">
-                    <input type="file" name="stamp_file" accept="image/*" class="text-xs text-slate-600">
+                    <input type="file" name="stamp_file" id="usr_stamp_file" accept="image/*" class="text-xs text-slate-600">
                     <span class="text-xs text-slate-400 font-semibold">OR Data String:</span>
                 </div>
                 <textarea name="digital_stamp_data" id="usr_digital_stamp_data" rows="2" placeholder="data:image/png;base64,..." class="w-full bg-slate-50 p-2.5 rounded-xl border border-slate-300 font-mono text-[11px]"></textarea>
-                <div id="stamp_preview" class="p-2 border border-slate-200 rounded-xl bg-slate-50 hidden">
-                    <p class="text-[10px] text-slate-500 font-bold mb-1">Digital Stamp Preview:</p>
-                    <img id="img_stamp_preview" src="" class="h-16 object-contain" alt="Stamp Preview">
+                <div id="stamp_preview" class="p-3 border border-slate-200 rounded-xl bg-white hidden text-center shadow-2xs">
+                    <p class="text-[10px] text-slate-500 font-bold mb-1 uppercase tracking-wider">Digital Stamp Preview</p>
+                    <img id="img_stamp_preview" src="" class="max-h-32 max-w-full object-contain mx-auto" alt="Stamp Preview">
                 </div>
             </div>
 
@@ -1136,21 +1145,35 @@ function viewCardDetails(usr) {
     document.getElementById('view-card-avatar').src = usr.avatar || 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&q=80&w=200';
 
     const sigEl = document.getElementById('view-card-sig-status');
+    const sigContainer = document.getElementById('view-card-sig-container');
+    const sigImg = document.getElementById('view-card-sig-img');
     if (usr.esignature) {
         sigEl.innerText = 'Uploaded / Active';
         sigEl.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800';
+        if (sigContainer && sigImg) {
+            sigContainer.classList.remove('hidden');
+            sigImg.src = usr.esignature;
+        }
     } else {
         sigEl.innerText = 'Not Uploaded';
         sigEl.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-surface-container-high text-outline';
+        if (sigContainer) sigContainer.classList.add('hidden');
     }
 
     const stampEl = document.getElementById('view-card-stamp-status');
+    const stampContainer = document.getElementById('view-card-stamp-container');
+    const stampImg = document.getElementById('view-card-stamp-img');
     if (usr.digital_stamp) {
         stampEl.innerText = 'Uploaded / Active';
         stampEl.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800';
+        if (stampContainer && stampImg) {
+            stampContainer.classList.remove('hidden');
+            stampImg.src = usr.digital_stamp;
+        }
     } else {
         stampEl.innerText = 'Not Uploaded';
         stampEl.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-surface-container-high text-outline';
+        if (stampContainer) stampContainer.classList.add('hidden');
     }
 
     openModal('modal-view-user-details');
@@ -1214,6 +1237,70 @@ function openUserModal(usr = null) {
 function closeUserModal() {
     document.getElementById('userModal').classList.add('hidden');
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    const esigFileInput = document.getElementById('usr_esignature_file');
+    const esigDataInput = document.getElementById('usr_esignature_data');
+    const esigPreview = document.getElementById('esignature_preview');
+    const esigImg = document.getElementById('img_esignature_preview');
+
+    if (esigFileInput) {
+        esigFileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    esigImg.src = evt.target.result;
+                    esigPreview.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    if (esigDataInput) {
+        esigDataInput.addEventListener('input', function(e) {
+            const val = e.target.value.trim();
+            if (val) {
+                esigImg.src = val;
+                esigPreview.classList.remove('hidden');
+            } else {
+                esigPreview.classList.add('hidden');
+            }
+        });
+    }
+
+    const stampFileInput = document.getElementById('usr_stamp_file');
+    const stampDataInput = document.getElementById('usr_digital_stamp_data');
+    const stampPreview = document.getElementById('stamp_preview');
+    const stampImg = document.getElementById('img_stamp_preview');
+
+    if (stampFileInput) {
+        stampFileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    stampImg.src = evt.target.result;
+                    stampPreview.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    if (stampDataInput) {
+        stampDataInput.addEventListener('input', function(e) {
+            const val = e.target.value.trim();
+            if (val) {
+                stampImg.src = val;
+                stampPreview.classList.remove('hidden');
+            } else {
+                stampPreview.classList.add('hidden');
+            }
+        });
+    }
+});
 
 function refreshGitStatus() {
     const consoleBox = document.getElementById('git-status-console');

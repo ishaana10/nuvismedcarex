@@ -203,14 +203,14 @@ $verificationUrl = $rxVerificationService->getVerificationUrl($verificationToken
     <div class="pt-6 border-t border-slate-300 flex justify-between items-end text-xs">
         <div>
             <?php if (!empty($attendingDoc['digital_stamp'])): ?>
-                <img src="<?= $attendingDoc['digital_stamp'] ?>" class="h-24 object-contain opacity-90 mb-1" alt="Official Stamp">
+                <img src="<?= htmlspecialchars($attendingDoc['digital_stamp']) ?>" class="max-h-32 max-w-[180px] object-contain opacity-95 mb-1" alt="Official Stamp">
             <?php endif; ?>
             <p class="text-slate-500 text-[10px] uppercase font-semibold">Substitution</p>
             <p class="font-medium text-slate-700">Refill: [ ] 0  [ ] 1  [ ] 2  [ ] 3  [ ] PRN</p>
         </div>
         <div class="text-right w-64 relative">
             <?php if (!empty($attendingDoc['esignature'])): ?>
-                <img src="<?= $attendingDoc['esignature'] ?>" class="h-14 object-contain ml-auto -mb-3 relative z-10" alt="E-Signature">
+                <img src="<?= htmlspecialchars($attendingDoc['esignature']) ?>" class="max-h-20 max-w-[200px] object-contain ml-auto -mb-3 relative z-10" alt="E-Signature">
             <?php endif; ?>
             <div class="border-b border-slate-400 mb-1 pb-1 font-serif text-lg font-bold text-blue-900 italic"><?= htmlspecialchars($attendingDoc['name']) ?></div>
             <p class="font-bold text-slate-800"><?= htmlspecialchars($attendingDoc['name']) ?></p>
