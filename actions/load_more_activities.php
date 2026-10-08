@@ -26,7 +26,24 @@ try {
     $stmt->bindValue(2, $limit, PDO::PARAM_INT);
     $stmt->bindValue(3, $offset, PDO::PARAM_INT);
     $stmt->execute();
-    $activities = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    $rawActivities = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+    $activities = [];
+    foreach ($rawActivities as $act) {
+        $timestamp = !empty($act['created_at']) ? strtotime($act['created_at']) : (is_numeric($act['timestamp']) ? (int)$act['timestamp'] : strtotime($act['timestamp']));
+        if ($timestamp) {
+            $diff = time() - $timestamp;
+            if ($diff < 60) $formattedTime = 'Just now';
+            elseif ($diff < 3600) $formattedTime = floor($diff / 60) . 'm ago';
+            elseif ($diff < 86400) $formattedTime = floor($diff / 3600) . 'h ago';
+            elseif ($diff < 604800) $formattedTime = floor($diff / 86400) . 'd ago';
+            else $formattedTime = date('M j, Y', $timestamp);
+        } else {
+            $formattedTime = $act['timestamp'] ?? 'Recently';
+        }
+        $act['formatted_time'] = $formattedTime;
+        $activities[] = $act;
+    }
 
     // Check if there are more records after this batch
     $countStmt = $pdo->prepare("SELECT COUNT(*) FROM activities WHERE tenant_id = ?");

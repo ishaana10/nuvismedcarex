@@ -41,8 +41,23 @@ $overdueInvoicesCount = 0;
 $lowStockCount = 0;
 $appointments = [];
 $activities = [];
+$totalActivitiesCount = 0;
 
 $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+
+if (!function_exists('formatRelativeTime')) {
+    function formatRelativeTime($datetime): string {
+        if (empty($datetime)) return 'Recently';
+        $timestamp = is_numeric($datetime) ? (int)$datetime : strtotime($datetime);
+        if (!$timestamp) return htmlspecialchars((string)$datetime);
+        $diff = time() - $timestamp;
+        if ($diff < 60) return 'Just now';
+        if ($diff < 3600) return floor($diff / 60) . 'm ago';
+        if ($diff < 86400) return floor($diff / 3600) . 'h ago';
+        if ($diff < 604800) return floor($diff / 86400) . 'd ago';
+        return date('M j, Y', $timestamp);
+    }
+}
 
 try {
     // 1. Queue Items (Tenant Scoped)
@@ -120,10 +135,16 @@ try {
 
 try {
     // 4. Recent Activities (Tenant Scoped)
-    $actStmt = $pdo->prepare("SELECT * FROM activities WHERE tenant_id = ? ORDER BY id DESC LIMIT 5");
+    $actStmt = $pdo->prepare("SELECT * FROM activities WHERE tenant_id = ? ORDER BY created_at DESC, id DESC LIMIT 5");
     if ($actStmt) {
         $actStmt->execute([$currentTenantId]);
         $activities = $actStmt->fetchAll() ?: [];
+    }
+
+    $actCountStmt = $pdo->prepare("SELECT COUNT(*) FROM activities WHERE tenant_id = ?");
+    if ($actCountStmt) {
+        $actCountStmt->execute([$currentTenantId]);
+        $totalActivitiesCount = (int)$actCountStmt->fetchColumn();
     }
 } catch (\Throwable $e) {
     error_log("Dashboard activities query error: " . $e->getMessage());
@@ -428,14 +449,14 @@ try {
                             </div>
                             <div>
                                 <p class="text-xs font-bold text-slate-900"><?= htmlspecialchars($act['title'] ?? 'Activity') ?>: <span class="font-normal text-slate-700"><?= htmlspecialchars($act['detail'] ?? '') ?></span></p>
-                                <p class="text-[10px] text-slate-400 mt-0.5"><?= htmlspecialchars($act['timestamp'] ?? 'Recently') ?></p>
+                                <p class="text-[10px] text-slate-400 mt-0.5"><?= formatRelativeTime($act['created_at'] ?? $act['timestamp'] ?? '') ?></p>
                             </div>
                         </div>
                     <?php endforeach; ?>
                 <?php endif; ?>
             </div>
 
-            <div id="load-more-activities-wrapper" class="pt-3 border-t border-slate-100 mt-4 <?= count($activities) < 5 ? 'hidden' : '' ?>">
+            <div id="load-more-activities-wrapper" class="pt-3 border-t border-slate-100 mt-4 <?= count($activities) >= $totalActivitiesCount ? 'hidden' : '' ?>">
                 <button id="btn-load-more-activities" onclick="loadMoreActivities()" type="button" class="w-full py-2 text-center text-xs font-bold text-blue-600 hover:text-blue-800 uppercase tracking-wider transition flex items-center justify-center gap-1">
                     <span>LOAD MORE</span>
                 </button>
@@ -579,13 +600,14 @@ function loadMoreActivities() {
                     else if (act.type === 'lab_results') icon = 'science';
                     else if (act.type === 'appointment_cancel') icon = 'event_busy';
 
+                    const displayTime = act.formatted_time || escapeHtml(act.timestamp || 'Recently');
                     div.innerHTML = `
                         <div class="w-7 h-7 rounded-full ${badgeBg} flex items-center justify-center shrink-0 mt-0.5">
                             <span class="material-symbols-outlined text-base">${icon}</span>
                         </div>
                         <div>
                             <p class="text-xs font-bold text-slate-900">${escapeHtml(act.title || 'Activity')}: <span class="font-normal text-slate-700">${escapeHtml(act.detail || '')}</span></p>
-                            <p class="text-[10px] text-slate-400 mt-0.5">${escapeHtml(act.timestamp || 'Recently')}</p>
+                            <p class="text-[10px] text-slate-400 mt-0.5">${displayTime}</p>
                         </div>
                     `;
                     container.appendChild(div);

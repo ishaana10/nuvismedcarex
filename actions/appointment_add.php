@@ -58,13 +58,14 @@ $qStmt->execute([
 ]);
 
 // Add Activity log
-$actStmt = $pdo->prepare("INSERT INTO activities (id, type, title, detail, timestamp, badge_type) VALUES (?, ?, ?, ?, ?, ?)");
+$actStmt = $pdo->prepare("INSERT INTO activities (id, tenant_id, type, title, detail, timestamp, badge_type) VALUES (?, ?, ?, ?, ?, ?, ?)");
 $actStmt->execute([
     "act-" . time(),
+    $tenantId,
     "appointment_booked",
     "Appointment Booked: $patientName",
     "For $time with $doctorName",
-    "Just now",
+    date('Y-m-d H:i:s'),
     "blue"
 ]);
 
