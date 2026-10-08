@@ -9,11 +9,7 @@ use ClinicFlow\Shared\TenantContext;
 
 header('Content-Type: application/json');
 
-if (!isAuthenticated()) {
-    http_response_code(401);
-    echo json_encode(['error' => 'Unauthenticated']);
-    exit;
-}
+requireAuth();
 
 $tenantId = TenantContext::getTenantId();
 $offset = isset($_GET['offset']) ? max(0, (int)$_GET['offset']) : 0;
