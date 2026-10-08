@@ -403,9 +403,9 @@ try {
                 <span class="material-symbols-outlined text-blue-600 text-lg">history</span>
                 <span>Recent Activity</span>
             </h2>
-            <div class="space-y-4">
+            <div id="activity-stream-container" class="space-y-4">
                 <?php if (empty($activities)): ?>
-                    <p class="text-xs text-slate-400 italic text-center py-4">No recent activity recorded for this clinic.</p>
+                    <p id="activity-empty-msg" class="text-xs text-slate-400 italic text-center py-4">No recent activity recorded for this clinic.</p>
                 <?php else: ?>
                     <?php foreach ($activities as $act):
                         $badgeBg = match($act['badge_type'] ?? 'blue') {
@@ -435,11 +435,11 @@ try {
                 <?php endif; ?>
             </div>
 
-            <?php if (!empty($activities)): ?>
-                <button class="w-full mt-4 py-2 text-center text-xs font-bold text-blue-600 hover:text-blue-800 uppercase tracking-wider border-t border-slate-100 pt-3">
-                    LOAD MORE
+            <div id="load-more-activities-wrapper" class="pt-3 border-t border-slate-100 mt-4 <?= count($activities) < 5 ? 'hidden' : '' ?>">
+                <button id="btn-load-more-activities" onclick="loadMoreActivities()" type="button" class="w-full py-2 text-center text-xs font-bold text-blue-600 hover:text-blue-800 uppercase tracking-wider transition flex items-center justify-center gap-1">
+                    <span>LOAD MORE</span>
                 </button>
-            <?php endif; ?>
+            </div>
         </div>
     </div>
 </div>
@@ -536,6 +536,89 @@ document.addEventListener('DOMContentLoaded', function() {
         eventSource.close();
     });
 });
+
+let activityOffset = <?= count($activities) ?>;
+let activityLoading = false;
+
+function loadMoreActivities() {
+    if (activityLoading) return;
+    activityLoading = true;
+
+    const btn = document.getElementById('btn-load-more-activities');
+    const origHtml = btn ? btn.innerHTML : '';
+    if (btn) btn.innerHTML = '<span class="material-symbols-outlined text-sm animate-spin">progress_activity</span> Loading...';
+
+    fetch('actions/load_more_activities.php?offset=' + activityOffset + '&limit=5')
+        .then(res => res.json())
+        .then(data => {
+            activityLoading = false;
+            if (btn) btn.innerHTML = origHtml;
+
+            if (data.error) {
+                console.error(data.error);
+                return;
+            }
+
+            const container = document.getElementById('activity-stream-container');
+            const emptyMsg = document.getElementById('activity-empty-msg');
+            if (emptyMsg) emptyMsg.remove();
+
+            if (data.activities && data.activities.length > 0) {
+                data.activities.forEach(act => {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-start gap-3';
+
+                    let badgeBg = 'bg-blue-100 text-blue-700';
+                    if (act.badge_type === 'emerald' || act.badge_type === 'green') badgeBg = 'bg-emerald-100 text-emerald-700';
+                    else if (act.badge_type === 'amber' || act.badge_type === 'yellow') badgeBg = 'bg-amber-100 text-amber-800';
+                    else if (act.badge_type === 'red') badgeBg = 'bg-red-100 text-red-700';
+
+                    let icon = 'notifications';
+                    if (act.type === 'patient_registration') icon = 'person_add';
+                    else if (act.type === 'encounter_complete') icon = 'check_circle';
+                    else if (act.type === 'lab_results') icon = 'science';
+                    else if (act.type === 'appointment_cancel') icon = 'event_busy';
+
+                    div.innerHTML = `
+                        <div class="w-7 h-7 rounded-full ${badgeBg} flex items-center justify-center shrink-0 mt-0.5">
+                            <span class="material-symbols-outlined text-base">${icon}</span>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-slate-900">${escapeHtml(act.title || 'Activity')}: <span class="font-normal text-slate-700">${escapeHtml(act.detail || '')}</span></p>
+                            <p class="text-[10px] text-slate-400 mt-0.5">${escapeHtml(act.timestamp || 'Recently')}</p>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                });
+
+                activityOffset = data.next_offset || (activityOffset + data.activities.length);
+            }
+
+            const wrapper = document.getElementById('load-more-activities-wrapper');
+            if (wrapper) {
+                if (!data.has_more) {
+                    wrapper.classList.add('hidden');
+                } else {
+                    wrapper.classList.remove('hidden');
+                }
+            }
+        })
+        .catch(err => {
+            activityLoading = false;
+            if (btn) btn.innerHTML = origHtml;
+            console.error('Error loading activities:', err);
+        });
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
 </script>
 
 <?php include __DIR__ . '/includes/footer.php'; ?>
