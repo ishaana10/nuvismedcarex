@@ -45,24 +45,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($action === 'save' || $action === 
         exit;
     }
 
-    // Handle E-Signature upload / string
+    // Handle E-Signature upload / string / file save
     $esignature = $_POST['existing_esignature'] ?? '';
     if (isset($_FILES['esignature_file']) && $_FILES['esignature_file']['error'] === UPLOAD_ERR_OK) {
         $tmpName = $_FILES['esignature_file']['tmp_name'];
-        $mime = mime_content_type($tmpName);
-        $data = file_get_contents($tmpName);
-        $esignature = 'data:' . $mime . ';base64,' . base64_encode($data);
+        $origName = $_FILES['esignature_file']['name'];
+        $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION)) ?: 'png';
+        if (!in_array($ext, ['png', 'jpg', 'jpeg', 'webp', 'svg', 'gif'])) {
+            $ext = 'png';
+        }
+        $sigDir = __DIR__ . '/../uploads/signatures/';
+        if (!file_exists($sigDir)) {
+            @mkdir($sigDir, 0777, true);
+        }
+        $filename = 'sig_' . preg_replace('/[^a-zA-Z0-9_-]/', '', $docId) . '_' . time() . '.' . $ext;
+        $targetPath = $sigDir . $filename;
+        if (move_uploaded_file($tmpName, $targetPath)) {
+            $esignature = 'uploads/signatures/' . $filename;
+        } else {
+            $mime = mime_content_type($tmpName);
+            $data = file_get_contents($tmpName);
+            $esignature = 'data:' . $mime . ';base64,' . base64_encode($data);
+        }
     } elseif (!empty($_POST['esignature_data'])) {
         $esignature = trim($_POST['esignature_data']);
     }
 
-    // Handle Digital Stamp upload / string
+    // Handle Digital Stamp upload / string / file save
     $digitalStamp = $_POST['existing_digital_stamp'] ?? '';
     if (isset($_FILES['stamp_file']) && $_FILES['stamp_file']['error'] === UPLOAD_ERR_OK) {
         $tmpName = $_FILES['stamp_file']['tmp_name'];
-        $mime = mime_content_type($tmpName);
-        $data = file_get_contents($tmpName);
-        $digitalStamp = 'data:' . $mime . ';base64,' . base64_encode($data);
+        $origName = $_FILES['stamp_file']['name'];
+        $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION)) ?: 'png';
+        if (!in_array($ext, ['png', 'jpg', 'jpeg', 'webp', 'svg', 'gif'])) {
+            $ext = 'png';
+        }
+        $stampDir = __DIR__ . '/../uploads/stamps/';
+        if (!file_exists($stampDir)) {
+            @mkdir($stampDir, 0777, true);
+        }
+        $filename = 'stamp_' . preg_replace('/[^a-zA-Z0-9_-]/', '', $docId) . '_' . time() . '.' . $ext;
+        $targetPath = $stampDir . $filename;
+        if (move_uploaded_file($tmpName, $targetPath)) {
+            $digitalStamp = 'uploads/stamps/' . $filename;
+        } else {
+            $mime = mime_content_type($tmpName);
+            $data = file_get_contents($tmpName);
+            $digitalStamp = 'data:' . $mime . ';base64,' . base64_encode($data);
+        }
     } elseif (!empty($_POST['digital_stamp_data'])) {
         $digitalStamp = trim($_POST['digital_stamp_data']);
     }

@@ -194,13 +194,13 @@ $digitalStamp = $doctor['digital_stamp'] ?? '';
         <div class="pt-8 border-t border-slate-300 flex justify-between items-end">
             <div>
                 <?php if (!empty($digitalStamp)): ?>
-                    <img src="<?= $digitalStamp ?>" class="h-28 object-contain opacity-90" alt="Official Digital Stamp">
+                    <img src="<?= htmlspecialchars($digitalStamp) ?>" class="max-h-36 max-w-[200px] object-contain opacity-95" alt="Official Digital Stamp">
                 <?php endif; ?>
             </div>
 
             <div class="text-center w-72 relative">
                 <?php if (!empty($esignature)): ?>
-                    <img src="<?= $esignature ?>" class="h-16 object-contain mx-auto -mb-4 relative z-10" alt="E-Signature">
+                    <img src="<?= htmlspecialchars($esignature) ?>" class="max-h-24 max-w-[220px] object-contain mx-auto -mb-4 relative z-10" alt="E-Signature">
                 <?php endif; ?>
 
                 <div class="border-b border-slate-900 pb-1 mb-2 font-serif text-lg font-bold text-slate-900 italic">
