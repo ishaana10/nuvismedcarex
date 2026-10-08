@@ -108,8 +108,8 @@ try {
 }
 
 try {
-    // 3. Today's Scheduled Appointments (Tenant Scoped)
-    $apptsStmt = $pdo->prepare("SELECT * FROM appointments WHERE tenant_id = ? ORDER BY time ASC LIMIT 6");
+    // 3. Today's Scheduled / Active Appointments (Tenant Scoped, Excludes Completed)
+    $apptsStmt = $pdo->prepare("SELECT * FROM appointments WHERE tenant_id = ? AND status != 'Completed' ORDER BY time ASC LIMIT 6");
     if ($apptsStmt) {
         $apptsStmt->execute([$currentTenantId]);
         $appointments = $apptsStmt->fetchAll() ?: [];
