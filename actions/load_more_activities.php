@@ -21,11 +21,13 @@ $limit = isset($_GET['limit']) ? min(50, max(1, (int)$_GET['limit'])) : 5;
 
 try {
     $pdo = getDB();
-    $stmt = $pdo->prepare("SELECT * FROM activities WHERE tenant_id = ? ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?");
-    $stmt->bindValue(1, $tenantId, PDO::PARAM_STR);
-    $stmt->bindValue(2, $limit, PDO::PARAM_INT);
-    $stmt->bindValue(3, $offset, PDO::PARAM_INT);
-    $stmt->execute();
+
+    // Safely interpolate integer limit and offset to avoid MySQL PDO string quoting issue (LIMIT '5')
+    $intLimit = (int)$limit;
+    $intOffset = (int)$offset;
+
+    $stmt = $pdo->prepare("SELECT * FROM activities WHERE tenant_id = ? ORDER BY created_at DESC, id DESC LIMIT {$intLimit} OFFSET {$intOffset}");
+    $stmt->execute([$tenantId]);
     $rawActivities = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
     $activities = [];
@@ -61,5 +63,8 @@ try {
     ]);
 } catch (\Throwable $e) {
     http_response_code(500);
-    echo json_encode(['error' => 'Failed to fetch activities: ' . $e->getMessage()]);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Failed to fetch activities: ' . $e->getMessage()
+    ]);
 }
