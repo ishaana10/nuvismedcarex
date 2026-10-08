@@ -171,6 +171,9 @@ CREATE TABLE IF NOT EXISTS vitals (
     height INT DEFAULT 66,
     bmi DECIMAL(4,1) DEFAULT 23.4,
     oxygen_sat INT DEFAULT 99,
+    respiratory_rate INT DEFAULT 16,
+    sugar VARCHAR(50) DEFAULT '95 mg/dL',
+    heart_rhythm VARCHAR(50) DEFAULT 'Regular',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
     FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE

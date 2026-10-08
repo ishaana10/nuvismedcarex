@@ -348,11 +348,14 @@ $vitalsStmt->execute([$patientId]);
 $vitals = $vitalsStmt->fetch() ?: [
     'blood_pressure' => '120/80',
     'heart_rate' => 72,
+    'heart_rhythm' => 'Regular',
     'temperature' => 98.6,
     'weight' => 145,
     'height' => 66,
-    'bmi' => 23.4,
-    'oxygen_sat' => 99
+    'respiratory_rate' => 16,
+    'oxygen_sat' => 99,
+    'sugar' => '95 mg/dL',
+    'bmi' => 23.4
 ];
 
 // Fetch SOAP notes
@@ -463,37 +466,75 @@ include __DIR__ . '/includes/header.php';
     <!-- Left Column (2 Cols): Vitals & SOAP Notes -->
     <div class="lg:col-span-2 space-y-6">
 
-        <!-- Vitals Summary Bar -->
-        <div class="vitals-summary-bar">
-            <div class="vital-metric border-r border-slate-200 pr-4">
-                <span class="vital-label">BLOOD PRESSURE</span>
-                <div class="vital-value">
-                    <input type="text" name="blood_pressure" value="<?= htmlspecialchars($vitals['blood_pressure']) ?>" placeholder="120/80" class="border-none p-0 focus:ring-0 text-xl font-bold w-24 bg-transparent text-slate-900">
-                    <span class="vital-unit">mmHg</span>
+        <!-- Vitals Summary Bar (Grid Layout for Extended Metrics) -->
+        <div class="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-4 shadow-2xs grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-3">
+            <div class="vital-metric border-r border-slate-200/80 pr-2">
+                <span class="vital-label text-[10px] font-bold text-outline uppercase tracking-wider block mb-1">BLOOD PRESSURE</span>
+                <div class="vital-value flex items-baseline gap-1">
+                    <input type="text" name="blood_pressure" value="<?= htmlspecialchars($vitals['blood_pressure']) ?>" placeholder="120/80" class="border-none p-0 focus:ring-0 text-lg font-bold w-20 bg-transparent text-slate-900">
+                    <span class="vital-unit text-[10px] text-outline font-semibold">mmHg</span>
                 </div>
             </div>
 
-            <div class="vital-metric border-r border-slate-200 pr-4">
-                <span class="vital-label">HEART RATE</span>
-                <div class="vital-value">
-                    <input type="number" name="heart_rate" value="<?= htmlspecialchars($vitals['heart_rate']) ?>" placeholder="72" class="border-none p-0 focus:ring-0 text-xl font-bold w-16 bg-transparent text-slate-900">
-                    <span class="vital-unit">bpm</span>
+            <div class="vital-metric border-r border-slate-200/80 pr-2">
+                <span class="vital-label text-[10px] font-bold text-outline uppercase tracking-wider block mb-1">HEART RATE</span>
+                <div class="vital-value flex items-baseline gap-1">
+                    <input type="number" name="heart_rate" value="<?= htmlspecialchars($vitals['heart_rate']) ?>" placeholder="72" class="border-none p-0 focus:ring-0 text-lg font-bold w-12 bg-transparent text-slate-900">
+                    <span class="vital-unit text-[10px] text-outline font-semibold">bpm</span>
                 </div>
             </div>
 
-            <div class="vital-metric border-r border-slate-200 pr-4">
-                <span class="vital-label">TEMPERATURE</span>
-                <div class="vital-value">
-                    <input type="text" name="temperature" value="<?= htmlspecialchars($vitals['temperature']) ?>" placeholder="98.6" class="border-none p-0 focus:ring-0 text-xl font-bold w-16 bg-transparent text-slate-900">
-                    <span class="vital-unit">°F</span>
+            <div class="vital-metric border-r border-slate-200/80 pr-2">
+                <span class="vital-label text-[10px] font-bold text-outline uppercase tracking-wider block mb-1">HEART RHYTHM</span>
+                <div class="vital-value flex items-baseline gap-1">
+                    <input type="text" name="heart_rhythm" value="<?= htmlspecialchars($vitals['heart_rhythm']) ?>" placeholder="Regular" class="border-none p-0 focus:ring-0 text-sm font-bold w-16 bg-transparent text-slate-900">
+                </div>
+            </div>
+
+            <div class="vital-metric border-r border-slate-200/80 pr-2">
+                <span class="vital-label text-[10px] font-bold text-outline uppercase tracking-wider block mb-1">TEMPERATURE</span>
+                <div class="vital-value flex items-baseline gap-1">
+                    <input type="text" name="temperature" value="<?= htmlspecialchars($vitals['temperature']) ?>" placeholder="98.6" class="border-none p-0 focus:ring-0 text-lg font-bold w-14 bg-transparent text-slate-900">
+                    <span class="vital-unit text-[10px] text-outline font-semibold">°F</span>
+                </div>
+            </div>
+
+            <div class="vital-metric border-r border-slate-200/80 pr-2">
+                <span class="vital-label text-[10px] font-bold text-outline uppercase tracking-wider block mb-1">WEIGHT</span>
+                <div class="vital-value flex items-baseline gap-1">
+                    <input type="text" name="weight" value="<?= htmlspecialchars($vitals['weight']) ?>" placeholder="145" class="border-none p-0 focus:ring-0 text-lg font-bold w-12 bg-transparent text-slate-900">
+                    <span class="vital-unit text-[10px] text-outline font-semibold">lbs</span>
+                </div>
+            </div>
+
+            <div class="vital-metric border-r border-slate-200/80 pr-2">
+                <span class="vital-label text-[10px] font-bold text-outline uppercase tracking-wider block mb-1">HEIGHT</span>
+                <div class="vital-value flex items-baseline gap-1">
+                    <input type="number" name="height" value="<?= htmlspecialchars($vitals['height']) ?>" placeholder="66" class="border-none p-0 focus:ring-0 text-lg font-bold w-12 bg-transparent text-slate-900">
+                    <span class="vital-unit text-[10px] text-outline font-semibold">in</span>
+                </div>
+            </div>
+
+            <div class="vital-metric border-r border-slate-200/80 pr-2">
+                <span class="vital-label text-[10px] font-bold text-outline uppercase tracking-wider block mb-1">RESP. RATE</span>
+                <div class="vital-value flex items-baseline gap-1">
+                    <input type="number" name="respiratory_rate" value="<?= htmlspecialchars($vitals['respiratory_rate']) ?>" placeholder="16" class="border-none p-0 focus:ring-0 text-lg font-bold w-12 bg-transparent text-slate-900">
+                    <span class="vital-unit text-[10px] text-outline font-semibold">/min</span>
+                </div>
+            </div>
+
+            <div class="vital-metric border-r border-slate-200/80 pr-2">
+                <span class="vital-label text-[10px] font-bold text-outline uppercase tracking-wider block mb-1">SPO2</span>
+                <div class="vital-value flex items-baseline gap-1">
+                    <input type="number" name="oxygen_sat" value="<?= htmlspecialchars($vitals['oxygen_sat']) ?>" placeholder="99" class="border-none p-0 focus:ring-0 text-lg font-bold w-12 bg-transparent text-slate-900">
+                    <span class="vital-unit text-[10px] text-outline font-semibold">%</span>
                 </div>
             </div>
 
             <div class="vital-metric">
-                <span class="vital-label">WEIGHT</span>
-                <div class="vital-value">
-                    <input type="text" name="weight" value="<?= htmlspecialchars($vitals['weight']) ?>" placeholder="145" class="border-none p-0 focus:ring-0 text-xl font-bold w-16 bg-transparent text-slate-900">
-                    <span class="vital-unit">lbs</span>
+                <span class="vital-label text-[10px] font-bold text-outline uppercase tracking-wider block mb-1">BLOOD SUGAR</span>
+                <div class="vital-value flex items-baseline gap-1">
+                    <input type="text" name="sugar" value="<?= htmlspecialchars($vitals['sugar']) ?>" placeholder="95 mg/dL" class="border-none p-0 focus:ring-0 text-sm font-bold w-20 bg-transparent text-slate-900">
                 </div>
             </div>
         </div>

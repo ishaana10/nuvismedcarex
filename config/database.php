@@ -174,6 +174,26 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
         }
     } catch (Throwable $e) {}
 
+    // Auto-migrate vitals table columns
+    try {
+        $vitalCols = [];
+        $stmt = $pdo->query("DESCRIBE vitals");
+        while ($row = $stmt->fetch()) {
+            $fieldName = $getField($row);
+            if ($fieldName !== '') $vitalCols[] = $fieldName;
+        }
+
+        if (!in_array('respiratory_rate', $vitalCols)) {
+            try { $pdo->exec("ALTER TABLE vitals ADD COLUMN respiratory_rate INT DEFAULT 16"); } catch (Throwable $ex) {}
+        }
+        if (!in_array('sugar', $vitalCols)) {
+            try { $pdo->exec("ALTER TABLE vitals ADD COLUMN sugar VARCHAR(50) DEFAULT '95 mg/dL'"); } catch (Throwable $ex) {}
+        }
+        if (!in_array('heart_rhythm', $vitalCols)) {
+            try { $pdo->exec("ALTER TABLE vitals ADD COLUMN heart_rhythm VARCHAR(50) DEFAULT 'Regular'"); } catch (Throwable $ex) {}
+        }
+    } catch (Throwable $e) {}
+
     // Auto-migrate visit_id for prescriptions table
     try {
         $rxCols = [];
