@@ -271,8 +271,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $vitalsData = [
             'blood_pressure' => trim($_POST['blood_pressure'] ?? '120/80'),
             'heart_rate' => (int)($_POST['heart_rate'] ?? 72),
+            'heart_rhythm' => trim($_POST['heart_rhythm'] ?? 'Regular'),
             'temperature' => (float)($_POST['temperature'] ?? 98.6),
-            'oxygen_sat' => (int)($_POST['oxygen_sat'] ?? 99)
+            'weight' => (int)($_POST['weight'] ?? 145),
+            'height' => (int)($_POST['height'] ?? 66),
+            'respiratory_rate' => (int)($_POST['respiratory_rate'] ?? 16),
+            'oxygen_sat' => (int)($_POST['oxygen_sat'] ?? 99),
+            'sugar' => trim($_POST['sugar'] ?? '95 mg/dL')
         ];
 
         $icdInput = trim($_POST['icd_code'] ?? '');

@@ -55,8 +55,8 @@ class EncounterService {
         $vStmt->execute([$patientId, $tenantId]);
 
         $vInsert = $this->db->prepare(
-            "INSERT INTO vitals (id, tenant_id, patient_id, blood_pressure, heart_rate, temperature, oxygen_sat, weight, height, bmi) " .
-            "VALUES (:id, :tid, :pid, :bp, :hr, :temp, :spo2, :wt, :ht, :bmi)"
+            "INSERT INTO vitals (id, tenant_id, patient_id, blood_pressure, heart_rate, heart_rhythm, temperature, oxygen_sat, respiratory_rate, sugar, weight, height, bmi) " .
+            "VALUES (:id, :tid, :pid, :bp, :hr, :hr_rhythm, :temp, :spo2, :rr, :sugar, :wt, :ht, :bmi)"
         );
         $vInsert->execute([
             'id' => Uuid::uuidv7(),
@@ -64,8 +64,11 @@ class EncounterService {
             'pid' => $patientId,
             'bp' => $vitalsData['blood_pressure'] ?? '120/80',
             'hr' => (int)($vitalsData['heart_rate'] ?? 72),
+            'hr_rhythm' => $vitalsData['heart_rhythm'] ?? 'Regular',
             'temp' => (float)($vitalsData['temperature'] ?? 98.6),
             'spo2' => (int)($vitalsData['oxygen_sat'] ?? 99),
+            'rr' => (int)($vitalsData['respiratory_rate'] ?? 16),
+            'sugar' => $vitalsData['sugar'] ?? '95 mg/dL',
             'wt' => (int)($vitalsData['weight'] ?? 145),
             'ht' => (int)($vitalsData['height'] ?? 66),
             'bmi' => (float)($vitalsData['bmi'] ?? 23.4)
@@ -176,8 +179,13 @@ class EncounterService {
         $vitalsData = [
             'blood_pressure' => $vitalsRow['blood_pressure'] ?? '120/80',
             'heart_rate' => $vitalsRow['heart_rate'] ?? 72,
+            'heart_rhythm' => $vitalsRow['heart_rhythm'] ?? 'Regular',
             'temperature' => $vitalsRow['temperature'] ?? 98.6,
-            'oxygen_sat' => $vitalsRow['oxygen_sat'] ?? 99
+            'weight' => $vitalsRow['weight'] ?? 145,
+            'height' => $vitalsRow['height'] ?? 66,
+            'respiratory_rate' => $vitalsRow['respiratory_rate'] ?? 16,
+            'oxygen_sat' => $vitalsRow['oxygen_sat'] ?? 99,
+            'sugar' => $vitalsRow['sugar'] ?? '95 mg/dL'
         ];
 
         $subjective = !empty($soapRow['subjective']) ? Encryption::decrypt($soapRow['subjective']) : '';
