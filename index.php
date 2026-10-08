@@ -528,7 +528,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 6000);
     }
 
-    const eventSource = new EventSource('/api/notifications/stream');
+    const eventSource = new EventSource('api/notifications/stream.php');
 
     eventSource.onmessage = function(event) {
         try {
