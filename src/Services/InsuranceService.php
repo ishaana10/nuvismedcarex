@@ -61,4 +61,38 @@ class InsuranceService {
 
         return $this->getClaimById($id, $tenantId);
     }
+
+    public function editClaim(string $id, string $providerName, string $policyNumber, float $claimAmount, string $status, ?string $notes = null, ?string $tenantId = null): array {
+        $tenantId = $tenantId ?? TenantContext::getTenantId();
+        $stmt = $this->db->prepare("
+            UPDATE insurance_claims
+            SET provider_name = :provider, policy_number = :policy, claim_amount = :amt, status = :status, notes = :notes, updated_at = CURRENT_TIMESTAMP
+            WHERE id = :id AND tenant_id = :tid
+        ");
+        $stmt->execute([
+            'provider' => $providerName,
+            'policy' => $policyNumber,
+            'amt' => $claimAmount,
+            'status' => $status,
+            'notes' => $notes,
+            'id' => $id,
+            'tid' => $tenantId
+        ]);
+
+        $this->audit->log('EDIT_INSURANCE_CLAIM', "Edited insurance claim {$id}", null, null, null, $tenantId);
+
+        return $this->getClaimById($id, $tenantId);
+    }
+
+    public function deleteClaim(string $id, ?string $tenantId = null): bool {
+        $tenantId = $tenantId ?? TenantContext::getTenantId();
+        $stmt = $this->db->prepare("DELETE FROM insurance_claims WHERE id = :id AND tenant_id = :tid");
+        $result = $stmt->execute(['id' => $id, 'tid' => $tenantId]);
+
+        if ($result) {
+            $this->audit->log('DELETE_INSURANCE_CLAIM', "Deleted insurance claim {$id}", null, null, null, $tenantId);
+        }
+
+        return $result;
+    }
 }

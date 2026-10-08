@@ -275,6 +275,14 @@ $insuranceClaims = $insuranceClaimsStmt->fetchAll();
 $totalClaimsCount = count($insuranceClaims);
 $paginationClaims = getPaginationParams(10, [5, 10, 25, 50, 100], $pdo);
 $paginatedClaims = array_slice($insuranceClaims, $paginationClaims['offset'], $paginationClaims['limit']);
+
+$editClaimId = $_GET['claim_id'] ?? '';
+$editClaim = null;
+if (($_GET['action'] ?? '') === 'edit_claim' && !empty($editClaimId)) {
+    $editClaimStmt = $pdo->prepare("SELECT * FROM insurance_claims WHERE id = ? AND tenant_id = ?");
+    $editClaimStmt->execute([$editClaimId, $currentTenantId]);
+    $editClaim = $editClaimStmt->fetch();
+}
 ?>
 <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 overflow-hidden shadow-xs">
     <div class="p-4 bg-surface-container-low border-b border-outline-variant/30 flex items-center justify-between">
@@ -319,13 +327,26 @@ $paginatedClaims = array_slice($insuranceClaims, $paginationClaims['offset'], $p
                                 </span>
                             </td>
                             <td class="py-3 px-4 text-right">
-                                <form action="actions/insurance_claim_save.php" method="POST" class="inline-flex gap-1">
-                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getCsrfToken()) ?>">
-                                    <input type="hidden" name="action" value="update_status">
-                                    <input type="hidden" name="claim_id" value="<?= htmlspecialchars($claim['id']) ?>">
-                                    <button type="submit" name="status" value="Approved" class="px-2 py-0.5 bg-emerald-600 text-white rounded text-[10px] font-bold hover:bg-emerald-700">Approve</button>
-                                    <button type="submit" name="status" value="Rejected" class="px-2 py-0.5 bg-red-600 text-white rounded text-[10px] font-bold hover:bg-red-700">Reject</button>
-                                </form>
+                                <div class="inline-flex items-center gap-1 justify-end">
+                                    <form action="actions/insurance_claim_save.php" method="POST" class="inline-flex gap-1">
+                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getCsrfToken()) ?>">
+                                        <input type="hidden" name="action" value="update_status">
+                                        <input type="hidden" name="claim_id" value="<?= htmlspecialchars($claim['id']) ?>">
+                                        <button type="submit" name="status" value="Approved" class="px-2 py-0.5 bg-emerald-600 text-white rounded text-[10px] font-bold hover:bg-emerald-700">Approve</button>
+                                        <button type="submit" name="status" value="Rejected" class="px-2 py-0.5 bg-red-600 text-white rounded text-[10px] font-bold hover:bg-red-700">Reject</button>
+                                    </form>
+                                    <a href="billing.php?tab=insurance&action=edit_claim&claim_id=<?= htmlspecialchars($claim['id']) ?>" class="p-1 text-slate-500 hover:text-blue-600 rounded-lg hover:bg-slate-100 transition" title="Edit Claim">
+                                        <span class="material-symbols-outlined text-base">edit</span>
+                                    </a>
+                                    <form action="actions/insurance_claim_save.php" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this insurance claim?');">
+                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getCsrfToken()) ?>">
+                                        <input type="hidden" name="action" value="delete_claim">
+                                        <input type="hidden" name="claim_id" value="<?= htmlspecialchars($claim['id']) ?>">
+                                        <button type="submit" class="p-1 text-slate-500 hover:text-red-600 rounded-lg hover:bg-slate-100 transition" title="Delete Claim">
+                                            <span class="material-symbols-outlined text-base">delete</span>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -335,6 +356,59 @@ $paginatedClaims = array_slice($insuranceClaims, $paginationClaims['offset'], $p
     </div>
     <?= renderPagination($totalClaimsCount, $paginationClaims['page'], $paginationClaims['limit'], 'billing.php', ['tab' => 'insurance']) ?>
 </div>
+
+<!-- Modal Edit Insurance Claim -->
+<?php if ($editClaim): ?>
+<div class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-surface-container-lowest rounded-3xl border border-outline-variant/30 shadow-2xl max-w-md w-full overflow-hidden">
+        <div class="p-5 bg-slate-900 text-white flex items-center justify-between">
+            <h3 class="font-bold text-sm">Edit Insurance Claim</h3>
+            <a href="billing.php?tab=insurance" class="text-slate-400 hover:text-white">
+                <span class="material-symbols-outlined">close</span>
+            </a>
+        </div>
+        <form action="actions/insurance_claim_save.php" method="POST" class="p-6 space-y-4 text-xs">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getCsrfToken()) ?>">
+            <input type="hidden" name="action" value="edit_claim">
+            <input type="hidden" name="claim_id" value="<?= htmlspecialchars($editClaim['id']) ?>">
+
+            <div>
+                <label class="block font-bold text-outline mb-1">Insurance Provider Name *</label>
+                <input type="text" name="provider_name" required value="<?= htmlspecialchars($editClaim['provider_name']) ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium">
+            </div>
+
+            <div>
+                <label class="block font-bold text-outline mb-1">Policy / Member Number *</label>
+                <input type="text" name="policy_number" required value="<?= htmlspecialchars($editClaim['policy_number']) ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium">
+            </div>
+
+            <div>
+                <label class="block font-bold text-outline mb-1">Claim Amount ($) *</label>
+                <input type="number" step="0.01" name="claim_amount" required value="<?= htmlspecialchars($editClaim['claim_amount']) ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium">
+            </div>
+
+            <div>
+                <label class="block font-bold text-outline mb-1">Status</label>
+                <select name="status" required class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium">
+                    <?php foreach (['Submitted', 'Approved', 'Rejected', 'Pending'] as $st): ?>
+                        <option value="<?= $st ?>" <?= $editClaim['status'] === $st ? 'selected' : '' ?>><?= $st ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div>
+                <label class="block font-bold text-outline mb-1">Notes / Remarks</label>
+                <textarea name="notes" rows="2" class="w-full bg-surface-container-low p-2.5 rounded-xl border border-outline-variant/40 font-medium"><?= htmlspecialchars($editClaim['notes'] ?? '') ?></textarea>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-3">
+                <a href="billing.php?tab=insurance" class="px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200">Cancel</a>
+                <button type="submit" class="px-5 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary-hover shadow-xs">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+<?php endif; ?>
 
 <!-- Modal Submit Insurance Claim -->
 <div id="createClaimModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center hidden p-4">
