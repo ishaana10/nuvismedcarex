@@ -87,6 +87,18 @@ try {
 
 $action = $_GET['action'] ?? '';
 $selectedPatientId = $_GET['patient_id'] ?? '';
+$editApptId = $_GET['id'] ?? '';
+$editAppt = null;
+
+if ($action === 'edit' && !empty($editApptId)) {
+    try {
+        $editStmt = $pdo->prepare("SELECT * FROM appointments WHERE id = ? AND tenant_id = ?");
+        $editStmt->execute([$editApptId, \ClinicFlow\Shared\TenantContext::getTenantId()]);
+        $editAppt = $editStmt->fetch();
+    } catch (\Throwable $e) {
+        error_log("Edit appointment query error: " . $e->getMessage());
+    }
+}
 ?>
 
 <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -99,6 +111,84 @@ $selectedPatientId = $_GET['patient_id'] ?? '';
         <span>Book Appointment</span>
     </a>
 </div>
+
+<!-- Modal Dialog for Editing Appointment -->
+<?php if ($action === 'edit' && $editAppt): ?>
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+    <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 w-full max-w-lg shadow-xl p-6">
+        <div class="flex items-center justify-between mb-4 pb-3 border-b border-outline-variant/30">
+            <h2 class="text-base font-bold text-on-surface flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">edit_calendar</span>
+                <span>Edit Appointment Details</span>
+            </h2>
+            <a href="appointment.php?tab=<?= $tab ?>" class="text-outline hover:text-on-surface">
+                <span class="material-symbols-outlined">close</span>
+            </a>
+        </div>
+
+        <form action="actions/appointment_edit.php" method="POST" class="space-y-4 text-xs">
+            <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+            <input type="hidden" name="appointment_id" value="<?= htmlspecialchars($editAppt['id'] ?? '') ?>">
+
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Patient</label>
+                <input type="text" disabled value="<?= htmlspecialchars($editAppt['patient_name'] ?? '') ?> (<?= htmlspecialchars($editAppt['patient_mrn'] ?? '') ?>)" class="w-full bg-slate-100 px-3 py-2 rounded-xl border border-slate-200 text-slate-600 font-medium">
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Attending Physician <span class="text-red-500">*</span></label>
+                <select name="doctor_id" required class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none font-medium">
+                    <?php foreach ($doctorsList as $doc): ?>
+                        <option value="<?= htmlspecialchars($doc['id'] ?? '') ?>" <?= ($editAppt['doctor_id'] ?? '') === ($doc['id'] ?? '') ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($doc['name'] ?? 'Doctor') ?> - <?= htmlspecialchars($doc['specialty'] ?? 'General') ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Appointment Date <span class="text-red-500">*</span></label>
+                    <input type="date" name="appointment_date" value="<?= htmlspecialchars($editAppt['appointment_date'] ?? date('Y-m-d')) ?>" required class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none font-medium">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Time Slot <span class="text-red-500">*</span></label>
+                    <input type="text" name="time" value="<?= htmlspecialchars($editAppt['time'] ?? '09:30 AM') ?>" required placeholder="e.g. 09:30 AM" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none font-medium">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Visit Type <span class="text-red-500">*</span></label>
+                    <select name="type" required class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none font-medium">
+                        <?php foreach (['Consultation', 'Follow-up', 'Routine Check', 'Urgent Care', 'Lab Results', 'Physical Exam'] as $vType): ?>
+                            <option value="<?= $vType ?>" <?= ($editAppt['type'] ?? '') === $vType ? 'selected' : '' ?>><?= $vType ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Status <span class="text-red-500">*</span></label>
+                    <select name="status" required class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none font-medium">
+                        <?php foreach (['Waiting', 'Arrived', 'In Progress', 'Completed'] as $st): ?>
+                            <option value="<?= $st ?>" <?= ($editAppt['status'] ?? '') === $st ? 'selected' : '' ?>><?= $st ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Clinical / Booking Notes</label>
+                <textarea name="notes" rows="2" placeholder="Reason for visit or special instructions..." class="w-full bg-surface-container-low p-2.5 rounded-xl border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none font-medium"><?= htmlspecialchars($editAppt['notes'] ?? '') ?></textarea>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-outline-variant/30">
+                <a href="appointment.php?tab=<?= $tab ?>" class="px-4 py-2 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition">Cancel</a>
+                <button type="submit" class="px-5 py-2 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition shadow-xs">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+<?php endif; ?>
 
 <!-- Modal Dialog for Booking Appointment -->
 <?php if ($action === 'book'): ?>
@@ -246,9 +336,21 @@ $selectedPatientId = $_GET['patient_id'] ?? '';
                             </span>
                         </td>
                         <td class="py-3 px-3 text-right">
-                            <a href="clinical_visit.php?patient_id=<?= htmlspecialchars($a['patient_id'] ?? '') ?>&appointment_id=<?= htmlspecialchars($a['id'] ?? '') ?>" class="px-2.5 py-1 bg-primary text-white rounded-lg text-[11px] font-semibold hover:bg-primary/90 transition">
-                                Launch Visit
-                            </a>
+                            <div class="inline-flex items-center gap-1.5 justify-end">
+                                <a href="clinical_visit.php?patient_id=<?= htmlspecialchars($a['patient_id'] ?? '') ?>&appointment_id=<?= htmlspecialchars($a['id'] ?? '') ?>" class="px-2.5 py-1 bg-primary text-white rounded-lg text-[11px] font-semibold hover:bg-primary/90 transition">
+                                    Launch Visit
+                                </a>
+                                <a href="appointment.php?action=edit&id=<?= htmlspecialchars($a['id'] ?? '') ?>&tab=<?= $tab ?>" class="p-1 text-slate-500 hover:text-blue-600 rounded-lg hover:bg-slate-100 transition" title="Edit Appointment">
+                                    <span class="material-symbols-outlined text-base">edit</span>
+                                </a>
+                                <form action="actions/appointment_delete.php" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this appointment?');">
+                                    <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+                                    <input type="hidden" name="appointment_id" value="<?= htmlspecialchars($a['id'] ?? '') ?>">
+                                    <button type="submit" class="p-1 text-slate-500 hover:text-red-600 rounded-lg hover:bg-slate-100 transition" title="Delete Appointment">
+                                        <span class="material-symbols-outlined text-base">delete</span>
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                 <?php endforeach; ?>
