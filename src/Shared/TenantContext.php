@@ -29,7 +29,7 @@ class TenantContext {
 
         // 2. Authenticated Session
         if (isset($_SESSION['tenant_id']) && !empty($_SESSION['tenant_id'])) {
-            return $_SESSION['tenant_id'];
+            return (string)$_SESSION['tenant_id'];
         }
 
         // 3. HTTP Host / Subdomain (e.g. clinic1.yourdomain.com -> clinic1)
