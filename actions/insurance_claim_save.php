@@ -54,5 +54,40 @@ if ($action === 'update_status') {
     }
 }
 
+if ($action === 'edit_claim') {
+    $claimId = trim($_POST['claim_id'] ?? '');
+    $providerName = trim($_POST['provider_name'] ?? '');
+    $policyNumber = trim($_POST['policy_number'] ?? '');
+    $claimAmount = (float)($_POST['claim_amount'] ?? 0.00);
+    $status = trim($_POST['status'] ?? 'Submitted');
+    $notes = trim($_POST['notes'] ?? '');
+
+    if (!empty($claimId) && $claimAmount > 0) {
+        try {
+            $insuranceService->editClaim($claimId, $providerName, $policyNumber, $claimAmount, $status, $notes);
+            setToast('Claim Updated', "Insurance claim updated successfully.");
+        } catch (\Throwable $e) {
+            $logger->error("Error editing insurance claim: " . $e->getMessage());
+            setToast('Error', 'Could not edit insurance claim.', 'error');
+        }
+    } else {
+        setToast('Validation Error', 'Claim ID and a positive Claim Amount are required.', 'error');
+    }
+}
+
+if ($action === 'delete_claim') {
+    $claimId = trim($_POST['claim_id'] ?? '');
+
+    if (!empty($claimId)) {
+        try {
+            $insuranceService->deleteClaim($claimId);
+            setToast('Claim Deleted', "Insurance claim was deleted successfully.");
+        } catch (\Throwable $e) {
+            $logger->error("Error deleting insurance claim: " . $e->getMessage());
+            setToast('Error', 'Could not delete insurance claim.', 'error');
+        }
+    }
+}
+
 header("Location: ../billing.php?tab=insurance");
 exit;

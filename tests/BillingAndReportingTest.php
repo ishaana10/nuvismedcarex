@@ -47,5 +47,14 @@ class BillingAndReportingTest extends TestCase {
 
         $updated = $insuranceService->updateClaimStatus($claim['id'], 'Approved', 'Claim processed');
         $this->assertEquals('Approved', $updated['status']);
+
+        $edited = $insuranceService->editClaim($claim['id'], 'Global Health Insurance', 'GH-100200', 75.00, 'Approved', 'Updated claim amount');
+        $this->assertEquals('Global Health Insurance', $edited['provider_name']);
+        $this->assertEquals('GH-100200', $edited['policy_number']);
+        $this->assertEquals(75.00, $edited['claim_amount']);
+
+        $deleted = $insuranceService->deleteClaim($claim['id']);
+        $this->assertTrue($deleted);
+        $this->assertNull($insuranceService->getClaimById($claim['id']));
     }
 }
