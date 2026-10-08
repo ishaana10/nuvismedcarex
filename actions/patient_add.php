@@ -69,8 +69,8 @@ $actStmt->execute([
     $tenantId,
     "patient_registered",
     "New Patient Registered: $firstName $lastName",
-    "Just now • via Portal",
-    "Just now",
+    "via Portal",
+    date('Y-m-d H:i:s'),
     "emerald"
 ]);
 
