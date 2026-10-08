@@ -13,6 +13,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+use ClinicFlow\Shared\TenantContext;
+
+$tenantId = TenantContext::getTenantId();
 $patientId = $_POST['patient_id'] ?? '';
 $doctorId = $_POST['doctor_id'] ?? 'doc-1';
 $appointmentDate = $_POST['appointment_date'] ?? date('Y-m-d');
@@ -23,8 +26,8 @@ $notes = trim($_POST['notes'] ?? '');
 $pdo = getDB();
 
 // Get patient details
-$pStmt = $pdo->prepare("SELECT * FROM patients WHERE id = ?");
-$pStmt->execute([$patientId]);
+$pStmt = $pdo->prepare("SELECT * FROM patients WHERE id = ? AND tenant_id = ?");
+$pStmt->execute([$patientId, $tenantId]);
 $patient = $pStmt->fetch();
 
 if (!$patient) {
@@ -34,27 +37,27 @@ if (!$patient) {
 }
 
 // Get doctor details
-$dStmt = $pdo->prepare("SELECT * FROM doctors WHERE id = ?");
-$dStmt->execute([$doctorId]);
+$dStmt = $pdo->prepare("SELECT * FROM doctors WHERE id = ? AND tenant_id = ?");
+$dStmt->execute([$doctorId, $tenantId]);
 $doctor = $dStmt->fetch();
 $doctorName = $doctor['name'] ?? 'Dr. Jenkins';
 
-$aptId = "apt-" . time();
+$aptId = "apt-" . time() . '-' . bin2hex(random_bytes(3));
 $patientName = $patient['first_name'] . ' ' . $patient['last_name'];
 $timeSlot = "$time - 10:15 AM";
 
-$stmt = $pdo->prepare("INSERT INTO appointments (id, patient_id, patient_name, patient_mrn, patient_avatar, patient_initials, doctor_id, doctor_name, appointment_date, time, time_slot, type, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+$stmt = $pdo->prepare("INSERT INTO appointments (id, tenant_id, patient_id, patient_name, patient_mrn, patient_avatar, patient_initials, doctor_id, doctor_name, appointment_date, time, time_slot, type, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
 $stmt->execute([
-    $aptId, $patientId, $patientName, $patient['mrn'], $patient['avatar'], $patient['initials'],
+    $aptId, $tenantId, $patientId, $patientName, $patient['mrn'], $patient['avatar'], $patient['initials'],
     $doctorId, $doctorName, $appointmentDate, $time, $timeSlot, $type, 'Waiting', $notes
 ]);
 
 // Also add item to Queue
-$qId = "q-" . time();
-$qStmt = $pdo->prepare("INSERT INTO queue (id, patient_id, patient_name, mrn, time, doctor_name, status, check_in_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+$qId = "q-" . time() . '-' . bin2hex(random_bytes(3));
+$qStmt = $pdo->prepare("INSERT INTO queue (id, tenant_id, patient_id, patient_name, mrn, time, doctor_name, status, check_in_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
 $qStmt->execute([
-    $qId, $patientId, $patientName, $patient['mrn'], $time, $doctorName, 'Waiting', date('h:i A')
+    $qId, $tenantId, $patientId, $patientName, $patient['mrn'], $time, $doctorName, 'Waiting', date('h:i A')
 ]);
 
 // Add Activity log
