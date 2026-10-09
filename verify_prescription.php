@@ -94,8 +94,7 @@ $details = !empty($token) ? $verificationService->getVerificationDetails($pdo, $
                     </p>
                     <p class="text-sm font-bold text-slate-900"><?= htmlspecialchars($details['doctor']['name']) ?></p>
                     <p class="text-slate-600 mt-1"><?= htmlspecialchars($details['doctor']['specialty']) ?></p>
-                    <p class="text-slate-600 mt-1 font-mono">PRC: <?= htmlspecialchars($details['doctor']['prc_number']) ?></p>
-                    <p class="text-slate-600 font-mono">PTR: <?= htmlspecialchars($details['doctor']['ptr_number']) ?></p>
+                    <p class="text-slate-600 mt-1 font-mono">Medical License: <?= htmlspecialchars($details['doctor']['prc_number']) ?></p>
                 </div>
             </div>
 

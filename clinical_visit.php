@@ -1220,13 +1220,9 @@ foreach ($settingsRows as $sr) {
                     <label class="block font-bold text-slate-700 mb-1">Attending Physician</label>
                     <input type="text" name="doctor_name" value="<?= htmlspecialchars($_SESSION['user_name'] ?? $currentDoctor['name'] ?? 'Dr. Sarah Jenkins') ?>" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-medium" required>
                 </div>
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">PRC License No.</label>
-                    <input type="text" name="prc_number" value="<?= htmlspecialchars($clinicSettings['doc_prc_no'] ?? 'PRC-0098412') ?>" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-mono font-medium">
-                </div>
                 <div class="md:col-span-2">
-                    <label class="block font-bold text-slate-700 mb-1">PTR License No.</label>
-                    <input type="text" name="ptr_number" value="<?= htmlspecialchars($clinicSettings['doc_ptr_no'] ?? 'PTR-8842109') ?>" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-mono font-medium">
+                    <label class="block font-bold text-slate-700 mb-1">Medical License No.</label>
+                    <input type="text" name="prc_number" value="<?= htmlspecialchars($clinicSettings['doc_prc_no'] ?? 'LIC-0098412') ?>" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-mono font-medium">
                 </div>
             </div>
 
