@@ -1,6 +1,0 @@
-{
-  "name": "ClinicFlow - City Clinic Admin Portal",
-  "description": "Comprehensive clinical management and Electronic Health Records (EHR) system featuring appointment scheduling, patient registration, interactive queue management, SOAP clinical notes, and prescription builder.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
