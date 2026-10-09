@@ -107,11 +107,12 @@ while ((time() - $startTime) < $maxDuration) {
         $newPatients = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         foreach ($newPatients as $p) {
-            if (in_array($p['id'], $sentIds, true)) {
+            $key = 'pat_' . $p['id'];
+            if (in_array($key, $sentIds, true)) {
                 continue;
             }
 
-            $sentIds[] = $p['id'];
+            $sentIds[] = $key;
             $fullName = trim(($p['first_name'] ?? '') . ' ' . ($p['last_name'] ?? ''));
             $mrn = $p['mrn'] ?? '#00000';
 
@@ -129,8 +130,51 @@ while ((time() - $startTime) < $maxDuration) {
             echo "data: " . json_encode($payload) . "\n\n";
             flush();
 
-            if (!empty($p['created_at'])) {
+            if (!empty($p['created_at']) && $p['created_at'] > $lastCheck) {
                 $lastCheck = $p['created_at'];
+            }
+        }
+
+        // Query new appointments booked strictly for this tenant
+        $aptStmt = $pdo->prepare("
+            SELECT id, patient_id, patient_name, doctor_name, appointment_date, time, created_at
+            FROM appointments
+            WHERE tenant_id = :tid AND created_at >= :last_check
+            ORDER BY created_at ASC
+        ");
+        $aptStmt->execute([
+            'tid' => $tenantId,
+            'last_check' => $lastCheck
+        ]);
+        $newAppointments = $aptStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($newAppointments as $apt) {
+            $key = 'apt_' . $apt['id'];
+            if (in_array($key, $sentIds, true)) {
+                continue;
+            }
+
+            $sentIds[] = $key;
+            $pName = $apt['patient_name'] ?? 'Patient';
+            $dName = $apt['doctor_name'] ?? 'Doctor';
+            $aTime = $apt['time'] ?? '';
+            $aDate = $apt['appointment_date'] ?? '';
+
+            $payload = [
+                'title' => 'New Appointment Booked',
+                'message' => "{$pName} booked with {$dName} for {$aDate} at {$aTime}.",
+                'patient_id' => $apt['patient_id'],
+                'patient_name' => $pName,
+                'timestamp' => $apt['created_at'] ?? date('Y-m-d H:i:s'),
+                'tenant_id' => $tenantId,
+                'enabled' => true
+            ];
+
+            echo "data: " . json_encode($payload) . "\n\n";
+            flush();
+
+            if (!empty($apt['created_at']) && $apt['created_at'] > $lastCheck) {
+                $lastCheck = $apt['created_at'];
             }
         }
     } catch (\Throwable $e) {
