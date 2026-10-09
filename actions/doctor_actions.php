@@ -39,6 +39,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($action === 'save' || $action === 
     $ptrNumber = trim($_POST['ptr_number'] ?? '');
     $avatar = trim($_POST['avatar'] ?? '');
 
+    // Handle Profile Image Upload
+    if (isset($_FILES['avatar_file']) && $_FILES['avatar_file']['error'] === UPLOAD_ERR_OK) {
+        $tmpName = $_FILES['avatar_file']['tmp_name'];
+        $origName = $_FILES['avatar_file']['name'];
+        $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION)) ?: 'png';
+        if (!in_array($ext, ['png', 'jpg', 'jpeg', 'webp', 'gif'])) {
+            $ext = 'png';
+        }
+        $avatarDir = __DIR__ . '/../uploads/avatars/';
+        if (!file_exists($avatarDir)) {
+            @mkdir($avatarDir, 0777, true);
+        }
+        $filename = 'avatar_' . preg_replace('/[^a-zA-Z0-9_-]/', '', $docId) . '_' . time() . '.' . $ext;
+        $targetPath = $avatarDir . $filename;
+        if (move_uploaded_file($tmpName, $targetPath)) {
+            $avatar = 'uploads/avatars/' . $filename;
+        }
+    }
+
     if (empty($name) || empty($email)) {
         setToast("Missing Data", "User name and email are required.", "error");
         header("Location: ../admin.php?tab=users");

@@ -208,8 +208,7 @@ $digitalStamp = $doctor['digital_stamp'] ?? '';
                 </div>
                 <p class="font-bold text-slate-900 text-sm"><?= htmlspecialchars($cert['doctor_name']) ?>, M.D.</p>
                 <p class="text-xs text-slate-600 font-medium">Attending Physician</p>
-                <p class="text-xs text-slate-500 font-mono mt-1">PRC No: <?= htmlspecialchars($prcNo) ?></p>
-                <p class="text-xs text-slate-500 font-mono">PTR No: <?= htmlspecialchars($ptrNo) ?></p>
+                <p class="text-xs text-slate-500 font-mono mt-1">Medical License No: <?= htmlspecialchars($prcNo) ?></p>
             </div>
         </div>
 

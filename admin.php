@@ -204,7 +204,7 @@ $usersList = $usersStmt->fetchAll();
                         <tr>
                             <th class="py-3 px-4">User</th>
                             <th class="py-3 px-4">Role & Specialty</th>
-                            <th class="py-3 px-4">PRC / PTR</th>
+                            <th class="py-3 px-4">Medical License</th>
                             <th class="py-3 px-4">Status</th>
                             <th class="py-3 px-4 text-right">Actions</th>
                         </tr>
@@ -237,8 +237,7 @@ $usersList = $usersStmt->fetchAll();
                                     </div>
                                 </td>
                                 <td class="py-3 px-4 font-mono text-[11px] text-slate-600">
-                                    <div>PRC: <?= htmlspecialchars($usr['prc_number'] ?: 'N/A') ?></div>
-                                    <div class="text-[10px] text-slate-400">PTR: <?= htmlspecialchars($usr['ptr_number'] ?: 'N/A') ?></div>
+                                    <div>Lic: <?= htmlspecialchars($usr['prc_number'] ?: 'N/A') ?></div>
                                 </td>
                                 <td class="py-3 px-4">
                                     <span class="px-2.5 py-1 rounded-full text-[10px] font-bold inline-flex items-center gap-1 <?= $isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800' ?>">
@@ -325,14 +324,9 @@ $usersList = $usersStmt->fetchAll();
                 <input type="text" name="clinic_npi" value="<?= htmlspecialchars($settings['clinic_npi'] ?? '1092830192') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-mono font-medium">
             </div>
 
-            <div>
-                <label class="block font-bold text-slate-700 mb-1">Default Physician PRC License No.</label>
-                <input type="text" name="doc_prc_no" value="<?= htmlspecialchars($settings['doc_prc_no'] ?? 'PRC-0098412') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-mono font-medium">
-            </div>
-
-            <div>
-                <label class="block font-bold text-slate-700 mb-1">Default Physician PTR No.</label>
-                <input type="text" name="doc_ptr_no" value="<?= htmlspecialchars($settings['doc_ptr_no'] ?? 'PTR-8842109') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-mono font-medium">
+            <div class="md:col-span-2">
+                <label class="block font-bold text-slate-700 mb-1">Default Physician Medical License No.</label>
+                <input type="text" name="doc_prc_no" value="<?= htmlspecialchars($settings['doc_prc_no'] ?? 'LIC-0098412') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-mono font-medium">
             </div>
 
             <div>
@@ -874,13 +868,9 @@ $usersList = $usersStmt->fetchAll();
             </div>
 
             <div class="grid grid-cols-2 gap-3 p-3 bg-surface-container-low rounded-xl border border-outline-variant/30 text-xs">
-                <div>
-                    <span class="text-outline text-[10px] block font-bold">PRC License No.</span>
-                    <span class="font-mono font-bold text-on-surface" id="view-card-prc">PRC-0000000</span>
-                </div>
-                <div>
-                    <span class="text-outline text-[10px] block font-bold">PTR License No.</span>
-                    <span class="font-mono font-bold text-on-surface" id="view-card-ptr">PTR-0000000</span>
+                <div class="md:col-span-2">
+                    <span class="text-outline text-[10px] block font-bold">Medical License No.</span>
+                    <span class="font-mono font-bold text-on-surface" id="view-card-prc">LIC-0000000</span>
                 </div>
             </div>
 
@@ -972,19 +962,25 @@ $usersList = $usersStmt->fetchAll();
                     </select>
                 </div>
 
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">PRC License Number</label>
-                    <input type="text" name="prc_number" id="usr_prc" placeholder="PRC-0098412" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-mono font-medium">
-                </div>
-
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">PTR Number</label>
-                    <input type="text" name="ptr_number" id="usr_ptr" placeholder="PTR-8842109" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-mono font-medium">
-                </div>
-
                 <div class="md:col-span-2">
-                    <label class="block font-bold text-slate-700 mb-1">Profile Avatar Image URL</label>
+                    <label class="block font-bold text-slate-700 mb-1">Medical License Number</label>
+                    <input type="text" name="prc_number" id="usr_prc" placeholder="LIC-0098412" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-mono font-medium">
+                </div>
+
+                <div class="md:col-span-2 space-y-2">
+                    <label class="block font-bold text-slate-700">Profile Avatar Image (Upload File or Image URL)</label>
+                    <div class="flex items-center gap-3">
+                        <input type="file" name="avatar_file" id="usr_avatar_file" accept="image/*" class="text-xs text-slate-600">
+                        <span class="text-xs text-slate-400 font-semibold">OR Image URL:</span>
+                    </div>
                     <input type="text" name="avatar" id="usr_avatar" placeholder="https://images.unsplash.com/photo-..." class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-medium">
+                    <div id="avatar_preview" class="p-2 border border-slate-200 rounded-xl bg-white hidden flex items-center gap-3 shadow-2xs">
+                        <img id="img_avatar_preview" src="" class="w-12 h-12 rounded-xl object-cover border border-slate-200" alt="Avatar Preview">
+                        <div>
+                            <p class="text-[11px] font-bold text-slate-800">Profile Image Preview</p>
+                            <p class="text-[10px] text-slate-400">Selected profile picture for user account.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -1141,7 +1137,6 @@ function viewCardDetails(usr) {
     document.getElementById('view-card-role').innerText = usr.role || 'Doctor';
     document.getElementById('view-card-specialty').innerText = usr.specialty || 'General Practice';
     document.getElementById('view-card-prc').innerText = usr.prc_number || 'N/A';
-    document.getElementById('view-card-ptr').innerText = usr.ptr_number || 'N/A';
     document.getElementById('view-card-avatar').src = usr.avatar || 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&q=80&w=200';
 
     const sigEl = document.getElementById('view-card-sig-status');
@@ -1193,8 +1188,13 @@ function openUserModal(usr = null) {
         document.getElementById('usr_password').value = '';
         document.getElementById('usr_is_active').value = (usr.is_active !== undefined) ? usr.is_active : '1';
         document.getElementById('usr_prc').value = usr.prc_number || '';
-        document.getElementById('usr_ptr').value = usr.ptr_number || '';
         document.getElementById('usr_avatar').value = usr.avatar || '';
+        if (usr.avatar) {
+            document.getElementById('avatar_preview').classList.remove('hidden');
+            document.getElementById('img_avatar_preview').src = usr.avatar;
+        } else {
+            document.getElementById('avatar_preview').classList.add('hidden');
+        }
 
         document.getElementById('usr_existing_esignature').value = usr.esignature || '';
         document.getElementById('usr_esignature_data').value = usr.esignature || '';
@@ -1223,8 +1223,8 @@ function openUserModal(usr = null) {
         document.getElementById('usr_password').value = '';
         document.getElementById('usr_is_active').value = '1';
         document.getElementById('usr_prc').value = '';
-        document.getElementById('usr_ptr').value = '';
         document.getElementById('usr_avatar').value = '';
+        document.getElementById('avatar_preview').classList.add('hidden');
         document.getElementById('usr_existing_esignature').value = '';
         document.getElementById('usr_esignature_data').value = '';
         document.getElementById('esignature_preview').classList.add('hidden');
@@ -1239,6 +1239,37 @@ function closeUserModal() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    const avatarFileInput = document.getElementById('usr_avatar_file');
+    const avatarUrlInput = document.getElementById('usr_avatar');
+    const avatarPreview = document.getElementById('avatar_preview');
+    const avatarImg = document.getElementById('img_avatar_preview');
+
+    if (avatarFileInput) {
+        avatarFileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    avatarImg.src = evt.target.result;
+                    avatarPreview.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    if (avatarUrlInput) {
+        avatarUrlInput.addEventListener('input', function(e) {
+            const val = e.target.value.trim();
+            if (val) {
+                avatarImg.src = val;
+                avatarPreview.classList.remove('hidden');
+            } else {
+                avatarPreview.classList.add('hidden');
+            }
+        });
+    }
+
     const esigFileInput = document.getElementById('usr_esignature_file');
     const esigDataInput = document.getElementById('usr_esignature_data');
     const esigPreview = document.getElementById('esignature_preview');

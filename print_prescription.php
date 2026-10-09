@@ -215,8 +215,7 @@ $verificationUrl = $rxVerificationService->getVerificationUrl($verificationToken
             <div class="border-b border-slate-400 mb-1 pb-1 font-serif text-lg font-bold text-blue-900 italic"><?= htmlspecialchars($attendingDoc['name']) ?></div>
             <p class="font-bold text-slate-800"><?= htmlspecialchars($attendingDoc['name']) ?></p>
             <p class="text-slate-500"><?= htmlspecialchars($attendingDoc['specialty']) ?></p>
-            <p class="text-[10px] font-mono text-slate-500 mt-0.5">PRC No: <?= htmlspecialchars($attendingDoc['prc_number'] ?? $settings['doc_prc_no'] ?? 'N/A') ?></p>
-            <p class="text-[10px] font-mono text-slate-500">PTR No: <?= htmlspecialchars($attendingDoc['ptr_number'] ?? $settings['doc_ptr_no'] ?? 'N/A') ?></p>
+            <p class="text-[10px] font-mono text-slate-500 mt-0.5">Medical License No: <?= htmlspecialchars($attendingDoc['prc_number'] ?? $settings['doc_prc_no'] ?? 'N/A') ?></p>
         </div>
     </div>
 </div>
