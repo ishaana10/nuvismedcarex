@@ -170,11 +170,30 @@ if (!$tenantRow) {
 
         <!-- Right Utilities & Profile -->
         <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-            <!-- Notifications Icon -->
-            <button type="button" class="relative p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-full transition flex items-center">
-                <span class="material-symbols-outlined text-xl">notifications</span>
-                <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 border border-white"></span>
-            </button>
+            <!-- Notifications Dropdown Container -->
+            <div class="relative">
+                <button type="button" id="notif-bell-btn" onclick="toggleNotificationDropdown()" class="relative p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-full transition flex items-center">
+                    <span class="material-symbols-outlined text-xl">notifications</span>
+                    <span id="notif-badge" class="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-rose-500 border-2 border-white hidden"></span>
+                </button>
+
+                <!-- Notifications Panel Dropdown -->
+                <div id="notif-dropdown" class="hidden absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 overflow-hidden text-xs">
+                    <div class="p-3 bg-slate-900 text-white flex items-center justify-between">
+                        <div class="flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-amber-400 text-sm">notifications_active</span>
+                            <span class="font-bold">Real-time System Alerts</span>
+                        </div>
+                        <button type="button" onclick="clearAllNotifications()" class="text-[11px] text-slate-300 hover:text-white underline">Clear All</button>
+                    </div>
+                    <div id="notif-list" class="max-h-64 overflow-y-auto divide-y divide-slate-100">
+                        <div id="notif-empty" class="p-6 text-center text-slate-400">
+                            <span class="material-symbols-outlined text-2xl text-slate-300 mb-1">notifications_none</span>
+                            <p class="font-medium text-xs">No new notifications</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <!-- Help Icon -->
             <button type="button" class="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-full transition flex items-center">
@@ -291,6 +310,68 @@ function openChangePasswordModal() {
 }
 function closeChangePasswordModal() {
     document.getElementById('modal-change-password-global').classList.add('hidden');
+}
+
+// Notification Dropdown & SSE Handler
+function toggleNotificationDropdown() {
+    const dropdown = document.getElementById('notif-dropdown');
+    if (dropdown) {
+        dropdown.classList.toggle('hidden');
+    }
+}
+
+function clearAllNotifications() {
+    const list = document.getElementById('notif-list');
+    if (list) {
+        list.innerHTML = `
+            <div id="notif-empty" class="p-6 text-center text-slate-400">
+                <span class="material-symbols-outlined text-2xl text-slate-300 mb-1">notifications_none</span>
+                <p class="font-medium text-xs">No new notifications</p>
+            </div>`;
+    }
+    const badge = document.getElementById('notif-badge');
+    if (badge) badge.classList.add('hidden');
+}
+
+function addNotificationItem(notif) {
+    const emptyState = document.getElementById('notif-empty');
+    if (emptyState) emptyState.remove();
+
+    const list = document.getElementById('notif-list');
+    const badge = document.getElementById('notif-badge');
+    if (badge) badge.classList.remove('hidden');
+
+    if (list) {
+        const item = document.createElement('a');
+        item.href = notif.patient_id ? `patient_detail.php?id=${notif.patient_id}` : '#';
+        item.className = 'block p-3 hover:bg-slate-50 transition border-b border-slate-100 last:border-0';
+        item.innerHTML = `
+            <div class="flex items-start gap-2.5">
+                <div class="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 font-bold">
+                    <span class="material-symbols-outlined text-sm">person_add</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="font-bold text-slate-800 text-xs truncate">${notif.title || 'Notification'}</p>
+                    <p class="text-[11px] text-slate-600 truncate">${notif.message || ''}</p>
+                    <span class="text-[10px] text-slate-400 font-mono mt-0.5 block">${notif.timestamp || ''}</span>
+                </div>
+            </div>
+        `;
+        list.prepend(item);
+    }
+}
+
+// Global SSE Real-time Notification EventSource Listener
+if (typeof(EventSource) !== "undefined") {
+    const sseSource = new EventSource('api/notifications/stream.php');
+    sseSource.onmessage = function(event) {
+        try {
+            const data = JSON.parse(event.data);
+            if (data.title && data.message) {
+                addNotificationItem(data);
+            }
+        } catch (e) {}
+    };
 }
 </script>
 
