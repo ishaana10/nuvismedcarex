@@ -15,6 +15,7 @@ $navItems = [
     ['id' => 'inventory', 'label' => 'Inventory', 'icon' => 'inventory_2', 'url' => 'inventory.php'],
     ['id' => 'uploads', 'label' => 'Upload Documents', 'icon' => 'cloud_upload', 'url' => 'uploads.php'],
     ['id' => 'register-patient', 'label' => 'Register Patient', 'icon' => 'person_add', 'url' => 'register_patient.php'],
+    ['id' => 'settings', 'label' => 'Settings', 'icon' => 'settings', 'url' => 'settings.php'],
     ['id' => 'admin', 'label' => 'Administrator', 'icon' => 'admin_panel_settings', 'url' => 'admin.php'],
 ];
 
