@@ -25,7 +25,7 @@ if ($userRole === 'Developer') {
 ?>
 
 <!-- Desktop Sidebar -->
-<aside class="w-64 bg-white border-r border-slate-200/80 flex flex-col justify-between p-4 shrink-0 hidden md:flex min-h-[calc(100vh-65px)]">
+<aside class="desktop-sidebar w-64 bg-white border-r border-slate-200/80 flex-col justify-between p-4 shrink-0 hidden md:flex min-h-[calc(100vh-65px)]">
     <div class="space-y-5">
         <!-- Clinic Profile Badge -->
         <div class="flex items-center gap-3 px-2 py-1">
@@ -75,10 +75,10 @@ if ($userRole === 'Developer') {
 </aside>
 
 <!-- Mobile Overlay Backdrop -->
-<div id="mobileBackdrop" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[60] hidden md:hidden transition-opacity"></div>
+<div id="mobileBackdrop" onclick="toggleMobileSidebar()" class="mobile-backdrop fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[60] hidden md:hidden transition-opacity"></div>
 
 <!-- Mobile Drawer Sidebar -->
-<aside id="mobileSidebar" class="fixed top-0 left-0 bottom-0 w-[280px] sm:w-72 bg-surface-container-lowest z-[70] transform -translate-x-full transition-transform duration-300 ease-in-out md:hidden flex flex-col justify-between p-5 shadow-2xl border-r border-outline-variant/30 overflow-y-auto">
+<aside id="mobileSidebar" class="mobile-sidebar fixed top-0 left-0 bottom-0 w-[280px] sm:w-72 bg-surface-container-lowest z-[70] transform -translate-x-full transition-transform duration-300 ease-in-out md:hidden flex-col justify-between p-5 shadow-2xl border-r border-outline-variant/30 overflow-y-auto">
     <div class="space-y-4">
         <div class="flex items-center justify-between border-b border-outline-variant/30 pb-3">
             <div class="flex items-center gap-2">

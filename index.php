@@ -1,15 +1,15 @@
 <?php
-// Serve dist static assets if requested (handles relative or absolute /assets/ path requests)
+// Serve static assets if requested (handles relative or absolute /assets/ path requests)
 $uri = strtok($_SERVER['REQUEST_URI'] ?? '', '?');
 if (str_contains($uri, 'assets/')) {
     $assetPos = strpos($uri, 'assets/');
     $assetRel = '/' . substr($uri, $assetPos);
-    $assetFile = __DIR__ . '/dist' . $assetRel;
+    $assetFile = __DIR__ . $assetRel;
     if (!file_exists($assetFile) || !is_file($assetFile)) {
-        $assetFile = __DIR__ . '/' . substr($uri, $assetPos);
+        $assetFile = __DIR__ . '/dist' . $assetRel;
     }
     if (file_exists($assetFile) && is_file($assetFile)) {
-        $mime = str_ends_with($assetFile, '.css') ? 'text/css' : (str_ends_with($assetFile, '.js') ? 'application/javascript' : 'text/plain');
+        $mime = str_ends_with($assetFile, '.css') ? 'text/css' : (str_ends_with($assetFile, '.js') ? 'application/javascript' : (str_ends_with($assetFile, '.png') ? 'image/png' : 'text/plain'));
         header("Content-Type: $mime");
         readfile($assetFile);
         exit;

@@ -22,6 +22,37 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Critical Layout & Sidebar Flash Prevention (FOUC) */
+.desktop-sidebar {
+  display: none;
+}
+
+.mobile-backdrop {
+  display: none !important;
+}
+
+.mobile-sidebar {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .desktop-sidebar {
+    display: flex !important;
+  }
+  .mobile-sidebar, .mobile-backdrop {
+    display: none !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .desktop-sidebar {
+    display: none !important;
+  }
+  .mobile-sidebar {
+    display: flex;
+  }
+}
+
 /* Standardized Card Container */
 .clinic-card, .card-container {
   background-color: #ffffff;

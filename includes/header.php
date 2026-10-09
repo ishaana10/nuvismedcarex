@@ -103,6 +103,19 @@ if (!$tenantRow) {
       .material-symbols-outlined.fill {
         font-variation-settings: 'FILL' 1;
       }
+
+      /* Instant Sidebar Render Protection */
+      .desktop-sidebar { display: none; }
+      .mobile-backdrop { display: none !important; }
+      .mobile-sidebar { display: none; }
+      @media (min-width: 768px) {
+        .desktop-sidebar { display: flex !important; }
+        .mobile-sidebar, .mobile-backdrop { display: none !important; }
+      }
+      @media (max-width: 767px) {
+        .desktop-sidebar { display: none !important; }
+        .mobile-sidebar { display: flex; }
+      }
     </style>
 </head>
 <body class="h-full font-sans text-on-surface bg-background flex flex-col min-h-screen">

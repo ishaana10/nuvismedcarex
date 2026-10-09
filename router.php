@@ -7,9 +7,12 @@ SecurityHeadersMiddleware::applyHeaders();
 $uri = strtok($_SERVER['REQUEST_URI'] ?? '', '?');
 
 if (str_starts_with($uri, '/assets/')) {
-    $file = __DIR__ . '/dist' . $uri;
-    if (file_exists($file)) {
-        $mime = str_ends_with($file, '.css') ? 'text/css' : (str_ends_with($file, '.js') ? 'application/javascript' : 'text/plain');
+    $file = __DIR__ . $uri;
+    if (!file_exists($file) || !is_file($file)) {
+        $file = __DIR__ . '/dist' . $uri;
+    }
+    if (file_exists($file) && is_file($file)) {
+        $mime = str_ends_with($file, '.css') ? 'text/css' : (str_ends_with($file, '.js') ? 'application/javascript' : (str_ends_with($file, '.png') ? 'image/png' : 'text/plain'));
         header("Content-Type: $mime");
         readfile($file);
         exit;
