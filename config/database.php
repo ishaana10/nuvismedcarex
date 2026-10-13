@@ -134,6 +134,10 @@ function runDatabaseMigrations(PDO $pdo): void {
 }
 
 function ensureDoctorColumnsExist(PDO $pdo): void {
+    static $checked = false;
+    if ($checked) return;
+    $checked = true;
+
     $getField = function(array $row): string {
         $val = $row['Field'] ?? $row['field'] ?? array_values($row)[0] ?? '';
         return strtolower((string)$val);
