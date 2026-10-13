@@ -35,8 +35,13 @@ class NuCache
             $this->redis = new \Redis();
 
             if (($cfg['scheme'] ?? 'unix') === 'unix') {
+                $socketPath = $cfg['path'] ?? '/home/ictfjcom/.redis/redis.sock';
+                if (!file_exists($socketPath)) {
+                    // Fail fast if socket file does not exist on disk
+                    return;
+                }
                 $connected = $this->redis->connect(
-                    $cfg['path'] ?? '/home/ictfjcom/.redis/redis.sock',
+                    $socketPath,
                     0,
                     (float)($cfg['timeout'] ?? 2.5)
                 );

@@ -92,18 +92,7 @@ if ($valid && $user) {
         // Suppress if audit table not ready
     }
 
-    // If Developer or Administrator, automatically trigger backend database schema update
-    $userRole = $_SESSION['user_role'];
-    if (in_array($userRole, ['Developer', 'Administrator'])) {
-        $migrationStats = executeAutoSchemaMigrations($pdo);
-        if ($migrationStats['executed'] > 0) {
-            setToast("Welcome Back!", "Logged in as " . $user['name'] . ". Database schema automatically updated (" . $migrationStats['executed'] . " statements executed).");
-        } else {
-            setToast("Welcome Back!", "Logged in successfully as " . $user['name'] . ".");
-        }
-    } else {
-        setToast("Welcome Back!", "Logged in successfully as " . $user['name'] . ".");
-    }
+    setToast("Welcome Back!", "Logged in successfully as " . $user['name'] . ".");
 
     header("Location: ../index.php");
     exit;
