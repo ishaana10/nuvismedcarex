@@ -33,6 +33,9 @@ if (empty($_SESSION['authenticated'])) {
 $pdo = getDB();
 $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 
+// Release session lock so concurrent HTTP page loads for this session are not blocked during the long-polling loop
+session_write_close();
+
 // Helper to check if SSE is enabled for the active tenant
 function checkSseEnabled(PDO $pdo, string $tenantId): bool {
     try {
