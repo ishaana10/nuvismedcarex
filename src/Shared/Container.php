@@ -30,6 +30,17 @@ class Container {
                 return new Logger();
             });
         }
+        if (!isset($this->bindings[\NuCache::class]) && !isset($this->instances[\NuCache::class])) {
+            $this->singleton(\NuCache::class, function () {
+                require_once __DIR__ . '/../../core/Cache.php';
+                return \NuCache::getInstance();
+            });
+        }
+        if (!isset($this->bindings[\ClinicFlow\Services\CacheService::class]) && !isset($this->instances[\ClinicFlow\Services\CacheService::class])) {
+            $this->singleton(\ClinicFlow\Services\CacheService::class, function () {
+                return new \ClinicFlow\Services\CacheService();
+            });
+        }
     }
 
     public function bind(string $abstract, Closure $factory): void {

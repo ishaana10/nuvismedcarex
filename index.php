@@ -1,4 +1,7 @@
 <?php
+require_once __DIR__ . '/core/Cache.php';
+require_once __DIR__ . '/core/SessionBootstrap.php';
+
 // Serve static assets if requested (handles relative or absolute /assets/ path requests)
 $uri = strtok($_SERVER['REQUEST_URI'] ?? '', '?');
 if (str_contains($uri, 'assets/')) {

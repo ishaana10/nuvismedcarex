@@ -158,6 +158,9 @@ foreach ($settings as $key => $val) {
     }
 }
 
+require_once __DIR__ . '/../core/Cache.php';
+\NuCache::getInstance()->invalidateSystemSettings();
+
 setToast("Settings Saved", "Clinic branding and prescription settings updated successfully.");
 $redirect = $_SERVER['HTTP_REFERER'] ?? '../admin.php';
 header("Location: " . $redirect);
