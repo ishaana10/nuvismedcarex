@@ -1,6 +1,6 @@
 <?php
 /**
- * Delete Appointment POST Handler
+ * Delete Appointment POST Handler (Refactored Thin Orchestration Layer)
  */
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/security.php';
@@ -13,39 +13,25 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-use ClinicFlow\Shared\TenantContext;
+use ClinicFlow\Shared\Container;
+use ClinicFlow\Services\AppointmentService;
 
-$tenantId = TenantContext::getTenantId();
-$appointmentId = $_POST['appointment_id'] ?? '';
+$id = $_POST['appointment_id'] ?? $_POST['id'] ?? '';
 
-$pdo = getDB();
-
-// Verify appointment exists and belongs to active tenant
-$stmt = $pdo->prepare("SELECT * FROM appointments WHERE id = ? AND tenant_id = ?");
-$stmt->execute([$appointmentId, $tenantId]);
-$appt = $stmt->fetch();
-
-if (!$appt) {
-    setToast('Error', 'Appointment not found or access denied.', 'error');
+if (!$id) {
+    setToast('Error', 'Invalid appointment ID.', 'error');
     header("Location: ../appointment.php");
     exit;
 }
 
-$delStmt = $pdo->prepare("DELETE FROM appointments WHERE id = ? AND tenant_id = ?");
-$delStmt->execute([$appointmentId, $tenantId]);
+try {
+    $appointmentService = Container::getInstance()->get(AppointmentService::class);
+    $appointmentService->deleteAppointment($id);
 
-// Log activity
-$actStmt = $pdo->prepare("INSERT INTO activities (id, tenant_id, type, title, detail, timestamp, badge_type) VALUES (?, ?, ?, ?, ?, ?, ?)");
-$actStmt->execute([
-    "act-" . time(),
-    $tenantId,
-    "appointment_cancel",
-    "Appointment Removed: {$appt['patient_name']}",
-    "Appointment on {$appt['appointment_date']} at {$appt['time']} removed.",
-    date('Y-m-d H:i:s'),
-    "red"
-]);
+    setToast("Appointment Removed", "Appointment cancelled and removed successfully.");
+} catch (\Throwable $e) {
+    setToast('Error', 'Failed to remove appointment: ' . $e->getMessage(), 'error');
+}
 
-setToast("Appointment Removed", "Appointment for {$appt['patient_name']} has been removed.");
 header("Location: ../appointment.php");
 exit;
