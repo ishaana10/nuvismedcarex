@@ -2,6 +2,8 @@
 use ClinicFlow\Http\SecurityHeadersMiddleware;
 
 require_once __DIR__ . '/includes/autoloader.php';
+require_once __DIR__ . '/core/Cache.php';
+require_once __DIR__ . '/core/SessionBootstrap.php';
 SecurityHeadersMiddleware::applyHeaders();
 
 $uri = strtok($_SERVER['REQUEST_URI'] ?? '', '?');

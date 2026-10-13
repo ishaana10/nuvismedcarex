@@ -12,8 +12,12 @@ function getAppConfig(): array {
         return $config;
     }
 
+    $localConfigFile = __DIR__ . '/config.local.php';
     $configFile = __DIR__ . '/config.php';
-    if (file_exists($configFile)) {
+
+    if (file_exists($localConfigFile)) {
+        $config = require $localConfigFile;
+    } elseif (file_exists($configFile)) {
         $config = require $configFile;
     } else {
         // Fallback default configuration
@@ -24,8 +28,40 @@ function getAppConfig(): array {
             'db_name'   => getenv('DB_NAME')   ?: 'clinicflow',
             'db_user'   => getenv('DB_USER')   ?: 'root',
             'db_pass'   => getenv('DB_PASS')   ?: '',
+            'redis'     => [
+                'enabled'     => getenv('REDIS_ENABLED') !== false ? filter_var(getenv('REDIS_ENABLED'), FILTER_VALIDATE_BOOLEAN) : false,
+                'scheme'      => getenv('REDIS_SCHEME') ?: 'unix',
+                'path'        => getenv('REDIS_PATH')   ?: '/home/ictfjcom/.redis/redis.sock',
+                'host'        => getenv('REDIS_HOST')   ?: '127.0.0.1',
+                'port'        => (int)(getenv('REDIS_PORT') ?: 6379),
+                'password'    => getenv('REDIS_PASS')   ?: null,
+                'database'    => (int)(getenv('REDIS_DB') ?: 0),
+                'prefix'      => getenv('REDIS_PREFIX') ?: 'nuvis:',
+                'timeout'     => (float)(getenv('REDIS_TIMEOUT') ?: 2.5),
+                'default_ttl' => (int)(getenv('REDIS_DEFAULT_TTL') ?: 300),
+            ],
         ];
     }
+
+    if (!isset($config['redis'])) {
+        $config['redis'] = [
+            'enabled'     => false,
+            'scheme'      => 'unix',
+            'path'        => '/home/ictfjcom/.redis/redis.sock',
+            'host'        => '127.0.0.1',
+            'port'        => 6379,
+            'password'    => null,
+            'database'    => 0,
+            'prefix'      => 'nuvis:',
+            'timeout'     => 2.5,
+            'default_ttl' => 300,
+        ];
+    }
+
+    if (!isset($GLOBALS['nuConfig'])) {
+        $GLOBALS['nuConfig'] = $config;
+    }
+
     return $config;
 }
 
@@ -481,9 +517,7 @@ if (class_exists('ClinicFlow\\Http\\SecurityHeadersMiddleware')) {
 }
 
 // Session & Toast helper
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once __DIR__ . '/../core/SessionBootstrap.php';
 
 function setToast(string $title, string $message, string $type = 'success'): void {
     $_SESSION['toast'] = [
