@@ -29,6 +29,12 @@ try {
     $socketExists = file_exists($socketPath);
 
     if ($action === 'get_redis_status') {
+        // Auto-touch ~/.redis.on flag on status check to trigger A2 Hosting daemon if offline
+        $homeDir = getenv('HOME') ?: '/home/ictfjcom';
+        @touch($homeDir . '/.redis.on');
+        @touch('/home/ictfjcom/.redis.on');
+
+        $socketExists = file_exists($socketPath);
         $isConnected = $cache->isEnabled();
         $client = $cache->client();
 
@@ -133,6 +139,28 @@ try {
             'success' => true,
             'socket_exists' => $exists,
             'message' => 'Created ~/.redis.on flag on disk. A2 Hosting background process will launch the Redis daemon and generate ' . $socketPath . '.'
+        ]);
+        exit();
+    }
+
+    if ($action === 'toggle_redis_config') {
+        $enable = !empty($jsonInput['enable']);
+        $configLocal = __DIR__ . '/../config/config.local.php';
+        $configMain = __DIR__ . '/../config/config.php';
+        $targetFile = file_exists($configLocal) ? $configLocal : (file_exists($configMain) ? $configMain : $configLocal);
+
+        $currConfig = getAppConfig();
+        $currConfig['redis']['enabled'] = $enable;
+
+        $content = "<?php\nreturn " . var_export($currConfig, true) . ";\n";
+        @file_put_contents($targetFile, $content);
+
+        \NuCache::resetInstance();
+
+        echo json_encode([
+            'success' => true,
+            'enabled' => $enable,
+            'message' => 'Redis configuration ' . ($enable ? 'ENABLED' : 'DISABLED') . ' successfully.'
         ]);
         exit();
     }
