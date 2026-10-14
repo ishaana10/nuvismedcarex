@@ -4,9 +4,7 @@
  * Pushes instant patient registration notifications to doctor dashboards with multi-tenant isolation.
  */
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once __DIR__ . '/../../core/SessionBootstrap.php';
 
 require_once __DIR__ . '/../../includes/security.php';
 require_once __DIR__ . '/../../config/database.php';

@@ -3,7 +3,7 @@
  * Delete Inventory Item Action (Admin / Developer)
  * Soft deletes item by setting is_active = 0
  */
-session_start();
+require_once __DIR__ . '/../core/SessionBootstrap.php';
 if (empty($_SESSION['authenticated'])) {
     header('Location: ../login.php');
     exit;
