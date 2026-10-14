@@ -399,22 +399,29 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
                 </div>
             </div>
 
-            <!-- Section 3: Google Drive Link -->
+            <!-- Section 3: Google Drive Link & Interactive OAuth Picker -->
             <div id="tab-section-googledrive" class="space-y-3 hidden">
-                <div class="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-[11px] text-amber-900">
-                    <strong class="font-bold">Google Drive Integration:</strong> Paste your Google Drive document sharing link and file title below.
+                <div class="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-[11px] text-amber-900 flex items-center justify-between gap-2">
+                    <div>
+                        <strong class="font-bold block">Google Drive Integration:</strong>
+                        <span>Select a file directly from your Google Drive using the picker, or manually enter the sharing URL below.</span>
+                    </div>
+                    <button type="button" id="btn-gdrive-picker" onclick="launchGoogleDrivePicker()" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs shrink-0 flex items-center gap-1 transition">
+                        <span class="material-symbols-outlined text-base">add_to_drive</span>
+                        <span>Pick File</span>
+                    </button>
                 </div>
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">Document Title / File Name *</label>
-                    <input type="text" name="gdrive_file_name" placeholder="e.g. Blood_Lab_Panel_Oct2025.pdf" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-medium text-on-surface">
+                    <input type="text" id="gdrive_file_name" name="gdrive_file_name" placeholder="e.g. Blood_Lab_Panel_Oct2025.pdf" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-medium text-on-surface">
                 </div>
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">Google Drive Sharing Link / URL *</label>
-                    <input type="url" name="gdrive_file_url" placeholder="https://drive.google.com/file/d/..." class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-medium text-on-surface">
+                    <input type="url" id="gdrive_file_url" name="gdrive_file_url" placeholder="https://drive.google.com/file/d/..." class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-medium text-on-surface">
                 </div>
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">Google Drive File ID (Optional)</label>
-                    <input type="text" name="gdrive_file_id" placeholder="e.g. 1a2b3c4d5e6f7g8h9i0j" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
+                    <input type="text" id="gdrive_file_id" name="gdrive_file_id" placeholder="e.g. 1a2b3c4d5e6f7g8h9i0j" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
                 </div>
             </div>
 
@@ -496,7 +503,81 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
     </div>
 </div>
 
+<!-- Google API Loader and GIS Client SDKs -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://apis.google.com/js/api.js" async defer></script>
+
 <script>
+const gdriveClientId = <?= json_encode($cloudSettings['cloud_googledrive_client_id'] ?? '') ?>;
+const gdriveApiKey = <?= json_encode($cloudSettings['cloud_googledrive_api_key'] ?? '') ?>;
+
+let pickerApiLoaded = false;
+let oauthToken = null;
+
+function onPickerApiLoad() {
+    pickerApiLoaded = true;
+}
+
+function launchGoogleDrivePicker() {
+    if (!gdriveClientId) {
+        alert('Google Drive Client ID is not configured. Please enter your OAuth Client ID in Cloud API Setup.');
+        openModal('modal-cloud-settings');
+        return;
+    }
+
+    if (oauthToken) {
+        createPicker();
+    } else {
+        const tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: gdriveClientId,
+            scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
+            callback: (response) => {
+                if (response.error !== undefined) {
+                    alert('Google Authentication Error: ' + response.error);
+                    return;
+                }
+                oauthToken = response.access_token;
+                gapi.load('picker', { callback: createPicker });
+            },
+        });
+        tokenClient.requestAccessToken({ prompt: 'consent' });
+    }
+}
+
+function createPicker() {
+    if (pickerApiLoaded || typeof gapi !== 'undefined') {
+        const view = new google.picker.View(google.picker.ViewId.DOCS);
+        view.setMimeTypes('image/png,image/jpeg,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain');
+
+        const pickerBuilder = new google.picker.PickerBuilder()
+            .addView(view)
+            .setOAuthToken(oauthToken)
+            .setCallback(pickerCallback);
+
+        if (gdriveApiKey) {
+            pickerBuilder.setDeveloperKey(gdriveApiKey);
+        }
+
+        const picker = pickerBuilder.build();
+        picker.setVisible(true);
+    } else {
+        gapi.load('picker', { callback: createPicker });
+    }
+}
+
+function pickerCallback(data) {
+    if (data.action === google.picker.Action.PICKED) {
+        const doc = data.docs[0];
+        const fileId = doc.id;
+        const fileName = doc.name;
+        const fileUrl = doc.url || `https://drive.google.com/file/d/${fileId}/view`;
+
+        document.getElementById('gdrive_file_name').value = fileName;
+        document.getElementById('gdrive_file_url').value = fileUrl;
+        document.getElementById('gdrive_file_id').value = fileId;
+    }
+}
+
 function toggleUploadTab(provider) {
     const serverTab = document.getElementById('tab-section-server');
     const onedriveTab = document.getElementById('tab-section-onedrive');
