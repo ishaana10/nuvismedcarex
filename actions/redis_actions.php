@@ -133,12 +133,27 @@ try {
         @touch($homeDir . '/.redis.on');
         @touch('/home/ictfjcom/.redis.on');
 
+        // Automatically enable Redis in config file
+        $configLocal = __DIR__ . '/../config/config.local.php';
+        $configMain = __DIR__ . '/../config/config.php';
+        $targetFile = file_exists($configLocal) ? $configLocal : (file_exists($configMain) ? $configMain : $configLocal);
+
+        $currConfig = getAppConfig();
+        $currConfig['redis']['enabled'] = true;
+        $content = "<?php\nreturn " . var_export($currConfig, true) . ";\n";
+        @file_put_contents($targetFile, $content);
+
+        \NuCache::resetInstance();
+        $cache = \NuCache::getInstance();
+
         $exists = file_exists($socketPath);
+        $isConnected = $cache->isEnabled();
 
         echo json_encode([
             'success' => true,
             'socket_exists' => $exists,
-            'message' => 'Created ~/.redis.on flag on disk. A2 Hosting background process will launch the Redis daemon and generate ' . $socketPath . '.'
+            'is_connected' => $isConnected,
+            'message' => 'Created ~/.redis.on flag on disk and ENABLED Redis in config. A2 Hosting background process will launch the Redis daemon and generate ' . $socketPath . '.'
         ]);
         exit();
     }
