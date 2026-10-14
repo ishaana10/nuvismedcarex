@@ -2,7 +2,7 @@
 /**
  * Edit Inventory Item Action (Admin / Developer)
  */
-session_start();
+require_once __DIR__ . '/../core/SessionBootstrap.php';
 if (empty($_SESSION['authenticated'])) {
     header('Location: ../login.php');
     exit;

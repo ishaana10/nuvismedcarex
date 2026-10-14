@@ -2,9 +2,7 @@
 /**
  * Action Handler: User / Doctor Management (Add/Edit/Delete/Toggle User, Signatures & Stamps)
  */
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once __DIR__ . '/../core/SessionBootstrap.php';
 require_once __DIR__ . '/../config/database.php';
 
 if (!isset($_SESSION['authenticated']) || $_SESSION['authenticated'] !== true) {

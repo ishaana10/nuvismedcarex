@@ -2,7 +2,7 @@
 /**
  * Inventory Restock Handler (Quick & Detailed Restock)
  */
-session_start();
+require_once __DIR__ . '/../core/SessionBootstrap.php';
 if (empty($_SESSION['authenticated'])) {
     header('Location: ../login.php');
     exit;

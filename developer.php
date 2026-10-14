@@ -2,9 +2,7 @@
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/includes/security.php';
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once __DIR__ . '/core/SessionBootstrap.php';
 
 $currentUserRole = $_SESSION['user_role'] ?? $_SESSION['role'] ?? 'Doctor';
 if ($currentUserRole !== 'Developer') {

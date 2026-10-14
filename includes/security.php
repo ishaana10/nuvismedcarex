@@ -3,19 +3,7 @@
  * Security & Helper functions (CSRF, RBAC, Rate Limiting, Sanitization, Secure Session)
  */
 
-if (session_status() === PHP_SESSION_NONE) {
-    // Configure secure session cookie attributes
-    $isHttps = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path' => '/',
-        'domain' => '',
-        'secure' => $isHttps,
-        'httponly' => true,
-        'samesite' => 'Lax'
-    ]);
-    require_once __DIR__ . '/../core/SessionBootstrap.php';
-}
+require_once __DIR__ . '/../core/SessionBootstrap.php';
 
 // Global Security & Anti-Caching HTTP Headers
 if (!headers_sent()) {
@@ -98,6 +86,7 @@ function requireAuth(): void {
     if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > $maxInactivity)) {
         session_unset();
         session_destroy();
+        require_once __DIR__ . '/../core/SessionBootstrap.php';
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
@@ -117,6 +106,7 @@ function requireAuth(): void {
     if (!empty($_SESSION['user_agent']) && !empty($currentUserAgent) && $_SESSION['user_agent'] !== $currentUserAgent) {
         session_unset();
         session_destroy();
+        require_once __DIR__ . '/../core/SessionBootstrap.php';
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }

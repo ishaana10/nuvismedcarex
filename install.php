@@ -3,7 +3,7 @@
  * ClinicFlow / Nuvis Medico Web Installation Wizard
  * Sets up Database, Developer / Administrator Credentials, Clinic Profile, Access Control & Seed Initial Data
  */
-session_start();
+require_once __DIR__ . '/core/SessionBootstrap.php';
 
 $step = $_GET['step'] ?? 1;
 $error = null;
