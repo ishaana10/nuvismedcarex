@@ -78,6 +78,10 @@ $labOrderService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\
         <span class="material-symbols-outlined text-base">admin_panel_settings</span>
         <span>Role Permissions & Access Control</span>
     </button>
+    <button type="button" onclick="switchDevTab('redis')" id="dev-tab-btn-redis" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+        <span class="material-symbols-outlined text-base">memory</span>
+        <span>Redis Cache & Sessions</span>
+    </button>
     <button type="button" onclick="switchDevTab('logs')" id="dev-tab-btn-logs" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">bug_report</span>
         <span>Error Logs & Diagnostics</span>
@@ -659,6 +663,122 @@ $labOrderService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\
         </form>
     </div> <!-- End dev-panel-cloud -->
 
+    <!-- Redis Cache & Sessions Diagnostics Panel -->
+    <div id="dev-panel-redis" class="hidden space-y-6">
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-outline-variant/20 pb-4">
+                <div>
+                    <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                        <span class="material-symbols-outlined text-base">memory</span>
+                        <span>Redis High-Performance Cache & Session Management Status</span>
+                    </h2>
+                    <p class="text-xs text-outline font-medium mt-0.5">Live memory diagnostics, latency benchmark, active sessions, and key metrics</p>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="fetchRedisDiagnostics()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition flex items-center gap-1">
+                        <span class="material-symbols-outlined text-sm">refresh</span>
+                        <span>Refresh Metrics</span>
+                    </button>
+                    <button type="button" onclick="testRedisPing()" class="px-3.5 py-1.5 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary/90 transition shadow-xs flex items-center gap-1">
+                        <span class="material-symbols-outlined text-sm">speed</span>
+                        <span>Test Latency (Benchmark)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Top Metric Cards Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Card 1: Connection Status -->
+                <div class="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/30 space-y-1">
+                    <p class="text-[11px] font-bold text-outline uppercase tracking-wider">Connection Status</p>
+                    <div id="redis-card-status" class="text-sm font-bold flex items-center gap-2 mt-1">
+                        <span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+                        <span class="text-slate-600">Checking connection...</span>
+                    </div>
+                    <p id="redis-card-scheme" class="text-[10px] text-slate-500 font-mono mt-0.5">Scheme: unix socket</p>
+                </div>
+
+                <!-- Card 2: Server Memory & Version -->
+                <div class="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/30 space-y-1">
+                    <p class="text-[11px] font-bold text-outline uppercase tracking-wider">Redis Memory & Engine</p>
+                    <div id="redis-card-memory" class="text-sm font-bold text-on-surface mt-1">--</div>
+                    <p id="redis-card-version" class="text-[10px] text-slate-500 font-mono mt-0.5">Version: --</p>
+                </div>
+
+                <!-- Card 3: Active Cache Keys -->
+                <div class="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/30 space-y-1">
+                    <p class="text-[11px] font-bold text-outline uppercase tracking-wider">Cached App Objects</p>
+                    <div id="redis-card-keys" class="text-xl font-bold text-primary mt-1">0</div>
+                    <p class="text-[10px] text-slate-500 font-mono mt-0.5">Prefix: nuvis:*</p>
+                </div>
+
+                <!-- Card 4: Active Sessions -->
+                <div class="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/30 space-y-1">
+                    <p class="text-[11px] font-bold text-outline uppercase tracking-wider">Redis Active Sessions</p>
+                    <div id="redis-card-sessions" class="text-xl font-bold text-emerald-600 mt-1">0</div>
+                    <p class="text-[10px] text-slate-500 font-mono mt-0.5">Prefix: nuvis:sess:*</p>
+                </div>
+            </div>
+
+            <!-- Benchmark Console / Notification Card -->
+            <div id="redis-benchmark-result" class="hidden p-4 rounded-2xl bg-blue-50 border border-blue-200 text-xs font-mono text-blue-900 space-y-1">
+                <div class="font-bold text-blue-900 flex items-center gap-1">
+                    <span class="material-symbols-outlined text-base text-blue-700">timer</span>
+                    <span>Latency Benchmark Results:</span>
+                </div>
+                <div id="redis-benchmark-text"></div>
+            </div>
+
+            <!-- A2 Hosting Socket & Daemon Controls -->
+            <div class="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/30 space-y-3 text-xs">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                        <h3 class="font-bold text-on-surface text-xs flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-base text-amber-600">extension</span>
+                            <span>A2 Hosting Turbo Max Redis Daemon Initialization</span>
+                        </h3>
+                        <p class="text-[11px] text-slate-500 mt-0.5">
+                            Socket Path: <code id="redis-socket-path-display" class="bg-white px-1.5 py-0.5 rounded font-mono border border-slate-200 text-slate-800">/home/ictfjcom/.redis/redis.sock</code>
+                        </p>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button type="button" onclick="triggerStartRedisDaemon()" class="px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1 shadow-xs">
+                            <span class="material-symbols-outlined text-sm">power_settings_new</span>
+                            <span>Start A2 Hosting Redis Daemon (~/.redis.on)</span>
+                        </button>
+                        <button type="button" onclick="flushRedisCache()" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition flex items-center gap-1 shadow-xs">
+                            <span class="material-symbols-outlined text-sm">cleaning_services</span>
+                            <span>Flush Nuvis Cache</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sample Cached Keys List -->
+            <div class="space-y-3">
+                <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Sample Cached Keys & Time To Live (TTL)</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border border-outline-variant/30 rounded-xl overflow-hidden">
+                        <thead class="bg-surface-container text-outline uppercase font-semibold text-[10px]">
+                            <tr>
+                                <th class="py-2.5 px-3">Cache Key Name</th>
+                                <th class="py-2.5 px-3">Full Redis Key</th>
+                                <th class="py-2.5 px-3 text-right">TTL (Time to Live)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="redis-keys-table-body" class="divide-y divide-outline-variant/20 font-mono text-[11px]">
+                            <tr>
+                                <td colspan="3" class="py-6 text-center text-slate-400 font-sans italic">Loading cached keys...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div> <!-- End dev-panel-redis -->
+
     <!-- 3. Developer Error Logger Module -->
     <div id="dev-panel-logs" class="hidden space-y-6">
     <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-5">
@@ -691,7 +811,7 @@ $labOrderService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\
 
 <script>
 function switchDevTab(tab) {
-    const panels = ['git', 'tenants', 'vms', 'cloud', 'lab', 'pagination', 'rbac', 'logs'];
+    const panels = ['git', 'tenants', 'vms', 'cloud', 'lab', 'pagination', 'rbac', 'redis', 'logs'];
     panels.forEach(p => {
         const el = document.getElementById('dev-panel-' + p);
         if (el) el.classList.add('hidden');
@@ -706,9 +826,111 @@ function switchDevTab(tab) {
 
     if (tab === 'git') {
         if (typeof refreshGitStatus === 'function') refreshGitStatus();
+    } else if (tab === 'redis') {
+        if (typeof fetchRedisDiagnostics === 'function') fetchRedisDiagnostics();
     } else if (tab === 'logs') {
         if (typeof fetchDeveloperErrorLogs === 'function') fetchDeveloperErrorLogs();
     }
+}
+
+function fetchRedisDiagnostics() {
+    const statusCard = document.getElementById('redis-card-status');
+    if (!statusCard) return;
+
+    fetch('actions/redis_actions.php?action=get_redis_status')
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            const socketDisplay = document.getElementById('redis-socket-path-display');
+            if (socketDisplay) socketDisplay.textContent = d.socket_path || '/home/ictfjcom/.redis/redis.sock';
+
+            const schemeEl = document.getElementById('redis-card-scheme');
+            if (schemeEl) schemeEl.textContent = 'Scheme: ' + (d.scheme || 'unix socket');
+
+            if (d.is_connected) {
+                statusCard.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span><span class="text-emerald-700">Connected & Operational</span>`;
+            } else {
+                statusCard.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span><span class="text-amber-800">${d.socket_exists ? 'Socket Present (Disabled)' : 'Socket Offline (~/.redis.on required)'}</span>`;
+            }
+
+            document.getElementById('redis-card-memory').textContent = d.used_memory || '--';
+            document.getElementById('redis-card-version').textContent = 'Version: ' + (d.redis_version || '--');
+            document.getElementById('redis-card-keys').textContent = d.cached_keys_count || 0;
+            document.getElementById('redis-card-sessions').textContent = d.active_sessions_count || 0;
+
+            const tbody = document.getElementById('redis-keys-table-body');
+            if (tbody) {
+                if (d.keys_sample && d.keys_sample.length > 0) {
+                    tbody.innerHTML = d.keys_sample.map(k => `
+                        <tr class="hover:bg-surface-container-low/50">
+                            <td class="py-2.5 px-3 font-bold text-primary">${escapeHtml(k.key)}</td>
+                            <td class="py-2.5 px-3 text-slate-600">${escapeHtml(k.full_key)}</td>
+                            <td class="py-2.5 px-3 text-right text-emerald-700 font-bold">${escapeHtml(String(k.ttl))}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="3" class="py-6 text-center text-slate-400 font-sans italic">No active keys currently cached under nuvis:* prefix.</td></tr>`;
+                }
+            }
+        }
+    })
+    .catch(err => {
+        statusCard.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span><span class="text-rose-700">Diagnostics Error</span>`;
+    });
+}
+
+function testRedisPing() {
+    const resBox = document.getElementById('redis-benchmark-result');
+    const resText = document.getElementById('redis-benchmark-text');
+    if (resBox) resBox.classList.remove('hidden');
+    if (resText) resText.innerHTML = '<span class="text-blue-700">Running SET / GET / DEL latency benchmark...</span>';
+
+    fetch('actions/redis_actions.php?action=test_redis_ping')
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            resText.innerHTML = `<span class="text-emerald-700 font-bold">✔ ${escapeHtml(d.message)}</span>`;
+            fetchRedisDiagnostics();
+        } else {
+            resText.innerHTML = `<span class="text-rose-600 font-bold">❌ Benchmark Failed: ${escapeHtml(d.error || 'Connection error')}</span>`;
+        }
+    })
+    .catch(err => {
+        if (resText) resText.innerHTML = `<span class="text-rose-600 font-bold">❌ ${escapeHtml(String(err))}</span>`;
+    });
+}
+
+function triggerStartRedisDaemon() {
+    fetch('actions/redis_actions.php?action=start_redis_daemon')
+    .then(r => r.json())
+    .then(d => {
+        alert(d.message || 'Created ~/.redis.on flag.');
+        fetchRedisDiagnostics();
+    })
+    .catch(err => {
+        alert('Error touching ~/.redis.on: ' + err);
+    });
+}
+
+function flushRedisCache() {
+    if (!confirm('Are you sure you want to flush all Nuvis cached objects in Redis? Session keys will be preserved.')) return;
+
+    fetch('actions/redis_actions.php?action=flush_cache')
+    .then(r => r.json())
+    .then(d => {
+        alert(d.message || 'Cache flushed.');
+        fetchRedisDiagnostics();
+    });
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
 document.addEventListener('DOMContentLoaded', function() {
