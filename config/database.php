@@ -29,7 +29,7 @@ function getAppConfig(): array {
             'db_user'   => getenv('DB_USER')   ?: 'root',
             'db_pass'   => getenv('DB_PASS')   ?: '',
             'redis'     => [
-                'enabled'     => getenv('REDIS_ENABLED') !== false ? filter_var(getenv('REDIS_ENABLED'), FILTER_VALIDATE_BOOLEAN) : false,
+                'enabled'     => getenv('REDIS_ENABLED') !== false ? filter_var(getenv('REDIS_ENABLED'), FILTER_VALIDATE_BOOLEAN) : (file_exists(getenv('REDIS_PATH') ?: '/home/ictfjcom/.redis/redis.sock') || file_exists((getenv('HOME') ?: '/home/ictfjcom') . '/.redis.on')),
                 'scheme'      => getenv('REDIS_SCHEME') ?: 'unix',
                 'path'        => getenv('REDIS_PATH')   ?: '/home/ictfjcom/.redis/redis.sock',
                 'host'        => getenv('REDIS_HOST')   ?: '127.0.0.1',
@@ -45,7 +45,7 @@ function getAppConfig(): array {
 
     if (!isset($config['redis'])) {
         $config['redis'] = [
-            'enabled'     => false,
+            'enabled'     => file_exists('/home/ictfjcom/.redis/redis.sock') || file_exists((getenv('HOME') ?: '/home/ictfjcom') . '/.redis.on'),
             'scheme'      => 'unix',
             'path'        => '/home/ictfjcom/.redis/redis.sock',
             'host'        => '127.0.0.1',

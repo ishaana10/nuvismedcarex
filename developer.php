@@ -849,8 +849,14 @@ function fetchRedisDiagnostics() {
 
             if (d.is_connected) {
                 statusCard.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span><span class="text-emerald-700">Connected & Operational</span>`;
+            } else if (d.socket_exists) {
+                statusCard.innerHTML = `
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span><span class="text-amber-800">Socket Present (Config Disabled)</span></div>
+                        <button type="button" onclick="toggleRedisConfig(true)" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold shadow-xs">Enable Redis in Config</button>
+                    </div>`;
             } else {
-                statusCard.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span><span class="text-amber-800">${d.socket_exists ? 'Socket Present (Disabled)' : 'Socket Offline (~/.redis.on required)'}</span>`;
+                statusCard.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span><span class="text-amber-800">Socket Offline (~/.redis.on required)</span>`;
             }
 
             document.getElementById('redis-card-memory').textContent = d.used_memory || '--';
@@ -897,6 +903,19 @@ function testRedisPing() {
     })
     .catch(err => {
         if (resText) resText.innerHTML = `<span class="text-rose-600 font-bold">❌ ${escapeHtml(String(err))}</span>`;
+    });
+}
+
+function toggleRedisConfig(enable) {
+    fetch('actions/redis_actions.php?action=toggle_redis_config', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({enable: enable})
+    })
+    .then(r => r.json())
+    .then(d => {
+        alert(d.message || 'Redis configuration updated.');
+        fetchRedisDiagnostics();
     });
 }
 
