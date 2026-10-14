@@ -248,6 +248,23 @@ try {
         exit();
     }
 
+    if ($action === 'start_redis_daemon') {
+        $homeDir = getenv('HOME') ?: '/home/ictfjcom';
+        @touch($homeDir . '/.redis.on');
+        @touch('/home/ictfjcom/.redis.on');
+
+        $socketPath = '/home/ictfjcom/.redis/redis.sock';
+        $socketExists = file_exists($socketPath);
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Created ~/.redis.on flag for A2 Hosting Redis daemon auto-start.',
+            'socket_path' => $socketPath,
+            'socket_exists' => $socketExists
+        ]);
+        exit();
+    }
+
     if ($action === 'clear_error_logs') {
         if ($userRole !== 'Developer') {
             echo json_encode(['success' => false, 'error' => 'Developer role required to clear logs']);

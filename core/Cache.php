@@ -37,8 +37,14 @@ class NuCache
             if (($cfg['scheme'] ?? 'unix') === 'unix') {
                 $socketPath = $cfg['path'] ?? '/home/ictfjcom/.redis/redis.sock';
                 if (!file_exists($socketPath)) {
-                    // Fail fast if socket file does not exist on disk
-                    return;
+                    // On A2 Hosting Turbo Max, touching ~/.redis.on triggers host Redis daemon startup
+                    $homeDir = getenv('HOME') ?: '/home/ictfjcom';
+                    @touch($homeDir . '/.redis.on');
+                    @touch('/home/ictfjcom/.redis.on');
+
+                    if (!file_exists($socketPath)) {
+                        return;
+                    }
                 }
                 $connected = $this->redis->connect(
                     $socketPath,
