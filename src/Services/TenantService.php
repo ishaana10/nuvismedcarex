@@ -18,22 +18,39 @@ class TenantService {
             $stmt = $this->db->prepare("SELECT id FROM tenants WHERE id = 'default-clinic' LIMIT 1");
             $stmt->execute();
             if (!$stmt->fetch()) {
-                $ins = $this->db->prepare("INSERT INTO tenants (id, name, code, status, plan, address, phone, email, storage_limit_mb, is_active) VALUES ('default-clinic', 'Main Suva Central Clinic', 'default-clinic', 'active', 'enterprise', '2 Woodstand Road, Suva', '+679 330 1234', 'suva@clinicflow.org', 500, 1)");
-                $ins->execute();
+                try {
+                    $ins = $this->db->prepare("INSERT INTO tenants (id, name, code, status, plan, address, phone, email, storage_limit_mb, storage_provider, is_active) VALUES ('default-clinic', 'Main Suva Central Clinic', 'default-clinic', 'active', 'enterprise', '2 Woodstand Road, Suva', '+679 330 1234', 'suva@clinicflow.org', 500, 'server', 1)");
+                    $ins->execute();
+                } catch (\Throwable $e) {
+                    $ins = $this->db->prepare("INSERT INTO tenants (id, name, code, status, plan, address, phone, email, storage_limit_mb, is_active) VALUES ('default-clinic', 'Main Suva Central Clinic', 'default-clinic', 'active', 'enterprise', '2 Woodstand Road, Suva', '+679 330 1234', 'suva@clinicflow.org', 500, 1)");
+                    $ins->execute();
+                }
             }
         } catch (\Throwable $e) {
             // Ignore if tenants table not ready
         }
 
-        $stmt = $this->db->query("SELECT id, name, code, status, plan, address, phone, email, storage_limit_mb, is_active FROM tenants ORDER BY CASE WHEN id = 'default-clinic' THEN 0 ELSE 1 END, name ASC");
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        try {
+            $stmt = $this->db->query("SELECT id, name, code, status, plan, address, phone, email, storage_limit_mb, COALESCE(storage_provider, 'server') AS storage_provider, is_active FROM tenants ORDER BY CASE WHEN id = 'default-clinic' THEN 0 ELSE 1 END, name ASC");
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable $e) {
+            $stmt = $this->db->query("SELECT id, name, code, status, plan, address, phone, email, storage_limit_mb, 'server' AS storage_provider, is_active FROM tenants ORDER BY CASE WHEN id = 'default-clinic' THEN 0 ELSE 1 END, name ASC");
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
     }
 
     public function getTenantById(string $id): ?array {
-        $stmt = $this->db->prepare("SELECT id, name, code, status, plan, address, phone, email, storage_limit_mb, is_active FROM tenants WHERE id = :id LIMIT 1");
-        $stmt->execute(['id' => $id]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row ?: null;
+        try {
+            $stmt = $this->db->prepare("SELECT id, name, code, status, plan, address, phone, email, storage_limit_mb, COALESCE(storage_provider, 'server') AS storage_provider, is_active FROM tenants WHERE id = :id LIMIT 1");
+            $stmt->execute(['id' => $id]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $row ?: null;
+        } catch (\Throwable $e) {
+            $stmt = $this->db->prepare("SELECT id, name, code, status, plan, address, phone, email, storage_limit_mb, 'server' AS storage_provider, is_active FROM tenants WHERE id = :id LIMIT 1");
+            $stmt->execute(['id' => $id]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $row ?: null;
+        }
     }
 
     public function getUserTenants(string $userId): array {
@@ -92,42 +109,82 @@ class TenantService {
         $phone = $data['phone'] ?? '';
         $email = $data['email'] ?? '';
         $storageLimitMb = (int)($data['storage_limit_mb'] ?? 500);
+        $storageProvider = in_array($data['storage_provider'] ?? 'server', ['server', 'googledrive', 'onedrive'], true) ? $data['storage_provider'] : 'server';
 
         $stmt = $this->db->prepare("SELECT id FROM tenants WHERE id = :id LIMIT 1");
         $stmt->execute(['id' => $id]);
         if ($stmt->fetch()) {
-            $upd = $this->db->prepare("
-                UPDATE tenants
-                SET name = :name, code = :code, status = :status, plan = :plan, address = :address, phone = :phone, email = :email, storage_limit_mb = :storage_limit_mb
-                WHERE id = :id
-            ");
-            $upd->execute([
-                'id' => $id,
-                'name' => $name,
-                'code' => $code,
-                'status' => $status,
-                'plan' => $plan,
-                'address' => $address,
-                'phone' => $phone,
-                'email' => $email,
-                'storage_limit_mb' => $storageLimitMb
-            ]);
+            try {
+                $upd = $this->db->prepare("
+                    UPDATE tenants
+                    SET name = :name, code = :code, status = :status, plan = :plan, address = :address, phone = :phone, email = :email, storage_limit_mb = :storage_limit_mb, storage_provider = :storage_provider
+                    WHERE id = :id
+                ");
+                $upd->execute([
+                    'id' => $id,
+                    'name' => $name,
+                    'code' => $code,
+                    'status' => $status,
+                    'plan' => $plan,
+                    'address' => $address,
+                    'phone' => $phone,
+                    'email' => $email,
+                    'storage_limit_mb' => $storageLimitMb,
+                    'storage_provider' => $storageProvider
+                ]);
+            } catch (\Throwable $e) {
+                $upd = $this->db->prepare("
+                    UPDATE tenants
+                    SET name = :name, code = :code, status = :status, plan = :plan, address = :address, phone = :phone, email = :email, storage_limit_mb = :storage_limit_mb
+                    WHERE id = :id
+                ");
+                $upd->execute([
+                    'id' => $id,
+                    'name' => $name,
+                    'code' => $code,
+                    'status' => $status,
+                    'plan' => $plan,
+                    'address' => $address,
+                    'phone' => $phone,
+                    'email' => $email,
+                    'storage_limit_mb' => $storageLimitMb
+                ]);
+            }
         } else {
-            $ins = $this->db->prepare("
-                INSERT INTO tenants (id, name, code, status, plan, address, phone, email, storage_limit_mb)
-                VALUES (:id, :name, :code, :status, :plan, :address, :phone, :email, :storage_limit_mb)
-            ");
-            $ins->execute([
-                'id' => $id,
-                'name' => $name,
-                'code' => $code,
-                'status' => $status,
-                'plan' => $plan,
-                'address' => $address,
-                'phone' => $phone,
-                'email' => $email,
-                'storage_limit_mb' => $storageLimitMb
-            ]);
+            try {
+                $ins = $this->db->prepare("
+                    INSERT INTO tenants (id, name, code, status, plan, address, phone, email, storage_limit_mb, storage_provider)
+                    VALUES (:id, :name, :code, :status, :plan, :address, :phone, :email, :storage_limit_mb, :storage_provider)
+                ");
+                $ins->execute([
+                    'id' => $id,
+                    'name' => $name,
+                    'code' => $code,
+                    'status' => $status,
+                    'plan' => $plan,
+                    'address' => $address,
+                    'phone' => $phone,
+                    'email' => $email,
+                    'storage_limit_mb' => $storageLimitMb,
+                    'storage_provider' => $storageProvider
+                ]);
+            } catch (\Throwable $e) {
+                $ins = $this->db->prepare("
+                    INSERT INTO tenants (id, name, code, status, plan, address, phone, email, storage_limit_mb)
+                    VALUES (:id, :name, :code, :status, :plan, :address, :phone, :email, :storage_limit_mb)
+                ");
+                $ins->execute([
+                    'id' => $id,
+                    'name' => $name,
+                    'code' => $code,
+                    'status' => $status,
+                    'plan' => $plan,
+                    'address' => $address,
+                    'phone' => $phone,
+                    'email' => $email,
+                    'storage_limit_mb' => $storageLimitMb
+                ]);
+            }
         }
     }
 }
