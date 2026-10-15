@@ -807,8 +807,99 @@ $labOrderService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\
             </div>
         </div>
     </div>
-    </div>
     </div> <!-- End dev-panel-logs -->
+</div>
+
+<!-- Modal: Add/Edit Clinic Tenant -->
+<div id="tenantModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-xl w-full shadow-2xl border border-slate-200 overflow-hidden my-8">
+        <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+            <h3 class="font-bold text-sm flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-base">apartment</span>
+                <span>Clinic Tenant Profile</span>
+            </h3>
+            <button type="button" onclick="closeTenantModal()" class="text-slate-400 hover:text-white text-lg">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+
+        <form action="actions/tenant_actions.php" method="POST" class="p-6 space-y-4 text-xs">
+            <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+            <input type="hidden" name="action" value="save_tenant">
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div class="md:col-span-2">
+                    <label class="block font-bold text-slate-700 mb-1">Clinic / Practice Name <span class="text-red-500">*</span></label>
+                    <input type="text" name="name" required placeholder="e.g. Lautoka Specialist Clinic" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-bold">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Unique Tenant ID <span class="text-red-500">*</span></label>
+                    <input type="text" name="tenant_id" required placeholder="e.g. clinic-lautoka-01" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-mono font-medium">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Clinic Code <span class="text-red-500">*</span></label>
+                    <input type="text" name="code" required placeholder="e.g. LTK-01" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-mono font-bold">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Subscription Plan</label>
+                    <select name="plan" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-bold">
+                        <option value="enterprise" selected>Enterprise</option>
+                        <option value="professional">Professional</option>
+                        <option value="standard">Standard</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Status</label>
+                    <select name="status" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-bold">
+                        <option value="active" selected>Active</option>
+                        <option value="suspended">Suspended</option>
+                    </select>
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="block font-bold text-slate-700 mb-1">Address</label>
+                    <input type="text" name="address" placeholder="e.g. 15 Vitogo Parade, Lautoka" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-medium">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Phone</label>
+                    <input type="text" name="phone" placeholder="+679 666 1234" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-medium">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Email</label>
+                    <input type="email" name="email" placeholder="lautoka@clinicflow.com.fj" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-medium">
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="block font-bold text-slate-700 mb-1">Drive Storage Allocation Plan</label>
+                    <select name="storage_limit_mb" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-bold text-primary">
+                        <option value="250">250 MB (Starter Tier)</option>
+                        <option value="500" selected>500 MB (Standard Tier)</option>
+                        <option value="1024">1 GB (1,024 MB - Professional)</option>
+                        <option value="2048">2 GB (2,048 MB - Professional Plus)</option>
+                        <option value="5120">5 GB (5,120 MB - Enterprise)</option>
+                        <option value="10240">10 GB (10,240 MB - Enterprise Max)</option>
+                        <option value="51200">50 GB (51,200 MB - Unlimited Scale)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-3 border-t border-slate-200">
+                <button type="button" onclick="closeTenantModal()" class="px-4 py-2 bg-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-300 transition">
+                    Cancel
+                </button>
+                <button type="submit" class="px-5 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-sm">save</span>
+                    <span>Save Clinic Tenant</span>
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <script>
