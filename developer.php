@@ -222,15 +222,19 @@ $labOrderService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\
                         </div>
 
                         <div class="pt-3 border-t border-outline-variant/20 flex items-center justify-between gap-2">
-                            <form action="actions/tenant_actions.php" method="POST" class="w-full">
+                            <form action="actions/tenant_actions.php" method="POST" class="flex-1">
                                 <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
                                 <input type="hidden" name="action" value="switch_tenant">
                                 <input type="hidden" name="tenant_id" value="<?= htmlspecialchars($tnt['id']) ?>">
                                 <button type="submit" <?= $isCurrent ? 'disabled' : '' ?> class="w-full py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 <?= $isCurrent ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-primary text-white hover:bg-primary/90' ?>">
                                     <span class="material-symbols-outlined text-base">swap_horiz</span>
-                                    <span><?= $isCurrent ? 'Current Active Clinic' : 'Switch to This Clinic' ?></span>
+                                    <span><?= $isCurrent ? 'Current Active Clinic' : 'Switch' ?></span>
                                 </button>
                             </form>
+                            <button type="button" onclick='openTenantModal(<?= htmlspecialchars(json_encode($tnt), ENT_QUOTES, "UTF-8") ?>)' class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition flex items-center gap-1">
+                                <span class="material-symbols-outlined text-sm">edit</span>
+                                <span>Edit</span>
+                            </button>
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -808,6 +812,38 @@ $labOrderService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\
 </div>
 
 <script>
+function openTenantModal(tnt = null) {
+    const modal = document.getElementById('tenantModal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+
+    const form = modal.querySelector('form');
+    if (!form) return;
+
+    if (tnt) {
+        if (form.elements['name']) form.elements['name'].value = tnt.name || '';
+        if (form.elements['tenant_id']) {
+            form.elements['tenant_id'].value = tnt.id || '';
+            form.elements['tenant_id'].readOnly = true;
+        }
+        if (form.elements['code']) form.elements['code'].value = tnt.code || '';
+        if (form.elements['plan']) form.elements['plan'].value = tnt.plan || 'enterprise';
+        if (form.elements['status']) form.elements['status'].value = tnt.status || 'active';
+        if (form.elements['address']) form.elements['address'].value = tnt.address || '';
+        if (form.elements['phone']) form.elements['phone'].value = tnt.phone || '';
+        if (form.elements['email']) form.elements['email'].value = tnt.email || '';
+        if (form.elements['storage_limit_mb']) form.elements['storage_limit_mb'].value = tnt.storage_limit_mb || '500';
+    } else {
+        form.reset();
+        if (form.elements['tenant_id']) form.elements['tenant_id'].readOnly = false;
+    }
+}
+
+function closeTenantModal() {
+    const modal = document.getElementById('tenantModal');
+    if (modal) modal.classList.add('hidden');
+}
+
 function switchDevTab(tab) {
     const panels = ['git', 'tenants', 'vms', 'cloud', 'lab', 'pagination', 'rbac', 'redis', 'logs'];
     panels.forEach(p => {
