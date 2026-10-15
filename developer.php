@@ -27,6 +27,8 @@ $tenantService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Se
 $tenantsList = $tenantService->getAllTenants();
 $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 $labOrderService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\LabOrderService::class);
+$uploadService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\FileUploadService::class);
+$cloudSettings = $uploadService->getCloudSettings();
 ?>
 
 <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -600,7 +602,8 @@ $labOrderService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\
     <!-- Cloud Storage & Drive Integration Panel -->
     <div id="dev-panel-cloud" class="hidden space-y-6">
         <form action="actions/cloud_storage_settings.php" method="POST" class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-5">
-            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getCsrfToken()) ?>">
+            <input type="hidden" name="redirect_to" value="../developer.php?dev_tab=cloud">
             <div class="flex items-center justify-between border-b border-outline-variant/20 pb-3">
                 <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
                     <span class="material-symbols-outlined text-base">cloud</span>
@@ -611,48 +614,44 @@ $labOrderService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\
 
             <!-- Microsoft OneDrive Configuration -->
             <div class="p-4 rounded-xl bg-surface-container-low border border-outline-variant/30 space-y-3">
-                <div class="flex items-center justify-between">
-                    <h3 class="font-bold text-on-surface text-xs flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-base text-blue-600">cloud_queue</span>
-                        <span>Microsoft OneDrive Integration</span>
-                    </h3>
-                    <label class="inline-flex items-center gap-1.5 cursor-pointer">
-                        <input type="checkbox" name="onedrive_enabled" value="1" <?= ($settings['onedrive_enabled'] ?? '0') === '1' ? 'checked' : '' ?> class="rounded text-primary focus:ring-primary">
-                        <span class="text-xs font-bold text-slate-700">Enable OneDrive</span>
-                    </label>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                <h3 class="font-bold text-on-surface text-xs flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-base text-blue-600">cloud_queue</span>
+                    <span>Microsoft OneDrive Integration (Azure App Credentials)</span>
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
                     <div>
-                        <label class="block font-bold text-slate-700 mb-1">OneDrive Client ID (Application ID)</label>
-                        <input type="text" name="onedrive_client_id" value="<?= htmlspecialchars($settings['onedrive_client_id'] ?? '') ?>" placeholder="e.g. 00000000-0000-0000-0000-000000000000" class="w-full bg-white px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
+                        <label class="block font-bold text-slate-700 mb-1">OneDrive Client Application ID</label>
+                        <input type="text" name="cloud_onedrive_client_id" value="<?= htmlspecialchars($cloudSettings['cloud_onedrive_client_id'] ?? '') ?>" placeholder="e.g. 00000000-0000-0000-0000-000000000000" class="w-full bg-white px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
                     </div>
                     <div>
                         <label class="block font-bold text-slate-700 mb-1">OneDrive Client Secret</label>
-                        <input type="password" name="onedrive_client_secret" value="<?= htmlspecialchars($settings['onedrive_client_secret'] ?? '') ?>" placeholder="••••••••••••••••" class="w-full bg-white px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
+                        <input type="password" name="cloud_onedrive_client_secret" value="<?= htmlspecialchars($cloudSettings['cloud_onedrive_client_secret'] ?? '') ?>" placeholder="••••••••••••••••" class="w-full bg-white px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Azure Tenant ID</label>
+                        <input type="text" name="cloud_onedrive_tenant_id" value="<?= htmlspecialchars($cloudSettings['cloud_onedrive_tenant_id'] ?? '') ?>" placeholder="common or tenant-id" class="w-full bg-white px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
                     </div>
                 </div>
             </div>
 
             <!-- Google Drive Configuration -->
             <div class="p-4 rounded-xl bg-surface-container-low border border-outline-variant/30 space-y-3">
-                <div class="flex items-center justify-between">
-                    <h3 class="font-bold text-on-surface text-xs flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-base text-emerald-600">add_to_drive</span>
-                        <span>Google Drive Integration</span>
-                    </h3>
-                    <label class="inline-flex items-center gap-1.5 cursor-pointer">
-                        <input type="checkbox" name="googledrive_enabled" value="1" <?= ($settings['googledrive_enabled'] ?? '0') === '1' ? 'checked' : '' ?> class="rounded text-primary focus:ring-primary">
-                        <span class="text-xs font-bold text-slate-700">Enable Google Drive</span>
-                    </label>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                <h3 class="font-bold text-on-surface text-xs flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-base text-emerald-600">add_to_drive</span>
+                    <span>Google Drive Integration (OAuth Client ID & Picker API Key)</span>
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
                     <div>
-                        <label class="block font-bold text-slate-700 mb-1">Google Drive Client ID</label>
-                        <input type="text" name="googledrive_client_id" value="<?= htmlspecialchars($settings['googledrive_client_id'] ?? '') ?>" placeholder="e.g. 1234567890-abc.apps.googleusercontent.com" class="w-full bg-white px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
+                        <label class="block font-bold text-slate-700 mb-1">Google Drive OAuth Client ID</label>
+                        <input type="text" name="cloud_googledrive_client_id" value="<?= htmlspecialchars($cloudSettings['cloud_googledrive_client_id'] ?? '') ?>" placeholder="e.g. 1234567890-abc.apps.googleusercontent.com" class="w-full bg-white px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
                     </div>
                     <div>
                         <label class="block font-bold text-slate-700 mb-1">Google Drive API Key</label>
-                        <input type="password" name="googledrive_api_key" value="<?= htmlspecialchars($settings['googledrive_api_key'] ?? '') ?>" placeholder="••••••••••••••••" class="w-full bg-white px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
+                        <input type="password" name="cloud_googledrive_api_key" value="<?= htmlspecialchars($cloudSettings['cloud_googledrive_api_key'] ?? '') ?>" placeholder="••••••••••••••••" class="w-full bg-white px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Shared Target Folder ID (Optional)</label>
+                        <input type="text" name="cloud_googledrive_folder_id" value="<?= htmlspecialchars($cloudSettings['cloud_googledrive_folder_id'] ?? '') ?>" placeholder="Target Google Drive Folder ID" class="w-full bg-white px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
                     </div>
                 </div>
             </div>
