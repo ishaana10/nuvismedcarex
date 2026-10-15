@@ -323,6 +323,11 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
                 $pdo->exec("ALTER TABLE tenants ADD COLUMN storage_limit_mb INT NOT NULL DEFAULT 500");
             } catch (Throwable $ex) {}
         }
+        if (!in_array('storage_provider', $tntCols)) {
+            try {
+                $pdo->exec("ALTER TABLE tenants ADD COLUMN storage_provider VARCHAR(50) NOT NULL DEFAULT 'server'");
+            } catch (Throwable $ex) {}
+        }
     } catch (Throwable $te) {}
 
     // Auto-migrate user_tenants table columns

@@ -321,28 +321,32 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
         <form action="actions/upload_file.php" method="POST" enctype="multipart/form-data" class="p-6 space-y-4 text-xs">
             <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
 
-            <!-- Storage Destination Selector -->
-            <div>
-                <label class="block font-bold text-slate-800 mb-1.5">Storage Provider / Destination <span class="text-rose-500">*</span></label>
-                <div class="grid grid-cols-3 gap-3">
-                    <label class="p-3 rounded-xl border-2 border-primary/20 bg-primary/5 cursor-pointer flex flex-col items-center justify-center gap-1 text-center transition hover:border-primary" id="provider-btn-server">
-                        <input type="radio" name="storage_provider" value="server" checked onclick="toggleUploadTab('server')" class="sr-only">
-                        <span class="material-symbols-outlined text-2xl text-emerald-600">dns</span>
-                        <span class="font-bold text-slate-800">Local Server</span>
-                    </label>
-
-                    <label class="p-3 rounded-xl border-2 border-slate-200 bg-surface-container-low cursor-pointer flex flex-col items-center justify-center gap-1 text-center transition hover:border-sky-500" id="provider-btn-onedrive">
-                        <input type="radio" name="storage_provider" value="onedrive" onclick="toggleUploadTab('onedrive')" class="sr-only">
-                        <span class="material-symbols-outlined text-2xl text-sky-600">cloud</span>
-                        <span class="font-bold text-slate-800">OneDrive</span>
-                    </label>
-
-                    <label class="p-3 rounded-xl border-2 border-slate-200 bg-surface-container-low cursor-pointer flex flex-col items-center justify-center gap-1 text-center transition hover:border-amber-500" id="provider-btn-googledrive">
-                        <input type="radio" name="storage_provider" value="googledrive" onclick="toggleUploadTab('googledrive')" class="sr-only">
-                        <span class="material-symbols-outlined text-2xl text-amber-600">add_to_drive</span>
-                        <span class="font-bold text-slate-800">Google Drive</span>
-                    </label>
+            <?php
+            $activeProvider = $storageUsage['storage_provider'] ?? 'server';
+            ?>
+            <!-- Tenant Storage Destination Banner -->
+            <input type="hidden" name="storage_provider" value="<?= htmlspecialchars($activeProvider) ?>">
+            <div class="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between gap-3">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-xl text-amber-700">
+                        <?= $activeProvider === 'googledrive' ? 'add_to_drive' : ($activeProvider === 'onedrive' ? 'cloud' : 'dns') ?>
+                    </span>
+                    <div>
+                        <span class="font-bold block">Assigned Tenant Storage Destination:</span>
+                        <span class="text-[11px] text-amber-800 font-medium">
+                            <?php if ($activeProvider === 'googledrive'): ?>
+                                Google Drive (Dedicated Tenant Folder: <code class="font-mono text-amber-900 font-bold"><?= htmlspecialchars(\ClinicFlow\Shared\TenantContext::getTenantId()) ?></code>)
+                            <?php elseif ($activeProvider === 'onedrive'): ?>
+                                Microsoft OneDrive (Tenant Allocation)
+                            <?php else: ?>
+                                Local Server Drive Storage
+                            <?php endif; ?>
+                        </span>
+                    </div>
                 </div>
+                <span class="px-2.5 py-1 rounded-full bg-amber-200/80 text-amber-900 text-[10px] font-bold uppercase">
+                    <?= htmlspecialchars($activeProvider) ?>
+                </span>
             </div>
 
             <!-- Common Details -->
@@ -373,56 +377,57 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
                 </div>
             </div>
 
-            <!-- Section 1: Server File Upload -->
-            <div id="tab-section-server" class="space-y-2">
+            <!-- Section 1: Local Server Drive Upload -->
+            <div id="tab-section-server" class="space-y-2 <?= $activeProvider === 'server' ? '' : 'hidden' ?>">
                 <label class="block font-bold text-slate-700 mb-1">Choose File to Upload</label>
                 <input type="file" name="file" class="w-full text-xs text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/90">
                 <p class="text-[10px] text-slate-500">Supported formats: PDF, Images (JPG, PNG), DOCX, XLSX, TXT, CSV, ZIP. Max file size: 25MB.</p>
             </div>
 
-            <!-- Section 2: OneDrive Link -->
-            <div id="tab-section-onedrive" class="space-y-3 hidden">
+            <!-- Section 2: OneDrive Allocation -->
+            <div id="tab-section-onedrive" class="space-y-3 <?= $activeProvider === 'onedrive' ? '' : 'hidden' ?>">
                 <div class="p-3 bg-sky-50 border border-sky-200 rounded-2xl text-[11px] text-sky-900">
-                    <strong class="font-bold">Microsoft OneDrive Integration:</strong> Paste your OneDrive shared file URL and document title below.
+                    <strong class="font-bold">Microsoft OneDrive Allocation:</strong> Select your file or enter the sharing link.
                 </div>
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Document Title / File Name *</label>
-                    <input type="text" name="onedrive_file_name" placeholder="e.g. MRI_Brain_Scan_Patient_2025.pdf" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-medium text-on-surface">
+                    <label class="block font-bold text-slate-700 mb-1">Choose Local File to Upload to OneDrive Allocation</label>
+                    <input type="file" name="file" class="w-full text-xs text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-sky-700 file:text-white hover:file:bg-sky-800">
                 </div>
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">OneDrive Shared File Link / URL *</label>
+                    <label class="block font-bold text-slate-700 mb-1">OR OneDrive Sharing Link / URL</label>
                     <input type="url" name="onedrive_file_url" placeholder="https://1drv.ms/b/s!..." class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-medium text-on-surface">
                 </div>
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">External OneDrive Item ID (Optional)</label>
-                    <input type="text" name="onedrive_file_id" placeholder="e.g. 01ABCDEFGH12345" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
+                    <label class="block font-bold text-slate-700 mb-1">Document Title / File Name</label>
+                    <input type="text" name="onedrive_file_name" placeholder="e.g. MRI_Scan_2025.pdf" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-medium text-on-surface">
                 </div>
             </div>
 
-            <!-- Section 3: Google Drive Link & Interactive OAuth Picker -->
-            <div id="tab-section-googledrive" class="space-y-3 hidden">
+            <!-- Section 3: Google Drive Dedicated Tenant Folder Allocation -->
+            <div id="tab-section-googledrive" class="space-y-3 <?= $activeProvider === 'googledrive' ? '' : 'hidden' ?>">
                 <div class="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-[11px] text-amber-900 flex items-center justify-between gap-2">
                     <div>
-                        <strong class="font-bold block">Google Drive Integration:</strong>
-                        <span>Select a file directly from your Google Drive using the picker, or manually enter the sharing URL below.</span>
+                        <strong class="font-bold block">Google Drive Dedicated Folder Allocation:</strong>
+                        <span>Files will be uploaded and stored directly under Google Drive folder for tenant <code class="font-mono font-bold"><?= htmlspecialchars(\ClinicFlow\Shared\TenantContext::getTenantId()) ?></code>.</span>
                     </div>
                     <button type="button" id="btn-gdrive-picker" onclick="launchGoogleDrivePicker()" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs shrink-0 flex items-center gap-1 transition">
                         <span class="material-symbols-outlined text-base">add_to_drive</span>
-                        <span>Pick File</span>
+                        <span>Pick From Google Drive</span>
                     </button>
                 </div>
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Document Title / File Name *</label>
-                    <input type="text" id="gdrive_file_name" name="gdrive_file_name" placeholder="e.g. Blood_Lab_Panel_Oct2025.pdf" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-medium text-on-surface">
+                    <label class="block font-bold text-slate-700 mb-1">Choose Local File to Upload to Google Drive Tenant Folder</label>
+                    <input type="file" name="file" class="w-full text-xs text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-amber-700 file:text-white hover:file:bg-amber-800">
                 </div>
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Google Drive Sharing Link / URL *</label>
+                    <label class="block font-bold text-slate-700 mb-1">OR Google Drive Document Link / URL</label>
                     <input type="url" id="gdrive_file_url" name="gdrive_file_url" placeholder="https://drive.google.com/file/d/..." class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-medium text-on-surface">
                 </div>
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Google Drive File ID (Optional)</label>
-                    <input type="text" id="gdrive_file_id" name="gdrive_file_id" placeholder="e.g. 1a2b3c4d5e6f7g8h9i0j" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
+                    <label class="block font-bold text-slate-700 mb-1">Document Title / File Name</label>
+                    <input type="text" id="gdrive_file_name" name="gdrive_file_name" placeholder="e.g. Blood_Lab_Panel_Oct2025.pdf" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-medium text-on-surface">
                 </div>
+                <input type="hidden" id="gdrive_file_id" name="gdrive_file_id">
             </div>
 
             <div class="flex items-center justify-end gap-2 pt-3 border-t border-outline-variant/20">

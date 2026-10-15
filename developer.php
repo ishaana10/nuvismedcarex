@@ -212,6 +212,7 @@ $labOrderService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\
                                 <div><span class="text-slate-400">Plan:</span> <span class="uppercase font-bold text-primary"><?= htmlspecialchars($tnt['plan']) ?></span></div>
                                 <div><span class="text-slate-400">Status:</span> <?= htmlspecialchars($tnt['status']) ?></div>
                                 <div><span class="text-slate-400">Drive Cap:</span> <span class="font-bold text-slate-800"><?= ((int)($tnt['storage_limit_mb'] ?? 500) >= 1024) ? round(($tnt['storage_limit_mb'] ?? 500) / 1024, 1) . ' GB' : ($tnt['storage_limit_mb'] ?? 500) . ' MB' ?></span></div>
+                                <div class="col-span-2"><span class="text-slate-400">Drive Storage Provider:</span> <span class="font-bold text-amber-700 uppercase"><?= htmlspecialchars($tnt['storage_provider'] ?? 'server') ?></span></div>
                                 <div class="col-span-2"><span class="text-slate-400">Tenant ID:</span> <?= htmlspecialchars($tnt['id']) ?></div>
                             </div>
 
@@ -875,7 +876,7 @@ $labOrderService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\
                     <input type="email" name="email" placeholder="lautoka@clinicflow.com.fj" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-medium">
                 </div>
 
-                <div class="md:col-span-2">
+                <div>
                     <label class="block font-bold text-slate-700 mb-1">Drive Storage Allocation Plan</label>
                     <select name="storage_limit_mb" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-bold text-primary">
                         <option value="250">250 MB (Starter Tier)</option>
@@ -885,6 +886,15 @@ $labOrderService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\
                         <option value="5120">5 GB (5,120 MB - Enterprise)</option>
                         <option value="10240">10 GB (10,240 MB - Enterprise Max)</option>
                         <option value="51200">50 GB (51,200 MB - Unlimited Scale)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Dedicated Drive Storage Destination</label>
+                    <select name="storage_provider" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-bold text-amber-800">
+                        <option value="server" selected>Local Server Storage</option>
+                        <option value="googledrive">Google Drive (Dedicated Folder)</option>
+                        <option value="onedrive">Microsoft OneDrive</option>
                     </select>
                 </div>
             </div>
@@ -924,6 +934,7 @@ function openTenantModal(tnt = null) {
         if (form.elements['phone']) form.elements['phone'].value = tnt.phone || '';
         if (form.elements['email']) form.elements['email'].value = tnt.email || '';
         if (form.elements['storage_limit_mb']) form.elements['storage_limit_mb'].value = tnt.storage_limit_mb || '500';
+        if (form.elements['storage_provider']) form.elements['storage_provider'].value = tnt.storage_provider || 'server';
     } else {
         form.reset();
         if (form.elements['tenant_id']) form.elements['tenant_id'].readOnly = false;

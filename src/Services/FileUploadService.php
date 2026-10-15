@@ -27,24 +27,32 @@ class FileUploadService
     }
 
     /**
-     * Get tenant drive storage allocation usage and limit
+     * Get tenant drive storage allocation usage, limit, and assigned storage provider
      */
     public function getStorageUsage(?string $tenantId = null): array
     {
         $tenantId = $tenantId ?? $this->getTenantId();
 
-        // Fetch tenant's storage_limit_mb
+        // Fetch tenant's storage_limit_mb and storage_provider
         $limitMb = 500;
+        $configuredProvider = 'server';
         try {
-            $stmt = $this->db->prepare("SELECT storage_limit_mb FROM tenants WHERE id = ? LIMIT 1");
+            $stmt = $this->db->prepare("SELECT storage_limit_mb, COALESCE(storage_provider, 'server') AS storage_provider FROM tenants WHERE id = ? LIMIT 1");
             $stmt->execute([$tenantId]);
-            $val = $stmt->fetchColumn();
-            if ($val !== false && $val !== null && (int)$val > 0) {
-                $limitMb = (int)$val;
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($row) {
+                if (isset($row['storage_limit_mb']) && $row['storage_limit_mb'] !== null && (int)$row['storage_limit_mb'] > 0) {
+                    $limitMb = (int)$row['storage_limit_mb'];
+                }
+                if (!empty($row['storage_provider'])) {
+                    $configuredProvider = $row['storage_provider'];
+                }
             }
         } catch (\Throwable $e) {
             // fallback
         }
+
+        $limitBytes = $limitMb * 1024 * 1024;
 
         $limitBytes = $limitMb * 1024 * 1024;
 
@@ -70,6 +78,7 @@ class FileUploadService
             'remaining_bytes' => $remainingBytes,
             'remaining_mb' => round($remainingBytes / (1024 * 1024), 2),
             'percentage' => $percentage,
+            'storage_provider' => $configuredProvider,
             'formatted_used' => $this->formatBytes($usedBytes),
             'formatted_limit' => $this->formatBytes($limitBytes),
             'formatted_remaining' => $this->formatBytes($remainingBytes),

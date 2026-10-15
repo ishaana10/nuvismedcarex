@@ -39,6 +39,7 @@ if ($action === 'save_tenant') {
     $phone = trim($_POST['phone'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $storageLimitMb = (int)($_POST['storage_limit_mb'] ?? 500);
+    $storageProvider = in_array($_POST['storage_provider'] ?? 'server', ['server', 'googledrive', 'onedrive'], true) ? $_POST['storage_provider'] : 'server';
 
     if ($id === '' || $name === '' || $code === '') {
         setToast('Validation Error', 'Tenant ID, Name, and Code are required.', 'error');
@@ -56,7 +57,8 @@ if ($action === 'save_tenant') {
             'address' => $address,
             'phone' => $phone,
             'email' => $email,
-            'storage_limit_mb' => $storageLimitMb
+            'storage_limit_mb' => $storageLimitMb,
+            'storage_provider' => $storageProvider
         ]);
         setToast('Clinic Saved', "Clinic tenant '{$name}' saved successfully with {$storageLimitMb}MB storage allocation.");
     } catch (\Throwable $e) {
