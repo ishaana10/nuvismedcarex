@@ -428,6 +428,7 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
                     <input type="text" id="gdrive_file_name" name="gdrive_file_name" placeholder="e.g. Blood_Lab_Panel_Oct2025.pdf" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-medium text-on-surface">
                 </div>
                 <input type="hidden" id="gdrive_file_id" name="gdrive_file_id">
+                <input type="hidden" id="gdrive_access_token" name="gdrive_access_token">
             </div>
 
             <div class="flex items-center justify-end gap-2 pt-3 border-t border-outline-variant/20">
@@ -542,6 +543,10 @@ function launchGoogleDrivePicker() {
                     return;
                 }
                 oauthToken = response.access_token;
+                const tokenInput = document.getElementById('gdrive_access_token');
+                if (tokenInput) {
+                    tokenInput.value = oauthToken;
+                }
                 gapi.load('picker', { callback: createPicker });
             },
         });

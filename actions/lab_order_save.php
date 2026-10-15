@@ -157,26 +157,45 @@ if ($action === 'edit_lab_order' || $action === 'update_lab_order') {
             $storageProvider = trim($_POST['storage_provider'] ?? 'server');
             $uploadedBy = $_SESSION['user_name'] ?? 'Doctor';
 
-            if ($storageProvider === 'onedrive' && !empty($_POST['onedrive_url'])) {
-                $fileRecord = $fileUploadService->linkOneDriveFile(
-                    $_FILES['result_file']['name'],
-                    trim($_POST['onedrive_url']),
-                    null,
-                    $patientId ?: null,
-                    'Lab Results',
-                    (int)$_FILES['result_file']['size'],
-                    $uploadedBy
-                );
-            } elseif ($storageProvider === 'googledrive' && !empty($_POST['googledrive_url'])) {
-                $fileRecord = $fileUploadService->linkGoogleDriveFile(
-                    $_FILES['result_file']['name'],
-                    trim($_POST['googledrive_url']),
-                    null,
-                    $patientId ?: null,
-                    'Lab Results',
-                    (int)$_FILES['result_file']['size'],
-                    $uploadedBy
-                );
+            if ($storageProvider === 'onedrive') {
+                if (!empty($_POST['onedrive_url'])) {
+                    $fileRecord = $fileUploadService->linkOneDriveFile(
+                        $_FILES['result_file']['name'],
+                        trim($_POST['onedrive_url']),
+                        null,
+                        $patientId ?: null,
+                        'Lab Results',
+                        (int)$_FILES['result_file']['size'],
+                        $uploadedBy
+                    );
+                } else {
+                    $fileRecord = $fileUploadService->uploadToOneDrive(
+                        $_FILES['result_file'],
+                        $patientId ?: null,
+                        'Lab Results',
+                        $uploadedBy
+                    );
+                }
+            } elseif ($storageProvider === 'googledrive') {
+                if (!empty($_POST['googledrive_url'])) {
+                    $fileRecord = $fileUploadService->linkGoogleDriveFile(
+                        $_FILES['result_file']['name'],
+                        trim($_POST['googledrive_url']),
+                        null,
+                        $patientId ?: null,
+                        'Lab Results',
+                        (int)$_FILES['result_file']['size'],
+                        $uploadedBy
+                    );
+                } else {
+                    $fileRecord = $fileUploadService->uploadToGoogleDrive(
+                        $_FILES['result_file'],
+                        $patientId ?: null,
+                        'Lab Results',
+                        $uploadedBy,
+                        trim($_POST['gdrive_access_token'] ?? '') ?: null
+                    );
+                }
             } else {
                 $fileRecord = $fileUploadService->uploadToServer(
                     $_FILES['result_file'],
