@@ -656,8 +656,12 @@ include __DIR__ . '/includes/header.php';
                                     <button type="button" onclick='openEditLabModal(<?= htmlspecialchars(json_encode($lo), ENT_QUOTES) ?>)' class="px-2 py-1 bg-primary text-white hover:bg-primary/90 rounded-lg text-[11px] font-bold flex items-center gap-1 transition">
                                         <span class="material-symbols-outlined text-xs">edit</span> View / Edit
                                     </button>
-                                    <?php if (!empty($lo['result_file_path']) || !empty($lo['result_file_id'])): ?>
-                                        <a href="<?= htmlspecialchars(!empty($lo['result_file_path']) ? $lo['result_file_path'] : ('actions/download_file.php?id=' . $lo['result_file_id'])) ?>" target="_blank" class="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[11px] font-bold flex items-center gap-1 transition shadow-2xs">
+                                    <?php if (!empty($lo['result_file_id'])): ?>
+                                        <a href="actions/view_file.php?id=<?= urlencode($lo['result_file_id']) ?>" target="_blank" class="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[11px] font-bold flex items-center gap-1 transition shadow-2xs">
+                                            <span class="material-symbols-outlined text-xs">attach_file</span> View Result File
+                                        </a>
+                                    <?php elseif (!empty($lo['result_file_path'])): ?>
+                                        <a href="<?= htmlspecialchars($lo['result_file_path']) ?>" target="_blank" class="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[11px] font-bold flex items-center gap-1 transition shadow-2xs">
                                             <span class="material-symbols-outlined text-xs">attachment</span> View Result File
                                         </a>
                                     <?php endif; ?>

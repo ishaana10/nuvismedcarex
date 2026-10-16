@@ -280,7 +280,7 @@ function openEditLabModal(order) {
     // Handle result file attachment link
     const linkContainer = document.getElementById('edit-lab-file-link-container');
     const linkEl = document.getElementById('edit-lab-file-link');
-    const filePath = order.result_file_path || (order.result_file_id ? ('actions/download_file.php?id=' + order.result_file_id) : '');
+    const filePath = order.result_file_id ? ('actions/view_file.php?id=' + encodeURIComponent(order.result_file_id)) : (order.result_file_path || '');
 
     if (filePath && linkContainer && linkEl) {
         linkEl.href = filePath;

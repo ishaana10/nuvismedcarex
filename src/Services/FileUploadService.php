@@ -329,7 +329,11 @@ class FileUploadService
             $externalId = 'gdrive_' . uniqid();
         }
         if (empty($externalUrl)) {
-            $externalUrl = !empty($folderId) ? ('https://drive.google.com/drive/folders/' . $folderId) : $relativePath;
+            if (str_starts_with($externalId, 'gdrive_') === false) {
+                $externalUrl = 'https://drive.google.com/file/d/' . $externalId . '/view';
+            } else {
+                $externalUrl = $relativePath;
+            }
         }
 
         $id = 'file-' . bin2hex(random_bytes(8));
