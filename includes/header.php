@@ -48,8 +48,12 @@ if (!$tenantRow) {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
 
+    <?php require_once __DIR__ . '/../config/version.php'; ?>
+    <script>
+        window.NUVIS_VERSION = "<?= addslashes(AppVersion::get('full')) ?>";
+    </script>
     <!-- Custom Unified Clinic Stylesheet -->
-    <link rel="stylesheet" href="assets/css/custom.css"/>
+    <link rel="stylesheet" href="assets/css/custom.css?v=<?= urlencode(AppVersion::get('commit')) ?>"/>
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
