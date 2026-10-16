@@ -32,38 +32,30 @@ try {
         $originalName = trim($_POST['gdrive_file_name'] ?? $_POST['file_name'] ?? '');
         $externalUrl = trim($_POST['gdrive_file_url'] ?? $_POST['file_url'] ?? '');
         $externalId = trim($_POST['gdrive_file_id'] ?? $_POST['file_id'] ?? '') ?: null;
+        $accessToken = trim($_POST['gdrive_access_token'] ?? '') ?: null;
 
-        if (empty($originalName) && isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
-            $originalName = basename($_FILES['file']['name']);
-        }
-
-        if (empty($originalName) || empty($externalUrl)) {
-            // If local file was uploaded under Google Drive enforcement, save to server and mark with tenant folder reference
-            if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
-                $file = $service->uploadToServer($_FILES['file'], $patientId, $category, $uploadedBy);
-                setToast('File Uploaded', "Document '{$file['original_name']}' uploaded under tenant Google Drive folder allocation.", 'success');
-            } else {
-                setToast('Google Drive Error', 'File name and Google Drive URL or file selection are required.', 'error');
-            }
-        } else {
+        if (!empty($originalName) && !empty($externalUrl)) {
             $file = $service->linkGoogleDriveFile($originalName, $externalUrl, $externalId, $patientId, $category, 0, $uploadedBy);
             setToast('Google Drive File Linked', "Google Drive document '{$file['original_name']}' linked under tenant folder successfully.", 'success');
+        } elseif (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
+            $file = $service->uploadToGoogleDrive($_FILES['file'], $patientId, $category, $uploadedBy, $accessToken);
+            setToast('File Uploaded to Google Drive', "Document '{$file['original_name']}' uploaded under tenant Google Drive folder allocation.", 'success');
+        } else {
+            setToast('Google Drive Error', 'Please select a file or enter Google Drive link details.', 'error');
         }
     } elseif ($provider === 'onedrive') {
         $originalName = trim($_POST['onedrive_file_name'] ?? $_POST['file_name'] ?? '');
         $externalUrl = trim($_POST['onedrive_file_url'] ?? $_POST['file_url'] ?? '');
         $externalId = trim($_POST['onedrive_file_id'] ?? $_POST['file_id'] ?? '') ?: null;
 
-        if (empty($originalName) || empty($externalUrl)) {
-            if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
-                $file = $service->uploadToServer($_FILES['file'], $patientId, $category, $uploadedBy);
-                setToast('File Uploaded', "Document '{$file['original_name']}' uploaded under tenant OneDrive allocation.", 'success');
-            } else {
-                setToast('OneDrive Error', 'File name and sharing URL are required for OneDrive integration.', 'error');
-            }
-        } else {
+        if (!empty($originalName) && !empty($externalUrl)) {
             $file = $service->linkOneDriveFile($originalName, $externalUrl, $externalId, $patientId, $category, 0, $uploadedBy);
             setToast('OneDrive File Linked', "OneDrive document '{$file['original_name']}' linked successfully.", 'success');
+        } elseif (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
+            $file = $service->uploadToOneDrive($_FILES['file'], $patientId, $category, $uploadedBy);
+            setToast('File Uploaded to OneDrive', "Document '{$file['original_name']}' uploaded under tenant OneDrive allocation.", 'success');
+        } else {
+            setToast('OneDrive Error', 'Please select a file or enter OneDrive sharing URL details.', 'error');
         }
     } else {
         if (!isset($_FILES['file']) || $_FILES['file']['error'] === UPLOAD_ERR_NO_FILE) {

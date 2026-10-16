@@ -127,6 +127,44 @@ class FileUploadServiceTest extends TestCase
         $this->assertEquals('blood_report.pdf', $gdOnly[0]['original_name']);
     }
 
+    public function testUploadToGoogleDriveAndOneDrive(): void
+    {
+        $dummyPath = sys_get_temp_dir() . '/test_gd_file.pdf';
+        file_put_contents($dummyPath, 'Google drive upload test content');
+
+        $fileArray = [
+            'name' => 'gdrive_patient_scan.pdf',
+            'type' => 'application/pdf',
+            'tmp_name' => $dummyPath,
+            'error' => UPLOAD_ERR_OK,
+            'size' => filesize($dummyPath),
+        ];
+
+        $uploadedGD = $this->service->uploadToGoogleDrive($fileArray, null, 'Lab Results', 'Dr. Smith');
+        $this->assertNotNull($uploadedGD);
+        $this->assertEquals('gdrive_patient_scan.pdf', $uploadedGD['original_name']);
+        $this->assertEquals('googledrive', $uploadedGD['storage_provider']);
+
+        $dummyOdPath = sys_get_temp_dir() . '/test_od_file.pdf';
+        file_put_contents($dummyOdPath, 'OneDrive upload test content');
+
+        $odFileArray = [
+            'name' => 'onedrive_patient_scan.pdf',
+            'type' => 'application/pdf',
+            'tmp_name' => $dummyOdPath,
+            'error' => UPLOAD_ERR_OK,
+            'size' => filesize($dummyOdPath),
+        ];
+
+        $uploadedOD = $this->service->uploadToOneDrive($odFileArray, null, 'General', 'Dr. Smith');
+        $this->assertNotNull($uploadedOD);
+        $this->assertEquals('onedrive_patient_scan.pdf', $uploadedOD['original_name']);
+        $this->assertEquals('onedrive', $uploadedOD['storage_provider']);
+
+        if (file_exists($dummyPath)) unlink($dummyPath);
+        if (file_exists($dummyOdPath)) unlink($dummyOdPath);
+    }
+
     public function testMultiTenantIsolationAndFileDelete(): void
     {
         $gdFile = $this->service->linkGoogleDriveFile('tenant1_doc.pdf', 'https://drive.google.com/file/d/1', 'gd-1');

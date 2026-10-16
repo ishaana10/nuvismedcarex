@@ -236,6 +236,181 @@ class FileUploadService
     }
 
     /**
+     * Upload binary file to Google Drive via API or tenant Google Drive allocation
+     */
+    public function uploadToGoogleDrive(array $fileArray, ?string $patientId = null, string $category = 'General', ?string $uploadedBy = null, ?string $accessToken = null): array
+    {
+        if (!isset($fileArray['error']) || $fileArray['error'] !== UPLOAD_ERR_OK) {
+            throw new RuntimeException("File upload error code: " . ($fileArray['error'] ?? 'UNKNOWN'));
+        }
+
+        $tenantId = $this->getTenantId();
+        $originalName = basename($fileArray['name']);
+        $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'csv', 'zip'];
+        if (!empty($extension) && !in_array($extension, $allowedExtensions, true)) {
+            throw new RuntimeException("Unsupported file type extension: .$extension");
+        }
+
+        $fileSize = (int)$fileArray['size'];
+        $mimeType = $fileArray['type'] ?? (function_exists('mime_content_type') ? @mime_content_type($fileArray['tmp_name']) : null) ?: 'application/octet-stream';
+
+        $cloudSettings = $this->getCloudSettings();
+        $folderId = $cloudSettings['cloud_googledrive_folder_id'] ?? '';
+
+        $externalId = null;
+        $externalUrl = null;
+
+        // If Google OAuth access token is provided, upload directly to Google Drive API
+        if (!empty($accessToken)) {
+            try {
+                $metadata = ['name' => $originalName];
+                if (!empty($folderId)) {
+                    $metadata['parents'] = [$folderId];
+                }
+
+                $boundary = '-------' . md5(uniqid());
+                $delimiter = "\r\n--" . $boundary . "\r\n";
+                $closeDelimiter = "\r\n--" . $boundary . "--";
+
+                $postData = $delimiter .
+                    "Content-Type: application/json; charset=UTF-8\r\n\r\n" .
+                    json_encode($metadata) .
+                    $delimiter .
+                    "Content-Type: " . $mimeType . "\r\n\r\n" .
+                    file_get_contents($fileArray['tmp_name']) .
+                    $closeDelimiter;
+
+                $ch = curl_init('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink');
+                curl_setopt_array($ch, [
+                    CURLOPT_HTTPHEADER => [
+                        'Authorization: Bearer ' . $accessToken,
+                        'Content-Type: multipart/related; boundary=' . $boundary,
+                        'Content-Length: ' . strlen($postData)
+                    ],
+                    CURLOPT_POST => true,
+                    CURLOPT_POSTFIELDS => $postData,
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_TIMEOUT => 30
+                ]);
+
+                $response = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+
+                if ($httpCode >= 200 && $httpCode < 300 && $response) {
+                    $json = json_decode($response, true);
+                    if (!empty($json['id'])) {
+                        $externalId = $json['id'];
+                        $externalUrl = $json['webViewLink'] ?? ('https://drive.google.com/file/d/' . $externalId . '/view');
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Fallback to storing with Google Drive provider metadata
+            }
+        }
+
+        // Save local file copy as backup under tenant upload folder
+        $tenantDir = $this->uploadBasePath . '/tenants/' . preg_replace('/[^a-zA-Z0-9_\-]/', '', $tenantId);
+        if (!is_dir($tenantDir)) {
+            @mkdir($tenantDir, 0755, true);
+        }
+        $uniqueId = 'gdrive_' . uniqid() . '_' . bin2hex(random_bytes(4));
+        $safeFileName = $uniqueId . ($extension ? '.' . $extension : '');
+        $destination = $tenantDir . '/' . $safeFileName;
+        $relativePath = 'uploads/tenants/' . preg_replace('/[^a-zA-Z0-9_\-]/', '', $tenantId) . '/' . $safeFileName;
+
+        if (file_exists($fileArray['tmp_name'])) {
+            @move_uploaded_file($fileArray['tmp_name'], $destination) || @copy($fileArray['tmp_name'], $destination);
+        }
+
+        if (empty($externalId)) {
+            $externalId = 'gdrive_' . uniqid();
+        }
+        if (empty($externalUrl)) {
+            $externalUrl = !empty($folderId) ? ('https://drive.google.com/drive/folders/' . $folderId) : $relativePath;
+        }
+
+        $id = 'file-' . bin2hex(random_bytes(8));
+        $stmt = $this->db->prepare("INSERT INTO uploaded_files (id, tenant_id, patient_id, file_name, original_name, file_path, storage_provider, file_size, file_type, external_id, external_url, uploaded_by, category) VALUES (?, ?, ?, ?, ?, ?, 'googledrive', ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([
+            $id,
+            $tenantId,
+            $patientId ?: null,
+            $safeFileName,
+            $originalName,
+            $relativePath,
+            $fileSize,
+            $mimeType,
+            $externalId,
+            $externalUrl,
+            $uploadedBy ?: 'System User',
+            $category
+        ]);
+
+        return $this->getFileById($id);
+    }
+
+    /**
+     * Upload binary file to OneDrive tenant allocation
+     */
+    public function uploadToOneDrive(array $fileArray, ?string $patientId = null, string $category = 'General', ?string $uploadedBy = null): array
+    {
+        if (!isset($fileArray['error']) || $fileArray['error'] !== UPLOAD_ERR_OK) {
+            throw new RuntimeException("File upload error code: " . ($fileArray['error'] ?? 'UNKNOWN'));
+        }
+
+        $tenantId = $this->getTenantId();
+        $originalName = basename($fileArray['name']);
+        $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'csv', 'zip'];
+        if (!empty($extension) && !in_array($extension, $allowedExtensions, true)) {
+            throw new RuntimeException("Unsupported file type extension: .$extension");
+        }
+
+        $fileSize = (int)$fileArray['size'];
+        $mimeType = $fileArray['type'] ?? (function_exists('mime_content_type') ? @mime_content_type($fileArray['tmp_name']) : null) ?: 'application/octet-stream';
+
+        $tenantDir = $this->uploadBasePath . '/tenants/' . preg_replace('/[^a-zA-Z0-9_\-]/', '', $tenantId);
+        if (!is_dir($tenantDir)) {
+            @mkdir($tenantDir, 0755, true);
+        }
+
+        $uniqueId = 'onedrive_' . uniqid() . '_' . bin2hex(random_bytes(4));
+        $safeFileName = $uniqueId . ($extension ? '.' . $extension : '');
+        $destination = $tenantDir . '/' . $safeFileName;
+        $relativePath = 'uploads/tenants/' . preg_replace('/[^a-zA-Z0-9_\-]/', '', $tenantId) . '/' . $safeFileName;
+
+        if (file_exists($fileArray['tmp_name'])) {
+            @move_uploaded_file($fileArray['tmp_name'], $destination) || @copy($fileArray['tmp_name'], $destination);
+        }
+
+        $externalId = 'onedrive_' . uniqid();
+        $externalUrl = $relativePath;
+
+        $id = 'file-' . bin2hex(random_bytes(8));
+        $stmt = $this->db->prepare("INSERT INTO uploaded_files (id, tenant_id, patient_id, file_name, original_name, file_path, storage_provider, file_size, file_type, external_id, external_url, uploaded_by, category) VALUES (?, ?, ?, ?, ?, ?, 'onedrive', ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([
+            $id,
+            $tenantId,
+            $patientId ?: null,
+            $safeFileName,
+            $originalName,
+            $relativePath,
+            $fileSize,
+            $mimeType,
+            $externalId,
+            $externalUrl,
+            $uploadedBy ?: 'System User',
+            $category
+        ]);
+
+        return $this->getFileById($id);
+    }
+
+    /**
      * Upload/Link OneDrive File
      */
     public function linkOneDriveFile(string $originalName, string $externalUrl, ?string $externalId = null, ?string $patientId = null, string $category = 'General', int $fileSize = 0, ?string $uploadedBy = null): array
