@@ -219,9 +219,9 @@ foreach ($settingsRows as $sr) {
                                         <span class="material-symbols-outlined text-xs">edit</span> View / Edit
                                     </button>
                                     <?php if (!empty($lo['result_file_id'])): ?>
-                                        <a href="actions/view_file.php?id=<?= urlencode($lo['result_file_id']) ?>" target="_blank" class="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[11px] font-bold flex items-center gap-1 transition shadow-2xs">
+                                        <button type="button" onclick="openDocumentViewer('<?= htmlspecialchars($lo['result_file_id']) ?>', '<?= htmlspecialchars(addslashes($lo['test_name'] ?? 'Lab Result')) ?>')" class="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[11px] font-bold flex items-center gap-1 transition shadow-2xs">
                                             <span class="material-symbols-outlined text-xs">attach_file</span> View Result File
-                                        </a>
+                                        </button>
                                     <?php elseif (!empty($lo['result_file_path'])): ?>
                                         <a href="<?= htmlspecialchars($lo['result_file_path']) ?>" target="_blank" class="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[11px] font-bold flex items-center gap-1 transition shadow-2xs">
                                             <span class="material-symbols-outlined text-xs">attachment</span> View Result File
