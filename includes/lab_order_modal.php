@@ -204,10 +204,10 @@ $labCategories = [
                     <label class="block font-bold text-amber-900 text-xs">Laboratory Results & Findings Summary</label>
                     <!-- Link to view attached result file if present -->
                     <div id="edit-lab-file-link-container" class="hidden">
-                        <a id="edit-lab-file-link" href="#" target="_blank" class="px-2.5 py-1 bg-amber-600 text-white rounded-lg font-bold text-[11px] hover:bg-amber-700 transition flex items-center gap-1 shadow-2xs">
+                        <button type="button" id="edit-lab-file-btn" class="px-2.5 py-1 bg-amber-600 text-white rounded-lg font-bold text-[11px] hover:bg-amber-700 transition flex items-center gap-1 shadow-2xs">
                             <span class="material-symbols-outlined text-xs">attachment</span>
                             <span>View Attached Result Document</span>
-                        </a>
+                        </button>
                     </div>
                 </div>
 
@@ -294,11 +294,17 @@ function openEditLabModal(order) {
 
     // Handle result file attachment link
     const linkContainer = document.getElementById('edit-lab-file-link-container');
-    const linkEl = document.getElementById('edit-lab-file-link');
-    const filePath = order.result_file_id ? ('actions/view_file.php?id=' + encodeURIComponent(order.result_file_id)) : (order.result_file_path || '');
+    const linkBtn = document.getElementById('edit-lab-file-btn');
 
-    if (filePath && linkContainer && linkEl) {
-        linkEl.href = filePath;
+    if (order.result_file_id && linkContainer && linkBtn) {
+        linkBtn.onclick = function() {
+            openDocumentViewer(order.result_file_id, order.test_name || 'Lab Result Document');
+        };
+        linkContainer.classList.remove('hidden');
+    } else if (order.result_file_path && linkContainer && linkBtn) {
+        linkBtn.onclick = function() {
+            window.open(order.result_file_path, '_blank');
+        };
         linkContainer.classList.remove('hidden');
     } else if (linkContainer) {
         linkContainer.classList.add('hidden');
