@@ -3,6 +3,11 @@
  * Shared Structured Lab Order Creation and Edit Modals
  */
 
+$labContainer = \ClinicFlow\Shared\Container::getInstance();
+$labUploadService = $labContainer->get(\ClinicFlow\Services\FileUploadService::class);
+$labStorageUsage = $labUploadService->getStorageUsage();
+$tenantConfiguredProvider = $labStorageUsage['storage_provider'] ?? 'server';
+
 $labCategories = [
     'Biochemistry' => [
         'Uric Acid',
@@ -215,11 +220,21 @@ $labCategories = [
                     </div>
                     <div>
                         <label class="block font-bold text-amber-900 text-[11px] mb-1">Storage Destination</label>
-                        <select name="storage_provider" class="w-full bg-white px-2 py-1 rounded-lg border border-amber-300 text-xs text-amber-900 font-medium">
-                            <option value="server">Local Clinic Server (Default)</option>
-                            <option value="onedrive">Microsoft OneDrive</option>
-                            <option value="googledrive">Google Drive</option>
-                        </select>
+                        <?php if ($tenantConfiguredProvider !== 'server'): ?>
+                            <input type="hidden" name="storage_provider" value="<?= htmlspecialchars($tenantConfiguredProvider) ?>">
+                            <div class="px-2.5 py-1.5 bg-amber-100 border border-amber-300 rounded-lg text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-sm">
+                                    <?= $tenantConfiguredProvider === 'googledrive' ? 'add_to_drive' : 'cloud' ?>
+                                </span>
+                                <span><?= $tenantConfiguredProvider === 'googledrive' ? 'Google Drive (Enforced)' : 'Microsoft OneDrive (Enforced)' ?></span>
+                            </div>
+                        <?php else: ?>
+                            <select name="storage_provider" class="w-full bg-white px-2 py-1 rounded-lg border border-amber-300 text-xs text-amber-900 font-medium">
+                                <option value="server">Local Clinic Server (Default)</option>
+                                <option value="onedrive">Microsoft OneDrive</option>
+                                <option value="googledrive">Google Drive</option>
+                            </select>
+                        <?php endif; ?>
                     </div>
                 </div>
 

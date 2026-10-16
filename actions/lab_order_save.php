@@ -154,7 +154,12 @@ if ($action === 'edit_lab_order' || $action === 'update_lab_order') {
     $resultFilePath = null;
     if (isset($_FILES['result_file']) && $_FILES['result_file']['error'] === UPLOAD_ERR_OK) {
         try {
-            $storageProvider = trim($_POST['storage_provider'] ?? 'server');
+            $usageInfo = $fileUploadService->getStorageUsage();
+            $tenantConfiguredProvider = $usageInfo['storage_provider'] ?? 'server';
+
+            $storageProvider = ($tenantConfiguredProvider !== 'server')
+                ? $tenantConfiguredProvider
+                : trim($_POST['storage_provider'] ?? 'server');
             $uploadedBy = $_SESSION['user_name'] ?? 'Doctor';
 
             if ($storageProvider === 'onedrive') {
