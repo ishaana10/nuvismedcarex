@@ -7,16 +7,28 @@ include __DIR__ . '/includes/header.php';
 $settings = [];
 try {
     $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+    // Fetch settings explicitly for active tenant first
     $stmt = $pdo->prepare("SELECT setting_key, setting_value FROM tenant_settings WHERE tenant_id = ?");
     $stmt->execute([$tenantId]);
     while ($row = $stmt->fetch()) {
         $settings[$row['setting_key']] = $row['setting_value'];
     }
 
+    // Fallback to clinic_settings if not defined in tenant_settings
     $cStmt = $pdo->query("SELECT setting_key, setting_value FROM clinic_settings");
     while ($row = $cStmt->fetch()) {
         if (!isset($settings[$row['setting_key']])) {
             $settings[$row['setting_key']] = $row['setting_value'];
+        }
+    }
+
+    // Default branding fallback if clinic_name is empty for tenant
+    if (empty($settings['clinic_name'])) {
+        $tStmt = $pdo->prepare("SELECT name FROM tenants WHERE id = ? LIMIT 1");
+        $tStmt->execute([$tenantId]);
+        $tName = $tStmt->fetchColumn();
+        if ($tName) {
+            $settings['clinic_name'] = $tName;
         }
     }
 } catch (\Throwable $e) {

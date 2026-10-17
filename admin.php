@@ -29,10 +29,13 @@ if ($activeTab === 'developer' && !$isDeveloper) {
 $pagination = getPaginationParams(10, [5, 10, 25, 50, 100], $pdo);
 
 // Fetch total count and paginated user/doctor staff
-$totalUsersStmt = $pdo->query("SELECT COUNT(*) FROM doctors");
+$currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+$totalUsersStmt = $pdo->prepare("SELECT COUNT(*) FROM doctors WHERE tenant_id = ? OR tenant_id IS NULL");
+$totalUsersStmt->execute([$currentTenantId]);
 $totalUsers = (int)$totalUsersStmt->fetchColumn();
 
-$usersStmt = $pdo->prepare("SELECT * FROM doctors ORDER BY name ASC LIMIT :limit OFFSET :offset");
+$usersStmt = $pdo->prepare("SELECT * FROM doctors WHERE tenant_id = :tid OR tenant_id IS NULL ORDER BY name ASC LIMIT :limit OFFSET :offset");
+$usersStmt->bindValue(':tid', $currentTenantId);
 $usersStmt->bindValue(':limit', $pagination['limit'], PDO::PARAM_INT);
 $usersStmt->bindValue(':offset', $pagination['offset'], PDO::PARAM_INT);
 $usersStmt->execute();

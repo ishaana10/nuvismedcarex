@@ -13,14 +13,20 @@ $activePage = $activePage ?? 'dashboard';
 // Authentication Check
 requireAuth();
 
-// Get doctors for current doctor selector
-$doctors = $pdo->query("SELECT * FROM doctors ORDER BY name ASC")->fetchAll();
+// Get doctors for current tenant context selector
+$currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+$doctorsStmt = $pdo->prepare("SELECT * FROM doctors WHERE tenant_id = ? OR tenant_id IS NULL ORDER BY name ASC");
+$doctorsStmt->execute([$currentTenantId]);
+$doctors = $doctorsStmt->fetchAll(PDO::FETCH_ASSOC);
+if (empty($doctors)) {
+    $allDocsStmt = $pdo->query("SELECT * FROM doctors ORDER BY name ASC");
+    $doctors = $allDocsStmt ? $allDocsStmt->fetchAll(PDO::FETCH_ASSOC) : [];
+}
 $currentDoctorId = $_SESSION['current_doctor_id'] ?? ($doctors[0]['id'] ?? 'doc-1');
 $currentDoctor = array_filter($doctors, fn($d) => $d['id'] === $currentDoctorId);
 $currentDoctor = reset($currentDoctor) ?: ($doctors[0] ?? ['id' => 'doc-1', 'name' => 'Dr. Sarah Jenkins', 'specialty' => 'Internal Medicine']);
 
 // Fetch Active Clinic Name dynamically
-$currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 $tenantStmt = $pdo->prepare("SELECT name FROM tenants WHERE id = :tid LIMIT 1");
 $tenantStmt->execute(['tid' => $currentTenantId]);
 $tenantRow = $tenantStmt->fetch(PDO::FETCH_ASSOC);
