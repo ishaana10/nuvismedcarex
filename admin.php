@@ -22,7 +22,7 @@ $currentSessionUserRole = $_SESSION['user_role'] ?? $_SESSION['role'] ?? 'Doctor
 $isDeveloper = ($currentSessionUserRole === 'Developer');
 
 $activeTab = $_GET['tab'] ?? 'users';
-if ($activeTab === 'developer' && !$isDeveloper) {
+if (in_array($activeTab, ['tenants', 'developer'])) {
     $activeTab = 'users';
 }
 
@@ -54,10 +54,6 @@ $usersList = $usersStmt->fetchAll();
             <span class="material-symbols-outlined text-base">group</span>
             <span>User Management</span>
         </button>
-        <button type="button" onclick="switchAdminTab('tenants')" id="tab-btn-tenants" class="px-4 py-2 rounded-xl transition flex items-center gap-1.5 <?= $activeTab === 'tenants' ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high' ?>">
-            <span class="material-symbols-outlined text-base">apartment</span>
-            <span>Multi-Tenancy Clinics</span>
-        </button>
         <button type="button" onclick="switchAdminTab('clinic')" id="tab-btn-clinic" class="px-4 py-2 rounded-xl transition flex items-center gap-1.5 <?= $activeTab === 'clinic' ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high' ?>">
             <span class="material-symbols-outlined text-base">domain</span>
             <span>Clinic & Branding Settings</span>
@@ -74,98 +70,6 @@ $usersList = $usersStmt->fetchAll();
             <span class="material-symbols-outlined text-base">inventory_2</span>
             <span>Inventory Settings</span>
         </button>
-        <?php if ($isDeveloper): ?>
-        <button type="button" onclick="switchAdminTab('developer')" id="tab-btn-developer" class="px-4 py-2 rounded-xl transition flex items-center gap-1.5 <?= $activeTab === 'developer' ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high' ?>">
-            <span class="material-symbols-outlined text-base">code</span>
-            <span>Developer Updates</span>
-        </button>
-        <?php endif; ?>
-    </div>
-</div>
-
-<!-- ================= TAB 0: MULTI-TENANCY & CLINICS ================= -->
-<div id="admin-tab-tenants" class="<?= $activeTab === 'tenants' ? '' : 'hidden' ?> space-y-6">
-    <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-6">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-outline-variant/20">
-            <div>
-                <h2 class="text-sm font-bold text-on-surface flex items-center gap-2">
-                    <span class="material-symbols-outlined text-primary text-lg">apartment</span>
-                    <span>Multi-Clinic Tenancy Directory</span>
-                </h2>
-                <div class="flex items-center gap-2 flex-wrap mt-0.5">
-                    <p class="text-xs text-outline font-medium">Manage multi-tenant clinic instances, isolation profiles, and switch active clinic context. Active Context: <code class="text-primary font-bold font-mono"><?= htmlspecialchars($currentTenantId) ?></code></p>
-                    <?php if ($currentTenantId !== 'default-clinic'): ?>
-                        <form action="actions/tenant_actions.php" method="POST" class="inline">
-                            <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
-                            <input type="hidden" name="action" value="switch_tenant">
-                            <input type="hidden" name="tenant_id" value="default-clinic">
-                            <button type="submit" class="px-2.5 py-1 bg-primary text-white text-[11px] font-bold rounded-lg hover:bg-primary/90 transition inline-flex items-center gap-1 shadow-xs">
-                                <span class="material-symbols-outlined text-xs">restart_alt</span>
-                                <span>Switch Back to Default Clinic</span>
-                            </button>
-                        </form>
-                    <?php endif; ?>
-                </div>
-            </div>
-
-            <button type="button" onclick="openTenantModal()" class="px-4 py-2.5 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-2">
-                <span class="material-symbols-outlined text-base">add_location_alt</span>
-                <span>Add New Clinic Tenant</span>
-            </button>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <?php foreach ($tenantsList as $tnt):
-                $isCurrent = ($tnt['id'] === $currentTenantId);
-            ?>
-                <div class="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/30 flex flex-col justify-between gap-3 text-xs transition hover:shadow-md <?= $isCurrent ? 'ring-2 ring-primary/60 bg-primary/5' : '' ?>">
-                    <div class="space-y-2">
-                        <div class="flex items-center justify-between gap-2">
-                            <h3 class="font-bold text-on-surface text-sm flex items-center gap-1.5">
-                                <span class="material-symbols-outlined text-base text-primary">domain</span>
-                                <span><?= htmlspecialchars($tnt['name']) ?></span>
-                            </h3>
-                            <?php if ($isCurrent): ?>
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary text-white flex items-center gap-1">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
-                                    <span>Active Context</span>
-                                </span>
-                            <?php endif; ?>
-                        </div>
-
-                        <div class="p-2.5 rounded-xl bg-surface-container-lowest border border-outline-variant/20 grid grid-cols-2 gap-2 text-[10px] font-mono text-slate-600">
-                            <div><span class="text-slate-400">Code:</span> <?= htmlspecialchars($tnt['code']) ?></div>
-                            <div><span class="text-slate-400">Plan:</span> <span class="uppercase font-bold text-primary"><?= htmlspecialchars($tnt['plan']) ?></span></div>
-                            <div><span class="text-slate-400">Status:</span> <?= htmlspecialchars($tnt['status']) ?></div>
-                            <div><span class="text-slate-400">Drive Cap:</span> <span class="font-bold text-slate-800"><?= ((int)($tnt['storage_limit_mb'] ?? 500) >= 1024) ? round(($tnt['storage_limit_mb'] ?? 500) / 1024, 1) . ' GB' : ($tnt['storage_limit_mb'] ?? 500) . ' MB' ?></span></div>
-                            <div class="col-span-2"><span class="text-slate-400">Drive Storage Provider:</span> <span class="font-bold text-amber-700 uppercase"><?= htmlspecialchars($tnt['storage_provider'] ?? 'server') ?></span></div>
-                            <div class="col-span-2"><span class="text-slate-400">Tenant ID:</span> <?= htmlspecialchars($tnt['id']) ?></div>
-                        </div>
-
-                        <p class="text-[11px] text-slate-600 flex items-center gap-1">
-                            <span class="material-symbols-outlined text-xs text-slate-400">location_on</span>
-                            <span><?= htmlspecialchars($tnt['address'] ?: 'No address specified') ?></span>
-                        </p>
-                    </div>
-
-                    <div class="pt-3 border-t border-outline-variant/20 flex items-center justify-between gap-2">
-                        <form action="actions/tenant_actions.php" method="POST" class="flex-1">
-                            <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
-                            <input type="hidden" name="action" value="switch_tenant">
-                            <input type="hidden" name="tenant_id" value="<?= htmlspecialchars($tnt['id']) ?>">
-                            <button type="submit" <?= $isCurrent ? 'disabled' : '' ?> class="w-full py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 <?= $isCurrent ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-primary text-white hover:bg-primary/90' ?>">
-                                <span class="material-symbols-outlined text-base">swap_horiz</span>
-                                <span><?= $isCurrent ? 'Current Active Clinic' : 'Switch' ?></span>
-                            </button>
-                        </form>
-                        <button type="button" onclick='openTenantModal(<?= htmlspecialchars(json_encode($tnt), ENT_QUOTES, "UTF-8") ?>)' class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition flex items-center gap-1">
-                            <span class="material-symbols-outlined text-sm">edit</span>
-                            <span>Edit</span>
-                        </button>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-        </div>
     </div>
 </div>
 
@@ -647,117 +551,6 @@ $usersList = $usersStmt->fetchAll();
     </form>
 </div>
 
-<?php if ($isDeveloper): ?>
-<!-- ================= TAB: DEVELOPER OPTIONS & LOGS ================= -->
-<div id="admin-tab-developer" class="<?= $activeTab === 'developer' ? '' : 'hidden' ?> space-y-6">
-    <!-- 1. System Updates (Git Updater) -->
-    <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-5">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-outline-variant/20 pb-3">
-            <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
-                <span class="material-symbols-outlined text-base">update</span>
-                <span>Continuous System Updates (1-Click Git Updater)</span>
-            </h2>
-            <div class="flex gap-2">
-                <button type="button" onclick="switchGitSubTab('console')" id="btn-git-console" class="px-3 py-1 bg-primary text-white text-[11px] font-bold rounded-lg transition">Terminal Status</button>
-                <button type="button" onclick="switchGitSubTab('history')" id="btn-git-history" class="px-3 py-1 bg-surface-container-high text-on-surface text-[11px] font-bold rounded-lg transition">Commit History</button>
-            </div>
-        </div>
-
-        <!-- Terminal Console Tab -->
-        <div id="git-tab-console" class="space-y-4 text-xs">
-            <div>
-                <label class="block font-bold text-slate-700 mb-1">Git Repository Terminal Status</label>
-                <div id="git-status-console" class="font-mono text-xs bg-slate-900 text-emerald-400 p-4 rounded-xl border border-slate-800 h-40 overflow-y-auto whitespace-pre-wrap leading-relaxed shadow-inner">
-                    Querying Git repository status...
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Executable Path</label>
-                    <input type="text" id="git_path" value="<?= htmlspecialchars($settings['git_path'] ?? 'git') ?>" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Repository Directory</label>
-                    <input type="text" id="git_repo_dir" value="<?= htmlspecialchars($settings['git_repo_dir'] ?? dirname(__DIR__)) ?>" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Update Branch</label>
-                    <select id="update_branch" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-bold">
-                        <option value="main">main</option>
-                        <option value="master">master</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-outline-variant/20">
-                <button type="button" onclick="saveGitSettings()" class="px-4 py-2 bg-surface-container-high text-on-surface text-xs font-semibold rounded-xl hover:bg-surface-variant transition flex items-center gap-1.5">
-                    <span class="material-symbols-outlined text-sm">settings</span>
-                    <span>Save Git Settings</span>
-                </button>
-
-                <div class="flex gap-2">
-                    <button type="button" onclick="refreshGitStatus()" class="px-4 py-2 bg-slate-200 text-slate-800 text-xs font-semibold rounded-xl hover:bg-slate-300 transition flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-sm">sync</span>
-                        <span>Check Status</span>
-                    </button>
-                    <button type="button" onclick="triggerGitPull()" class="px-5 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 transition shadow-xs flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-sm">download</span>
-                        <span>Pull Updates from Git</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Initialize / Link Git Repo Form (if missing) -->
-            <div id="git-init-card" class="mt-4 p-4 rounded-xl bg-amber-50 border border-amber-200 space-y-3">
-                <p class="font-bold text-amber-900 text-xs flex items-center gap-1.5">
-                    <span class="material-symbols-outlined text-sm text-amber-700">link</span>
-                    <span>Link Remote Git Repository</span>
-                </p>
-                <div class="flex gap-2">
-                    <input type="text" id="git_remote_url" placeholder="https://github.com/username/repository.git" value="<?= htmlspecialchars($settings['git_remote_url'] ?? '') ?>" class="flex-1 bg-white px-3 py-2 rounded-xl border border-amber-300 text-xs font-mono">
-                    <button type="button" onclick="initializeGitRepo()" class="px-4 py-2 bg-amber-800 text-white font-bold rounded-xl text-xs hover:bg-amber-900 transition">
-                        Link & Sync
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Commit History Tab -->
-        <div id="git-tab-history" class="hidden space-y-3 text-xs">
-            <div id="git-commit-list" class="space-y-2 max-h-60 overflow-y-auto">
-                <p class="text-slate-500 italic">Loading commit logs...</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- 2. Developer Error Logger Module -->
-    <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-5">
-        <div class="flex items-center justify-between border-b border-outline-variant/20 pb-3">
-            <h2 class="text-xs font-bold text-rose-700 uppercase tracking-wider flex items-center gap-2">
-                <span class="material-symbols-outlined text-base">bug_report</span>
-                <span>Developer Error Logger & System Diagnostics</span>
-            </h2>
-            <div class="flex items-center gap-2">
-                <button type="button" onclick="fetchDeveloperErrorLogs()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition flex items-center gap-1">
-                    <span class="material-symbols-outlined text-sm">refresh</span>
-                    <span>Refresh Logs</span>
-                </button>
-                <button type="button" onclick="clearDeveloperErrorLogs()" class="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-800 text-xs font-bold rounded-xl transition flex items-center gap-1">
-                    <span class="material-symbols-outlined text-sm">delete_sweep</span>
-                    <span>Clear Logs</span>
-                </button>
-            </div>
-        </div>
-
-        <div>
-            <div id="developer-error-console" class="font-mono text-xs bg-slate-950 text-slate-200 p-4 rounded-xl border border-slate-800 h-64 overflow-y-auto leading-relaxed space-y-2 shadow-inner">
-                <p class="text-slate-500 italic">Initializing developer error logger...</p>
-            </div>
-        </div>
-    </div>
-</div>
-<?php endif; ?>
 
 <!-- Modal: Add/Edit Clinic Tenant -->
 <div id="tenantModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
@@ -1080,7 +873,7 @@ function closeTenantModal() {
 }
 
 function switchAdminTab(tab) {
-    const panels = ['users', 'tenants', 'clinic', 'email', 'vms', 'inventory', 'developer'];
+    const panels = ['users', 'clinic', 'email', 'vms', 'inventory'];
     panels.forEach(p => {
         const el = document.getElementById('admin-tab-' + p);
         if (el) el.classList.add('hidden');
