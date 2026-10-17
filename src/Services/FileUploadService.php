@@ -54,8 +54,6 @@ class FileUploadService
 
         $limitBytes = $limitMb * 1024 * 1024;
 
-        $limitBytes = $limitMb * 1024 * 1024;
-
         // Sum server storage usage
         $usedBytes = 0;
         try {

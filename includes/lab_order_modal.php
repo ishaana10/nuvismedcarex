@@ -238,6 +238,23 @@ $labCategories = [
                     </div>
                 </div>
 
+                <!-- Lab File Upload Live Progress Bar & Console -->
+                <div id="lab-upload-progress-card" class="p-3 bg-slate-900 text-white rounded-xl space-y-1.5 hidden">
+                    <div class="flex items-center justify-between text-[11px]">
+                        <span id="lab-upload-status-text" class="font-bold text-amber-300 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-xs animate-spin">sync</span>
+                            <span>Uploading lab result file...</span>
+                        </span>
+                        <span id="lab-upload-percentage" class="font-mono font-bold text-emerald-400">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                        <div id="lab-upload-bar" class="h-full bg-emerald-500 rounded-full transition-all duration-200" style="width: 0%"></div>
+                    </div>
+                    <div id="lab-upload-console" class="font-mono text-[10px] text-slate-300 bg-slate-950 p-1.5 rounded border border-slate-800 h-12 overflow-y-auto leading-tight">
+                        [Lab Console] Upload stream started...
+                    </div>
+                </div>
+
                 <p class="text-[10px] text-amber-800">Doctors can manually write notes above and/or attach PDF/scanned report files. Attached documents can be viewed/downloaded anytime via the link above.</p>
             </div>
 
