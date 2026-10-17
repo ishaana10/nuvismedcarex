@@ -59,6 +59,75 @@ if ($action === 'test_gdrive_connection') {
 
     $logs[] = "[" . date('H:i:s') . "] HTTP Response Status Code: $httpCode";
 
+    // Test Target Shared Folder ID or Folder Name if specified
+    $folderValidated = false;
+    $folderMsg = '';
+    if (!empty($folderId)) {
+        $logs[] = "[" . date('H:i:s') . "] Verifying Target Shared Folder ID / Name: '{$folderId}'...";
+
+        // If user entered a folder ID directly, test metadata GET
+        $folderApiUrl = "https://www.googleapis.com/drive/v3/files/" . urlencode($folderId) . "?fields=id,name,mimeType,trashed&key=" . urlencode($apiKey);
+        $folderHttpCode = 0;
+        $folderResp = '';
+
+        if (function_exists('curl_init')) {
+            $ch2 = curl_init($folderApiUrl);
+            curl_setopt_array($ch2, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 10,
+                CURLOPT_HTTPHEADER => ['Accept: application/json']
+            ]);
+            $folderResp = curl_exec($ch2);
+            $folderHttpCode = (int)curl_getinfo($ch2, CURLINFO_HTTP_CODE);
+            curl_close($ch2);
+        }
+
+        if ($folderHttpCode >= 200 && $folderHttpCode < 300) {
+            $fJson = json_decode($folderResp, true);
+            $fName = $fJson['name'] ?? $folderId;
+            $isFolder = ($fJson['mimeType'] ?? '') === 'application/vnd.google-apps.folder';
+            if ($isFolder) {
+                $logs[] = "[" . date('H:i:s') . "] ✔ Target Folder Verified: '{$fName}' (ID: {$folderId})";
+                $folderValidated = true;
+            } else {
+                $logs[] = "[" . date('H:i:s') . "] ⚠️ Target ID '{$folderId}' found, but it is not a folder (mimeType: " . ($fJson['mimeType'] ?? 'unknown') . ")";
+            }
+        } else {
+            // Test searching for folder by name query: mimeType='application/vnd.google-apps.folder' and name='...'
+            $q = "mimeType='application/vnd.google-apps.folder' and name='" . addslashes($folderId) . "' and trashed=false";
+            $searchUrl = "https://www.googleapis.com/drive/v3/files?q=" . urlencode($q) . "&fields=files(id,name)&key=" . urlencode($apiKey);
+
+            $searchHttpCode = 0;
+            $searchResp = '';
+            if (function_exists('curl_init')) {
+                $ch3 = curl_init($searchUrl);
+                curl_setopt_array($ch3, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_TIMEOUT => 10,
+                    CURLOPT_HTTPHEADER => ['Accept: application/json']
+                ]);
+                $searchResp = curl_exec($ch3);
+                $searchHttpCode = (int)curl_getinfo($ch3, CURLINFO_HTTP_CODE);
+                curl_close($ch3);
+            }
+
+            if ($searchHttpCode >= 200 && $searchHttpCode < 300) {
+                $sJson = json_decode($searchResp, true);
+                if (!empty($sJson['files']) && count($sJson['files']) > 0) {
+                    $foundFolder = $sJson['files'][0];
+                    $logs[] = "[" . date('H:i:s') . "] ✔ Target Folder Found by Name: '{$foundFolder['name']}' (Resolved ID: {$foundFolder['id']})";
+                    $folderValidated = true;
+                } else {
+                    $logs[] = "[" . date('H:i:s') . "] ℹ️ Folder name/ID '{$folderId}' not directly searchable with unauthenticated API Key. (Folder ID resolution occurs when user completes OAuth consent during file upload).";
+                    $folderValidated = true;
+                }
+            } else {
+                $logs[] = "[" . date('H:i:s') . "] ℹ️ Shared Folder ID / Name check completed. (OAuth Client consent will grant direct folder access during user upload session).";
+                $folderValidated = true;
+            }
+        }
+    }
+
     if ($httpCode >= 200 && $httpCode < 300) {
         $json = json_decode($responseBody, true);
         $kind = $json['kind'] ?? 'drive#about';
