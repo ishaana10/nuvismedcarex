@@ -5,8 +5,8 @@
     <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
             <span>&copy; <?= date('Y') ?> Nuvis Medcare X by Nuvis Technologies. All rights reserved.</span>
-            <span class="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-mono text-[10px] font-bold border border-primary/20">
-                <?= defined('APP_VERSION') ? APP_VERSION : 'v2.1.0' ?>
+            <span class="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-mono text-[10px] font-bold border border-primary/20" title="Released: <?= htmlspecialchars(AppVersion::get('released_at')) ?>">
+                <?= htmlspecialchars(AppVersion::get('full')) ?>
             </span>
         </div>
         <span>A2 Hosting PHP 8.1+ Ready</span>

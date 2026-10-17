@@ -1,0 +1,69 @@
+name: Stamp Version & Build
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Version bump type (patch, minor, major, none)'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - none
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+
+jobs:
+  version-stamp:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Bump Version and Stamp Build Metadata
+        id: stamp
+        run: |
+          CURRENT_VERSION=$(jq -r '.version' version.json)
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+
+          BUMP="${{ github.event.inputs.bump_type || 'patch' }}"
+          if [ "$BUMP" == "major" ]; then
+            MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0
+          elif [ "$BUMP" == "minor" ]; then
+            MINOR=$((MINOR + 1)); PATCH=0
+          elif [ "$BUMP" == "patch" ]; then
+            PATCH=$((PATCH + 1))
+          fi
+
+          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          BUILD_NUM="${{ github.run_number }}"
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          jq --arg v "$NEW_VERSION" \
+             --arg b "$BUILD_NUM" \
+             --arg c "$SHORT_SHA" \
+             --arg t "$TIMESTAMP" \
+             '.version = $v | .build = $b | .commit = $c | .released_at = $t' \
+             version.json > version.tmp.json && mv version.tmp.json version.json
+
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "build_num=$BUILD_NUM" >> $GITHUB_OUTPUT
+
+      - name: Commit Updated version.json
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add version.json
+          git commit -m "chore(release): v${{ steps.stamp.outputs.new_version }} build ${{ steps.stamp.outputs.build_num }} [skip ci]" || echo "No changes to commit"
+          git tag -a "v${{ steps.stamp.outputs.new_version }}-b${{ steps.stamp.outputs.build_num }}" -m "Release v${{ steps.stamp.outputs.new_version }} Build ${{ steps.stamp.outputs.build_num }}"
+          git push origin HEAD
+          git push origin --tags
