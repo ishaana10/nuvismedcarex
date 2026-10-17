@@ -142,17 +142,32 @@ if (isset($_POST['lab_catalog_json'])) {
     $settings['lab_catalog'] = trim($_POST['lab_catalog_json']);
 }
 
-$query = "INSERT INTO clinic_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)";
+$driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+$query = ($driver === 'sqlite')
+    ? "INSERT INTO clinic_settings (setting_key, setting_value) VALUES (?, ?) ON CONFLICT(setting_key) DO UPDATE SET setting_value = excluded.setting_value"
+    : "INSERT INTO clinic_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)";
 $stmt = $pdo->prepare($query);
 
 $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
-$tsQuery = "INSERT INTO tenant_settings (id, tenant_id, setting_key, setting_value) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = CURRENT_TIMESTAMP";
+$tsQuery = ($driver === 'sqlite')
+    ? "INSERT INTO tenant_settings (id, tenant_id, setting_key, setting_value) VALUES (?, ?, ?, ?) ON CONFLICT(tenant_id, setting_key) DO UPDATE SET setting_value = excluded.setting_value, updated_at = CURRENT_TIMESTAMP"
+    : "INSERT INTO tenant_settings (id, tenant_id, setting_key, setting_value) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = CURRENT_TIMESTAMP";
 $tsStmt = $pdo->prepare($tsQuery);
 
 foreach ($settings as $key => $val) {
     $stmt->execute([$key, $val]);
     try {
         $tsStmt->execute(['ts-' . $tenantId . '-' . $key, $tenantId, $key, $val]);
+    } catch (\Throwable $te) {
+        // Fallback
+    }
+}
+
+// Also update tenants table name if clinic_name was saved
+if (!empty($settings['clinic_name'])) {
+    try {
+        $tStmt = $pdo->prepare("UPDATE tenants SET name = ? WHERE id = ?");
+        $tStmt->execute([$settings['clinic_name'], $tenantId]);
     } catch (\Throwable $te) {
         // Fallback
     }

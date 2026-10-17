@@ -396,7 +396,9 @@ $cloudSettings = $uploadService->getCloudSettings();
     $savedRbacJson = $settings['rbac_group_permissions'] ?? '{}';
     $savedRbac = json_decode($savedRbacJson, true) ?: [];
 
-    $usersStmt = $pdo->query("SELECT id, name, email, role, is_active FROM doctors ORDER BY name ASC");
+    $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+    $usersStmt = $pdo->prepare("SELECT id, name, email, role, is_active FROM doctors WHERE tenant_id = ? OR tenant_id IS NULL ORDER BY name ASC");
+    $usersStmt->execute([$currentTenantId]);
     $allUsers = $usersStmt->fetchAll();
 
     $totalUsersCount = count($allUsers);

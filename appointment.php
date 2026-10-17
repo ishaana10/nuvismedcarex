@@ -77,10 +77,10 @@ try {
 }
 
 try {
-    $doctorsStmt = $pdo->query("SELECT * FROM doctors ORDER BY name ASC");
-    if ($doctorsStmt) {
-        $doctorsList = $doctorsStmt->fetchAll() ?: [];
-    }
+    $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+    $doctorsStmt = $pdo->prepare("SELECT * FROM doctors WHERE tenant_id = ? OR tenant_id IS NULL ORDER BY name ASC");
+    $doctorsStmt->execute([$tenantId]);
+    $doctorsList = $doctorsStmt->fetchAll() ?: [];
 } catch (\Throwable $e) {
     error_log("Calendar doctors query error: " . $e->getMessage());
 }
