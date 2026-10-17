@@ -312,7 +312,7 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
             </button>
         </div>
 
-        <form action="actions/upload_file.php" method="POST" enctype="multipart/form-data" class="p-6 space-y-4 text-xs">
+        <form id="doc-upload-form" action="actions/upload_file.php" method="POST" enctype="multipart/form-data" class="p-6 space-y-4 text-xs">
             <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
 
             <?php
@@ -425,9 +425,26 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
                 <input type="hidden" id="gdrive_access_token" name="gdrive_access_token">
             </div>
 
+            <!-- Interactive Upload Progress & Real-Time Console Indicator -->
+            <div id="doc-upload-progress-card" class="p-3.5 bg-slate-900 text-white rounded-2xl space-y-2 hidden">
+                <div class="flex items-center justify-between text-xs">
+                    <span id="doc-upload-status-text" class="font-bold flex items-center gap-1.5 text-amber-300">
+                        <span class="material-symbols-outlined text-base animate-spin">sync</span>
+                        <span>Uploading file...</span>
+                    </span>
+                    <span id="doc-upload-percentage" class="font-mono font-bold text-emerald-400">0%</span>
+                </div>
+                <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                    <div id="doc-upload-bar" class="h-full bg-emerald-500 rounded-full transition-all duration-200" style="width: 0%"></div>
+                </div>
+                <div id="doc-upload-console" class="font-mono text-[11px] text-slate-300 bg-slate-950 p-2 rounded-lg border border-slate-800 h-16 overflow-y-auto leading-relaxed">
+                    [System Console] Upload initiated...
+                </div>
+            </div>
+
             <div class="flex items-center justify-end gap-2 pt-3 border-t border-outline-variant/20">
                 <button type="button" onclick="closeModal('modal-upload-document')" class="px-4 py-2 bg-surface-container hover:bg-surface-container-high rounded-xl font-semibold text-on-surface">Cancel</button>
-                <button type="submit" class="px-5 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 shadow-xs flex items-center gap-1.5">
+                <button type="submit" id="btn-doc-submit" class="px-5 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 shadow-xs flex items-center gap-1.5">
                     <span class="material-symbols-outlined text-base">cloud_upload</span>
                     <span>Submit & Save Document</span>
                 </button>
@@ -610,6 +627,81 @@ function toggleUploadTab(provider) {
         btnGdrive.className = "p-3 rounded-xl border-2 border-amber-500 bg-amber-50/50 cursor-pointer flex flex-col items-center justify-center gap-1 text-center transition";
     }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadForm = document.getElementById('doc-upload-form');
+    if (!uploadForm) return;
+
+    uploadForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const progressCard = document.getElementById('doc-upload-progress-card');
+        const progressBar = document.getElementById('doc-upload-bar');
+        const progressPercentage = document.getElementById('doc-upload-percentage');
+        const statusText = document.getElementById('doc-upload-status-text');
+        const consoleBox = document.getElementById('doc-upload-console');
+        const submitBtn = document.getElementById('btn-doc-submit');
+
+        if (progressCard) progressCard.classList.remove('hidden');
+        if (submitBtn) submitBtn.disabled = true;
+
+        const formData = new FormData(uploadForm);
+        const provider = formData.get('storage_provider') || 'server';
+
+        let targetText = "Local Clinic Server Drive";
+        if (provider === 'googledrive') targetText = "Google Drive Tenant Folder";
+        else if (provider === 'onedrive') targetText = "Microsoft OneDrive";
+
+        let logLines = [];
+        logLines.push(`[${new Date().toLocaleTimeString()}] Target Storage Provider: ${targetText}`);
+        logLines.push(`[${new Date().toLocaleTimeString()}] Preparing file upload stream...`);
+        if (consoleBox) consoleBox.innerText = logLines.join('\n');
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', uploadForm.action, true);
+
+        xhr.upload.onprogress = function(evt) {
+            if (evt.lengthComputable) {
+                const percent = Math.round((evt.loaded / evt.total) * 100);
+                if (progressBar) progressBar.style.width = percent + '%';
+                if (progressPercentage) progressPercentage.innerText = percent + '%';
+
+                if (percent < 100) {
+                    if (statusText) statusText.innerHTML = `<span class="material-symbols-outlined text-base animate-spin">sync</span> Uploading to ${targetText}... (${percent}%)`;
+                } else {
+                    if (statusText) statusText.innerHTML = `<span class="material-symbols-outlined text-base animate-spin">cloud_sync</span> Processing file & syncing metadata...`;
+                    logLines.push(`[${new Date().toLocaleTimeString()}] 100% transferred. Registering document in database...`);
+                    if (consoleBox) consoleBox.innerText = logLines.join('\n');
+                }
+            }
+        };
+
+        xhr.onload = function() {
+            if (xhr.status >= 200 && xhr.status < 400) {
+                logLines.push(`[${new Date().toLocaleTimeString()}] ✔ Upload complete! Redirecting...`);
+                if (consoleBox) consoleBox.innerText = logLines.join('\n');
+                if (progressBar) progressBar.style.width = '100%';
+                if (progressPercentage) progressPercentage.innerText = '100%';
+                setTimeout(() => {
+                    window.location.reload();
+                }, 800);
+            } else {
+                logLines.push(`[${new Date().toLocaleTimeString()}] ❌ Upload failed with HTTP ${xhr.status}`);
+                if (consoleBox) consoleBox.innerText = logLines.join('\n');
+                if (statusText) statusText.innerHTML = `<span class="material-symbols-outlined text-base text-rose-400">error</span> Upload Error (${xhr.status})`;
+                if (submitBtn) submitBtn.disabled = false;
+            }
+        };
+
+        xhr.onerror = function() {
+            logLines.push(`[${new Date().toLocaleTimeString()}] ❌ Network error occurred during upload.`);
+            if (consoleBox) consoleBox.innerText = logLines.join('\n');
+            if (submitBtn) submitBtn.disabled = false;
+        };
+
+        xhr.send(formData);
+    });
+});
 </script>
 
 <?php include __DIR__ . '/includes/footer.php'; ?>

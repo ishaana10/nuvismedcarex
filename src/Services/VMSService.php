@@ -121,8 +121,9 @@ class VMSService
      */
     public function fiscalizeInvoice(string $invoiceId): array
     {
-        $stmt = $this->pdo->prepare("SELECT * FROM invoices WHERE id = ?");
-        $stmt->execute([$invoiceId]);
+        $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+        $stmt = $this->pdo->prepare("SELECT * FROM invoices WHERE id = ? AND (tenant_id = ? OR tenant_id IS NULL)");
+        $stmt->execute([$invoiceId, $tenantId]);
         $invoice = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$invoice) {
@@ -274,8 +275,9 @@ class VMSService
      */
     public function cancelInvoice(string $originalInvoiceId, string $cashierName = 'Admin'): string
     {
-        $stmt = $this->pdo->prepare("SELECT * FROM invoices WHERE id = ?");
-        $stmt->execute([$originalInvoiceId]);
+        $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+        $stmt = $this->pdo->prepare("SELECT * FROM invoices WHERE id = ? AND (tenant_id = ? OR tenant_id IS NULL)");
+        $stmt->execute([$originalInvoiceId, $tenantId]);
         $orig = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$orig) {
@@ -300,12 +302,12 @@ class VMSService
 
         $stmtIns = $this->pdo->prepare("
             INSERT INTO invoices (
-                id, invoice_number, patient_id, patient_name, patient_mrn, service_date, due_date,
+                id, tenant_id, invoice_number, patient_id, patient_name, patient_mrn, service_date, due_date,
                 amount, status, insurance_covered, patient_owed, services, invoice_type, transaction_type,
                 seller_tin, business_location, cashier, buyer_tin, buyer_cost_center, pos_number,
                 pos_time, ref_no, ref_time, payment_methods
             ) VALUES (
-                ?, ?, ?, ?, ?, ?, ?,
+                ?, ?, ?, ?, ?, ?, ?, ?,
                 ?, 'Cancelled', ?, ?, ?, ?, ?,
                 ?, ?, ?, ?, ?, ?,
                 ?, ?, ?, ?
@@ -314,6 +316,7 @@ class VMSService
 
         $stmtIns->execute([
             $newInvoiceId,
+            $orig['tenant_id'] ?? $tenantId,
             $newInvNumber,
             $orig['patient_id'],
             $orig['patient_name'],

@@ -84,9 +84,10 @@ try {
         ];
 
         // If line item is linked to an inventory item, automatically deduct stock & log stock movement
+        $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
         if (!empty($invItemId)) {
-            $stmtInvCheck = $pdo->prepare("SELECT id, current_stock, name FROM inventory WHERE id = ? FOR UPDATE");
-            $stmtInvCheck->execute([$invItemId]);
+            $stmtInvCheck = $pdo->prepare("SELECT id, current_stock, name FROM inventory WHERE id = ? AND tenant_id = ? FOR UPDATE");
+            $stmtInvCheck->execute([$invItemId, $tenantId]);
             $invRow = $stmtInvCheck->fetch();
 
             if ($invRow) {
@@ -147,15 +148,16 @@ try {
     $posNum = $settings['vms_pos_number'] ?? 'ASDF238/1.2';
     $cashierName = $_SESSION['user_name'] ?? 'Admin';
 
+    $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
     $stmtInv = $pdo->prepare("
         INSERT INTO invoices (
-            id, invoice_number, patient_id, patient_name, patient_mrn, service_date, due_date,
+            id, tenant_id, invoice_number, patient_id, patient_name, patient_mrn, service_date, due_date,
             amount, status, insurance_covered, patient_owed, services,
             invoice_type, transaction_type, seller_tin, business_location, cashier,
             buyer_tin, buyer_cost_center, pos_number, pos_time, ref_no, ref_time,
             total_tax, payment_methods
         ) VALUES (
-            ?, ?, ?, ?, ?, ?, ?,
+            ?, ?, ?, ?, ?, ?, ?, ?,
             ?, ?, 0.00, ?, ?,
             ?, ?, ?, ?, ?,
             ?, ?, ?, ?, ?, ?,
@@ -164,7 +166,7 @@ try {
     ");
 
     $stmtInv->execute([
-        $invoiceId, $invoiceNumber, $patientId, $patientName, $patientMrn, date('Y-m-d'), $dueDate,
+        $invoiceId, $tenantId, $invoiceNumber, $patientId, $patientName, $patientMrn, date('Y-m-d'), $dueDate,
         $totalAmount, $status, $patientOwed, $servicesJson,
         $invoiceType, $transactionType, $sellerTin, $businessLoc, $cashierName,
         $buyerTin, $buyerCostCenter, $posNum, date('Y-m-d H:i:s'), $refNo, $refTime,

@@ -267,6 +267,7 @@ $cloudSettings = $uploadService->getCloudSettings();
                 <p class="text-[11px] text-slate-500">Developers can modify categories and available test procedure templates in JSON format.</p>
             </div>
 
+
             <div class="flex justify-end pt-3 border-t border-outline-variant/20">
                 <button type="submit" class="px-6 py-2.5 bg-primary text-white text-xs font-semibold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-2">
                     <span class="material-symbols-outlined text-base">save</span>
@@ -296,6 +297,28 @@ $cloudSettings = $uploadService->getCloudSettings();
                         <?php endforeach; ?>
                     </select>
                     <p class="text-[11px] text-outline mt-1">Configures default record limit across Patients, Inventory, Billing, and User Directory tables.</p>
+                </div>
+            </div>
+
+            <!-- Google Drive Diagnostic Connection Console Card -->
+            <div class="p-4 rounded-xl bg-surface-container-low border border-outline-variant/30 space-y-3">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                        <h4 class="font-bold text-on-surface text-xs flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-base text-amber-600">published_with_changes</span>
+                            <span>Google Drive API Connection & Diagnostic Log Output</span>
+                        </h4>
+                        <p class="text-[11px] text-slate-500 mt-0.5">Test OAuth / API Key reachability and record real-time connection diagnostic logs.</p>
+                    </div>
+
+                    <button type="button" onclick="testGoogleDriveConnection()" class="px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs rounded-xl transition shadow-xs flex items-center gap-1.5 shrink-0">
+                        <span class="material-symbols-outlined text-sm">network_check</span>
+                        <span>Test Google Drive API Connection</span>
+                    </button>
+                </div>
+
+                <div id="gdrive-test-console" class="font-mono text-xs bg-slate-950 text-amber-300 p-4 rounded-xl border border-slate-800 min-h-[80px] max-h-48 overflow-y-auto leading-relaxed space-y-1 shadow-inner hidden">
+                    <p class="text-slate-400 italic">Click button above to execute Google Drive API connection diagnostic test...</p>
                 </div>
             </div>
 
@@ -1076,6 +1099,36 @@ function flushRedisCache() {
     .then(d => {
         alert(d.message || 'Cache flushed.');
         fetchRedisDiagnostics();
+    });
+}
+
+function testGoogleDriveConnection() {
+    const consoleBox = document.getElementById('gdrive-test-console');
+    if (consoleBox) {
+        consoleBox.classList.remove('hidden');
+        consoleBox.innerHTML = '<p class="text-amber-300 animate-pulse">Connecting to Google Drive API... Please wait...</p>';
+    }
+
+    fetch('actions/cloud_storage_settings.php?action=test_gdrive_connection')
+    .then(r => r.json())
+    .then(d => {
+        if (consoleBox) {
+            let logHtml = '';
+            if (d.logs && d.logs.length > 0) {
+                logHtml = d.logs.map(l => `<div class="p-0.5 border-b border-slate-900">${escapeHtml(l)}</div>`).join('');
+            }
+            if (d.success) {
+                logHtml += `<div class="p-1 text-emerald-400 font-bold mt-1">✔ ${escapeHtml(d.message)}</div>`;
+            } else {
+                logHtml += `<div class="p-1 text-rose-400 font-bold mt-1">❌ ${escapeHtml(d.error || 'Test Failed')}</div>`;
+            }
+            consoleBox.innerHTML = logHtml;
+        }
+    })
+    .catch(err => {
+        if (consoleBox) {
+            consoleBox.innerHTML = `<p class="text-rose-400 font-bold">❌ Connection Error: ${escapeHtml(String(err))}</p>`;
+        }
     });
 }
 
