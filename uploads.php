@@ -545,14 +545,29 @@ function onPickerApiLoad() {
     pickerApiLoaded = true;
 }
 
+function logToUploadConsole(msg) {
+    const card = document.getElementById('doc-upload-progress-card');
+    const consoleBox = document.getElementById('doc-upload-console');
+    if (card) card.classList.remove('hidden');
+    if (consoleBox) {
+        const time = new Date().toLocaleTimeString();
+        consoleBox.innerText += (consoleBox.innerText ? '\n' : '') + `[${time}] ${msg}`;
+        consoleBox.scrollTop = consoleBox.scrollHeight;
+    }
+}
+
 function loadGsiSdk(callback) {
+    logToUploadConsole("Checking Google Identity Services SDK (accounts.google.com/gsi/client)...");
+
     if (typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) {
+        logToUploadConsole("✔ Google Identity Services SDK active in window.google");
         callback();
         return;
     }
 
     const existing = document.getElementById('gsi-client-script');
     if (existing && existing.dataset.loaded === 'true') {
+        logToUploadConsole("✔ Script tag already loaded");
         callback();
         return;
     }
@@ -563,6 +578,7 @@ function loadGsiSdk(callback) {
 
     const handleLoad = () => {
         script.dataset.loaded = 'true';
+        logToUploadConsole("✔ SDK script load event received successfully");
         callback();
     };
 
@@ -573,25 +589,31 @@ function loadGsiSdk(callback) {
             statusLabel.innerText = 'Error: Failed to fetch accounts.google.com/gsi/client (Check network/AdBlocker)';
             statusLabel.className = 'font-bold text-red-600';
         }
-        alert('Failed to load Google Identity Services SDK from accounts.google.com.');
+        logToUploadConsole("❌ Error: Browser blocked accounts.google.com/gsi/client (Check AdBlocker/Brave/uBlock)");
+        alert('Failed to load Google Identity Services SDK from accounts.google.com. Please allow accounts.google.com in your ad blocker or privacy extension.');
     });
 
     if (!existing) {
+        logToUploadConsole("Injecting <script src='https://accounts.google.com/gsi/client'> into DOM...");
         document.head.appendChild(script);
     } else {
+        logToUploadConsole("Polling window.google.accounts.oauth2 state...");
         let attempts = 0;
         const interval = setInterval(() => {
             attempts++;
             if (typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) {
                 clearInterval(interval);
+                logToUploadConsole(`✔ window.google.accounts.oauth2 initialized after ${attempts * 100}ms`);
                 handleLoad();
             } else if (attempts > 30) {
                 clearInterval(interval);
                 const statusLabel = document.getElementById('gdrive-status-label');
                 if (statusLabel) {
-                    statusLabel.innerText = 'Error: Google SDK timeout. Please try clicking Authorize again.';
+                    statusLabel.innerText = 'Error: Google SDK timeout. Check browser ad blocker or network.';
                     statusLabel.className = 'font-bold text-red-600';
                 }
+                logToUploadConsole("❌ Timeout (3000ms): accounts.google.com script failed to expose window.google.accounts.oauth2");
+                logToUploadConsole("Tip: If using Brave Browser, uBlock Origin, or AdBlock Plus, allow accounts.google.com or use local server upload.");
             }
         }, 100);
     }
@@ -600,15 +622,21 @@ function loadGsiSdk(callback) {
 function authorizeGoogleDriveToken() {
     const statusLabel = document.getElementById('gdrive-status-label');
 
+    logToUploadConsole("--- Initializing Google OAuth Authorization ---");
+
     if (!gdriveClientId) {
+        const msg = "Error: Google Drive Client ID missing. Configure in Cloud API Setup.";
         if (statusLabel) {
-            statusLabel.innerText = 'Error: Google Drive Client ID missing. Configure in Cloud API Setup.';
+            statusLabel.innerText = msg;
             statusLabel.className = 'font-bold text-red-600';
         }
+        logToUploadConsole("❌ " + msg);
         alert('Google Drive Client ID is not configured. Please enter your OAuth Client ID in Cloud API Setup.');
         openModal('modal-cloud-settings');
         return;
     }
+
+    logToUploadConsole("Client ID: " + gdriveClientId.substring(0, 20) + "...");
 
     if (statusLabel) {
         statusLabel.innerText = 'Loading Google Identity SDK...';
@@ -617,10 +645,12 @@ function authorizeGoogleDriveToken() {
 
     loadGsiSdk(() => {
         if (typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) {
+            const msg = "Error: Google Identity SDK not initialized in window.google";
             if (statusLabel) {
-                statusLabel.innerText = 'Error: Google Identity SDK not initialized';
+                statusLabel.innerText = msg;
                 statusLabel.className = 'font-bold text-red-600';
             }
+            logToUploadConsole("❌ " + msg);
             alert('Google Identity Services SDK could not be initialized.');
             return;
         }
@@ -630,6 +660,8 @@ function authorizeGoogleDriveToken() {
                 statusLabel.innerText = 'Opening Google Login Popup... (Allow popups in browser address bar)';
                 statusLabel.className = 'font-bold text-amber-700 animate-pulse';
             }
+
+            logToUploadConsole("Initializing google.accounts.oauth2.initTokenClient...");
 
             const tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: gdriveClientId,
@@ -641,6 +673,7 @@ function authorizeGoogleDriveToken() {
                         statusLabel.innerText = 'OAuth Popup Error: ' + errText;
                         statusLabel.className = 'font-bold text-red-600';
                     }
+                    logToUploadConsole("❌ OAuth Popup Error: " + errText);
                     alert('Google Authorization Error: ' + errText);
                 },
                 callback: (response) => {
@@ -651,6 +684,7 @@ function authorizeGoogleDriveToken() {
                             statusLabel.innerText = 'OAuth Auth Error: ' + response.error + desc;
                             statusLabel.className = 'font-bold text-red-600';
                         }
+                        logToUploadConsole("❌ OAuth Response Error: " + response.error + desc);
                         alert('Google Authentication Error: ' + response.error + desc + '\n\nTip: Verify that ' + window.location.origin + ' is added as an Authorized JavaScript Origin in Google Cloud Console.');
                         return;
                     }
@@ -663,15 +697,18 @@ function authorizeGoogleDriveToken() {
                         statusLabel.innerText = '✔ Authenticated & Connected to Google Drive API!';
                         statusLabel.className = 'font-bold text-emerald-700';
                     }
+                    logToUploadConsole("✔ OAuth Access Token retrieved successfully! Direct Google Drive API upload ready.");
                 },
             });
 
+            logToUploadConsole("Requesting Access Token via tokenClient.requestAccessToken()...");
             tokenClient.requestAccessToken({ prompt: 'consent' });
 
             setTimeout(() => {
                 if (!oauthToken && statusLabel && statusLabel.innerText.includes('Opening Google Login Popup')) {
                     statusLabel.innerText = 'Waiting for login completion... (If no popup appears, check browser popup blocker)';
                     statusLabel.className = 'font-bold text-amber-700';
+                    logToUploadConsole("ℹ️ Popup prompt dispatched. If no window appeared, check address bar popup blocker.");
                 }
             }, 2500);
 
@@ -681,6 +718,7 @@ function authorizeGoogleDriveToken() {
                 statusLabel.innerText = 'Exception: ' + e.message;
                 statusLabel.className = 'font-bold text-red-600';
             }
+            logToUploadConsole("❌ OAuth Exception: " + e.message);
             alert('Google OAuth Exception: ' + e.message);
         }
     });
