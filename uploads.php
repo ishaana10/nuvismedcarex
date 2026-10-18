@@ -399,18 +399,28 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
 
             <!-- Section 3: Google Drive Dedicated Tenant Folder Allocation -->
             <div id="tab-section-googledrive" class="space-y-3 <?= $activeProvider === 'googledrive' ? '' : 'hidden' ?>">
-                <div class="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-[11px] text-amber-900 flex items-center justify-between gap-2">
+                <div class="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-[11px] text-amber-900 flex flex-wrap items-center justify-between gap-2">
                     <div>
-                        <strong class="font-bold block">Google Drive Dedicated Folder Allocation:</strong>
-                        <span>Files will be uploaded and stored directly under Google Drive folder for tenant <code class="font-mono font-bold"><?= htmlspecialchars(\ClinicFlow\Shared\TenantContext::getTenantId()) ?></code>.</span>
+                        <strong class="font-bold block text-xs">Google Drive Dedicated Storage Allocation:</strong>
+                        <span>Uploads use tenant Google Drive folder allocation (<code class="font-mono font-bold"><?= htmlspecialchars(\ClinicFlow\Shared\TenantContext::getTenantId()) ?></code>).</span>
+                        <div id="gdrive-auth-status" class="mt-1 flex items-center gap-1.5 font-medium text-[11px] text-amber-900">
+                            <span class="inline-block w-2 h-2 rounded-full bg-amber-500"></span>
+                            <span>Google Drive OAuth Status: <span id="gdrive-status-label" class="font-bold">Not Authenticated (Click Authorize for Direct API Upload)</span></span>
+                        </div>
                     </div>
-                    <button type="button" id="btn-gdrive-picker" onclick="launchGoogleDrivePicker()" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs shrink-0 flex items-center gap-1 transition">
-                        <span class="material-symbols-outlined text-base">add_to_drive</span>
-                        <span>Pick From Google Drive</span>
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="authorizeGoogleDriveToken()" class="px-3 py-1.5 bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs rounded-xl shadow-xs shrink-0 flex items-center gap-1 transition">
+                            <span class="material-symbols-outlined text-base">key</span>
+                            <span>Authorize Google Account</span>
+                        </button>
+                        <button type="button" id="btn-gdrive-picker" onclick="launchGoogleDrivePicker()" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs shrink-0 flex items-center gap-1 transition">
+                            <span class="material-symbols-outlined text-base">add_to_drive</span>
+                            <span>Pick From Google Drive</span>
+                        </button>
+                    </div>
                 </div>
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Choose Local File to Upload to Google Drive Tenant Folder</label>
+                    <label class="block font-bold text-slate-700 mb-1">Choose File to Upload to Google Drive</label>
                     <input type="file" name="file" class="w-full text-xs text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-amber-700 file:text-white hover:file:bg-amber-800">
                 </div>
                 <div>
@@ -533,6 +543,41 @@ let oauthToken = null;
 
 function onPickerApiLoad() {
     pickerApiLoaded = true;
+}
+
+function authorizeGoogleDriveToken() {
+    if (!gdriveClientId) {
+        alert('Google Drive Client ID is not configured. Please enter your OAuth Client ID in Cloud API Setup.');
+        openModal('modal-cloud-settings');
+        return;
+    }
+
+    if (typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) {
+        alert('Google Identity Services SDK is loading... Please wait a moment and try again.');
+        return;
+    }
+
+    const tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: gdriveClientId,
+        scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
+        callback: (response) => {
+            if (response.error !== undefined) {
+                alert('Google Authentication Error: ' + response.error);
+                return;
+            }
+            oauthToken = response.access_token;
+            const tokenInput = document.getElementById('gdrive_access_token');
+            if (tokenInput) {
+                tokenInput.value = oauthToken;
+            }
+            const statusLabel = document.getElementById('gdrive-status-label');
+            if (statusLabel) {
+                statusLabel.innerText = 'Authenticated & Ready for Direct Google Drive API Upload!';
+                statusLabel.className = 'font-bold text-emerald-700';
+            }
+        },
+    });
+    tokenClient.requestAccessToken({ prompt: 'consent' });
 }
 
 function launchGoogleDrivePicker() {

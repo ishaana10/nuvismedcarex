@@ -264,7 +264,8 @@ class FileUploadService
         if (!empty($accessToken)) {
             try {
                 $metadata = ['name' => $originalName];
-                if (!empty($folderId)) {
+                // Only include parent folder ID if it matches Google Drive alphanumeric ID syntax
+                if (!empty($folderId) && preg_match('/^[a-zA-Z0-9_\-]+$/', $folderId) && strlen($folderId) >= 15) {
                     $metadata['parents'] = [$folderId];
                 }
 
@@ -303,9 +304,11 @@ class FileUploadService
                         $externalId = $json['id'];
                         $externalUrl = $json['webViewLink'] ?? ('https://drive.google.com/file/d/' . $externalId . '/view');
                     }
+                } else {
+                    error_log("[FileUploadService] Google Drive API upload returned HTTP $httpCode: " . ($response ?: 'No response'));
                 }
             } catch (\Throwable $e) {
-                // Fallback to storing with Google Drive provider metadata
+                error_log("[FileUploadService] Google Drive API exception: " . $e->getMessage());
             }
         }
 
