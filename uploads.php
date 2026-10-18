@@ -546,38 +546,93 @@ function onPickerApiLoad() {
 }
 
 function authorizeGoogleDriveToken() {
+    const statusLabel = document.getElementById('gdrive-status-label');
+
     if (!gdriveClientId) {
+        if (statusLabel) {
+            statusLabel.innerText = 'Error: Google Drive Client ID missing. Configure in Cloud API Setup.';
+            statusLabel.className = 'font-bold text-red-600';
+        }
         alert('Google Drive Client ID is not configured. Please enter your OAuth Client ID in Cloud API Setup.');
         openModal('modal-cloud-settings');
         return;
     }
 
+    if (!gdriveClientId.includes('.apps.googleusercontent.com')) {
+        console.warn('[GDrive OAuth] Client ID may be truncated or incomplete:', gdriveClientId);
+        if (statusLabel) {
+            statusLabel.innerText = 'Warning: Client ID should end with .apps.googleusercontent.com';
+            statusLabel.className = 'font-bold text-amber-600';
+        }
+    }
+
     if (typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) {
-        alert('Google Identity Services SDK is loading... Please wait a moment and try again.');
+        if (statusLabel) {
+            statusLabel.innerText = 'Error: Google Identity SDK not loaded (check ad blocker or network)';
+            statusLabel.className = 'font-bold text-red-600';
+        }
+        alert('Google Identity Services SDK is not loaded. If an AdBlocker or strict privacy extension is active, please allow accounts.google.com and refresh.');
         return;
     }
 
-    const tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: gdriveClientId,
-        scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
-        callback: (response) => {
-            if (response.error !== undefined) {
-                alert('Google Authentication Error: ' + response.error);
-                return;
+    try {
+        if (statusLabel) {
+            statusLabel.innerText = 'Opening Google Login Popup... (Allow popups in browser address bar)';
+            statusLabel.className = 'font-bold text-amber-700 animate-pulse';
+        }
+
+        const tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: gdriveClientId,
+            scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
+            error_callback: (err) => {
+                console.error('[GDrive OAuth Error]', err);
+                const errText = err.message || err.type || 'Popup closed or permission denied';
+                if (statusLabel) {
+                    statusLabel.innerText = 'OAuth Popup Error: ' + errText;
+                    statusLabel.className = 'font-bold text-red-600';
+                }
+                alert('Google Authorization Error: ' + errText);
+            },
+            callback: (response) => {
+                if (response.error !== undefined) {
+                    console.error('[GDrive Auth Response Error]', response);
+                    const desc = response.error_description ? ` (${response.error_description})` : '';
+                    if (statusLabel) {
+                        statusLabel.innerText = 'OAuth Auth Error: ' + response.error + desc;
+                        statusLabel.className = 'font-bold text-red-600';
+                    }
+                    alert('Google Authentication Error: ' + response.error + desc + '\n\nTip: Verify that ' + window.location.origin + ' is added as an Authorized JavaScript Origin in Google Cloud Console.');
+                    return;
+                }
+                oauthToken = response.access_token;
+                const tokenInput = document.getElementById('gdrive_access_token');
+                if (tokenInput) {
+                    tokenInput.value = oauthToken;
+                }
+                if (statusLabel) {
+                    statusLabel.innerText = '✔ Authenticated & Connected to Google Drive API!';
+                    statusLabel.className = 'font-bold text-emerald-700';
+                }
+            },
+        });
+
+        tokenClient.requestAccessToken({ prompt: 'consent' });
+
+        setTimeout(() => {
+            if (!oauthToken && statusLabel && statusLabel.innerText.includes('Opening Google Login Popup')) {
+                statusLabel.innerText = 'Waiting for login completion... (If no popup appears, check browser popup blocker)';
+                statusLabel.className = 'font-bold text-amber-700';
             }
-            oauthToken = response.access_token;
-            const tokenInput = document.getElementById('gdrive_access_token');
-            if (tokenInput) {
-                tokenInput.value = oauthToken;
-            }
-            const statusLabel = document.getElementById('gdrive-status-label');
-            if (statusLabel) {
-                statusLabel.innerText = 'Authenticated & Ready for Direct Google Drive API Upload!';
-                statusLabel.className = 'font-bold text-emerald-700';
-            }
-        },
-    });
-    tokenClient.requestAccessToken({ prompt: 'consent' });
+        }, 2500);
+
+    } catch (e) {
+        console.error('[GDrive Auth Exception]', e);
+        if (statusLabel) {
+            statusLabel.innerText = 'Exception: ' + e.message;
+            statusLabel.className = 'font-bold text-red-600';
+        }
+        alert('Google OAuth Exception: ' + e.message);
+    }
 }
 
 function launchGoogleDrivePicker() {
