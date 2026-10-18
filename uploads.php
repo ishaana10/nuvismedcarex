@@ -557,66 +557,70 @@ function logToUploadConsole(msg) {
 }
 
 function loadGsiSdk(callback) {
-    logToUploadConsole("Checking Google Identity Services SDK (accounts.google.com/gsi/client)...");
+    logToUploadConsole("Checking Google Identity Services SDK...");
 
     if (typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) {
-        logToUploadConsole("✔ Google Identity Services SDK active in window.google");
+        logToUploadConsole("✔ Google Identity Services SDK (google.accounts.oauth2) active.");
         callback();
         return;
     }
 
-    const existing = document.getElementById('gsi-client-script');
-    if (existing && existing.dataset.loaded === 'true') {
-        logToUploadConsole("✔ Script tag already loaded");
-        callback();
-        return;
+    const oldScript = document.getElementById('gsi-client-script');
+    if (oldScript && (!window.google || !window.google.accounts || !window.google.accounts.oauth2)) {
+        logToUploadConsole("Re-injecting Google Identity SDK script tag...");
+        oldScript.remove();
     }
 
-    const script = existing || document.createElement('script');
+    const script = document.createElement('script');
     script.id = 'gsi-client-script';
     script.src = 'https://accounts.google.com/gsi/client';
 
-    const handleLoad = () => {
-        script.dataset.loaded = 'true';
-        logToUploadConsole("✔ SDK script load event received successfully");
-        callback();
+    let callbackFired = false;
+    const triggerCallback = () => {
+        if (!callbackFired) {
+            callbackFired = true;
+            callback();
+        }
     };
 
-    script.addEventListener('load', handleLoad);
-    script.addEventListener('error', () => {
+    script.onload = () => {
+        logToUploadConsole("✔ Script tag load event fired.");
+        if (typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) {
+            triggerCallback();
+        }
+    };
+
+    script.onerror = () => {
+        logToUploadConsole("❌ Error: Browser blocked script from accounts.google.com (AdBlocker/CSP)");
         const statusLabel = document.getElementById('gdrive-status-label');
         if (statusLabel) {
-            statusLabel.innerText = 'Error: Failed to fetch accounts.google.com/gsi/client (Check network/AdBlocker)';
+            statusLabel.innerText = 'Error: accounts.google.com blocked by browser extension/adblocker';
             statusLabel.className = 'font-bold text-red-600';
         }
-        logToUploadConsole("❌ Error: Browser blocked accounts.google.com/gsi/client (Check AdBlocker/Brave/uBlock)");
-        alert('Failed to load Google Identity Services SDK from accounts.google.com. Please allow accounts.google.com in your ad blocker or privacy extension.');
-    });
+    };
 
-    if (!existing) {
-        logToUploadConsole("Injecting <script src='https://accounts.google.com/gsi/client'> into DOM...");
-        document.head.appendChild(script);
-    } else {
-        logToUploadConsole("Polling window.google.accounts.oauth2 state...");
-        let attempts = 0;
-        const interval = setInterval(() => {
-            attempts++;
-            if (typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) {
-                clearInterval(interval);
-                logToUploadConsole(`✔ window.google.accounts.oauth2 initialized after ${attempts * 100}ms`);
-                handleLoad();
-            } else if (attempts > 30) {
-                clearInterval(interval);
-                const statusLabel = document.getElementById('gdrive-status-label');
-                if (statusLabel) {
-                    statusLabel.innerText = 'Error: Google SDK timeout. Check browser ad blocker or network.';
-                    statusLabel.className = 'font-bold text-red-600';
-                }
-                logToUploadConsole("❌ Timeout (3000ms): accounts.google.com script failed to expose window.google.accounts.oauth2");
-                logToUploadConsole("Tip: If using Brave Browser, uBlock Origin, or AdBlock Plus, allow accounts.google.com or use local server upload.");
+    logToUploadConsole("Injecting script: https://accounts.google.com/gsi/client");
+    document.head.appendChild(script);
+
+    let attempts = 0;
+    const interval = setInterval(() => {
+        attempts++;
+        if (typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) {
+            clearInterval(interval);
+            logToUploadConsole(`✔ window.google.accounts.oauth2 ready (${attempts * 100}ms)`);
+            triggerCallback();
+        } else if (attempts > 80) {
+            clearInterval(interval);
+            logToUploadConsole("❌ Timeout (8000ms): Could not initialize google.accounts.oauth2.");
+            logToUploadConsole("Cause: Browser ad blocker (e.g. Brave Shields, uBlock, AdBlock) or network blocked accounts.google.com");
+            logToUploadConsole("Alternative: You can paste a Google Drive file link below into 'Google Drive Document Link / URL' to link documents without browser SDK!");
+            const statusLabel = document.getElementById('gdrive-status-label');
+            if (statusLabel) {
+                statusLabel.innerText = 'Error: accounts.google.com blocked by adblocker. Paste Google Drive link below or disable adblocker.';
+                statusLabel.className = 'font-bold text-red-600';
             }
-        }, 100);
-    }
+        }
+    }, 100);
 }
 
 function authorizeGoogleDriveToken() {
