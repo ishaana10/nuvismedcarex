@@ -550,29 +550,50 @@ function loadGsiSdk(callback) {
         callback();
         return;
     }
+
     const existing = document.getElementById('gsi-client-script');
-    if (existing) {
-        existing.onload = callback;
-        // If already loaded or error
-        if (typeof google !== 'undefined' && google.accounts) {
-            callback();
-            return;
-        }
+    if (existing && existing.dataset.loaded === 'true') {
+        callback();
+        return;
     }
+
     const script = existing || document.createElement('script');
     script.id = 'gsi-client-script';
     script.src = 'https://accounts.google.com/gsi/client';
-    script.onload = callback;
-    script.onerror = () => {
+
+    const handleLoad = () => {
+        script.dataset.loaded = 'true';
+        callback();
+    };
+
+    script.addEventListener('load', handleLoad);
+    script.addEventListener('error', () => {
         const statusLabel = document.getElementById('gdrive-status-label');
         if (statusLabel) {
             statusLabel.innerText = 'Error: Failed to fetch accounts.google.com/gsi/client (Check network/AdBlocker)';
             statusLabel.className = 'font-bold text-red-600';
         }
-        alert('Failed to load Google Identity Services SDK from accounts.google.com. Please disable active ad blockers or privacy extensions for this domain.');
-    };
+        alert('Failed to load Google Identity Services SDK from accounts.google.com.');
+    });
+
     if (!existing) {
         document.head.appendChild(script);
+    } else {
+        let attempts = 0;
+        const interval = setInterval(() => {
+            attempts++;
+            if (typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) {
+                clearInterval(interval);
+                handleLoad();
+            } else if (attempts > 30) {
+                clearInterval(interval);
+                const statusLabel = document.getElementById('gdrive-status-label');
+                if (statusLabel) {
+                    statusLabel.innerText = 'Error: Google SDK timeout. Please try clicking Authorize again.';
+                    statusLabel.className = 'font-bold text-red-600';
+                }
+            }
+        }, 100);
     }
 }
 
