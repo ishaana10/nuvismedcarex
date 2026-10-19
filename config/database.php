@@ -445,6 +445,21 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );");
     } catch (Throwable $e) {}
+
+    // Auto-create email_logs if missing
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS email_logs (
+            id VARCHAR(64) PRIMARY KEY,
+            tenant_id VARCHAR(64) NOT NULL DEFAULT 'default-clinic',
+            recipient VARCHAR(255) NOT NULL,
+            subject VARCHAR(255) NOT NULL,
+            document_type VARCHAR(64) DEFAULT 'general',
+            document_id VARCHAR(64) NULL,
+            status VARCHAR(32) NOT NULL DEFAULT 'Pending',
+            error_message TEXT NULL,
+            sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );");
+    } catch (Throwable $e) {}
 }
 
 /**
