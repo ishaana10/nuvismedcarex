@@ -3,6 +3,9 @@ AddType application/javascript .js .mjs
 AddType text/css .css
 AddDefaultCharset UTF-8
 
+RedirectMatch 404 /\.git
+RedirectMatch 404 /\.env
+
 <IfModule mod_rewrite.c>
     RewriteEngine On
     # If assets are requested directly and exist in /assets or /dist/assets, serve directly

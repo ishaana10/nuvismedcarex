@@ -505,17 +505,29 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
                     <span class="material-symbols-outlined text-base text-amber-700">add_to_drive</span>
                     <span>Google Drive API Credentials</span>
                 </h4>
-                <div>
-                    <label class="block font-semibold text-slate-700 mb-0.5">Google Cloud Client ID</label>
-                    <input type="text" name="cloud_googledrive_client_id" value="<?= htmlspecialchars($cloudSettings['cloud_googledrive_client_id'] ?? '') ?>" placeholder="e.g. xxxxx.apps.googleusercontent.com" class="w-full bg-white px-3 py-1.5 rounded-lg border border-amber-300 font-mono text-xs">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-0.5">Google Cloud Client ID</label>
+                        <input type="text" name="cloud_googledrive_client_id" value="<?= htmlspecialchars($cloudSettings['cloud_googledrive_client_id'] ?? '') ?>" placeholder="e.g. xxxxx.apps.googleusercontent.com" class="w-full bg-white px-3 py-1.5 rounded-lg border border-amber-300 font-mono text-xs">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-0.5">Google OAuth Client Secret</label>
+                        <input type="password" name="cloud_googledrive_client_secret" value="<?= htmlspecialchars($cloudSettings['cloud_googledrive_client_secret'] ?? '') ?>" placeholder="Client Secret Key" class="w-full bg-white px-3 py-1.5 rounded-lg border border-amber-300 font-mono text-xs">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-0.5">OAuth Refresh Token (Server Auto-Upload)</label>
+                        <input type="password" name="cloud_googledrive_refresh_token" value="<?= htmlspecialchars($cloudSettings['cloud_googledrive_refresh_token'] ?? '') ?>" placeholder="Refresh Token for offline server uploads" class="w-full bg-white px-3 py-1.5 rounded-lg border border-amber-300 font-mono text-xs">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-0.5">Shared Target Folder ID (Optional)</label>
+                        <input type="text" name="cloud_googledrive_folder_id" value="<?= htmlspecialchars($cloudSettings['cloud_googledrive_folder_id'] ?? '') ?>" placeholder="Target Google Drive Folder ID" class="w-full bg-white px-3 py-1.5 rounded-lg border border-amber-300 font-mono text-xs">
+                    </div>
                 </div>
                 <div>
-                    <label class="block font-semibold text-slate-700 mb-0.5">Google API Key / Service Account Key</label>
-                    <input type="password" name="cloud_googledrive_api_key" value="<?= htmlspecialchars($cloudSettings['cloud_googledrive_api_key'] ?? '') ?>" placeholder="API Key" class="w-full bg-white px-3 py-1.5 rounded-lg border border-amber-300 font-mono text-xs">
-                </div>
-                <div>
-                    <label class="block font-semibold text-slate-700 mb-0.5">Shared Folder ID (Optional)</label>
-                    <input type="text" name="cloud_googledrive_folder_id" value="<?= htmlspecialchars($cloudSettings['cloud_googledrive_folder_id'] ?? '') ?>" placeholder="Target Google Drive Folder ID" class="w-full bg-white px-3 py-1.5 rounded-lg border border-amber-300 font-mono text-xs">
+                    <label class="block font-semibold text-slate-700 mb-0.5">Google Service Account JSON / API Key</label>
+                    <textarea name="cloud_googledrive_service_account_json" rows="2" placeholder='{"type": "service_account", "private_key": "..."}' class="w-full bg-white p-2 rounded-lg border border-amber-300 font-mono text-[11px] text-slate-800"><?= htmlspecialchars($cloudSettings['cloud_googledrive_service_account_json'] ?? $cloudSettings['cloud_googledrive_api_key'] ?? '') ?></textarea>
                 </div>
             </div>
 

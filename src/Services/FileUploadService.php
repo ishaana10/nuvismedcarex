@@ -112,6 +112,9 @@ class FileUploadService
             'cloud_onedrive_client_secret' => '',
             'cloud_onedrive_tenant_id' => '',
             'cloud_googledrive_client_id' => '',
+            'cloud_googledrive_client_secret' => '',
+            'cloud_googledrive_refresh_token' => '',
+            'cloud_googledrive_service_account_json' => '',
             'cloud_googledrive_api_key' => '',
             'cloud_googledrive_folder_id' => '',
         ];
@@ -142,6 +145,9 @@ class FileUploadService
             'cloud_onedrive_client_secret',
             'cloud_onedrive_tenant_id',
             'cloud_googledrive_client_id',
+            'cloud_googledrive_client_secret',
+            'cloud_googledrive_refresh_token',
+            'cloud_googledrive_service_account_json',
             'cloud_googledrive_api_key',
             'cloud_googledrive_folder_id',
         ];
@@ -234,6 +240,85 @@ class FileUploadService
     }
 
     /**
+     * Resolve valid Google Drive API Access Token via OAuth Refresh Token or Service Account JSON
+     */
+    public function getGoogleDriveAccessToken(array $config): string
+    {
+        // 1. OAuth2 Refresh Token Flow
+        if (!empty($config['cloud_googledrive_refresh_token']) && !empty($config['cloud_googledrive_client_id']) && !empty($config['cloud_googledrive_client_secret'])) {
+            $ch = curl_init('https://oauth2.googleapis.com/token');
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_TIMEOUT => 15,
+                CURLOPT_POSTFIELDS => http_build_query([
+                    'client_id' => trim($config['cloud_googledrive_client_id']),
+                    'client_secret' => trim($config['cloud_googledrive_client_secret']),
+                    'refresh_token' => trim($config['cloud_googledrive_refresh_token']),
+                    'grant_type' => 'refresh_token'
+                ])
+            ]);
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlErr = curl_error($ch);
+            curl_close($ch);
+
+            if (!$curlErr && $httpCode === 200 && $response) {
+                $data = json_decode($response, true);
+                if (!empty($data['access_token'])) {
+                    return $data['access_token'];
+                }
+            }
+        }
+
+        // 2. Service Account JSON Flow
+        $saRaw = !empty($config['cloud_googledrive_service_account_json']) ? $config['cloud_googledrive_service_account_json'] : ($config['cloud_googledrive_api_key'] ?? '');
+        if (!empty($saRaw) && str_contains($saRaw, '{') && str_contains($saRaw, '}')) {
+            $sa = is_string($saRaw) ? @json_decode($saRaw, true) : $saRaw;
+            if (!empty($sa['client_email']) && !empty($sa['private_key'])) {
+                $privateKey = str_replace('\\n', "\n", $sa['private_key']);
+                $now = time();
+                $header = rtrim(strtr(base64_encode(json_encode(['alg' => 'RS256', 'typ' => 'JWT'])), '+/', '-_'), '=');
+                $claim = rtrim(strtr(base64_encode(json_encode([
+                    'iss' => $sa['client_email'],
+                    'scope' => 'https://www.googleapis.com/auth/drive',
+                    'aud' => 'https://oauth2.googleapis.com/token',
+                    'exp' => $now + 3600,
+                    'iat' => $now
+                ])), '+/', '-_'), '=');
+
+                $sigInput = "$header.$claim";
+                $sig = '';
+                if (function_exists('openssl_sign') && @openssl_sign($sigInput, $sig, $privateKey, OPENSSL_ALGO_SHA256)) {
+                    $jwt = "$sigInput." . rtrim(strtr(base64_encode($sig), '+/', '-_'), '=');
+                    $ch = curl_init('https://oauth2.googleapis.com/token');
+                    curl_setopt_array($ch, [
+                        CURLOPT_RETURNTRANSFER => true,
+                        CURLOPT_POST => true,
+                        CURLOPT_TIMEOUT => 15,
+                        CURLOPT_POSTFIELDS => http_build_query([
+                            'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+                            'assertion' => $jwt
+                        ])
+                    ]);
+                    $response = curl_exec($ch);
+                    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                    curl_close($ch);
+
+                    if ($httpCode === 200 && $response) {
+                        $data = json_decode($response, true);
+                        if (!empty($data['access_token'])) {
+                            return $data['access_token'];
+                        }
+                    }
+                }
+            }
+        }
+
+        return '';
+    }
+
+    /**
      * Upload binary file to Google Drive via API or tenant Google Drive allocation
      */
     public function uploadToGoogleDrive(array $fileArray, ?string $patientId = null, string $category = 'General', ?string $uploadedBy = null, ?string $accessToken = null): array
@@ -257,10 +342,15 @@ class FileUploadService
         $cloudSettings = $this->getCloudSettings();
         $folderId = $cloudSettings['cloud_googledrive_folder_id'] ?? '';
 
+        // If client-side token omitted, attempt server-side token resolution via Refresh Token or Service Account
+        if (empty($accessToken)) {
+            $accessToken = $this->getGoogleDriveAccessToken($cloudSettings);
+        }
+
         $externalId = null;
         $externalUrl = null;
 
-        // If Google OAuth access token is provided, upload directly to Google Drive API
+        // If Google OAuth access token is available, upload directly to Google Drive API
         if (!empty($accessToken)) {
             try {
                 $metadata = ['name' => $originalName];
@@ -281,7 +371,7 @@ class FileUploadService
                     file_get_contents($fileArray['tmp_name']) .
                     $closeDelimiter;
 
-                $ch = curl_init('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink');
+                $ch = curl_init('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,name,webViewLink');
                 curl_setopt_array($ch, [
                     CURLOPT_HTTPHEADER => [
                         'Authorization: Bearer ' . $accessToken,
@@ -291,7 +381,7 @@ class FileUploadService
                     CURLOPT_POST => true,
                     CURLOPT_POSTFIELDS => $postData,
                     CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_TIMEOUT => 30
+                    CURLOPT_TIMEOUT => 60
                 ]);
 
                 $response = curl_exec($ch);
