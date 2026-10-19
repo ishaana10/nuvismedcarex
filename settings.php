@@ -48,7 +48,7 @@ $tab = $_GET['tab'] ?? 'general';
     </div>
 
     <!-- Navigation Tabs -->
-    <div class="flex items-center gap-2 border-b border-outline-variant/30 pb-2 overflow-x-auto">
+    <div class="flex flex-wrap items-center gap-2 border-b border-outline-variant/30 pb-2">
         <a href="settings.php?tab=general" class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 <?= $tab === 'general' ? 'bg-primary text-white shadow-xs' : 'bg-surface-container-low text-slate-600 hover:bg-surface-container' ?>">
             <span class="material-symbols-outlined text-sm">tune</span>
             <span>General & Branding</span>
@@ -410,7 +410,10 @@ $tab = $_GET['tab'] ?? 'general';
         fetch('actions/test_email.php', {
             method: 'POST',
             body: formData,
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
         })
         .then(res => res.json())
         .then(data => {
