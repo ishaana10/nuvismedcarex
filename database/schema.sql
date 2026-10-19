@@ -493,3 +493,19 @@ CREATE TABLE IF NOT EXISTS uploaded_files (
 CREATE INDEX idx_uploaded_files_tenant ON uploaded_files(tenant_id);
 CREATE INDEX idx_uploaded_files_patient ON uploaded_files(patient_id);
 CREATE INDEX idx_uploaded_files_provider ON uploaded_files(storage_provider);
+
+CREATE TABLE IF NOT EXISTS email_logs (
+    id VARCHAR(64) PRIMARY KEY,
+    tenant_id VARCHAR(64) NOT NULL DEFAULT 'default-clinic',
+    recipient VARCHAR(255) NOT NULL,
+    subject VARCHAR(255) NOT NULL,
+    document_type VARCHAR(64) DEFAULT 'general',
+    document_id VARCHAR(64) NULL,
+    status VARCHAR(32) NOT NULL DEFAULT 'Pending',
+    error_message TEXT NULL,
+    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_email_logs_tenant ON email_logs(tenant_id);
+CREATE INDEX idx_email_logs_status ON email_logs(status);
