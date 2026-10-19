@@ -88,6 +88,6 @@ if ($res['success']) {
     setToast('Test Email Failed', $res['error'] ?? 'Failed to deliver test email.', 'error');
 }
 
-$redirect = $_POST['redirect_to'] ?? '../settings.php?tab=email';
+$redirect = !empty($_POST['redirect_to']) ? $_POST['redirect_to'] : '../settings.php?tab=email';
 header("Location: $redirect");
 exit;
