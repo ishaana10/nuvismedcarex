@@ -166,6 +166,9 @@ $settings = [
     'cloud_onedrive_client_secret' => trim($_POST['cloud_onedrive_client_secret'] ?? $_POST['onedrive_client_secret'] ?? ''),
     'cloud_onedrive_tenant_id' => trim($_POST['cloud_onedrive_tenant_id'] ?? $_POST['onedrive_tenant_id'] ?? ''),
     'cloud_googledrive_client_id' => trim($_POST['cloud_googledrive_client_id'] ?? $_POST['googledrive_client_id'] ?? ''),
+    'cloud_googledrive_client_secret' => trim($_POST['cloud_googledrive_client_secret'] ?? $_POST['googledrive_client_secret'] ?? ''),
+    'cloud_googledrive_refresh_token' => trim($_POST['cloud_googledrive_refresh_token'] ?? $_POST['googledrive_refresh_token'] ?? ''),
+    'cloud_googledrive_service_account_json' => trim($_POST['cloud_googledrive_service_account_json'] ?? $_POST['googledrive_service_account_json'] ?? ''),
     'cloud_googledrive_api_key' => trim($_POST['cloud_googledrive_api_key'] ?? $_POST['googledrive_api_key'] ?? ''),
     'cloud_googledrive_folder_id' => trim($_POST['cloud_googledrive_folder_id'] ?? $_POST['googledrive_folder_id'] ?? ''),
 ];
