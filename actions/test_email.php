@@ -51,7 +51,7 @@ if (empty($smtpConfig['smtp_host'])) {
     $smtpConfig = $emailService->getSmtpSettings();
 }
 
-$tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+$tenantId = \ClinicFlow\Shared\TenantContext::getTenantId() ?: 'default-clinic';
 $subject = "Nuvis Healthcare - Test Email Dispatch";
 $body = "
 <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;'>
