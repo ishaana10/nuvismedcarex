@@ -390,94 +390,6 @@ $tab = $_GET['tab'] ?? 'general';
         </div>
     </div>
 
-    <script>
-    function executeTestEmail(e) {
-        e.preventDefault();
-        const recipient = document.getElementById('test_email_recipient').value;
-        const card = document.getElementById('test-email-status-card');
-        const statusText = document.getElementById('test-email-status-text');
-        const consoleBox = document.getElementById('test-email-console');
-        const btn = document.getElementById('btn-test-email');
-
-        if (card) card.classList.remove('hidden');
-        if (btn) btn.disabled = true;
-
-        const time = new Date().toLocaleTimeString();
-        if (consoleBox) consoleBox.innerText = `[${time}] Dispatching test email to ${recipient}...`;
-
-        const formData = new FormData(document.getElementById('test-email-form'));
-
-        fetch('actions/test_email.php', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json'
-            }
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (btn) btn.disabled = false;
-            const t2 = new Date().toLocaleTimeString();
-            if (data.success) {
-                if (statusText) statusText.innerHTML = `<span class="material-symbols-outlined text-xs text-emerald-400">check_circle</span> <span class="text-emerald-400 font-bold">Test Email Delivered Successfully!</span>`;
-                if (consoleBox) consoleBox.innerText += `\n[${t2}] ✔ Success: ${data.message || 'Email sent via SMTP.'}`;
-            } else {
-                if (statusText) statusText.innerHTML = `<span class="material-symbols-outlined text-xs text-red-400">error</span> <span class="text-red-400 font-bold">SMTP Connection Test Failed</span>`;
-                if (consoleBox) consoleBox.innerText += `\n[${t2}] ❌ Error: ${data.error || 'Failed to deliver test email.'}`;
-            }
-        })
-        .catch(err => {
-            if (btn) btn.disabled = false;
-            const t3 = new Date().toLocaleTimeString();
-            if (statusText) statusText.innerHTML = `<span class="material-symbols-outlined text-xs text-red-400">error</span> <span class="text-red-400 font-bold">Request Exception</span>`;
-            if (consoleBox) consoleBox.innerText += `\n[${t3}] ❌ Exception: ${err.message}`;
-        });
-    }
-
-    function viewEmailLogDetail(log) {
-        document.getElementById('log-detail-recipient').innerText = log.recipient;
-        document.getElementById('log-detail-subject').innerText = log.subject;
-        document.getElementById('log-detail-type').innerText = log.document_type;
-        document.getElementById('log-detail-status').innerText = log.status;
-        document.getElementById('log-detail-time').innerText = log.sent_at;
-
-        const errorBox = document.getElementById('log-detail-error-box');
-        if (log.error_message) {
-            errorBox.classList.remove('hidden');
-            document.getElementById('log-detail-error').innerText = log.error_message;
-        } else {
-            errorBox.classList.add('hidden');
-        }
-
-        openModal('modal-email-log-detail');
-    }
-
-    function resendEmailLog(logId) {
-        if (!confirm('Resend this email dispatch to recipient now?')) return;
-
-        const formData = new FormData();
-        formData.append('action', 'resend_email');
-        formData.append('log_id', logId);
-        formData.append('csrf_token', '<?= getCsrfToken() ?>');
-
-        fetch('actions/email_actions.php', {
-            method: 'POST',
-            body: formData,
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                alert(data.message || 'Email re-sent successfully.');
-                location.reload();
-            } else {
-                alert('Retry failed: ' + (data.error || 'Unknown error'));
-            }
-        })
-        .catch(err => alert('Exception: ' + err.message));
-    }
-    </script>
     <?php endif; ?>
 
     <!-- TAB 2: Notifications & SSE Settings -->
@@ -590,5 +502,122 @@ $tab = $_GET['tab'] ?? 'general';
     </div>
     <?php endif; ?>
 </div>
+
+<script>
+function executeTestEmail(e) {
+    e.preventDefault();
+    const recipientInput = document.getElementById('test_email_recipient');
+    const recipient = recipientInput ? recipientInput.value : '';
+    const card = document.getElementById('test-email-status-card');
+    const statusText = document.getElementById('test-email-status-text');
+    const consoleBox = document.getElementById('test-email-console');
+    const btn = document.getElementById('btn-test-email');
+
+    if (card) card.classList.remove('hidden');
+    if (btn) btn.disabled = true;
+
+    if (statusText) {
+        statusText.innerHTML = `<span class="material-symbols-outlined text-xs animate-spin">sync</span> <span>Testing SMTP Connection...</span>`;
+    }
+
+    const time = new Date().toLocaleTimeString();
+    if (consoleBox) consoleBox.innerText = `[${time}] Connecting & dispatching test email to ${recipient}...`;
+
+    const formData = new FormData();
+    const formEl = document.getElementById('test-email-form');
+    if (formEl) {
+        const formFields = new FormData(formEl);
+        for (let [k, v] of formFields.entries()) {
+            formData.append(k, v);
+        }
+    }
+
+    // Attach SMTP form values directly if available on tab=email page
+    ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from', 'smtp_secure'].forEach(field => {
+        const input = document.querySelector(`[name="${field}"]`);
+        if (input) {
+            formData.append(field, input.value);
+        }
+    });
+
+    fetch('actions/test_email.php', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (btn) btn.disabled = false;
+        const t2 = new Date().toLocaleTimeString();
+        if (data.success) {
+            if (statusText) statusText.innerHTML = `<span class="material-symbols-outlined text-xs text-emerald-400">check_circle</span> <span class="text-emerald-400 font-bold">Test Email Delivered Successfully!</span>`;
+            if (consoleBox) consoleBox.innerText += `\n[${t2}] ✔ Success: ${data.message || 'Email sent via SMTP.'}`;
+        } else {
+            if (statusText) statusText.innerHTML = `<span class="material-symbols-outlined text-xs text-red-400">error</span> <span class="text-red-400 font-bold">SMTP Connection Test Failed</span>`;
+            if (consoleBox) consoleBox.innerText += `\n[${t2}] ❌ Error: ${data.error || 'Failed to deliver test email.'}`;
+        }
+    })
+    .catch(err => {
+        if (btn) btn.disabled = false;
+        const t3 = new Date().toLocaleTimeString();
+        if (statusText) statusText.innerHTML = `<span class="material-symbols-outlined text-xs text-red-400">error</span> <span class="text-red-400 font-bold">Request Exception</span>`;
+        if (consoleBox) consoleBox.innerText += `\n[${t3}] ❌ Exception: ${err.message}`;
+    });
+}
+
+function viewEmailLogDetail(log) {
+    const elRec = document.getElementById('log-detail-recipient');
+    if (elRec) elRec.innerText = log.recipient || '';
+    const elSub = document.getElementById('log-detail-subject');
+    if (elSub) elSub.innerText = log.subject || '';
+    const elTyp = document.getElementById('log-detail-type');
+    if (elTyp) elTyp.innerText = log.document_type || '';
+    const elSta = document.getElementById('log-detail-status');
+    if (elSta) elSta.innerText = log.status || '';
+    const elTim = document.getElementById('log-detail-time');
+    if (elTim) elTim.innerText = log.sent_at || '';
+
+    const errorBox = document.getElementById('log-detail-error-box');
+    if (log.error_message) {
+        if (errorBox) errorBox.classList.remove('hidden');
+        const elErr = document.getElementById('log-detail-error');
+        if (elErr) elErr.innerText = log.error_message;
+    } else {
+        if (errorBox) errorBox.classList.add('hidden');
+    }
+
+    if (typeof openModal === 'function') {
+        openModal('modal-email-log-detail');
+    }
+}
+
+function resendEmailLog(logId) {
+    if (!confirm('Resend this email dispatch to recipient now?')) return;
+
+    const formData = new FormData();
+    formData.append('action', 'resend_email');
+    formData.append('log_id', logId);
+    formData.append('csrf_token', '<?= getCsrfToken() ?>');
+
+    fetch('actions/email_actions.php', {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message || 'Email re-sent successfully.');
+            location.reload();
+        } else {
+            alert('Retry failed: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(err => alert('Exception: ' + err.message));
+}
+</script>
 
 <?php include __DIR__ . '/includes/footer.php'; ?>
