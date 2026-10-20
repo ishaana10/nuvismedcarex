@@ -71,10 +71,21 @@ $body = "
     <p style='font-size: 11px; color: #94a3b8;'>Nuvis Healthcare Platform &bull; Automated System Test</p>
 </div>";
 
-$res = $emailService->sendSmtpEmail($recipient, $subject, $body, $smtpConfig);
+try {
+    $res = $emailService->sendSmtpEmail($recipient, $subject, $body, $smtpConfig);
+} catch (\Throwable $e) {
+    $res = [
+        'success' => false,
+        'error' => 'SMTP Dispatch Exception: ' . $e->getMessage()
+    ];
+}
 
-// Log test result
-$emailService->logEmailResult($tenantId, $recipient, $subject, 'test_email', null, $res['success'] ? 'Sent' : 'Failed', $res['error'] ?? null);
+// Guarantee log entry in email_logs
+try {
+    $emailService->logEmailResult($tenantId, $recipient, $subject, 'test_email', null, !empty($res['success']) ? 'Sent' : 'Failed', $res['error'] ?? null);
+} catch (\Throwable $e) {
+    error_log("Failed to insert email log record: " . $e->getMessage());
+}
 
 if ($isAjax) {
     header('Content-Type: application/json');
