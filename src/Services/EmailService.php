@@ -198,11 +198,13 @@ class EmailService {
      */
     public function logEmailResult(string $tenantId, string $recipient, string $subject, string $documentType, ?string $documentId, string $status, ?string $errorMessage = null): string {
         $id = 'elog-' . bin2hex(random_bytes(8));
+        $effectiveTenantId = !empty($tenantId) ? $tenantId : (TenantContext::getTenantId() ?: 'default-clinic');
+
         try {
             $stmt = $this->db->prepare("INSERT INTO email_logs (id, tenant_id, recipient, subject, document_type, document_id, status, error_message, sent_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)");
             $stmt->execute([
                 $id,
-                $tenantId ?: TenantContext::getTenantId(),
+                $effectiveTenantId,
                 $recipient,
                 $subject,
                 $documentType,
@@ -211,7 +213,34 @@ class EmailService {
                 $errorMessage
             ]);
         } catch (\Exception $e) {
-            // Log fallback
+            // Auto-create email_logs table if missing and retry
+            try {
+                $this->db->exec("CREATE TABLE IF NOT EXISTS email_logs (
+                    id VARCHAR(64) PRIMARY KEY,
+                    tenant_id VARCHAR(64) NOT NULL DEFAULT 'default-clinic',
+                    recipient VARCHAR(255) NOT NULL,
+                    subject VARCHAR(255) NOT NULL,
+                    document_type VARCHAR(64) DEFAULT 'general',
+                    document_id VARCHAR(64) NULL,
+                    status VARCHAR(32) NOT NULL DEFAULT 'Pending',
+                    error_message TEXT NULL,
+                    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )");
+
+                $stmt = $this->db->prepare("INSERT INTO email_logs (id, tenant_id, recipient, subject, document_type, document_id, status, error_message, sent_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)");
+                $stmt->execute([
+                    $id,
+                    $effectiveTenantId,
+                    $recipient,
+                    $subject,
+                    $documentType,
+                    $documentId,
+                    $status,
+                    $errorMessage
+                ]);
+            } catch (\Exception $ex) {
+                error_log("[EmailService logEmailResult] Error inserting email log: " . $ex->getMessage());
+            }
         }
         return $id;
     }
