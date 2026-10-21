@@ -87,8 +87,8 @@ $cloudSettings = $uploadService->getCloudSettings();
         <span>Error Logs & Diagnostics</span>
     </button>
     <button type="button" onclick="switchDevTab('integrations')" id="dev-tab-btn-integrations" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
-        <span class="material-symbols-outlined text-base">webhook</span>
-        <span>App Integrations & Webhooks</span>
+        <span class="material-symbols-outlined text-base">api</span>
+        <span>API Integration & Webhooks</span>
     </button>
 </div>
 
@@ -928,6 +928,59 @@ $cloudSettings = $uploadService->getCloudSettings();
                         <?php endif; ?>
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- Section 3: REST API Endpoint Reference & Interactive Explorer -->
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-6">
+            <div class="border-b border-outline-variant/20 pb-4">
+                <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base">code_off</span>
+                    <span>REST API Endpoint Reference & Integration Directory</span>
+                </h2>
+                <p class="text-xs text-outline font-medium mt-0.5">Explore standard endpoints provided for external client integration, electronic health records (EHR), and lab automation.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <!-- Endpoint 1 -->
+                <div class="p-4 rounded-xl bg-surface-container-low border border-outline-variant/30 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-mono font-bold text-[10px]">GET</span>
+                        <span class="font-mono text-[10px] text-slate-500">JSON API</span>
+                    </div>
+                    <code class="block font-mono font-bold text-primary text-[11px]">/actions/load_more_activities.php</code>
+                    <p class="text-slate-600 text-[11px]">Retrieves paginated clinic activity feed and system log events scoped to the active tenant.</p>
+                </div>
+
+                <!-- Endpoint 2 -->
+                <div class="p-4 rounded-xl bg-surface-container-low border border-outline-variant/30 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-mono font-bold text-[10px]">SSE</span>
+                        <span class="font-mono text-[10px] text-slate-500">Real-time Stream</span>
+                    </div>
+                    <code class="block font-mono font-bold text-primary text-[11px]">/api/notifications/stream.php</code>
+                    <p class="text-slate-600 text-[11px]">Server-Sent Events (SSE) stream pushing instant alerts for newly registered patients and scheduled appointments.</p>
+                </div>
+
+                <!-- Endpoint 3 -->
+                <div class="p-4 rounded-xl bg-surface-container-low border border-outline-variant/30 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-mono font-bold text-[10px]">POST</span>
+                        <span class="font-mono text-[10px] text-slate-500">JSON Endpoint</span>
+                    </div>
+                    <code class="block font-mono font-bold text-primary text-[11px]">/actions/log_js_error.php</code>
+                    <p class="text-slate-600 text-[11px]">Submits client-side JavaScript runtime errors and promise rejections for central developer diagnostics.</p>
+                </div>
+
+                <!-- Endpoint 4 -->
+                <div class="p-4 rounded-xl bg-surface-container-low border border-outline-variant/30 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-mono font-bold text-[10px]">POST</span>
+                        <span class="font-mono text-[10px] text-slate-500">Webhooks API</span>
+                    </div>
+                    <code class="block font-mono font-bold text-primary text-[11px]">/actions/integration_actions.php</code>
+                    <p class="text-slate-600 text-[11px]">Manages webhook subscriptions, test payload dispatches, and external client API key generation.</p>
+                </div>
             </div>
         </div>
 
