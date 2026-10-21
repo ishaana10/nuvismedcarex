@@ -86,6 +86,10 @@ $cloudSettings = $uploadService->getCloudSettings();
         <span class="material-symbols-outlined text-base">bug_report</span>
         <span>Error Logs & Diagnostics</span>
     </button>
+    <button type="button" onclick="switchDevTab('integrations')" id="dev-tab-btn-integrations" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+        <span class="material-symbols-outlined text-base">api</span>
+        <span>API Integration & Webhooks</span>
+    </button>
 </div>
 
 <div class="space-y-6">
@@ -809,12 +813,23 @@ $cloudSettings = $uploadService->getCloudSettings();
     <!-- 3. Developer Error Logger Module -->
     <div id="dev-panel-logs" class="hidden space-y-6">
     <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-5">
-        <div class="flex items-center justify-between border-b border-outline-variant/20 pb-3">
-            <h2 class="text-xs font-bold text-rose-700 uppercase tracking-wider flex items-center gap-2">
-                <span class="material-symbols-outlined text-base">bug_report</span>
-                <span>Developer Error Logger & System Diagnostics</span>
-            </h2>
-            <div class="flex items-center gap-2">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-outline-variant/20 pb-3">
+            <div>
+                <h2 class="text-xs font-bold text-rose-700 uppercase tracking-wider flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base">bug_report</span>
+                    <span>Developer PHP & JS Error Logger & Diagnostics</span>
+                </h2>
+                <p class="text-xs text-outline font-medium mt-0.5">Captures uncaught JavaScript errors, promise rejections, PHP exceptions, and runtime errors in real-time.</p>
+            </div>
+
+            <div class="flex items-center gap-2 flex-wrap">
+                <select id="dev-log-type-filter" onchange="fetchDeveloperErrorLogs()" class="bg-surface-container-low px-3 py-1.5 rounded-xl border border-outline-variant/40 font-bold text-xs">
+                    <option value="">All Errors (PHP & JS & Audit)</option>
+                    <option value="PHP">PHP Server Errors</option>
+                    <option value="JS">JavaScript Browser Errors</option>
+                    <option value="AUDIT">Audit Activity Logs</option>
+                </select>
+
                 <button type="button" onclick="fetchDeveloperErrorLogs()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition flex items-center gap-1">
                     <span class="material-symbols-outlined text-sm">refresh</span>
                     <span>Refresh Logs</span>
@@ -827,12 +842,263 @@ $cloudSettings = $uploadService->getCloudSettings();
         </div>
 
         <div>
-            <div id="developer-error-console" class="font-mono text-xs bg-slate-950 text-slate-200 p-4 rounded-xl border border-slate-800 h-64 overflow-y-auto leading-relaxed space-y-2 shadow-inner">
+            <div id="developer-error-console" class="font-mono text-xs bg-slate-950 text-slate-200 p-4 rounded-xl border border-slate-800 min-h-[300px] max-h-[500px] overflow-y-auto leading-relaxed space-y-2 shadow-inner">
                 <p class="text-slate-500 italic">Initializing developer error logger...</p>
             </div>
         </div>
     </div>
     </div> <!-- End dev-panel-logs -->
+
+    <!-- 4. App Integrations & Webhooks Module -->
+    <div id="dev-panel-integrations" class="hidden space-y-6">
+        <?php
+        $webhookSubscriptions = [];
+        $apiIntegrations = [];
+        try {
+            $webhookSubscriptions = $labOrderService ? $webhookService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\WebhookService::class)->getSubscriptions() : [];
+            $apiStmt = $pdo->prepare("SELECT * FROM app_integrations WHERE tenant_id = ? ORDER BY created_at DESC");
+            $apiStmt->execute([$currentTenantId]);
+            $apiIntegrations = $apiStmt->fetchAll();
+        } catch (\Throwable $e) {}
+        ?>
+        <!-- Section 1: Webhook Subscriptions -->
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-outline-variant/20 pb-4">
+                <div>
+                    <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                        <span class="material-symbols-outlined text-base">webhook</span>
+                        <span>Third-Party Application Webhook Subscriptions</span>
+                    </h2>
+                    <p class="text-xs text-outline font-medium mt-0.5">Subscribe external laboratory, billing, insurance, or pharmacy systems to real-time clinic events.</p>
+                </div>
+
+                <button type="button" onclick="openWebhookModal()" class="px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary/90 transition shadow-xs flex items-center gap-1.5 shrink-0">
+                    <span class="material-symbols-outlined text-base">add_link</span>
+                    <span>New Webhook Subscription</span>
+                </button>
+            </div>
+
+            <!-- Webhooks Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs border border-outline-variant/30 rounded-xl overflow-hidden">
+                    <thead class="bg-surface-container text-outline uppercase font-semibold text-[10px]">
+                        <tr>
+                            <th class="py-3 px-4">Application Name</th>
+                            <th class="py-3 px-4">Event Trigger</th>
+                            <th class="py-3 px-4">Target Webhook URL</th>
+                            <th class="py-3 px-4">Secret Token</th>
+                            <th class="py-3 px-4">Status</th>
+                            <th class="py-3 px-4 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-outline-variant/20 font-medium">
+                        <?php if (empty($webhookSubscriptions)): ?>
+                            <tr>
+                                <td colspan="6" class="py-8 text-center text-slate-400 italic">No webhook subscriptions registered for tenant <code class="font-mono text-primary font-bold"><?= htmlspecialchars($currentTenantId) ?></code>.</td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach ($webhookSubscriptions as $sub): ?>
+                                <tr class="hover:bg-surface-container-low/50 transition">
+                                    <td class="py-3 px-4 font-bold text-on-surface"><?= htmlspecialchars($sub['app_name']) ?></td>
+                                    <td class="py-3 px-4 font-mono text-[11px] text-primary">
+                                        <span class="px-2 py-0.5 rounded bg-primary/10 text-primary font-bold text-[10px]"><?= htmlspecialchars($sub['event_type']) ?></span>
+                                    </td>
+                                    <td class="py-3 px-4 font-mono text-[11px] text-slate-600 max-w-xs truncate" title="<?= htmlspecialchars($sub['target_url']) ?>">
+                                        <?= htmlspecialchars($sub['target_url']) ?>
+                                    </td>
+                                    <td class="py-3 px-4 font-mono text-[11px] text-slate-500">
+                                        <?= htmlspecialchars(substr($sub['secret_token'] ?? '••••••••', 0, 8)) ?>...
+                                    </td>
+                                    <td class="py-3 px-4">
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">Active</span>
+                                    </td>
+                                    <td class="py-3 px-4 text-right">
+                                        <div class="inline-flex items-center gap-2">
+                                            <button type="button" onclick="testWebhookEndpoint('<?= htmlspecialchars($sub['target_url']) ?>', '<?= htmlspecialchars($sub['event_type']) ?>')" class="px-2.5 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-xs font-semibold transition flex items-center gap-1">
+                                                <span class="material-symbols-outlined text-sm">send</span>
+                                                <span>Test Dispatch</span>
+                                            </button>
+                                            <button type="button" onclick="deleteWebhookSubscription('<?= htmlspecialchars($sub['id']) ?>')" class="p-1 text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Delete Webhook">
+                                                <span class="material-symbols-outlined text-base">delete</span>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Section 3: REST API Endpoint Reference & Interactive Explorer -->
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-6">
+            <div class="border-b border-outline-variant/20 pb-4">
+                <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base">code_off</span>
+                    <span>REST API Endpoint Reference & Integration Directory</span>
+                </h2>
+                <p class="text-xs text-outline font-medium mt-0.5">Explore standard endpoints provided for external client integration, electronic health records (EHR), and lab automation.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <!-- Endpoint 1 -->
+                <div class="p-4 rounded-xl bg-surface-container-low border border-outline-variant/30 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-mono font-bold text-[10px]">GET</span>
+                        <span class="font-mono text-[10px] text-slate-500">JSON API</span>
+                    </div>
+                    <code class="block font-mono font-bold text-primary text-[11px]">/actions/load_more_activities.php</code>
+                    <p class="text-slate-600 text-[11px]">Retrieves paginated clinic activity feed and system log events scoped to the active tenant.</p>
+                </div>
+
+                <!-- Endpoint 2 -->
+                <div class="p-4 rounded-xl bg-surface-container-low border border-outline-variant/30 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-mono font-bold text-[10px]">SSE</span>
+                        <span class="font-mono text-[10px] text-slate-500">Real-time Stream</span>
+                    </div>
+                    <code class="block font-mono font-bold text-primary text-[11px]">/api/notifications/stream.php</code>
+                    <p class="text-slate-600 text-[11px]">Server-Sent Events (SSE) stream pushing instant alerts for newly registered patients and scheduled appointments.</p>
+                </div>
+
+                <!-- Endpoint 3 -->
+                <div class="p-4 rounded-xl bg-surface-container-low border border-outline-variant/30 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-mono font-bold text-[10px]">POST</span>
+                        <span class="font-mono text-[10px] text-slate-500">JSON Endpoint</span>
+                    </div>
+                    <code class="block font-mono font-bold text-primary text-[11px]">/actions/log_js_error.php</code>
+                    <p class="text-slate-600 text-[11px]">Submits client-side JavaScript runtime errors and promise rejections for central developer diagnostics.</p>
+                </div>
+
+                <!-- Endpoint 4 -->
+                <div class="p-4 rounded-xl bg-surface-container-low border border-outline-variant/30 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-mono font-bold text-[10px]">POST</span>
+                        <span class="font-mono text-[10px] text-slate-500">Webhooks API</span>
+                    </div>
+                    <code class="block font-mono font-bold text-primary text-[11px]">/actions/integration_actions.php</code>
+                    <p class="text-slate-600 text-[11px]">Manages webhook subscriptions, test payload dispatches, and external client API key generation.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: External API Access Keys -->
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-outline-variant/20 pb-4">
+                <div>
+                    <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                        <span class="material-symbols-outlined text-base">vpn_key</span>
+                        <span>External API Access Keys & EHR Integration Credentials</span>
+                    </h2>
+                    <p class="text-xs text-outline font-medium mt-0.5">Generate scoped API keys for external medical applications, REST APIs, or FHIR data pipelines.</p>
+                </div>
+
+                <button type="button" onclick="generateApiKeyPrompt()" class="px-4 py-2 bg-emerald-700 text-white text-xs font-bold rounded-xl hover:bg-emerald-800 transition shadow-xs flex items-center gap-1.5 shrink-0">
+                    <span class="material-symbols-outlined text-base">key_visualizer</span>
+                    <span>Generate API Key</span>
+                </button>
+            </div>
+
+            <!-- API Keys Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs border border-outline-variant/30 rounded-xl overflow-hidden">
+                    <thead class="bg-surface-container text-outline uppercase font-semibold text-[10px]">
+                        <tr>
+                            <th class="py-3 px-4">Integrated Client Application</th>
+                            <th class="py-3 px-4">API Key Token</th>
+                            <th class="py-3 px-4">Permissions</th>
+                            <th class="py-3 px-4">Created Date</th>
+                            <th class="py-3 px-4 text-right">Revoke Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-outline-variant/20 font-medium">
+                        <?php if (empty($apiIntegrations)): ?>
+                            <tr>
+                                <td colspan="5" class="py-8 text-center text-slate-400 italic">No external API access keys issued for tenant <code class="font-mono text-primary font-bold"><?= htmlspecialchars($currentTenantId) ?></code>.</td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach ($apiIntegrations as $keyRow): ?>
+                                <tr class="hover:bg-surface-container-low/50 transition">
+                                    <td class="py-3 px-4 font-bold text-on-surface"><?= htmlspecialchars($keyRow['app_name']) ?></td>
+                                    <td class="py-3 px-4 font-mono text-[11px] text-slate-700">
+                                        <?= htmlspecialchars(substr($keyRow['api_key'], 0, 12)) ?>...<?= htmlspecialchars(substr($keyRow['api_key'], -4)) ?>
+                                    </td>
+                                    <td class="py-3 px-4 font-mono text-[11px] text-primary">
+                                        <span class="px-2 py-0.5 rounded bg-surface-container-high text-on-surface font-semibold text-[10px]"><?= htmlspecialchars($keyRow['permissions'] ?? 'read,write') ?></span>
+                                    </td>
+                                    <td class="py-3 px-4 font-mono text-[11px] text-slate-500">
+                                        <?= htmlspecialchars($keyRow['created_at']) ?>
+                                    </td>
+                                    <td class="py-3 px-4 text-right">
+                                        <button type="button" onclick="revokeApiKey('<?= htmlspecialchars($keyRow['id']) ?>', '<?= htmlspecialchars(addslashes($keyRow['app_name'])) ?>')" class="px-2.5 py-1 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-lg text-xs font-semibold transition flex items-center gap-1 ml-auto">
+                                            <span class="material-symbols-outlined text-sm">block</span>
+                                            <span>Revoke Key</span>
+                                        </button>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div> <!-- End dev-panel-integrations -->
+</div>
+
+<!-- Modal: New Webhook Subscription -->
+<div id="webhookModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden my-8">
+        <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+            <h3 class="font-bold text-sm flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-base">webhook</span>
+                <span>Configure Webhook Subscription</span>
+            </h3>
+            <button type="button" onclick="closeWebhookModal()" class="text-slate-400 hover:text-white text-lg">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+
+        <form id="webhookForm" onsubmit="submitWebhookForm(event)" class="p-6 space-y-4 text-xs">
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Integrating Application Name <span class="text-red-500">*</span></label>
+                <input type="text" name="app_name" required placeholder="e.g. Suva Central Lab System" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-bold">
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Event Trigger <span class="text-red-500">*</span></label>
+                <select name="event_type" required class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-bold text-primary">
+                    <option value="PATIENT_REGISTERED">PATIENT_REGISTERED (New Patient Created)</option>
+                    <option value="APPOINTMENT_BOOKED">APPOINTMENT_BOOKED (New Appointment Scheduled)</option>
+                    <option value="ENCOUNTER_FINALIZED">ENCOUNTER_FINALIZED (Clinical Visit Finalized)</option>
+                    <option value="INVOICE_CREATED">INVOICE_CREATED (VMS / Medical Invoice Issued)</option>
+                    <option value="LAB_ORDER_SUBMITTED">LAB_ORDER_SUBMITTED (Laboratory Requisition Created)</option>
+                    <option value="*">* (All System Events)</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Target Webhook HTTPS Endpoint URL <span class="text-red-500">*</span></label>
+                <input type="url" name="target_url" required placeholder="https://api.partnerapp.com/webhooks/clinicflow" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-mono text-xs">
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">HMAC Signature Secret Token (Optional)</label>
+                <input type="text" name="secret_token" placeholder="Leave blank to auto-generate secret" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-mono text-xs">
+            </div>
+
+            <div class="flex items-center justify-between pt-3 border-t border-slate-200">
+                <button type="button" onclick="closeWebhookModal()" class="px-4 py-2 bg-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-300 transition">
+                    Cancel
+                </button>
+                <button type="submit" class="px-5 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-sm">save</span>
+                    <span>Save Webhook</span>
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <!-- Modal: Add/Edit Clinic Tenant -->
@@ -971,7 +1237,7 @@ function closeTenantModal() {
 }
 
 function switchDevTab(tab) {
-    const panels = ['git', 'tenants', 'vms', 'cloud', 'lab', 'pagination', 'rbac', 'redis', 'logs'];
+    const panels = ['git', 'tenants', 'vms', 'cloud', 'lab', 'pagination', 'rbac', 'redis', 'logs', 'integrations'];
     panels.forEach(p => {
         const el = document.getElementById('dev-panel-' + p);
         if (el) el.classList.add('hidden');
@@ -1156,24 +1422,43 @@ function fetchDeveloperErrorLogs() {
     const consoleBox = document.getElementById('developer-error-console');
     if (!consoleBox) return;
 
-    fetch('actions/git_actions.php?action=get_error_logs')
+    const filterSelect = document.getElementById('dev-log-type-filter');
+    const filterType = filterSelect ? filterSelect.value : '';
+
+    fetch('actions/git_actions.php?action=get_error_logs&type=' + encodeURIComponent(filterType))
     .then(r => r.json())
     .then(d => {
         if (d.success && d.logs && d.logs.length > 0) {
             consoleBox.innerHTML = d.logs.map(log => {
-                let colorClass = 'text-slate-300';
-                if (log.type === 'ERROR') colorClass = 'text-rose-400 font-bold';
-                else if (log.type === 'WARNING') colorClass = 'text-amber-300';
-                else if (log.type === 'AUDIT') colorClass = 'text-emerald-400';
+                let badgeClass = 'bg-slate-800 text-slate-300';
+                if (log.type === 'JS') badgeClass = 'bg-amber-950 text-amber-300 border border-amber-800';
+                else if (log.type === 'PHP') badgeClass = 'bg-rose-950 text-rose-300 border border-rose-800';
+                else if (log.type === 'AUDIT') badgeClass = 'bg-emerald-950 text-emerald-300 border border-emerald-800';
 
-                return `<div class="p-1 border-b border-slate-900 text-[11px]"><span class="text-slate-500">[${log.timestamp}]</span> <span class="px-1.5 py-0.5 rounded text-[9px] font-bold ${colorClass} bg-slate-900 mr-1">${log.type}</span> ${log.message}</div>`;
+                let fileLineHtml = log.file_line ? `<div class="text-[10px] text-amber-200/80 font-mono mt-0.5">${escapeHtml(log.file_line)}</div>` : '';
+                let stackHtml = log.stack_trace ? `<details class="mt-1 cursor-pointer"><summary class="text-[10px] text-slate-400 underline hover:text-slate-200">View Stack Trace</summary><pre class="text-[10px] text-slate-300 bg-slate-900 p-2 rounded mt-1 overflow-x-auto font-mono whitespace-pre-wrap">${escapeHtml(log.stack_trace)}</pre></details>` : '';
+
+                return `
+                    <div class="p-2.5 border-b border-slate-800/80 hover:bg-slate-900/50 transition rounded-lg">
+                        <div class="flex items-center justify-between gap-2 mb-1">
+                            <div class="flex items-center gap-1.5">
+                                <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase ${badgeClass}">${escapeHtml(log.type || 'SYS')}</span>
+                                <span class="text-[10px] text-slate-400 font-mono">[${escapeHtml(log.timestamp || '')}]</span>
+                            </div>
+                            <span class="text-[10px] text-slate-500 font-mono">Tenant: ${escapeHtml(log.tenant_id || 'default')}</span>
+                        </div>
+                        <div class="font-mono text-slate-200 text-xs font-semibold">${escapeHtml(log.message || '')}</div>
+                        ${fileLineHtml}
+                        ${stackHtml}
+                    </div>
+                `;
             }).join('');
         } else {
-            consoleBox.innerHTML = '<p class="text-slate-400 italic">No log entries found.</p>';
+            consoleBox.innerHTML = '<p class="text-slate-400 italic p-2">No system error log entries found matching selected filter.</p>';
         }
     })
     .catch(err => {
-        consoleBox.innerHTML = '<p class="text-rose-400 font-bold">Error retrieving developer logs: ' + err + '</p>';
+        consoleBox.innerHTML = '<p class="text-rose-400 font-bold p-2">Error retrieving developer logs: ' + escapeHtml(String(err)) + '</p>';
     });
 }
 
@@ -1335,6 +1620,122 @@ function loadGitHistory() {
             `).join('');
         } else {
             list.innerHTML = `<p class="text-slate-500 italic p-3">${d.error || 'No commits found.'}</p>`;
+        }
+    });
+}
+
+function openWebhookModal() {
+    const modal = document.getElementById('webhookModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        document.getElementById('webhookForm').reset();
+    }
+}
+
+function closeWebhookModal() {
+    const modal = document.getElementById('webhookModal');
+    if (modal) modal.classList.add('hidden');
+}
+
+function submitWebhookForm(e) {
+    e.preventDefault();
+    const form = e.target;
+    const data = {
+        app_name: form.elements['app_name'].value,
+        event_type: form.elements['event_type'].value,
+        target_url: form.elements['target_url'].value,
+        secret_token: form.elements['secret_token'].value
+    };
+
+    fetch('actions/integration_actions.php?action=save_webhook', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            alert(d.message || 'Webhook subscription saved.');
+            closeWebhookModal();
+            window.location.reload();
+        } else {
+            alert('Failed to save webhook: ' + (d.error || 'Unknown error'));
+        }
+    });
+}
+
+function deleteWebhookSubscription(id) {
+    if (!confirm('Are you sure you want to delete this webhook subscription?')) return;
+
+    fetch('actions/integration_actions.php?action=delete_webhook', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({id: id})
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            alert('Webhook subscription deleted.');
+            window.location.reload();
+        } else {
+            alert('Failed to delete webhook: ' + (d.error || 'Unknown error'));
+        }
+    });
+}
+
+function testWebhookEndpoint(targetUrl, eventType) {
+    alert('Executing test webhook payload dispatch to: ' + targetUrl);
+
+    fetch('actions/integration_actions.php?action=test_webhook', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({target_url: targetUrl, event_type: eventType})
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            alert('✔ Test Webhook Payload Dispatched Successfully!\nEvent: ' + eventType + '\nURL: ' + targetUrl);
+        } else {
+            alert('❌ Webhook Dispatch Error: ' + (d.error || 'Test failed'));
+        }
+    });
+}
+
+function generateApiKeyPrompt() {
+    const appName = prompt('Enter the name of the external client application (e.g. Laboratory Portal / Pharmacy Integration):', 'External Client App');
+    if (!appName) return;
+
+    fetch('actions/integration_actions.php?action=generate_api_key', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({app_name: appName})
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            prompt('New API Key Generated! Copy and store this key safely (it will not be shown in plain text again):', d.api_key);
+            window.location.reload();
+        } else {
+            alert('Failed to generate API Key: ' + (d.error || 'Unknown error'));
+        }
+    });
+}
+
+function revokeApiKey(id, appName) {
+    if (!confirm(`Are you sure you want to revoke the API key for '${appName}'? External requests using this key will immediately fail.`)) return;
+
+    fetch('actions/integration_actions.php?action=revoke_api_key', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({id: id})
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            alert('API Access Key revoked.');
+            window.location.reload();
+        } else {
+            alert('Failed to revoke API Key: ' + (d.error || 'Unknown error'));
         }
     });
 }

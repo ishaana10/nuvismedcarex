@@ -22,11 +22,54 @@ $currentSessionUserRole = $_SESSION['user_role'] ?? $_SESSION['role'] ?? 'Doctor
 $isDeveloper = ($currentSessionUserRole === 'Developer');
 
 $activeTab = $_GET['tab'] ?? 'users';
-if (in_array($activeTab, ['tenants', 'developer'])) {
+if (!in_array($activeTab, ['users', 'clinic', 'email', 'vms', 'inventory', 'audit'])) {
     $activeTab = 'users';
 }
 
 $pagination = getPaginationParams(10, [5, 10, 25, 50, 100], $pdo);
+
+// Fetch Audit Logs if audit tab active or for initial render
+$auditSearch = trim($_GET['audit_search'] ?? '');
+$auditActionFilter = trim($_GET['audit_action'] ?? '');
+$auditPage = (int)($_GET['audit_page'] ?? 1);
+if ($auditPage < 1) $auditPage = 1;
+$auditLimit = (int)($_GET['audit_limit'] ?? 10);
+if (!in_array($auditLimit, [5, 10, 25, 50, 100], true)) $auditLimit = 10;
+$auditOffset = ($auditPage - 1) * $auditLimit;
+
+$auditWhere = ["(tenant_id = :tid OR tenant_id = 'default-clinic')"];
+$auditParams = [':tid' => $currentTenantId];
+
+if ($auditSearch !== '') {
+    $auditWhere[] = "(user_name LIKE :search OR user_role LIKE :search OR action LIKE :search OR details LIKE :search OR ip_address LIKE :search OR patient_id LIKE :search)";
+    $auditParams[':search'] = '%' . $auditSearch . '%';
+}
+
+if ($auditActionFilter !== '') {
+    $auditWhere[] = "action = :action_filter";
+    $auditParams[':action_filter'] = $auditActionFilter;
+}
+
+$auditWhereSql = implode(' AND ', $auditWhere);
+
+$countAuditStmt = $pdo->prepare("SELECT COUNT(*) FROM audit_logs WHERE {$auditWhereSql}");
+$countAuditStmt->execute($auditParams);
+$totalAuditLogs = (int)$countAuditStmt->fetchColumn();
+
+$auditSql = "SELECT * FROM audit_logs WHERE {$auditWhereSql} ORDER BY created_at DESC LIMIT :limit OFFSET :offset";
+$auditStmt = $pdo->prepare($auditSql);
+foreach ($auditParams as $k => $v) {
+    $auditStmt->bindValue($k, $v);
+}
+$auditStmt->bindValue(':limit', $auditLimit, PDO::PARAM_INT);
+$auditStmt->bindValue(':offset', $auditOffset, PDO::PARAM_INT);
+$auditStmt->execute();
+$auditLogsList = $auditStmt->fetchAll();
+
+// Fetch distinct actions for audit filter dropdown
+$distinctActionsStmt = $pdo->prepare("SELECT DISTINCT action FROM audit_logs WHERE tenant_id = :tid OR tenant_id = 'default-clinic' ORDER BY action ASC");
+$distinctActionsStmt->execute([':tid' => $currentTenantId]);
+$distinctAuditActions = $distinctActionsStmt->fetchAll(PDO::FETCH_COLUMN);
 
 // Fetch total count and paginated user/doctor staff
 $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
@@ -69,6 +112,10 @@ $usersList = $usersStmt->fetchAll();
         <button type="button" onclick="switchAdminTab('inventory')" id="tab-btn-inventory" class="px-4 py-2 rounded-xl transition flex items-center gap-1.5 <?= $activeTab === 'inventory' ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high' ?>">
             <span class="material-symbols-outlined text-base">inventory_2</span>
             <span>Inventory Settings</span>
+        </button>
+        <button type="button" onclick="switchAdminTab('audit')" id="tab-btn-audit" class="px-4 py-2 rounded-xl transition flex items-center gap-1.5 <?= $activeTab === 'audit' ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high' ?>">
+            <span class="material-symbols-outlined text-base">history_edu</span>
+            <span>Audit Log</span>
         </button>
     </div>
 </div>
@@ -381,6 +428,115 @@ $usersList = $usersStmt->fetchAll();
             </button>
         </div>
     </form>
+</div>
+
+<!-- ================= TAB: AUDIT LOG ================= -->
+<div id="admin-tab-audit" class="<?= $activeTab === 'audit' ? '' : 'hidden' ?> space-y-6">
+    <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-outline-variant/20">
+            <div>
+                <h2 class="text-sm font-bold text-on-surface flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-lg">history_edu</span>
+                    <span>Clinic Compliance & Security Audit Trail</span>
+                </h2>
+                <p class="text-xs text-outline font-medium mt-0.5">Immutable audit logging tracking user activities, medical chart reads, authentication events, and administrative actions isolated by tenant <code class="font-mono text-primary font-bold"><?= htmlspecialchars($currentTenantId) ?></code></p>
+            </div>
+        </div>
+
+        <!-- Filter & Search Controls -->
+        <form action="admin.php" method="GET" class="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <input type="hidden" name="tab" value="audit">
+            <div class="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+                <span class="font-bold text-outline">Action:</span>
+                <select name="audit_action" onchange="this.form.submit()" class="bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-bold text-on-surface">
+                    <option value="">All Audit Actions</option>
+                    <?php foreach ($distinctAuditActions as $act): ?>
+                        <option value="<?= htmlspecialchars($act) ?>" <?= $auditActionFilter === $act ? 'selected' : '' ?>><?= htmlspecialchars($act) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div class="relative w-full sm:w-80 flex items-center gap-2">
+                <div class="relative flex-1">
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-base">search</span>
+                    <input type="text" name="audit_search" value="<?= htmlspecialchars($auditSearch) ?>" placeholder="Search user, action, details, IP, patient..." class="w-full bg-surface-container-low pl-9 pr-3 py-2 rounded-xl border border-outline-variant/40 text-xs font-medium focus:outline-none focus:border-primary">
+                </div>
+                <button type="submit" class="px-3.5 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition shadow-xs">Search</button>
+                <?php if ($auditSearch !== '' || $auditActionFilter !== ''): ?>
+                    <a href="admin.php?tab=audit" class="px-3 py-2 bg-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-300 transition">Reset</a>
+                <?php endif; ?>
+            </div>
+        </form>
+
+        <!-- Audit Table View -->
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 overflow-hidden shadow-xs">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-surface-container text-outline uppercase font-semibold text-[10px]">
+                        <tr>
+                            <th class="py-3 px-4">Timestamp</th>
+                            <th class="py-3 px-4">User</th>
+                            <th class="py-3 px-4">Action</th>
+                            <th class="py-3 px-4">Details</th>
+                            <th class="py-3 px-4">Patient Ref</th>
+                            <th class="py-3 px-4 text-right">IP Address</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-outline-variant/20 font-medium">
+                        <?php if (empty($auditLogsList)): ?>
+                            <tr>
+                                <td colspan="6" class="py-8 text-center text-outline italic">No audit records found matching criteria.</td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach ($auditLogsList as $alog):
+                                $actionType = $alog['action'] ?? 'ACTION';
+                                $badgeClass = 'bg-slate-100 text-slate-700 border-slate-300';
+                                if (str_contains($actionType, 'LOGIN') || str_contains($actionType, 'AUTH')) $badgeClass = 'bg-blue-100 text-blue-800 border-blue-200';
+                                elseif (str_contains($actionType, 'READ') || str_contains($actionType, 'VIEW')) $badgeClass = 'bg-emerald-100 text-emerald-800 border-emerald-200';
+                                elseif (str_contains($actionType, 'DELETE') || str_contains($actionType, 'REVOKE')) $badgeClass = 'bg-rose-100 text-rose-800 border-rose-200';
+                                elseif (str_contains($actionType, 'SAVE') || str_contains($actionType, 'UPDATE')) $badgeClass = 'bg-amber-100 text-amber-800 border-amber-200';
+                            ?>
+                                <tr class="hover:bg-surface-container-low/50 transition">
+                                    <td class="py-3 px-4 font-mono text-[11px] text-outline whitespace-nowrap">
+                                        <?= htmlspecialchars(date('Y-m-d H:i:s', strtotime($alog['created_at'] ?? 'now'))) ?>
+                                    </td>
+                                    <td class="py-3 px-4">
+                                        <div class="font-bold text-on-surface"><?= htmlspecialchars($alog['user_name'] ?? 'System') ?></div>
+                                        <span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-surface-container-high text-outline">
+                                            <?= htmlspecialchars($alog['user_role'] ?? 'System') ?>
+                                        </span>
+                                    </td>
+                                    <td class="py-3 px-4">
+                                        <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold border <?= $badgeClass ?>">
+                                            <?= htmlspecialchars($actionType) ?>
+                                        </span>
+                                    </td>
+                                    <td class="py-3 px-4 max-w-xs truncate text-slate-700" title="<?= htmlspecialchars($alog['details'] ?? '') ?>">
+                                        <?= htmlspecialchars($alog['details'] ?? '') ?>
+                                    </td>
+                                    <td class="py-3 px-4 font-mono text-[11px] text-primary">
+                                        <?= !empty($alog['patient_id']) ? htmlspecialchars($alog['patient_id']) : '<span class="text-slate-400">N/A</span>' ?>
+                                    </td>
+                                    <td class="py-3 px-4 text-right font-mono text-[11px] text-slate-500">
+                                        <?= htmlspecialchars($alog['ip_address'] ?? '127.0.0.1') ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pagination Controls for Audit Log -->
+        <?php
+        echo renderPagination($totalAuditLogs, $auditPage, $auditLimit, 'admin.php', [
+            'tab' => 'audit',
+            'audit_search' => $auditSearch,
+            'audit_action' => $auditActionFilter
+        ], [5, 10, 25, 50, 100], 'audit_page', 'audit_limit');
+        ?>
+    </div>
 </div>
 
 <!-- ================= TAB: EMAIL SETUP ================= -->
@@ -873,7 +1029,7 @@ function closeTenantModal() {
 }
 
 function switchAdminTab(tab) {
-    const panels = ['users', 'clinic', 'email', 'vms', 'inventory'];
+    const panels = ['users', 'clinic', 'email', 'vms', 'inventory', 'audit'];
     panels.forEach(p => {
         const el = document.getElementById('admin-tab-' + p);
         if (el) el.classList.add('hidden');

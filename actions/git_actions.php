@@ -202,47 +202,95 @@ try {
         }
 
         $logEntries = [];
+        $filterType = trim($_GET['type'] ?? '');
 
-        // 1. Fetch PHP Error Log if readable
-        $errorLogFile = ini_get('error_log');
-        if (!empty($errorLogFile) && file_exists($errorLogFile) && is_readable($errorLogFile)) {
-            $raw = file_get_contents($errorLogFile);
-            $lines = array_filter(explode("\n", trim($raw)));
-            $lines = array_slice($lines, -50); // last 50 error entries
-            foreach ($lines as $line) {
-                $type = (stripos($line, 'error') !== false || stripos($line, 'exception') !== false || stripos($line, 'fatal') !== false) ? 'ERROR' : 'WARNING';
-                $logEntries[] = [
-                    'source'    => 'PHP_ERROR_LOG',
-                    'timestamp' => date('Y-m-d H:i:s'),
-                    'type'      => $type,
-                    'message'   => $line
-                ];
-            }
-        }
-
-        // 2. Fetch Audit Logs from Database
+        // 1. Query database system_error_logs table for PHP & JS runtime errors
         try {
-            $auditLogs = $pdo->query("SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 30")->fetchAll();
-            foreach ($auditLogs as $a) {
+            $sql = "SELECT * FROM system_error_logs ORDER BY created_at DESC LIMIT 100";
+            $stmt = $pdo->query($sql);
+            $dbErrors = $stmt ? $stmt->fetchAll() : [];
+            foreach ($dbErrors as $err) {
+                $eType = $err['type'] ?? 'PHP';
+                if ($filterType !== '' && strtoupper($filterType) !== strtoupper($eType)) {
+                    continue;
+                }
                 $logEntries[] = [
-                    'source'    => 'AUDIT_LOG',
-                    'timestamp' => $a['created_at'] ?? date('Y-m-d H:i:s'),
-                    'type'      => 'AUDIT',
-                    'message'   => '[' . ($a['user_role'] ?? 'User') . ' ' . ($a['user_name'] ?? 'System') . '] ' . ($a['action'] ?? 'ACTION') . ': ' . ($a['details'] ?? '') . ' (IP: ' . ($a['ip_address'] ?? '127.0.0.1') . ')'
+                    'id'          => $err['id'],
+                    'source'      => $eType . '_ERROR',
+                    'timestamp'   => $err['created_at'],
+                    'type'        => $eType,
+                    'level'       => $err['level'] ?? 'ERROR',
+                    'message'     => $err['message'],
+                    'file_line'   => $err['file_line'] ?? '',
+                    'stack_trace' => $err['stack_trace'] ?? '',
+                    'tenant_id'   => $err['tenant_id'] ?? 'default-clinic'
                 ];
             }
         } catch (Throwable $e) {
-            // Ignore if audit logs table is empty or missing
+            // Fallback if system_error_logs table isn't ready
+        }
+
+        // 2. Fetch PHP Error Log file if readable
+        $errorLogFile = ini_get('error_log');
+        if (empty($filterType) || strtoupper($filterType) === 'PHP') {
+            if (!empty($errorLogFile) && file_exists($errorLogFile) && is_readable($errorLogFile)) {
+                $raw = file_get_contents($errorLogFile);
+                $lines = array_filter(explode("\n", trim($raw)));
+                $lines = array_slice($lines, -30); // last 30 error entries
+                foreach ($lines as $line) {
+                    $logEntries[] = [
+                        'id'          => uniqid('file-'),
+                        'source'      => 'PHP_FILE_LOG',
+                        'timestamp'   => date('Y-m-d H:i:s'),
+                        'type'        => 'PHP',
+                        'level'       => (stripos($line, 'error') !== false || stripos($line, 'exception') !== false) ? 'ERROR' : 'WARNING',
+                        'message'     => $line,
+                        'file_line'   => '',
+                        'stack_trace' => '',
+                        'tenant_id'   => 'server'
+                    ];
+                }
+            }
+        }
+
+        // 3. Fetch Audit Logs from Database if no specific PHP/JS filter
+        if (empty($filterType) || strtoupper($filterType) === 'AUDIT') {
+            try {
+                $auditLogs = $pdo->query("SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 20")->fetchAll();
+                foreach ($auditLogs as $a) {
+                    $logEntries[] = [
+                        'id'          => $a['id'],
+                        'source'      => 'AUDIT_LOG',
+                        'timestamp'   => $a['created_at'] ?? date('Y-m-d H:i:s'),
+                        'type'        => 'AUDIT',
+                        'level'       => 'INFO',
+                        'message'     => '[' . ($a['user_role'] ?? 'User') . ' ' . ($a['user_name'] ?? 'System') . '] ' . ($a['action'] ?? 'ACTION') . ': ' . ($a['details'] ?? '') . ' (IP: ' . ($a['ip_address'] ?? '127.0.0.1') . ')',
+                        'file_line'   => 'Patient: ' . ($a['patient_id'] ?: 'N/A'),
+                        'stack_trace' => '',
+                        'tenant_id'   => $a['tenant_id'] ?? 'default-clinic'
+                    ];
+                }
+            } catch (Throwable $e) {
+                // Ignore if audit logs table is empty or missing
+            }
         }
 
         if (empty($logEntries)) {
             $logEntries[] = [
-                'source'    => 'SYSTEM',
-                'timestamp' => date('Y-m-d H:i:s'),
-                'type'      => 'INFO',
-                'message'   => 'No active errors or exception events detected. System operating normally.'
+                'id'          => 'sys-1',
+                'source'      => 'SYSTEM',
+                'timestamp'   => date('Y-m-d H:i:s'),
+                'type'        => 'INFO',
+                'level'       => 'INFO',
+                'message'     => 'No active errors or exception events detected. System operating normally.',
+                'file_line'   => '',
+                'stack_trace' => '',
+                'tenant_id'   => 'system'
             ];
         }
+
+        // Sort descending by timestamp
+        usort($logEntries, fn($a, $b) => strcmp($b['timestamp'], $a['timestamp']));
 
         echo json_encode(['success' => true, 'logs' => $logEntries]);
         exit();
@@ -274,6 +322,14 @@ try {
         $errorLogFile = ini_get('error_log');
         if (!empty($errorLogFile) && file_exists($errorLogFile) && is_writable($errorLogFile)) {
             @file_put_contents($errorLogFile, '');
+        }
+
+        try {
+            $pdo->exec("TRUNCATE TABLE system_error_logs");
+        } catch (Throwable $e) {
+            try {
+                $pdo->exec("DELETE FROM system_error_logs");
+            } catch (Throwable $ex) {}
         }
 
         echo json_encode(['success' => true, 'message' => 'Error log buffer cleared']);

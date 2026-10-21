@@ -28,5 +28,30 @@ class Logger {
         $ctxString = !empty($context) ? ' ' . json_encode($context) : '';
         $formatted = sprintf("[%s] [%s] [Tenant: %s] %s%s\n", $date, $level, $tenantId, $message, $ctxString);
         error_log($formatted, 3, $this->logFile);
+
+        // Also persist to system_error_logs database table if available
+        try {
+            if (function_exists('getDB')) {
+                $pdo = getDB();
+                $logId = 'err-php-' . uniqid();
+                $fileLine = $context['file'] ?? null ? ($context['file'] . ':' . ($context['line'] ?? '')) : null;
+                $stack = isset($context['exception']) && is_object($context['exception']) ? $context['exception']->getTraceAsString() : json_encode($context);
+                $userId = $_SESSION['user_id'] ?? null;
+
+                $stmt = $pdo->prepare("INSERT INTO system_error_logs (id, tenant_id, type, level, message, file_line, stack_trace, user_id, created_at) VALUES (?, ?, 'PHP', ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([
+                    $logId,
+                    $tenantId,
+                    $level,
+                    $message,
+                    $fileLine,
+                    $stack,
+                    $userId,
+                    $date
+                ]);
+            }
+        } catch (\Throwable $e) {
+            // Ignore DB log failures
+        }
     }
 }

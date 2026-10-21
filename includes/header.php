@@ -381,6 +381,42 @@ if (typeof(EventSource) !== "undefined") {
         } catch (e) {}
     };
 }
+
+// Global JavaScript Runtime Error & Rejection Listener
+window.onerror = function(msg, url, lineNo, columnNo, error) {
+    try {
+        const errorData = {
+            message: msg,
+            url: url,
+            line: lineNo,
+            column: columnNo,
+            stack: error && error.stack ? error.stack : '',
+            userAgent: navigator.userAgent
+        };
+        fetch('actions/log_js_error.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(errorData)
+        }).catch(function() {});
+    } catch(e) {}
+    return false;
+};
+
+window.onunhandledrejection = function(event) {
+    try {
+        const errorData = {
+            message: 'Unhandled Promise Rejection: ' + (event.reason ? (event.reason.message || event.reason) : 'Unknown reason'),
+            url: window.location.href,
+            stack: event.reason && event.reason.stack ? event.reason.stack : '',
+            userAgent: navigator.userAgent
+        };
+        fetch('actions/log_js_error.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(errorData)
+        }).catch(function() {});
+    } catch(e) {}
+};
 </script>
 
 <div class="flex flex-1 overflow-hidden relative">
