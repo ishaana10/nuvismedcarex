@@ -460,6 +460,50 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
             sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );");
     } catch (Throwable $e) {}
+
+    // Auto-create system_error_logs table for PHP & JS runtime errors
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS system_error_logs (
+            id VARCHAR(64) PRIMARY KEY,
+            tenant_id VARCHAR(64) NOT NULL DEFAULT 'default-clinic',
+            type VARCHAR(20) NOT NULL DEFAULT 'PHP',
+            level VARCHAR(20) NOT NULL DEFAULT 'ERROR',
+            message TEXT NOT NULL,
+            file_line VARCHAR(500) NULL,
+            stack_trace TEXT NULL,
+            user_id VARCHAR(64) NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );");
+    } catch (Throwable $e) {}
+
+    // Auto-create webhook_subscriptions table for third-party application integrations
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS webhook_subscriptions (
+            id VARCHAR(64) PRIMARY KEY,
+            tenant_id VARCHAR(64) NOT NULL DEFAULT 'default-clinic',
+            app_name VARCHAR(255) NOT NULL,
+            event_type VARCHAR(100) NOT NULL,
+            target_url TEXT NOT NULL,
+            secret_token VARCHAR(255) NULL,
+            status VARCHAR(32) NOT NULL DEFAULT 'active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );");
+    } catch (Throwable $e) {}
+
+    // Auto-create app_integrations table for external API key credentials
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS app_integrations (
+            id VARCHAR(64) PRIMARY KEY,
+            tenant_id VARCHAR(64) NOT NULL DEFAULT 'default-clinic',
+            app_name VARCHAR(255) NOT NULL,
+            api_key VARCHAR(128) NOT NULL UNIQUE,
+            permissions TEXT NULL,
+            status VARCHAR(32) NOT NULL DEFAULT 'active',
+            last_used_at TIMESTAMP NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );");
+    } catch (Throwable $e) {}
 }
 
 /**
