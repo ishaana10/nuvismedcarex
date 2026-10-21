@@ -28,6 +28,9 @@ if (!in_array($activeTab, ['users', 'clinic', 'email', 'vms', 'inventory', 'audi
 
 $pagination = getPaginationParams(10, [5, 10, 25, 50, 100], $pdo);
 
+// Ensure active tenant ID is initialized
+$currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+
 // Fetch Audit Logs if audit tab active or for initial render
 $auditSearch = trim($_GET['audit_search'] ?? '');
 $auditActionFilter = trim($_GET['audit_action'] ?? '');
