@@ -90,6 +90,10 @@ $cloudSettings = $uploadService->getCloudSettings();
         <span class="material-symbols-outlined text-base">api</span>
         <span>API Integration & Webhooks</span>
     </button>
+    <button type="button" onclick="switchDevTab('vsdc')" id="dev-tab-btn-vsdc" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+        <span class="material-symbols-outlined text-base">verified</span>
+        <span>FRCS VSDC & EFD Accreditation</span>
+    </button>
 </div>
 
 <div class="space-y-6">
@@ -174,6 +178,169 @@ $cloudSettings = $uploadService->getCloudSettings();
                 </div>
             </div>
         </div>
+    </div> <!-- End dev-panel-integrations -->
+
+    <!-- 5. FRCS VSDC & EFD Accreditation Module -->
+    <div id="dev-panel-vsdc" class="hidden space-y-6">
+        <?php
+        $certPath = $settings['vms_cert_file_path'] ?? '';
+        $certDetails = json_decode($settings['vms_cert_details'] ?? '{}', true) ?: [];
+        $vmsLogs = [];
+        try {
+            $logStmt = $pdo->prepare("SELECT * FROM vms_logs WHERE tenant_id = ? OR tenant_id = 'default-clinic' ORDER BY created_at DESC LIMIT 15");
+            $logStmt->execute([$currentTenantId]);
+            $vmsLogs = $logStmt->fetchAll();
+        } catch (\Throwable $e) {}
+        ?>
+        <!-- Section 1: Digital Certificate (.pfx / .p12 / .pem) Upload & Key Store Inspector -->
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-6">
+            <div class="border-b border-outline-variant/20 pb-4">
+                <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base">verified</span>
+                    <span>1. FRCS Accredited VSDC Digital Certificate (.pfx / .p12 / .pem) Upload</span>
+                </h2>
+                <p class="text-xs text-outline font-medium mt-0.5">Upload official FRCS V-SDC client certificate issued by Fiji Revenue and Customs Service for mutual TLS (mTLS) authentication.</p>
+            </div>
+
+            <form id="vsdcCertForm" onsubmit="uploadVsdcCertificate(event)" enctype="multipart/form-data" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div class="md:col-span-2">
+                    <label class="block font-bold text-slate-700 mb-1">PKCS#12 Certificate File (.pfx, .p12, .crt, .pem) <span class="text-red-500">*</span></label>
+                    <input type="file" name="vms_cert_file" required accept=".pfx,.p12,.crt,.pem,.cer" class="w-full bg-slate-50 p-2.5 rounded-xl border border-slate-300 font-mono text-xs">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Certificate Private Key Passphrase <span class="text-red-500">*</span></label>
+                    <input type="password" name="vms_cert_passphrase" placeholder="FRCS Certificate Passphrase" class="w-full bg-slate-50 px-3.5 py-2.5 rounded-xl border border-slate-300 font-mono font-medium">
+                </div>
+
+                <div class="flex items-end">
+                    <button type="submit" class="w-full py-2.5 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition shadow-xs flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-base">upload_file</span>
+                        <span>Upload & Validate Certificate</span>
+                    </button>
+                </div>
+            </form>
+
+            <!-- Certificate Inspector & V3.0 Submitter Test Controls Box -->
+            <div class="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/30 space-y-2 text-xs">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <span class="font-bold text-on-surface flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-base text-emerald-600">workspace_premium</span>
+                        <span>VSDC Submitter V3.0 Status: <?= !empty($certPath) ? '<span class="text-emerald-700 font-bold">Certificate Active & Installed</span>' : '<span class="text-amber-700 font-bold">No Accredited Certificate Uploaded</span>' ?></span>
+                    </span>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <button type="button" onclick="testSdcPing('test_sdc_ping')" class="px-2.5 py-1 bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1">
+                            <span class="material-symbols-outlined text-sm">speed</span>
+                            <span>/api/v3/status</span>
+                        </button>
+                        <button type="button" onclick="testSdcPing('get_environment')" class="px-2.5 py-1 bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1">
+                            <span class="material-symbols-outlined text-sm">dns</span>
+                            <span>/api/v3/environment</span>
+                        </button>
+                        <button type="button" onclick="testSdcPing('get_taxrates')" class="px-2.5 py-1 bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1">
+                            <span class="material-symbols-outlined text-sm">percent</span>
+                            <span>/api/v3/taxrates</span>
+                        </button>
+                    </div>
+                </div>
+
+                <?php if (!empty($certDetails)): ?>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 pt-2 border-t border-outline-variant/20 font-mono text-[11px] text-slate-600">
+                        <div><span class="text-slate-400">Subject:</span> <?= htmlspecialchars($certDetails['subject'] ?? 'N/A') ?></div>
+                        <div><span class="text-slate-400">Issuer:</span> <?= htmlspecialchars($certDetails['issuer'] ?? 'N/A') ?></div>
+                        <div><span class="text-slate-400">Valid From:</span> <?= htmlspecialchars($certDetails['valid_from'] ?? 'N/A') ?></div>
+                        <div><span class="text-slate-400">Valid To:</span> <?= htmlspecialchars($certDetails['valid_to'] ?? 'N/A') ?></div>
+                    </div>
+                <?php endif; ?>
+
+                <div id="sdc-ping-console" class="font-mono text-xs bg-slate-950 text-amber-300 p-3 rounded-xl border border-slate-800 max-h-36 overflow-y-auto leading-relaxed space-y-1 shadow-inner hidden mt-2"></div>
+            </div>
+        </div>
+
+        <!-- Section 2: FRCS EFD Accreditation Checklist Matrix -->
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-5">
+            <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                <span class="material-symbols-outlined text-base">fact_check</span>
+                <span>2. FRCS EFD Accreditation Requirements Checklist Matrix</span>
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                <div class="p-3 bg-surface-container-low rounded-xl border border-outline-variant/30 flex items-start gap-2.5">
+                    <span class="material-symbols-outlined text-emerald-600 text-lg">check_circle</span>
+                    <div>
+                        <p class="font-bold text-on-surface">SDC Request/Response Schema Compliance</p>
+                        <p class="text-[11px] text-outline mt-0.5">Supports VMS Phase 3 specification JSON structures with 4-decimal tax precision.</p>
+                    </div>
+                </div>
+
+                <div class="p-3 bg-surface-container-low rounded-xl border border-outline-variant/30 flex items-start gap-2.5">
+                    <span class="material-symbols-outlined text-emerald-600 text-lg">check_circle</span>
+                    <div>
+                        <p class="font-bold text-on-surface">Fiji VAT Tax Labels (A, E, F, P)</p>
+                        <p class="text-[11px] text-outline mt-0.5">Applies standard VAT (15%), Exempt (0%), Zero-rated (0%), and Special Tax (0.25%).</p>
+                    </div>
+                </div>
+
+                <div class="p-3 bg-surface-container-low rounded-xl border border-outline-variant/30 flex items-start gap-2.5">
+                    <span class="material-symbols-outlined text-emerald-600 text-lg">check_circle</span>
+                    <div>
+                        <p class="font-bold text-on-surface">Cancellation Rules (Section 10.2)</p>
+                        <p class="text-[11px] text-outline mt-0.5">Automatically sets Buyer TIN equal to Seller TIN on refund and cancellation invoices.</p>
+                    </div>
+                </div>
+
+                <div class="p-3 bg-surface-container-low rounded-xl border border-outline-variant/30 flex items-start gap-2.5">
+                    <span class="material-symbols-outlined text-emerald-600 text-lg">check_circle</span>
+                    <div>
+                        <p class="font-bold text-on-surface">Daily Fiscal Summary (Z-Report)</p>
+                        <p class="text-[11px] text-outline mt-0.5">Generates PDF reports breakdown by transaction type and payment methods.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: FRCS Audit Trail Log Payload Inspector -->
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-5">
+            <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                <span class="material-symbols-outlined text-base">data_object</span>
+                <span>3. FRCS V-SDC Raw Payload Audit Trail Log</span>
+            </h2>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs border border-outline-variant/30 rounded-xl overflow-hidden">
+                    <thead class="bg-surface-container text-outline uppercase font-semibold text-[10px]">
+                        <tr>
+                            <th class="py-2.5 px-3">Timestamp</th>
+                            <th class="py-2.5 px-3">Invoice Ref</th>
+                            <th class="py-2.5 px-3">Event Type</th>
+                            <th class="py-2.5 px-3">Payload Inspector</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-outline-variant/20 font-mono text-[11px]">
+                        <?php if (empty($vmsLogs)): ?>
+                            <tr>
+                                <td colspan="4" class="py-6 text-center text-slate-400 italic font-sans">No V-SDC audit log entries recorded.</td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach ($vmsLogs as $vl): ?>
+                                <tr class="hover:bg-surface-container-low/50 transition">
+                                    <td class="py-2.5 px-3 text-slate-500 whitespace-nowrap"><?= htmlspecialchars($vl['created_at']) ?></td>
+                                    <td class="py-2.5 px-3 font-bold text-primary"><?= htmlspecialchars($vl['invoice_id'] ?? 'N/A') ?></td>
+                                    <td class="py-2.5 px-3 font-bold text-on-surface"><?= htmlspecialchars($vl['event_type']) ?></td>
+                                    <td class="py-2.5 px-3">
+                                        <details class="cursor-pointer">
+                                            <summary class="text-slate-600 underline text-[10px] font-sans">View Payload JSON</summary>
+                                            <pre class="mt-1 p-2 bg-slate-950 text-emerald-400 rounded text-[10px] overflow-x-auto whitespace-pre-wrap"><?= htmlspecialchars($vl['request_payload'] ?: $vl['response_payload']) ?></pre>
+                                        </details>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div> <!-- End dev-panel-vsdc -->
     </div> <!-- End dev-panel-git -->
 
     <!-- Multi-Tenancy Clinics Panel -->
@@ -855,7 +1022,8 @@ $cloudSettings = $uploadService->getCloudSettings();
         $webhookSubscriptions = [];
         $apiIntegrations = [];
         try {
-            $webhookSubscriptions = $labOrderService ? $webhookService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\WebhookService::class)->getSubscriptions() : [];
+            $webhookService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\WebhookService::class);
+            $webhookSubscriptions = $webhookService->getSubscriptions();
             $apiStmt = $pdo->prepare("SELECT * FROM app_integrations WHERE tenant_id = ? ORDER BY created_at DESC");
             $apiStmt->execute([$currentTenantId]);
             $apiIntegrations = $apiStmt->fetchAll();
@@ -1237,7 +1405,7 @@ function closeTenantModal() {
 }
 
 function switchDevTab(tab) {
-    const panels = ['git', 'tenants', 'vms', 'cloud', 'lab', 'pagination', 'rbac', 'redis', 'logs', 'integrations'];
+    const panels = ['git', 'tenants', 'vms', 'cloud', 'lab', 'pagination', 'rbac', 'redis', 'logs', 'integrations', 'vsdc'];
     panels.forEach(p => {
         const el = document.getElementById('dev-panel-' + p);
         if (el) el.classList.add('hidden');
@@ -1736,6 +1904,52 @@ function revokeApiKey(id, appName) {
             window.location.reload();
         } else {
             alert('Failed to revoke API Key: ' + (d.error || 'Unknown error'));
+        }
+    });
+}
+
+function uploadVsdcCertificate(e) {
+    e.preventDefault();
+    const form = e.target;
+    const formData = new FormData(form);
+    formData.append('action', 'upload_certificate');
+
+    fetch('actions/vms_actions.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            alert('✔ ' + d.message);
+            window.location.reload();
+        } else {
+            alert('❌ Certificate Upload Failed: ' + (d.error || 'Unknown error'));
+        }
+    });
+}
+
+function testSdcPing(actionType = 'test_sdc_ping') {
+    const consoleBox = document.getElementById('sdc-ping-console');
+    if (consoleBox) {
+        consoleBox.classList.remove('hidden');
+        consoleBox.innerHTML = '<p class="text-amber-300 animate-pulse">Executing FRCS VSDC Submitter V3.0 Test (' + actionType + ')...</p>';
+    }
+
+    fetch('actions/vms_actions.php?action=' + encodeURIComponent(actionType))
+    .then(r => r.json())
+    .then(d => {
+        if (consoleBox) {
+            let logHtml = '';
+            if (d.logs && d.logs.length > 0) {
+                logHtml = d.logs.map(l => `<div class="p-0.5 border-b border-slate-900">${escapeHtml(l)}</div>`).join('');
+            }
+            if (d.success) {
+                logHtml += `<div class="p-1 text-emerald-400 font-bold mt-1">✔ ${escapeHtml(d.message)}</div>`;
+            } else {
+                logHtml += `<div class="p-1 text-rose-400 font-bold mt-1">❌ ${escapeHtml(d.error || 'Ping Failed')}</div>`;
+            }
+            consoleBox.innerHTML = logHtml;
         }
     });
 }
