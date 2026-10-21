@@ -221,17 +221,27 @@ $cloudSettings = $uploadService->getCloudSettings();
                 </div>
             </form>
 
-            <!-- Certificate Inspector Box -->
+            <!-- Certificate Inspector & V3.0 Submitter Test Controls Box -->
             <div class="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/30 space-y-2 text-xs">
-                <div class="flex items-center justify-between">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <span class="font-bold text-on-surface flex items-center gap-1.5">
                         <span class="material-symbols-outlined text-base text-emerald-600">workspace_premium</span>
-                        <span>Key Store Status: <?= !empty($certPath) ? '<span class="text-emerald-700 font-bold">Certificate Active & Installed</span>' : '<span class="text-amber-700 font-bold">No Accredited Certificate Uploaded</span>' ?></span>
+                        <span>VSDC Submitter V3.0 Status: <?= !empty($certPath) ? '<span class="text-emerald-700 font-bold">Certificate Active & Installed</span>' : '<span class="text-amber-700 font-bold">No Accredited Certificate Uploaded</span>' ?></span>
                     </span>
-                    <button type="button" onclick="testSdcPing()" class="px-3 py-1 bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1">
-                        <span class="material-symbols-outlined text-sm">network_check</span>
-                        <span>Test mTLS Connection</span>
-                    </button>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <button type="button" onclick="testSdcPing('test_sdc_ping')" class="px-2.5 py-1 bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1">
+                            <span class="material-symbols-outlined text-sm">speed</span>
+                            <span>/api/v3/status</span>
+                        </button>
+                        <button type="button" onclick="testSdcPing('get_environment')" class="px-2.5 py-1 bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1">
+                            <span class="material-symbols-outlined text-sm">dns</span>
+                            <span>/api/v3/environment</span>
+                        </button>
+                        <button type="button" onclick="testSdcPing('get_taxrates')" class="px-2.5 py-1 bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1">
+                            <span class="material-symbols-outlined text-sm">percent</span>
+                            <span>/api/v3/taxrates</span>
+                        </button>
+                    </div>
                 </div>
 
                 <?php if (!empty($certDetails)): ?>
@@ -1919,14 +1929,14 @@ function uploadVsdcCertificate(e) {
     });
 }
 
-function testSdcPing() {
+function testSdcPing(actionType = 'test_sdc_ping') {
     const consoleBox = document.getElementById('sdc-ping-console');
     if (consoleBox) {
         consoleBox.classList.remove('hidden');
-        consoleBox.innerHTML = '<p class="text-amber-300 animate-pulse">Executing FRCS V-SDC mTLS Connection Test...</p>';
+        consoleBox.innerHTML = '<p class="text-amber-300 animate-pulse">Executing FRCS VSDC Submitter V3.0 Test (' + actionType + ')...</p>';
     }
 
-    fetch('actions/vms_actions.php?action=test_sdc_ping')
+    fetch('actions/vms_actions.php?action=' + encodeURIComponent(actionType))
     .then(r => r.json())
     .then(d => {
         if (consoleBox) {

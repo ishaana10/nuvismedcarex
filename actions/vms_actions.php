@@ -118,23 +118,42 @@ try {
         exit();
     }
 
-    if ($action === 'test_sdc_ping') {
-        $stmtSet = $pdo->query("SELECT setting_key, setting_value FROM clinic_settings WHERE setting_key LIKE 'vms_%'");
+    if ($action === 'test_sdc_ping' || $action === 'get_environment' || $action === 'get_taxrates') {
+        $stmtSet = $pdo->query("SELECT setting_key, setting_value FROM tenant_settings WHERE tenant_id = '{$tenantId}' AND setting_key LIKE 'vms_%'");
         $vmsSettings = $stmtSet ? $stmtSet->fetchAll(PDO::FETCH_KEY_PAIR) : [];
+        if (empty($vmsSettings)) {
+            $stmtSetGlobal = $pdo->query("SELECT setting_key, setting_value FROM clinic_settings WHERE setting_key LIKE 'vms_%'");
+            $vmsSettings = $stmtSetGlobal ? $stmtSetGlobal->fetchAll(PDO::FETCH_KEY_PAIR) : [];
+        }
+
         $sdcUrl = $vmsSettings['vms_sdc_url'] ?? 'https://tap.sandbox.vms.frcs.org.fj';
+        $pacCode = $vmsSettings['vms_pac_code'] ?? ($vmsSettings['vms_pos_number'] ?? 'ASDF238/1.2');
 
         $certPath = !empty($vmsSettings['vms_cert_file_path']) ? __DIR__ . '/../' . $vmsSettings['vms_cert_file_path'] : '';
         $certExists = !empty($certPath) && file_exists($certPath);
 
+        $endpoint = match($action) {
+            'get_environment' => '/api/v3/environment',
+            'get_taxrates' => '/api/v3/taxrates',
+            default => '/api/v3/status'
+        };
+
         $responseLog = [];
-        $responseLog[] = "[V-SDC Ping] Connecting to FRCS SDC API: {$sdcUrl}";
+        $responseLog[] = "[VSDC V3.0 Submitter] Target Endpoint: {$sdcUrl}{$endpoint}";
+        $responseLog[] = "[Tenant Isolation] Tenant Context: {$tenantId}";
+        $responseLog[] = "[PAC Header] POS Authentication Code: " . substr($pacCode, 0, 6) . '***';
         $responseLog[] = "[mTLS Check] Client Certificate Present: " . ($certExists ? "YES ({$vmsSettings['vms_cert_file_path']})" : "NO (Sandbox Mode)");
 
         if (function_exists('curl_init')) {
-            $ch = curl_init(rtrim($sdcUrl, '/') . '/api/v3/status');
+            $ch = curl_init(rtrim($sdcUrl, '/') . $endpoint);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_TIMEOUT, 10);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Accept: application/json',
+                'Content-Type: application/json',
+                'PAC: ' . $pacCode
+            ]);
 
             if ($certExists) {
                 curl_setopt($ch, CURLOPT_SSLCERT, $certPath);
@@ -154,15 +173,17 @@ try {
                 echo json_encode([
                     'success' => true,
                     'http_code' => $httpCode,
-                    'message' => "FRCS SDC API reachable (HTTP {$httpCode}).",
+                    'message' => "FRCS VSDC V3.0 Submitter ping completed (HTTP {$httpCode}).",
+                    'endpoint' => $endpoint,
                     'logs' => $responseLog
                 ]);
             } else {
-                $responseLog[] = "[mTLS Note] FRCS SDC Sandbox accessible or requiring active accredited certificate: {$err}";
+                $responseLog[] = "[mTLS Note] SDC Sandbox accessible or requiring accredited certificate: {$err}";
                 echo json_encode([
                     'success' => true,
                     'http_code' => 200,
-                    'message' => "FRCS V-SDC Protocol ping test completed (Sandbox Ready).",
+                    'message' => "FRCS VSDC Submitter V3.0 test completed (Sandbox Ready).",
+                    'endpoint' => $endpoint,
                     'logs' => $responseLog
                 ]);
             }
