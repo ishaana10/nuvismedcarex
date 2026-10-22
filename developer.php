@@ -348,8 +348,6 @@ $cloudSettings = $uploadService->getCloudSettings();
                 </table>
             </div>
         </div>
-    </div> <!-- End dev-panel-vsdc -->
-    </div> <!-- End dev-panel-git -->
 
     <!-- Multi-Tenancy Clinics Panel -->
     <div id="dev-panel-tenants" class="hidden space-y-6">
