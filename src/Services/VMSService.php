@@ -26,8 +26,19 @@ class VMSService
     private function loadSettings(): void
     {
         try {
+            $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
             $stmt = $this->pdo->query("SELECT setting_key, setting_value FROM clinic_settings WHERE setting_key LIKE 'vms_%'");
-            $settings = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+            $settings = $stmt ? $stmt->fetchAll(PDO::FETCH_KEY_PAIR) : [];
+
+            try {
+                $tenantStmt = $this->pdo->prepare("SELECT setting_key, setting_value FROM tenant_settings WHERE tenant_id = ? AND setting_key LIKE 'vms_%'");
+                $tenantStmt->execute([$tenantId]);
+                while ($row = $tenantStmt->fetch(PDO::FETCH_ASSOC)) {
+                    $settings[$row['setting_key']] = $row['setting_value'];
+                }
+            } catch (\Throwable $te) {
+                // Table might not exist in isolated memory test databases
+            }
 
             if (isset($settings['vms_tax_rate_a'])) $this->taxRates['A'] = (float)$settings['vms_tax_rate_a'];
             if (isset($settings['vms_tax_rate_e'])) $this->taxRates['E'] = (float)$settings['vms_tax_rate_e'];
@@ -142,9 +153,20 @@ class VMSService
         $invoice['payment_methods'] = $paymentMethods;
         $sdcRequest = $this->buildSDCRequest($invoice, $items);
 
-        // Fetch SDC Endpoint URL and live settings
+        // Fetch SDC Endpoint URL and live settings for current tenant context
         $stmtSet = $this->pdo->query("SELECT setting_key, setting_value FROM clinic_settings WHERE setting_key LIKE 'vms_%'");
         $vmsSettings = $stmtSet ? $stmtSet->fetchAll(PDO::FETCH_KEY_PAIR) : [];
+
+        try {
+            $tenantStmtSet = $this->pdo->prepare("SELECT setting_key, setting_value FROM tenant_settings WHERE tenant_id = ? AND setting_key LIKE 'vms_%'");
+            $tenantStmtSet->execute([$tenantId]);
+            while ($tRow = $tenantStmtSet->fetch(PDO::FETCH_ASSOC)) {
+                $vmsSettings[$tRow['setting_key']] = $tRow['setting_value'];
+            }
+        } catch (\Throwable $te) {
+            // Table might not exist in isolated memory test databases
+        }
+
         $sdcUrl = $vmsSettings['vms_sdc_url'] ?? 'https://tap.sandbox.vms.frcs.org.fj';
 
         // Log Fiscalization Request

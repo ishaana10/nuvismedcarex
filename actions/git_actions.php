@@ -253,10 +253,13 @@ try {
             }
         }
 
-        // 3. Fetch Audit Logs from Database if no specific PHP/JS filter
+        // 3. Fetch Audit Logs from Database scoped by tenant if no specific PHP/JS filter
         if (empty($filterType) || strtoupper($filterType) === 'AUDIT') {
             try {
-                $auditLogs = $pdo->query("SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 20")->fetchAll();
+                $activeTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+                $auditStmt = $pdo->prepare("SELECT * FROM audit_logs WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 20");
+                $auditStmt->execute([$activeTenantId]);
+                $auditLogs = $auditStmt->fetchAll();
                 foreach ($auditLogs as $a) {
                     $logEntries[] = [
                         'id'          => $a['id'],
@@ -267,7 +270,7 @@ try {
                         'message'     => '[' . ($a['user_role'] ?? 'User') . ' ' . ($a['user_name'] ?? 'System') . '] ' . ($a['action'] ?? 'ACTION') . ': ' . ($a['details'] ?? '') . ' (IP: ' . ($a['ip_address'] ?? '127.0.0.1') . ')',
                         'file_line'   => 'Patient: ' . ($a['patient_id'] ?: 'N/A'),
                         'stack_trace' => '',
-                        'tenant_id'   => $a['tenant_id'] ?? 'default-clinic'
+                        'tenant_id'   => $a['tenant_id'] ?? $activeTenantId
                     ];
                 }
             } catch (Throwable $e) {
