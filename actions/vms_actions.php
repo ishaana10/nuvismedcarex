@@ -95,7 +95,7 @@ try {
             }
         }
 
-        // Save certificate settings to database
+        // Save certificate settings to database (clinic_settings and tenant_settings for full tenant isolation)
         $relativeCertPath = 'uploads/vms/' . $certFileName;
         $settingsToSave = [
             'vms_cert_file_path' => $relativeCertPath,
@@ -104,9 +104,19 @@ try {
             'vms_cert_uploaded_at' => date('Y-m-d H:i:s')
         ];
 
+        $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
         $stmt = $pdo->prepare("INSERT INTO clinic_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)");
+
+        $tsQuery = ($driver === 'sqlite')
+            ? "INSERT INTO tenant_settings (id, tenant_id, setting_key, setting_value) VALUES (?, ?, ?, ?) ON CONFLICT(tenant_id, setting_key) DO UPDATE SET setting_value = excluded.setting_value, updated_at = CURRENT_TIMESTAMP"
+            : "INSERT INTO tenant_settings (id, tenant_id, setting_key, setting_value) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = CURRENT_TIMESTAMP";
+        $tsStmt = $pdo->prepare($tsQuery);
+
         foreach ($settingsToSave as $k => $v) {
             $stmt->execute([$k, $v]);
+            try {
+                $tsStmt->execute(['ts-' . $tenantId . '-' . $k, $tenantId, $k, $v]);
+            } catch (\Throwable $te) {}
         }
 
         echo json_encode([
@@ -119,8 +129,13 @@ try {
     }
 
     if ($action === 'test_sdc_ping' || $action === 'get_environment' || $action === 'get_taxrates') {
-        $stmtSet = $pdo->query("SELECT setting_key, setting_value FROM tenant_settings WHERE tenant_id = '{$tenantId}' AND setting_key LIKE 'vms_%'");
-        $vmsSettings = $stmtSet ? $stmtSet->fetchAll(PDO::FETCH_KEY_PAIR) : [];
+        $vmsSettings = [];
+        try {
+            $stmtSet = $pdo->prepare("SELECT setting_key, setting_value FROM tenant_settings WHERE tenant_id = ? AND setting_key LIKE 'vms_%'");
+            $stmtSet->execute([$tenantId]);
+            $vmsSettings = $stmtSet->fetchAll(PDO::FETCH_KEY_PAIR);
+        } catch (\Throwable $te) {}
+
         if (empty($vmsSettings)) {
             $stmtSetGlobal = $pdo->query("SELECT setting_key, setting_value FROM clinic_settings WHERE setting_key LIKE 'vms_%'");
             $vmsSettings = $stmtSetGlobal ? $stmtSetGlobal->fetchAll(PDO::FETCH_KEY_PAIR) : [];

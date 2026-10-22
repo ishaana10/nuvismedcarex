@@ -446,6 +446,19 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
         );");
     } catch (Throwable $e) {}
 
+    // Auto-create tenant_settings table if missing
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS tenant_settings (
+            id VARCHAR(100) PRIMARY KEY,
+            tenant_id VARCHAR(64) NOT NULL DEFAULT 'default-clinic',
+            setting_key VARCHAR(100) NOT NULL,
+            setting_value TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT uk_tenant_setting UNIQUE (tenant_id, setting_key)
+        );");
+    } catch (Throwable $e) {}
+
     // Auto-create email_logs if missing
     try {
         $pdo->exec("CREATE TABLE IF NOT EXISTS email_logs (

@@ -5,11 +5,20 @@ $pageTitle = "Administrator Settings - NuvisMedcareX";
 $activePage = "admin";
 include __DIR__ . '/includes/header.php';
 
-// Fetch current clinic settings
+// Ensure active tenant ID is initialized
+$currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+
+// Fetch current clinic settings merged with tenant-specific settings
 $settingsRows = $pdo->query("SELECT * FROM clinic_settings")->fetchAll();
 $settings = [];
 foreach ($settingsRows as $r) {
     $settings[$r['setting_key']] = $r['setting_value'];
+}
+
+$tenantSettingsStmt = $pdo->prepare("SELECT setting_key, setting_value FROM tenant_settings WHERE tenant_id = ?");
+$tenantSettingsStmt->execute([$currentTenantId]);
+while ($tr = $tenantSettingsStmt->fetch()) {
+    $settings[$tr['setting_key']] = $tr['setting_value'];
 }
 
 // Fetch multi-tenants clinics list
@@ -40,7 +49,7 @@ $auditLimit = (int)($_GET['audit_limit'] ?? 10);
 if (!in_array($auditLimit, [5, 10, 25, 50, 100], true)) $auditLimit = 10;
 $auditOffset = ($auditPage - 1) * $auditLimit;
 
-$auditWhere = ["(tenant_id = :tid OR tenant_id = 'default-clinic')"];
+$auditWhere = ["tenant_id = :tid"];
 $auditParams = [':tid' => $currentTenantId];
 
 if ($auditSearch !== '') {
@@ -70,7 +79,7 @@ $auditStmt->execute();
 $auditLogsList = $auditStmt->fetchAll();
 
 // Fetch distinct actions for audit filter dropdown
-$distinctActionsStmt = $pdo->prepare("SELECT DISTINCT action FROM audit_logs WHERE tenant_id = :tid OR tenant_id = 'default-clinic' ORDER BY action ASC");
+$distinctActionsStmt = $pdo->prepare("SELECT DISTINCT action FROM audit_logs WHERE tenant_id = :tid ORDER BY action ASC");
 $distinctActionsStmt->execute([':tid' => $currentTenantId]);
 $distinctAuditActions = $distinctActionsStmt->fetchAll(PDO::FETCH_COLUMN);
 
