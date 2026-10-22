@@ -186,7 +186,7 @@ $cloudSettings = $uploadService->getCloudSettings();
                 </div>
             </div>
         </div>
-    </div> <!-- End dev-panel-integrations -->
+    </div> <!-- End dev-panel-git -->
 
     <!-- 5. FRCS VSDC & EFD Accreditation Module -->
     <div id="dev-panel-vsdc" class="hidden space-y-6">
@@ -348,6 +348,7 @@ $cloudSettings = $uploadService->getCloudSettings();
                 </table>
             </div>
         </div>
+    </div> <!-- End dev-panel-vsdc -->
 
     <!-- Multi-Tenancy Clinics Panel -->
     <div id="dev-panel-tenants" class="hidden space-y-6">
@@ -1219,7 +1220,6 @@ $cloudSettings = $uploadService->getCloudSettings();
             </div>
         </div>
     </div> <!-- End dev-panel-integrations -->
-</div>
 
 <!-- Modal: New Webhook Subscription -->
 <div id="webhookModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
