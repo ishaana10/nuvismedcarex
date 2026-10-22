@@ -16,15 +16,20 @@ class EmailService {
      */
     public function getSmtpSettings(?string $tenantId = null): array {
         $tenantId = $tenantId ?: TenantContext::getTenantId();
+        $rows = [];
 
-        $stmt = $this->db->prepare("SELECT setting_key, setting_value FROM tenant_settings WHERE tenant_id = ? AND setting_key LIKE 'smtp_%'");
-        $stmt->execute([$tenantId]);
-        $rows = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+        try {
+            $stmt = $this->db->prepare("SELECT setting_key, setting_value FROM tenant_settings WHERE tenant_id = ? AND setting_key LIKE 'smtp_%'");
+            $stmt->execute([$tenantId]);
+            $rows = $stmt->fetchAll(PDO::FETCH_KEY_PAIR) ?: [];
+        } catch (\Throwable $te) {}
 
         if (empty($rows)) {
-            $stmtGlobal = $this->db->prepare("SELECT setting_key, setting_value FROM clinic_settings WHERE setting_key LIKE 'smtp_%'");
-            $stmtGlobal->execute();
-            $rows = $stmtGlobal->fetchAll(PDO::FETCH_KEY_PAIR);
+            try {
+                $stmtGlobal = $this->db->prepare("SELECT setting_key, setting_value FROM clinic_settings WHERE setting_key LIKE 'smtp_%'");
+                $stmtGlobal->execute();
+                $rows = $stmtGlobal->fetchAll(PDO::FETCH_KEY_PAIR) ?: [];
+            } catch (\Throwable $ge) {}
         }
 
         return [
