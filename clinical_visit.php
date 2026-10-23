@@ -441,10 +441,6 @@ include __DIR__ . '/includes/header.php';
         </div>
 
         <div class="flex flex-wrap items-center gap-2.5">
-            <button type="button" onclick="document.getElementById('createInvoiceModal').classList.remove('hidden')" class="btn-secondary text-xs py-2 px-3">
-                <span class="material-symbols-outlined text-base">receipt_long</span>
-                <span>Invoice</span>
-            </button>
             <button type="button" onclick="document.getElementById('issueMedCertModal').classList.remove('hidden')" class="btn-secondary text-xs py-2 px-3">
                 <span class="material-symbols-outlined text-base">workspace_premium</span>
                 <span>Med Cert</span>
@@ -455,7 +451,7 @@ include __DIR__ . '/includes/header.php';
             </a>
             <button type="button" onclick="document.getElementById('finalizeModal').classList.remove('hidden')" class="btn-primary text-xs py-2 px-4">
                 <span class="material-symbols-outlined text-base">check_circle</span>
-                <span>Finish Visit</span>
+                <span>Finish Visit / Invoice</span>
             </button>
         </div>
     </div>
