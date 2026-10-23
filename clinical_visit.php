@@ -887,7 +887,8 @@ include __DIR__ . '/includes/header.php';
 </div>
 
 <script>
-const inventoryList = <?= json_encode($inventoryList, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+window.inventoryList = <?= json_encode($inventoryList, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+const inventoryList = window.inventoryList;
 
 function recalculateFinalizeInvoiceTotals() {
     let totalGross = 0;
@@ -941,8 +942,9 @@ function addFinalizeRow() {
     const tr = document.createElement('tr');
 
     let invOptions = '<option value="">-- Choose Inventory Stock Item (Optional) --</option>';
-    if (Array.isArray(inventoryList)) {
-        inventoryList.forEach(item => {
+    const items = window.inventoryList || (typeof inventoryList !== 'undefined' ? inventoryList : []);
+    if (Array.isArray(items)) {
+        items.forEach(item => {
             const price = parseFloat(item.unit_price) || 0;
             const tax = item.vms_tax_code || 'A';
             invOptions += `<option value="${item.id}" data-name="${item.name}" data-sku="${item.sku}" data-price="${price}" data-tax="${tax}">${item.name} ($${price.toFixed(2)})</option>`;
