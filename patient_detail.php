@@ -765,17 +765,40 @@ function closePastVisitModal() {
                                     <input type="text" name="item_name[]" id="inv_service_desc" value="Clinical Consultation & Examination" required placeholder="Item / Service Name" class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg text-xs font-medium">
                                 </td>
                                 <td class="py-1.5 px-1">
-                                    <input type="number" step="0.5" name="quantity[]" value="1" required class="w-full px-1.5 py-1 border border-outline-variant/40 rounded-lg font-mono">
+                                    <input type="number" step="0.5" name="quantity[]" value="1" oninput="recalculatePastInvoiceTotals()" required class="w-full px-1.5 py-1 border border-outline-variant/40 rounded-lg font-mono">
                                 </td>
                                 <td class="py-1.5 px-1">
-                                    <input type="number" step="0.01" name="unit_price[]" value="150.00" required class="w-full px-1.5 py-1 border border-outline-variant/40 rounded-lg font-mono">
+                                    <input type="number" step="0.01" name="unit_price[]" value="150.00" oninput="recalculatePastInvoiceTotals()" required class="w-full px-1.5 py-1 border border-outline-variant/40 rounded-lg font-mono">
                                 </td>
                                 <td class="py-1.5 px-1 text-center">
-                                    <button type="button" onclick="this.closest('tr').remove()" class="text-red-500 font-bold">&times;</button>
+                                    <button type="button" onclick="this.closest('tr').remove(); recalculatePastInvoiceTotals();" class="text-red-500 font-bold">&times;</button>
                                 </td>
                             </tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- Auto-Calculated Totals & Tax Summary -->
+            <div class="p-3 bg-surface-container-high/60 rounded-xl border border-outline-variant/30 space-y-2">
+                <div class="flex items-center justify-between text-xs">
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold text-outline">Tax Rate:</span>
+                        <select id="past_tax_rate_select" onchange="recalculatePastInvoiceTotals()" class="px-2 py-0.5 border border-outline-variant/40 rounded-lg bg-white font-bold text-xs">
+                            <option value="15.00" selected>15% (VAT / Tax)</option>
+                            <option value="0.00">0% (Exempt)</option>
+                            <option value="9.00">9%</option>
+                            <option value="10.00">10%</option>
+                        </select>
+                    </div>
+                    <div class="text-right font-mono text-xs">
+                        <span class="text-outline font-semibold">Tax Amount:</span>
+                        <span class="font-bold text-slate-800 ml-1" id="past_tax_amount_display">$19.57</span>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between border-t border-outline-variant/20 pt-2 text-xs">
+                    <span class="font-bold text-slate-700">Subtotal (Pre-Tax): <span class="font-mono text-slate-900" id="past_subtotal_display">$130.43</span></span>
+                    <span class="font-extrabold text-primary text-sm">Total Amount: <span class="font-mono" id="past_total_display">$150.00</span></span>
                 </div>
             </div>
 
@@ -792,7 +815,7 @@ function closePastVisitModal() {
                 </div>
                 <div>
                     <label class="block font-bold text-outline mb-1">Insurance Portion ($)</label>
-                    <input type="number" step="0.01" min="0" name="insurance_covered" value="0.00" class="w-full px-2.5 py-1.5 border border-outline-variant/40 rounded-xl font-mono font-bold bg-white">
+                    <input type="number" step="0.01" min="0" name="insurance_covered" id="past_insurance_covered" value="0.00" oninput="recalculatePastInvoiceTotals()" class="w-full px-2.5 py-1.5 border border-outline-variant/40 rounded-xl font-mono font-bold bg-white">
                 </div>
             </div>
 
@@ -812,6 +835,35 @@ function closePastVisitModal() {
 <script>
 const pastInventoryList = <?= json_encode($inventoryList, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
 
+function recalculatePastInvoiceTotals() {
+    let totalGross = 0;
+    const rows = document.querySelectorAll('#pastInvoiceItemsTable tbody tr');
+    rows.forEach(tr => {
+        const qty = parseFloat(tr.querySelector('input[name="quantity[]"]')?.value) || 0;
+        const price = parseFloat(tr.querySelector('input[name="unit_price[]"]')?.value) || 0;
+        totalGross += (qty * price);
+    });
+
+    const taxRate = parseFloat(document.getElementById('past_tax_rate_select')?.value) || 0;
+    let preTaxSubtotal = totalGross;
+    let taxAmount = 0;
+
+    if (taxRate > 0) {
+        preTaxSubtotal = totalGross / (1 + (taxRate / 100));
+        taxAmount = totalGross - preTaxSubtotal;
+    }
+
+    if (document.getElementById('past_subtotal_display')) {
+        document.getElementById('past_subtotal_display').innerText = '$' + preTaxSubtotal.toFixed(2);
+    }
+    if (document.getElementById('past_tax_amount_display')) {
+        document.getElementById('past_tax_amount_display').innerText = '$' + taxAmount.toFixed(2);
+    }
+    if (document.getElementById('past_total_display')) {
+        document.getElementById('past_total_display').innerText = '$' + totalGross.toFixed(2);
+    }
+}
+
 function onPastInventorySelect(select) {
     const tr = select.closest('tr');
     const opt = select.options[select.selectedIndex];
@@ -819,19 +871,15 @@ function onPastInventorySelect(select) {
     const invIdInput = tr.querySelector('input[name="inventory_id[]"]');
     const itemNameInput = tr.querySelector('input[name="item_name[]"]');
     const unitPriceInput = tr.querySelector('input[name="unit_price[]"]');
-    const taxSelect = tr.querySelector('select[name="tax_label[]"]');
 
     if (opt.value) {
         invIdInput.value = opt.value;
         itemNameInput.value = opt.getAttribute('data-name') || '';
         unitPriceInput.value = parseFloat(opt.getAttribute('data-price') || 0).toFixed(2);
-        const taxCode = opt.getAttribute('data-tax') || 'A';
-        if (taxSelect) {
-            taxSelect.value = taxCode;
-        }
     } else {
         invIdInput.value = '';
     }
+    recalculatePastInvoiceTotals();
 }
 
 function addPastInvoiceRow() {
@@ -856,16 +904,17 @@ function addPastInvoiceRow() {
             <input type="text" name="item_name[]" placeholder="Item / Service Name" required class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg text-xs font-medium">
         </td>
         <td class="py-1.5 px-1">
-            <input type="number" step="0.5" name="quantity[]" value="1" required class="w-full px-1.5 py-1 border border-outline-variant/40 rounded-lg font-mono">
+            <input type="number" step="0.5" name="quantity[]" value="1" oninput="recalculatePastInvoiceTotals()" required class="w-full px-1.5 py-1 border border-outline-variant/40 rounded-lg font-mono">
         </td>
         <td class="py-1.5 px-1">
-            <input type="number" step="0.01" name="unit_price[]" value="0.00" required class="w-full px-1.5 py-1 border border-outline-variant/40 rounded-lg font-mono">
+            <input type="number" step="0.01" name="unit_price[]" value="0.00" oninput="recalculatePastInvoiceTotals()" required class="w-full px-1.5 py-1 border border-outline-variant/40 rounded-lg font-mono">
         </td>
         <td class="py-1.5 px-1 text-center">
-            <button type="button" onclick="this.closest('tr').remove()" class="text-red-500 font-bold">&times;</button>
+            <button type="button" onclick="this.closest('tr').remove(); recalculatePastInvoiceTotals();" class="text-red-500 font-bold">&times;</button>
         </td>
     `;
     tbody.appendChild(tr);
+    recalculatePastInvoiceTotals();
 }
 
 function openCreateInvoiceForVisit(pv) {
