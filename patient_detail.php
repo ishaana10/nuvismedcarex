@@ -683,13 +683,13 @@ function closePastVisitModal() {
 }
 </script>
 
-<!-- Modal: Create VMS Fiscal Invoice for Past Visit -->
+<!-- Modal: Create Medical Invoice for Past Visit -->
 <div id="createInvoiceModal" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-surface-container-lowest rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-outline-variant/30 space-y-4 max-h-[90vh] overflow-y-auto text-xs">
         <div class="flex items-center justify-between pb-3 border-b border-outline-variant/20">
             <h3 class="text-base font-bold text-on-surface flex items-center gap-2">
                 <span class="material-symbols-outlined text-blue-600">receipt_long</span>
-                <span>Issue VMS Fiscal Invoice for Encounter</span>
+                <span>Issue Medical Invoice for Encounter</span>
             </h3>
             <button type="button" onclick="document.getElementById('createInvoiceModal').classList.add('hidden')" class="text-outline hover:text-on-surface">
                 <span class="material-symbols-outlined">close</span>
@@ -730,7 +730,7 @@ function closePastVisitModal() {
 
             <div>
                 <div class="flex items-center justify-between mb-1.5">
-                    <label class="font-bold text-on-surface">VMS Line Items</label>
+                    <label class="font-bold text-on-surface">Invoice Line Items</label>
                     <button type="button" onclick="addPastInvoiceRow()" class="px-2 py-0.5 bg-emerald-600 text-white rounded-lg text-[10px] font-bold hover:bg-emerald-700 transition">
                         + Add Line Item
                     </button>
@@ -811,7 +811,7 @@ function closePastVisitModal() {
                 </button>
                 <button type="submit" class="px-5 py-2 bg-blue-700 text-white font-bold rounded-xl hover:bg-blue-800 transition shadow-xs flex items-center gap-2">
                     <span class="material-symbols-outlined text-base">receipt_long</span>
-                    <span>Generate VMS Fiscal Invoice</span>
+                    <span>Generate Invoice</span>
                 </button>
             </div>
         </form>

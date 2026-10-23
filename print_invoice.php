@@ -21,7 +21,7 @@ $sellerTin = $settings['vms_seller_tin'] ?? '502579006';
 $clinicName = $settings['clinic_name'] ?? 'Nuvis Medico Healthcare';
 $businessLocation = $settings['vms_business_location'] ?? ($settings['clinic_address'] ?? '2 Woodstand Road, Suva');
 
-$invoiceHeaderTitle = $settings['invoice_header_title'] ?? 'FISCAL INVOICE';
+$invoiceHeaderTitle = $settings['invoice_header_title'] ?? 'OFFICIAL INVOICE';
 $invoiceTaxId = $settings['invoice_tax_id'] ?? $sellerTin;
 $invoicePaymentTerms = $settings['invoice_payment_terms'] ?? 'Net 30 Days. Please remit payment promptly.';
 $invoiceFooterNote = $settings['invoice_footer_note'] ?? 'Thank you for choosing Nuvis Medico Healthcare for your care.';
@@ -104,7 +104,7 @@ $qrCodeUrl = "https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=" . 
     <!-- Action buttons -->
     <div class="no-print mb-6 flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-200 font-sans">
         <a href="billing.php" class="text-xs font-semibold text-slate-600 hover:text-slate-900">&larr; Back to Billing</a>
-        <button onclick="window.print()" class="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition">Print Fiscal Receipt</button>
+        <button onclick="window.print()" class="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition">Print Invoice</button>
     </div>
 
     <!-- VMS Header Title Line -->
@@ -220,6 +220,7 @@ $qrCodeUrl = "https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=" . 
         </div>
     </div>
 
+    <?php if (!empty($invoice['is_fiscalized'])): ?>
     <!-- SDC Fiscal Metadata -->
     <div class="my-3 space-y-0.5 text-[11px] border-b border-slate-300 pb-3">
         <p>========================================</p>
@@ -228,6 +229,7 @@ $qrCodeUrl = "https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=" . 
         <p>Invoice Counter: <span class="font-bold"><?= htmlspecialchars($invoice['invoice_counter'] ?? '143027/150493NS') ?></span></p>
         <p>========================================</p>
     </div>
+    <?php endif; ?>
 
     <!-- Custom Invoice Payment Terms & Notes -->
     <div class="my-3 space-y-1 text-[10px] text-slate-600 border-b border-slate-300 pb-3 font-sans">
@@ -239,6 +241,7 @@ $qrCodeUrl = "https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=" . 
         <?php endif; ?>
     </div>
 
+    <?php if (!empty($invoice['is_fiscalized'])): ?>
     <!-- QR Code & Verification URL -->
     <div class="my-4 text-center">
         <img src="<?= htmlspecialchars($qrCodeUrl) ?>" alt="VMS Verification QR Code" class="w-36 h-36 mx-auto border border-slate-300 p-1 rounded-lg">
@@ -246,10 +249,11 @@ $qrCodeUrl = "https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=" . 
             <?= htmlspecialchars($verificationUrl) ?>
         </a>
     </div>
+    <?php endif; ?>
 
     <!-- Ending Title Line -->
     <div class="text-center font-bold text-sm tracking-tighter pt-2 border-t border-slate-300">
-        ======== END OF FISCAL INVOICE ========
+        ======== END OF INVOICE ========
     </div>
 </div>
 

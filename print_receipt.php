@@ -107,10 +107,9 @@ $qrCodeUrl = "https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=" . 
             <p class="text-slate-500 mt-1">MRN: <span class="font-mono font-bold text-slate-800"><?= htmlspecialchars($invoice['patient_mrn']) ?></span></p>
         </div>
         <div class="text-right">
-            <p class="text-slate-500 font-semibold uppercase text-[10px]">VMS Fiscal Reference</p>
-            <p class="text-slate-700 mt-1"><strong>SDC No:</strong> <?= htmlspecialchars($invoice['sdc_invoice_no'] ?? 'N/A') ?></p>
-            <p class="text-slate-700"><strong>SDC Time:</strong> <?= htmlspecialchars($invoice['sdc_time'] ?? date('Y-m-d H:i:s')) ?></p>
-            <p class="text-slate-700"><strong>Invoice Ref:</strong> <?= htmlspecialchars($invoice['invoice_number']) ?></p>
+            <p class="text-slate-500 font-semibold uppercase text-[10px]">Invoice Reference</p>
+            <p class="text-slate-700 mt-1"><strong>Invoice Ref:</strong> <?= htmlspecialchars($invoice['invoice_number']) ?></p>
+            <p class="text-slate-700"><strong>Service Date:</strong> <?= htmlspecialchars($invoice['service_date'] ?? date('Y-m-d')) ?></p>
         </div>
     </div>
 
@@ -134,6 +133,7 @@ $qrCodeUrl = "https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=" . 
         </table>
     </div>
 
+    <?php if (!empty($invoice['is_fiscalized'])): ?>
     <!-- Verification QR Code -->
     <div class="mb-6 flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs">
         <div>
@@ -143,6 +143,7 @@ $qrCodeUrl = "https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=" . 
         </div>
         <img src="<?= htmlspecialchars($qrCodeUrl) ?>" alt="QR Code" class="w-24 h-24 border border-slate-300 p-1 rounded-lg bg-white">
     </div>
+    <?php endif; ?>
 
     <!-- Authorized Signoff -->
     <div class="pt-6 border-t border-slate-300 flex justify-between items-end text-xs">
