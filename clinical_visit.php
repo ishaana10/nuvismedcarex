@@ -755,7 +755,7 @@ include __DIR__ . '/includes/header.php';
             <div class="p-3 bg-surface-container-low rounded-xl border border-outline-variant/30 space-y-3">
                 <label class="flex items-center gap-2 font-bold text-slate-800 cursor-pointer">
                     <input type="checkbox" name="create_invoice_on_finalize" value="1" id="create_inv_chk" onchange="toggleFinalizeInvoiceFields()" checked class="rounded border-slate-300 text-primary focus:ring-primary">
-                    <span>Generate VMS Itemized Fiscal Invoice Now</span>
+                    <span>Generate Itemized Medical Invoice Now</span>
                 </label>
 
                 <div id="finalize_invoice_fields" class="space-y-3 pt-2 border-t border-slate-200">
@@ -862,9 +862,9 @@ include __DIR__ . '/includes/header.php';
                 <button type="button" onclick="document.getElementById('finalizeModal').classList.add('hidden')" class="px-4 py-2 bg-surface-container-high text-on-surface font-semibold rounded-xl hover:bg-surface-variant transition">
                     Cancel
                 </button>
-                <button type="submit" class="px-5 py-2 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition shadow-xs flex items-center gap-1.5">
+                <button type="submit" class="px-5 py-2 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition shadow-xs flex items-center gap-1.5">
                     <span class="material-symbols-outlined text-base">task_alt</span>
-                    <span>Finalize Visit & Fiscalize Invoice</span>
+                    <span>Finalize Visit & Save Invoice</span>
                 </button>
             </div>
         </form>
