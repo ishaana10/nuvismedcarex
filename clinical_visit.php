@@ -332,6 +332,11 @@ if (empty($visitId)) {
     $visitId = 'visit-' . date('Ymd') . '-' . substr(md5($patientId . time()), 0, 6);
 }
 
+// Fetch active inventory items for invoice line items
+$inventoryStmt = $pdo->prepare("SELECT id, name, sku, current_stock, unit_price, vms_tax_code FROM inventory WHERE tenant_id = ? AND is_active = 1 ORDER BY name ASC");
+$inventoryStmt->execute([$currentTenantId]);
+$inventoryList = $inventoryStmt->fetchAll() ?: [];
+
 // Fetch patient info
 $stmt = $pdo->prepare("SELECT * FROM patients WHERE id = ? AND tenant_id = ?");
 $stmt->execute([$patientId, $currentTenantId]);
@@ -863,6 +868,8 @@ include __DIR__ . '/includes/header.php';
 </div>
 
 <script>
+const inventoryList = <?= json_encode($inventoryList, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+
 function onFinalizeInventorySelect(select) {
     const tr = select.closest('tr');
     const opt = select.options[select.selectedIndex];
