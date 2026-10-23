@@ -10,29 +10,34 @@ $invoiceId = $_GET['id'] ?? '';
 require_once __DIR__ . '/config/database.php';
 $pdo = getDB();
 
-// Fetch Clinic Settings
-$settingsRows = $pdo->query("SELECT * FROM clinic_settings")->fetchAll();
-$settings = [];
-foreach ($settingsRows as $r) {
-    $settings[$r['setting_key']] = $r['setting_value'];
+$currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+
+// Fetch Clinic & Tenant Settings
+$settingsRows = $pdo->query("SELECT setting_key, setting_value FROM tenant_settings WHERE tenant_id = " . $pdo->quote($currentTenantId))->fetchAll(PDO::FETCH_KEY_PAIR);
+if (empty($settingsRows)) {
+    $settingsRows = $pdo->query("SELECT setting_key, setting_value FROM clinic_settings")->fetchAll(PDO::FETCH_KEY_PAIR);
 }
 
-$sellerTin = $settings['vms_seller_tin'] ?? '502579006';
-$clinicName = $settings['clinic_name'] ?? 'Nuvis Medico Healthcare';
-$businessLocation = $settings['vms_business_location'] ?? ($settings['clinic_address'] ?? '2 Woodstand Road, Suva');
+$clinicName = $settingsRows['clinic_name'] ?? 'Nuvis Medico Healthcare';
+$clinicSubtitle = $settingsRows['clinic_subtitle'] ?? 'Medical & Clinical Practice';
+$clinicAddress = $settingsRows['clinic_address'] ?? '2 Woodstand Road, Suva, Fiji';
+$clinicPhone = $settingsRows['clinic_phone'] ?? '(+679) 330 1234';
+$clinicEmail = $settingsRows['clinic_email'] ?? 'billing@nuvismedcare.com';
+$docPrcNo = $settingsRows['doc_prc_no'] ?? 'LIC-984120';
 
-$invoiceHeaderTitle = $settings['invoice_header_title'] ?? 'OFFICIAL INVOICE';
-$invoiceTaxId = $settings['invoice_tax_id'] ?? $sellerTin;
-$invoicePaymentTerms = $settings['invoice_payment_terms'] ?? 'Net 30 Days. Please remit payment promptly.';
-$invoiceFooterNote = $settings['invoice_footer_note'] ?? 'Thank you for choosing Nuvis Medico Healthcare for your care.';
+$invoiceHeaderTitle = 'COMMERCIAL INVOICE';
+$invoicePaymentTerms = $settingsRows['invoice_payment_terms'] ?? 'Payment due upon receipt or within 30 days.';
+$invoiceFooterNote = $settingsRows['invoice_footer_note'] ?? 'Thank you for choosing Nuvis Medico Healthcare. For billing inquiries, please contact our financial department.';
 
 // Fetch Invoice
-$stmt = $pdo->prepare("SELECT * FROM invoices WHERE id = ? OR invoice_number = ?");
-$stmt->execute([$invoiceId, $invoiceId]);
+$stmt = $pdo->prepare("SELECT * FROM invoices WHERE (id = ? OR invoice_number = ?) AND tenant_id = ?");
+$stmt->execute([$invoiceId, $invoiceId, $currentTenantId]);
 $invoice = $stmt->fetch();
 
 if (!$invoice) {
-    $stmt = $pdo->query("SELECT * FROM invoices ORDER BY created_at DESC LIMIT 1");
+    // Fallback to any recent invoice for tenant
+    $stmt = $pdo->prepare("SELECT * FROM invoices WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 1");
+    $stmt->execute([$currentTenantId]);
     $invoice = $stmt->fetch();
 }
 
@@ -40,221 +45,206 @@ if (!$invoice) {
     die("Invoice record not found.");
 }
 
-// Fetch Itemized lines from invoice_items
+// Fetch Itemized lines
 $stmtItems = $pdo->prepare("SELECT * FROM invoice_items WHERE invoice_id = ?");
 $stmtItems->execute([$invoice['id']]);
 $items = $stmtItems->fetchAll();
 
 // Fallback if no itemized lines exist
 if (empty($items)) {
-    $services = json_decode($invoice['services'] ?? '[]', true) ?: ['Medical Service / Consultation'];
-    foreach ($services as $srv) {
+    $services = json_decode($invoice['services'] ?? '[]', true) ?: ['Clinical Consultation & Medical Evaluation'];
+    foreach ($services as $svc) {
         $items[] = [
-            'name' => $srv,
-            'gtin' => '10009812',
-            'quantity' => 1.0,
-            'unit_price' => (float)$invoice['amount'],
-            'total_price' => (float)$invoice['amount'],
-            'tax_label' => 'A',
-            'tax_rate' => 15.00,
-            'tax_amount' => round((float)$invoice['amount'] - ((float)$invoice['amount'] / 1.15), 2)
+            'name' => $svc,
+            'quantity' => 1,
+            'unit_price' => $invoice['amount'],
+            'total_price' => $invoice['amount'],
+            'tax_amount' => $invoice['total_tax'] ?? 0.00
         ];
     }
 }
 
-$isNonFiscal = in_array($invoice['invoice_type'], ['Proforma', 'Copy', 'Training']);
-$payments = json_decode($invoice['payment_methods'] ?? '[]', true) ?: [['type' => 'Cash', 'amount' => (float)$invoice['amount']]];
-
-// Group taxes by label
-$taxSummary = [];
-$calculatedTotalTax = 0.00;
-foreach ($items as $item) {
-    $label = $item['tax_label'] ?? 'A';
-    $rate = (float)($item['tax_rate'] ?? 15.00);
-    $taxAmt = (float)($item['tax_amount'] ?? 0.00);
-
-    if (!isset($taxSummary[$label])) {
-        $taxSummary[$label] = ['rate' => $rate, 'tax_amount' => 0.00];
-    }
-    $taxSummary[$label]['tax_amount'] += $taxAmt;
-    $calculatedTotalTax += $taxAmt;
+// Fetch Patient Info if available
+$patient = null;
+if (!empty($invoice['patient_id'])) {
+    $pStmt = $pdo->prepare("SELECT * FROM patients WHERE id = ?");
+    $pStmt->execute([$invoice['patient_id']]);
+    $patient = $pStmt->fetch();
 }
 
-$verificationUrl = $invoice['verification_url'] ?? "https://tap.sandbox.vms.frcs.org.fj/verify?id=" . ($invoice['sdc_invoice_no'] ?? '7AF234D9-E377B30A-150493');
-$qrCodeUrl = "https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=" . urlencode($verificationUrl);
+$subtotal = 0.00;
+foreach ($items as $it) {
+    $subtotal += (float)($it['total_price'] ?? 0);
+}
+$taxTotal = (float)($invoice['total_tax'] ?? 0.00);
+$grandTotal = (float)($invoice['amount'] ?? $subtotal);
+$insuranceCovered = (float)($invoice['insurance_covered'] ?? 0.00);
+$patientOwed = (float)($invoice['patient_owed'] ?? max(0, $grandTotal - $insuranceCovered));
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fiscal Invoice <?= htmlspecialchars($invoice['invoice_number']) ?> - <?= htmlspecialchars($clinicName) ?></title>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <title>Commercial Invoice <?= htmlspecialchars($invoice['invoice_number']) ?> - <?= htmlspecialchars($clinicName) ?></title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        body { font-family: 'Inter', sans-serif; }
         @media print {
             .no-print { display: none !important; }
-            body { background: white; margin: 0; padding: 0; }
+            body { background: white; padding: 0; }
+            .print-card { border: none !important; shadow: none !important; padding: 0 !important; }
         }
     </style>
 </head>
-<body class="bg-slate-100 p-6 min-h-screen text-slate-900 font-mono text-xs">
+<body class="bg-slate-100 p-4 sm:p-8 min-h-screen text-slate-800 text-xs">
 
-<div class="max-w-md mx-auto bg-white p-6 rounded-2xl shadow-lg border border-slate-200">
-    <!-- Action buttons -->
-    <div class="no-print mb-6 flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-200 font-sans">
-        <a href="billing.php" class="text-xs font-semibold text-slate-600 hover:text-slate-900">&larr; Back to Billing</a>
-        <button onclick="window.print()" class="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition">Print Invoice</button>
+<div class="max-w-3xl mx-auto bg-white p-8 sm:p-10 rounded-2xl shadow-xl border border-slate-200 print-card space-y-8">
+
+    <!-- Action Controls -->
+    <div class="no-print flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-200">
+        <a href="billing.php" class="text-xs font-bold text-slate-600 hover:text-slate-900 transition flex items-center gap-1">
+            &larr; Back to Billing
+        </a>
+        <button onclick="window.print()" class="px-5 py-2.5 bg-blue-700 text-white text-xs font-bold rounded-xl hover:bg-blue-800 transition shadow-xs flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+            Print Commercial Invoice
+        </button>
     </div>
 
-    <!-- VMS Header Title Line -->
-    <div class="text-center font-bold text-sm tracking-tighter border-b border-slate-300 pb-2 mb-3 uppercase">
-        ============ <?= htmlspecialchars($invoiceHeaderTitle) ?> ============
-    </div>
-
-    <?php if ($isNonFiscal): ?>
-        <div class="my-3 p-2 border-2 border-red-500 text-red-600 font-bold text-center text-sm uppercase font-sans">
-            ========================================<br>
-            THIS IS NOT A FISCAL INVOICE<br>
-            ========================================
+    <!-- Commercial Invoice Top Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-start border-b-2 border-slate-900 pb-6 gap-6">
+        <div>
+            <h1 class="text-2xl font-extrabold text-slate-900 uppercase tracking-tight"><?= htmlspecialchars($clinicName) ?></h1>
+            <p class="text-xs font-semibold text-blue-700 mt-0.5"><?= htmlspecialchars($clinicSubtitle) ?></p>
+            <div class="text-slate-500 space-y-0.5 mt-2 leading-relaxed">
+                <p><?= htmlspecialchars($clinicAddress) ?></p>
+                <p>Phone: <span class="font-medium text-slate-700"><?= htmlspecialchars($clinicPhone) ?></span> &nbsp;|&nbsp; Email: <span class="font-medium text-slate-700"><?= htmlspecialchars($clinicEmail) ?></span></p>
+                <p>Medical License: <span class="font-mono font-semibold text-slate-700"><?= htmlspecialchars($docPrcNo) ?></span></p>
+            </div>
         </div>
-    <?php endif; ?>
 
-    <!-- Header Seller Metadata -->
-    <div class="text-left space-y-0.5 mb-3 border-b border-slate-200 pb-3">
-        <p class="font-bold text-sm text-slate-900"><?= htmlspecialchars($sellerTin) ?> <?= htmlspecialchars($clinicName) ?></p>
-        <?php if (!empty($invoiceTaxId) && $invoiceTaxId !== $sellerTin): ?>
-            <p>Tax ID / EIN: <span class="font-bold"><?= htmlspecialchars($invoiceTaxId) ?></span></p>
-        <?php endif; ?>
-        <p><?= htmlspecialchars($businessLocation) ?></p>
-        <p>Cashier: <span class="font-bold"><?= htmlspecialchars($invoice['cashier'] ?? 'Admin') ?></span></p>
-        <?php if (!empty($invoice['buyer_tin'])): ?>
-            <p>Buyer TIN: <span class="font-bold"><?= htmlspecialchars($invoice['buyer_tin']) ?></span></p>
-            <?php if (!empty($invoice['buyer_cost_center'])): ?>
-                <p>Buyer Cost Center: <span class="font-bold"><?= htmlspecialchars($invoice['buyer_cost_center']) ?></span></p>
-            <?php endif; ?>
-        <?php endif; ?>
-        <p>POS Number: <?= htmlspecialchars($invoice['pos_number'] ?? 'ASDF238/1.2') ?> | POS Time: <?= htmlspecialchars($invoice['pos_time'] ?? date('Y-m-d H:i:s')) ?></p>
-        <?php if (!empty($invoice['ref_no'])): ?>
-            <p>Ref No: <span class="font-bold"><?= htmlspecialchars($invoice['ref_no']) ?></span></p>
-            <?php if (!empty($invoice['ref_time'])): ?>
-                <p>Ref Time: <?= htmlspecialchars($invoice['ref_time']) ?></p>
-            <?php endif; ?>
-        <?php endif; ?>
+        <div class="text-left sm:text-right space-y-1">
+            <span class="inline-block px-3 py-1 bg-blue-50 text-blue-800 font-extrabold text-sm uppercase tracking-wider rounded-lg border border-blue-200">
+                <?= htmlspecialchars($invoiceHeaderTitle) ?>
+            </span>
+            <p class="text-lg font-mono font-bold text-slate-900 mt-2"><?= htmlspecialchars($invoice['invoice_number']) ?></p>
+            <p class="text-slate-500 font-medium">Issue Date: <span class="font-mono font-bold text-slate-800"><?= date('M d, Y', strtotime($invoice['service_date'] ?? $invoice['created_at'])) ?></span></p>
+            <p class="text-slate-500 font-medium">Due Date: <span class="font-mono font-bold text-slate-800"><?= date('M d, Y', strtotime($invoice['due_date'] ?? '+30 days')) ?></span></p>
+            <p class="text-slate-500 font-medium">Status:
+                <span class="font-bold uppercase px-2 py-0.5 rounded text-[10px] <?= $invoice['status'] === 'Paid' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800' ?>">
+                    <?= htmlspecialchars($invoice['status'] ?? 'Pending') ?>
+                </span>
+            </p>
+        </div>
     </div>
 
-    <!-- Invoice Type Header -->
-    <div class="text-center font-bold uppercase text-xs my-2 tracking-wide">
-        ------------- <?= htmlspecialchars($invoice['invoice_type']) ?>-<?= htmlspecialchars($invoice['transaction_type']) ?> -------------
+    <!-- Bill To & Transaction Info Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-slate-50 p-5 rounded-2xl border border-slate-200">
+        <div>
+            <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Billed Patient / Client</h3>
+            <p class="text-sm font-bold text-slate-900"><?= htmlspecialchars($invoice['patient_name'] ?? 'Patient') ?></p>
+            <p class="text-slate-600 mt-0.5">Medical Record Number (MRN): <span class="font-mono font-bold text-slate-800"><?= htmlspecialchars($invoice['patient_mrn'] ?? 'N/A') ?></span></p>
+            <?php if ($patient): ?>
+                <p class="text-slate-500 mt-0.5">DOB: <?= htmlspecialchars($patient['dob'] ?? 'N/A') ?> (<?= htmlspecialchars($patient['gender'] ?? '') ?>)</p>
+                <?php if (!empty($patient['phone'])): ?>
+                    <p class="text-slate-500">Contact: <?= htmlspecialchars($patient['phone']) ?></p>
+                <?php endif; ?>
+            <?php endif; ?>
+        </div>
+
+        <div class="space-y-1 text-slate-600 sm:text-right">
+            <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Billing Reference</h3>
+            <p>Invoice Type: <span class="font-semibold text-slate-800"><?= htmlspecialchars($invoice['invoice_type'] ?? 'Normal') ?> Invoice</span></p>
+            <p>Transaction: <span class="font-semibold text-slate-800"><?= htmlspecialchars($invoice['transaction_type'] ?? 'Sale') ?></span></p>
+            <p>Attending Cashier: <span class="font-semibold text-slate-800"><?= htmlspecialchars($invoice['cashier'] ?? 'Clinical Finance') ?></span></p>
+            <?php if (!empty($invoice['ref_no'])): ?>
+                <p>Encounter / Visit Ref: <span class="font-mono font-semibold text-slate-800"><?= htmlspecialchars($invoice['ref_no']) ?></span></p>
+            <?php endif; ?>
+        </div>
     </div>
 
     <!-- Line Items Table -->
-    <div class="my-3 border-b border-slate-300 pb-3">
-        <div class="font-bold pb-1 text-[11px]">Items ========================================</div>
-        <table class="w-full text-left">
+    <div class="border border-slate-200 rounded-2xl overflow-hidden">
+        <table class="w-full text-left border-collapse">
             <thead>
-                <tr class="text-[10px] text-slate-500 font-bold border-b border-slate-200">
-                    <th class="py-1">Name</th>
-                    <th class="py-1 text-right">Price</th>
-                    <th class="py-1 text-center">Qty</th>
-                    <th class="py-1 text-right">Total</th>
+                <tr class="bg-slate-900 text-white text-[10px] font-bold uppercase tracking-wider">
+                    <th class="py-3 px-4">Item / Service Description</th>
+                    <th class="py-3 px-3 text-center w-16">Qty</th>
+                    <th class="py-3 px-3 text-right w-24">Unit Price</th>
+                    <th class="py-3 px-4 text-right w-28">Total Amount</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100">
+            <tbody class="divide-y divide-slate-200 bg-white">
                 <?php foreach ($items as $item): ?>
-                    <tr>
-                        <td class="py-1 font-semibold">
-                            <?= htmlspecialchars($item['name']) ?> (<?= htmlspecialchars($item['tax_label'] ?? 'A') ?>)
-                            <?php if (!empty($item['gtin'])): ?>
-                                <span class="block text-[9px] text-slate-500 font-mono">GTIN: <?= htmlspecialchars($item['gtin']) ?></span>
-                            <?php endif; ?>
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="py-3 px-4">
+                            <span class="font-bold text-slate-900 text-xs block"><?= htmlspecialchars($item['name']) ?></span>
                         </td>
-                        <td class="py-1 text-right"><?= number_format((float)$item['unit_price'], 2) ?></td>
-                        <td class="py-1 text-center"><?= (float)$item['quantity'] ?></td>
-                        <td class="py-1 text-right font-bold"><?= number_format((float)$item['total_price'], 2) ?></td>
+                        <td class="py-3 px-3 text-center font-mono font-semibold text-slate-700"><?= (float)($item['quantity'] ?? 1) ?></td>
+                        <td class="py-3 px-3 text-right font-mono font-semibold text-slate-700">$<?= number_format((float)($item['unit_price'] ?? 0), 2) ?></td>
+                        <td class="py-3 px-4 text-right font-mono font-bold text-slate-900">$<?= number_format((float)($item['total_price'] ?? 0), 2) ?></td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>
         </table>
     </div>
 
-    <!-- Totals and Payment Methods -->
-    <div class="space-y-1 mb-3 border-b border-slate-300 pb-3">
-        <div class="flex justify-between font-bold text-sm">
-            <span>Total:</span>
-            <span>$<?= number_format((float)$invoice['amount'], 2) ?></span>
-        </div>
-        <?php foreach ($payments as $p): ?>
-            <div class="flex justify-between text-slate-700">
-                <span><?= htmlspecialchars($p['type'] ?? 'Cash') ?>:</span>
-                <span>$<?= number_format((float)($p['amount'] ?? $invoice['amount']), 2) ?></span>
+    <!-- Summary & Financial Totals Breakdown -->
+    <div class="flex flex-col sm:flex-row justify-between items-start gap-6 pt-2">
+        <div class="space-y-3 sm:max-w-xs text-slate-600">
+            <div>
+                <h4 class="font-bold text-slate-900 uppercase text-[10px] tracking-wider mb-1">Payment Terms</h4>
+                <p class="text-[11px] leading-relaxed"><?= htmlspecialchars($invoicePaymentTerms) ?></p>
             </div>
-        <?php endforeach; ?>
-    </div>
+            <div>
+                <h4 class="font-bold text-slate-900 uppercase text-[10px] tracking-wider mb-1">Remarks & Notes</h4>
+                <p class="text-[11px] leading-relaxed italic text-slate-500"><?= htmlspecialchars($invoiceFooterNote) ?></p>
+            </div>
+        </div>
 
-    <!-- Itemized Tax Rates -->
-    <div class="my-3 border-b border-slate-300 pb-3">
-        <table class="w-full text-left text-[11px]">
-            <thead>
-                <tr class="text-[10px] text-slate-500 font-bold border-b border-slate-200">
-                    <th class="py-0.5">Label</th>
-                    <th class="py-0.5">Name</th>
-                    <th class="py-0.5 text-center">Rate %</th>
-                    <th class="py-0.5 text-right">Tax ($)</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($taxSummary as $lbl => $tData): ?>
-                    <tr>
-                        <td class="py-0.5 font-bold"><?= htmlspecialchars($lbl) ?></td>
-                        <td class="py-0.5"><?= $lbl === 'A' ? 'VAT' : ($lbl === 'E' ? 'EXEMPT' : 'OTHER') ?></td>
-                        <td class="py-0.5 text-center"><?= number_format($tData['rate'], 2) ?></td>
-                        <td class="py-0.5 text-right font-bold"><?= number_format($tData['tax_amount'], 2) ?></td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-        <div class="flex justify-between font-bold text-xs pt-1 border-t border-slate-200 mt-1">
-            <span>Total Tax:</span>
-            <span>$<?= number_format((float)($invoice['total_tax'] ?? $calculatedTotalTax), 2) ?></span>
+        <div class="w-full sm:w-72 bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2 font-mono text-xs">
+            <div class="flex justify-between text-slate-600">
+                <span>Gross Subtotal:</span>
+                <span class="font-bold text-slate-800">$<?= number_format($subtotal, 2) ?></span>
+            </div>
+            <?php if ($taxTotal > 0): ?>
+                <div class="flex justify-between text-slate-600">
+                    <span>Tax / VAT Component:</span>
+                    <span class="font-bold text-slate-800">$<?= number_format($taxTotal, 2) ?></span>
+                </div>
+            <?php endif; ?>
+            <div class="flex justify-between text-slate-900 font-bold border-t border-slate-200 pt-2 text-sm">
+                <span>Invoice Total:</span>
+                <span class="text-blue-700">$<?= number_format($grandTotal, 2) ?></span>
+            </div>
+            <?php if ($insuranceCovered > 0): ?>
+                <div class="flex justify-between text-emerald-700 font-semibold pt-1 border-t border-slate-200">
+                    <span>Insurance Coverage:</span>
+                    <span>-$<?= number_format($insuranceCovered, 2) ?></span>
+                </div>
+            <?php endif; ?>
+            <div class="flex justify-between text-slate-900 font-extrabold text-base border-t-2 border-slate-900 pt-2">
+                <span>Patient Balance Due:</span>
+                <span class="text-slate-900">$<?= number_format($patientOwed, 2) ?></span>
+            </div>
         </div>
     </div>
 
-    <?php if (!empty($invoice['is_fiscalized'])): ?>
-    <!-- SDC Fiscal Metadata -->
-    <div class="my-3 space-y-0.5 text-[11px] border-b border-slate-300 pb-3">
-        <p>========================================</p>
-        <p>SDC Time: <span class="font-bold"><?= htmlspecialchars($invoice['sdc_time'] ?? date('Y-m-d H:i:s')) ?></span></p>
-        <p>SDC No: <span class="font-bold"><?= htmlspecialchars($invoice['sdc_invoice_no'] ?? '7AF234D9-E377B30A-150493') ?></span></p>
-        <p>Invoice Counter: <span class="font-bold"><?= htmlspecialchars($invoice['invoice_counter'] ?? '143027/150493NS') ?></span></p>
-        <p>========================================</p>
-    </div>
-    <?php endif; ?>
-
-    <!-- Custom Invoice Payment Terms & Notes -->
-    <div class="my-3 space-y-1 text-[10px] text-slate-600 border-b border-slate-300 pb-3 font-sans">
-        <?php if (!empty($invoicePaymentTerms)): ?>
-            <p><strong>Payment Terms:</strong> <?= htmlspecialchars($invoicePaymentTerms) ?></p>
-        <?php endif; ?>
-        <?php if (!empty($invoiceFooterNote)): ?>
-            <p class="italic"><?= htmlspecialchars($invoiceFooterNote) ?></p>
-        <?php endif; ?>
+    <!-- Official Signature Line -->
+    <div class="pt-8 border-t border-slate-200 flex justify-between items-end">
+        <div>
+            <p class="text-[10px] uppercase font-bold text-slate-400">Issued By</p>
+            <p class="font-bold text-slate-800 mt-1"><?= htmlspecialchars($clinicName) ?></p>
+            <p class="text-slate-500 text-[10px]"><?= htmlspecialchars($clinicAddress) ?></p>
+        </div>
+        <div class="text-right">
+            <div class="border-b border-slate-400 mb-1 pb-2 font-serif text-sm font-bold text-slate-800 italic">Nuvis MedcareX Finance</div>
+            <p class="font-bold text-slate-700">Authorized Financial Signatory</p>
+        </div>
     </div>
 
-    <?php if (!empty($invoice['is_fiscalized'])): ?>
-    <!-- QR Code & Verification URL -->
-    <div class="my-4 text-center">
-        <img src="<?= htmlspecialchars($qrCodeUrl) ?>" alt="VMS Verification QR Code" class="w-36 h-36 mx-auto border border-slate-300 p-1 rounded-lg">
-        <a href="<?= htmlspecialchars($verificationUrl) ?>" target="_blank" class="block text-[10px] text-blue-600 underline font-sans mt-2 break-all">
-            <?= htmlspecialchars($verificationUrl) ?>
-        </a>
-    </div>
-    <?php endif; ?>
-
-    <!-- Ending Title Line -->
-    <div class="text-center font-bold text-sm tracking-tighter pt-2 border-t border-slate-300">
-        ======== END OF INVOICE ========
-    </div>
 </div>
 
 </body>
