@@ -743,7 +743,6 @@ function closePastVisitModal() {
                                 <th class="py-1.5 px-2">Item / Service Name</th>
                                 <th class="py-1.5 px-1 w-12">Qty</th>
                                 <th class="py-1.5 px-1 w-20">Price ($)</th>
-                                <th class="py-1.5 px-1 w-16">Tax</th>
                                 <th class="py-1.5 px-1 w-8"></th>
                             </tr>
                         </thead>
@@ -770,14 +769,6 @@ function closePastVisitModal() {
                                 </td>
                                 <td class="py-1.5 px-1">
                                     <input type="number" step="0.01" name="unit_price[]" value="150.00" required class="w-full px-1.5 py-1 border border-outline-variant/40 rounded-lg font-mono">
-                                </td>
-                                <td class="py-1.5 px-1">
-                                    <select name="tax_label[]" class="w-full px-1 py-1 border border-outline-variant/40 rounded-lg font-bold text-[10px]">
-                                        <option value="A" selected>A (15%)</option>
-                                        <option value="E">E (0%)</option>
-                                        <option value="F">F (0%)</option>
-                                        <option value="P">P (0.25%)</option>
-                                    </select>
                                 </td>
                                 <td class="py-1.5 px-1 text-center">
                                     <button type="button" onclick="this.closest('tr').remove()" class="text-red-500 font-bold">&times;</button>
@@ -869,14 +860,6 @@ function addPastInvoiceRow() {
         </td>
         <td class="py-1.5 px-1">
             <input type="number" step="0.01" name="unit_price[]" value="0.00" required class="w-full px-1.5 py-1 border border-outline-variant/40 rounded-lg font-mono">
-        </td>
-        <td class="py-1.5 px-1">
-            <select name="tax_label[]" class="w-full px-1 py-1 border border-outline-variant/40 rounded-lg font-bold text-[10px]">
-                <option value="A">A (15%)</option>
-                <option value="E">E (0%)</option>
-                <option value="F">F (0%)</option>
-                <option value="P">P (0.25%)</option>
-            </select>
         </td>
         <td class="py-1.5 px-1 text-center">
             <button type="button" onclick="this.closest('tr').remove()" class="text-red-500 font-bold">&times;</button>

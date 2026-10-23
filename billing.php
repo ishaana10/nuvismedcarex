@@ -618,8 +618,7 @@ if (($_GET['action'] ?? '') === 'edit_claim' && !empty($editClaimId)) {
                     <table class="w-full text-left" id="invoiceItemsTable">
                         <thead class="bg-surface-container-high text-[10px] font-bold uppercase text-outline">
                             <tr>
-                                <th class="py-2 px-3">Select Inventory Item or Custom Service</th>
-                                <th class="py-2 px-2">SKU / GTIN</th>
+                                <th class="py-2 px-3">Item / Service Name</th>
                                 <th class="py-2 px-2 w-16">Qty</th>
                                 <th class="py-2 px-2 w-24">Price ($)</th>
                                 <th class="py-2 px-2 w-10"></th>
@@ -629,23 +628,17 @@ if (($_GET['action'] ?? '') === 'edit_claim' && !empty($editClaimId)) {
                             <tr>
                                 <td class="py-2 px-3 space-y-1">
                                     <select onchange="onInventoryItemSelect(this)" class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-semibold text-xs text-primary bg-white">
-                                        <option value="">-- Choose from Inventory Stock (Optional) --</option>
+                                        <option value="">-- Choose Inventory Stock Item (Optional) --</option>
                                         <?php foreach ($inventoryList as $invItem): ?>
                                             <option value="<?= htmlspecialchars($invItem['id']) ?>"
                                                     data-name="<?= htmlspecialchars($invItem['name']) ?>"
-                                                    data-sku="<?= htmlspecialchars($invItem['sku']) ?>"
-                                                    data-price="<?= htmlspecialchars($invItem['unit_price']) ?>"
-                                                    data-tax="<?= htmlspecialchars($invItem['vms_tax_code'] ?: 'A') ?>"
-                                                    data-stock="<?= (int)$invItem['current_stock'] ?>">
-                                                <?= htmlspecialchars($invItem['name']) ?> (Stock: <?= (int)$invItem['current_stock'] ?> | $<?= number_format($invItem['unit_price'], 2) ?>)
+                                                    data-price="<?= htmlspecialchars($invItem['unit_price']) ?>">
+                                                <?= htmlspecialchars($invItem['name']) ?> ($<?= number_format($invItem['unit_price'], 2) ?>)
                                             </option>
                                         <?php endforeach; ?>
                                     </select>
                                     <input type="hidden" name="inventory_id[]" value="">
-                                    <input type="text" name="item_name[]" value="Medical Consultation & Diagnosis" required placeholder="Item / Service Name" class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg text-xs font-medium">
-                                </td>
-                                <td class="py-2 px-2">
-                                    <input type="text" name="gtin[]" value="10009812" placeholder="SKU/GTIN" class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-mono text-[11px]">
+                                    <input type="text" name="item_name[]" value="Clinical Consultation & Examination" required placeholder="Item / Service Name" class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg text-xs font-medium">
                                 </td>
                                 <td class="py-2 px-2">
                                     <input type="number" step="0.5" name="quantity[]" value="1" required class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-mono">
@@ -735,13 +728,11 @@ function addInvoiceRow() {
     const tbody = document.querySelector('#invoiceItemsTable tbody');
     const tr = document.createElement('tr');
 
-    let invOptions = '<option value="">-- Choose from Inventory Stock (Optional) --</option>';
+    let invOptions = '<option value="">-- Choose Inventory Stock Item (Optional) --</option>';
     if (Array.isArray(inventoryList)) {
         inventoryList.forEach(item => {
-            const stock = parseInt(item.current_stock) || 0;
             const price = parseFloat(item.unit_price) || 0;
-            const tax = item.vms_tax_code || 'A';
-            invOptions += `<option value="${item.id}" data-name="${item.name}" data-sku="${item.sku}" data-price="${price}" data-tax="${tax}" data-stock="${stock}">${item.name} (Stock: ${stock} | $${price.toFixed(2)})</option>`;
+            invOptions += `<option value="${item.id}" data-name="${item.name}" data-price="${price}">${item.name} ($${price.toFixed(2)})</option>`;
         });
     }
 
@@ -752,9 +743,6 @@ function addInvoiceRow() {
             </select>
             <input type="hidden" name="inventory_id[]" value="">
             <input type="text" name="item_name[]" placeholder="Item / Service Name" required class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg text-xs font-medium">
-        </td>
-        <td class="py-2 px-2">
-            <input type="text" name="gtin[]" placeholder="SKU/GTIN" class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-mono text-[11px]">
         </td>
         <td class="py-2 px-2">
             <input type="number" step="0.5" name="quantity[]" value="1" required class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-mono">
