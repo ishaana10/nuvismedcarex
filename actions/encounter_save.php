@@ -194,12 +194,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ]);
                 }
 
-                $vmsService->fiscalizeInvoice($invoiceId);
-                setToast("VMS Invoice Created", "Invoice $invNumber fiscalized successfully for " . $patient['first_name'] . ' ' . $patient['last_name'] . ".");
+                setToast("Invoice Created", "Invoice $invNumber created successfully for " . $patient['first_name'] . ' ' . $patient['last_name'] . ".");
             }
         } catch (\Throwable $e) {
-            $logger->error("Error creating VMS invoice in encounter_save: " . $e->getMessage());
-            setToast("Error", "Could not create fiscal invoice.", "error");
+            $logger->error("Error creating invoice in encounter_save: " . $e->getMessage());
+            setToast("Error", "Could not create invoice.", "error");
         }
 
         $redirect = !empty($_POST['redirect_to']) ? $_POST['redirect_to'] : "../clinical_visit.php?patient_id=$patientId&visit_id=$visitId";
@@ -418,10 +417,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 ]);
                             }
 
-                            $vmsService->fiscalizeInvoice($invoiceId);
                         }
                     } catch (\Throwable $e) {
-                        $logger->error("Error generating VMS invoice on finalize: " . $e->getMessage());
+                        $logger->error("Error generating invoice on finalize: " . $e->getMessage());
                     }
                 }
 

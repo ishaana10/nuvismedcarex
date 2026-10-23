@@ -1,5 +1,5 @@
 <?php
-$pageTitle = "Billing & VMS Fiscal Invoices - NuvisMedcareX";
+$pageTitle = "Billing & Invoices - NuvisMedcareX";
 $activePage = "billing";
 require_once __DIR__ . '/includes/autoloader.php';
 require_once __DIR__ . '/includes/pagination.php';
@@ -82,13 +82,13 @@ if ($fromDate && $toDate) {
 
 <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
     <div>
-        <h1 class="text-2xl font-bold text-on-surface">Billing & VMS Fiscal Invoices</h1>
-        <p class="text-xs text-outline font-medium">FRCS VMS Phase 3 compliant Electronic Fiscal Device (EFD / POS) billing management</p>
+        <h1 class="text-2xl font-bold text-on-surface">Billing & Invoices</h1>
+        <p class="text-xs text-outline font-medium">Patient billing and invoice management</p>
     </div>
     <div class="flex items-center gap-2">
         <button onclick="document.getElementById('createInvoiceModal').classList.remove('hidden')" class="px-4 py-2 bg-primary text-on-primary rounded-xl text-xs font-bold shadow-xs hover:bg-primary-hover transition flex items-center gap-1.5">
             <span class="material-symbols-outlined text-base">receipt_long</span>
-            Create VMS Fiscal Invoice
+            Create Invoice
         </button>
     </div>
 </div>
@@ -159,16 +159,13 @@ if ($fromDate && $toDate) {
 <!-- Tabs Navigation -->
 <div class="flex border-b border-outline-variant/30 mb-6 space-x-6 text-xs font-bold">
     <a href="billing.php?tab=invoices" class="pb-3 border-b-2 <?= $activeTab === 'invoices' ? 'border-primary text-primary' : 'border-transparent text-outline hover:text-on-surface' ?>">
-        Fiscal Invoices List
+        Invoices List
     </a>
     <a href="billing.php?tab=insurance" class="pb-3 border-b-2 <?= $activeTab === 'insurance' ? 'border-primary text-primary' : 'border-transparent text-outline hover:text-on-surface' ?>">
         Insurance Claims
     </a>
     <a href="billing.php?tab=zreport" class="pb-3 border-b-2 <?= $activeTab === 'zreport' ? 'border-primary text-primary' : 'border-transparent text-outline hover:text-on-surface' ?>">
-        Daily Fiscal Summary (Z-Report)
-    </a>
-    <a href="billing.php?tab=settings" class="pb-3 border-b-2 <?= $activeTab === 'settings' ? 'border-primary text-primary' : 'border-transparent text-outline hover:text-on-surface' ?>">
-        VMS / EFD Configuration
+        Z-Report
     </a>
 </div>
 
@@ -180,11 +177,10 @@ if ($fromDate && $toDate) {
             <thead>
                 <tr class="border-b border-outline-variant/30 text-outline uppercase text-[10px] font-bold tracking-wider">
                     <th class="py-2.5 px-3">Invoice # / Type</th>
-                    <th class="py-2.5 px-3">Patient / Buyer TIN</th>
+                    <th class="py-2.5 px-3">Patient</th>
                     <th class="py-2.5 px-3">Service Date</th>
                     <th class="py-2.5 px-3">Total Amount</th>
-                    <th class="py-2.5 px-3">VAT (15%)</th>
-                    <th class="py-2.5 px-3">SDC Status</th>
+                    <th class="py-2.5 px-3">Tax</th>
                     <th class="py-2.5 px-3">Status</th>
                     <th class="py-2.5 px-3 text-right">Actions</th>
                 </tr>
@@ -192,10 +188,11 @@ if ($fromDate && $toDate) {
             <tbody class="divide-y divide-outline-variant/20">
                 <?php if (empty($paginatedInvoices)): ?>
                     <tr>
-                        <td colspan="8" class="py-6 text-center text-outline italic">No invoices found.</td>
+                        <td colspan="7" class="py-6 text-center text-outline italic">No invoices found.</td>
                     </tr>
                 <?php else: ?>
                 <?php foreach ($paginatedInvoices as $inv): ?>
+                    <tr>
                         <td class="py-3 px-3 font-mono font-bold text-primary">
                             <?= htmlspecialchars($inv['invoice_number']) ?>
                             <span class="block text-[10px] font-sans font-bold text-slate-500 uppercase">
@@ -206,24 +203,11 @@ if ($fromDate && $toDate) {
                             <?= htmlspecialchars($inv['patient_name']) ?>
                             <span class="block text-[10px] font-mono text-outline">
                                 MRN: <?= htmlspecialchars($inv['patient_mrn']) ?>
-                                <?= !empty($inv['buyer_tin']) ? '| TIN: ' . htmlspecialchars($inv['buyer_tin']) : '' ?>
                             </span>
                         </td>
                         <td class="py-3 px-3 text-outline font-medium"><?= htmlspecialchars($inv['service_date']) ?></td>
                         <td class="py-3 px-3 font-bold text-on-surface">$<?= number_format($inv['amount'], 2) ?></td>
                         <td class="py-3 px-3 font-semibold text-blue-600">$<?= number_format($inv['total_tax'] ?? 0, 2) ?></td>
-                        <td class="py-3 px-3">
-                            <?php if ($inv['is_fiscalized']): ?>
-                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                                    <span class="material-symbols-outlined text-[12px]">verified</span> Fiscalized
-                                </span>
-                                <span class="block text-[9px] font-mono text-outline mt-0.5"><?= htmlspecialchars($inv['sdc_invoice_no']) ?></span>
-                            <?php else: ?>
-                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
-                                    Pending SDC
-                                </span>
-                            <?php endif; ?>
-                        </td>
                         <td class="py-3 px-3">
                             <?php
                             $statusStyle = match($inv['status']) {
@@ -239,21 +223,12 @@ if ($fromDate && $toDate) {
                         </td>
                         <td class="py-3 px-3 text-right space-x-1 whitespace-nowrap">
                             <a href="print_invoice.php?id=<?= htmlspecialchars($inv['id']) ?>" target="_blank" class="inline-block px-2.5 py-1 bg-surface-container-high text-primary rounded-lg text-[11px] font-semibold hover:bg-surface-container-highest transition">
-                                Fiscal Invoice
+                                View Invoice
                             </a>
                             <?php if ($inv['status'] === 'Paid'): ?>
                                 <a href="print_receipt.php?id=<?= htmlspecialchars($inv['id']) ?>" target="_blank" class="inline-block px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-lg text-[11px] font-semibold hover:bg-emerald-200 transition">
                                     Receipt
                                 </a>
-                            <?php endif; ?>
-                            <?php if ($inv['status'] !== 'Cancelled' && $inv['is_fiscalized']): ?>
-                                <form action="actions/vms_cancel_invoice.php" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to cancel this fiscal invoice? A refund/cancellation fiscal document will be generated.');">
-                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>">
-                                    <input type="hidden" name="invoice_id" value="<?= htmlspecialchars($inv['id']) ?>">
-                                    <button type="submit" class="px-2 py-1 bg-red-100 text-red-700 rounded-lg text-[11px] font-semibold hover:bg-red-200 transition">
-                                        Cancel
-                                    </button>
-                                </form>
                             <?php endif; ?>
                         </td>
                     </tr>
@@ -520,13 +495,12 @@ if (($_GET['action'] ?? '') === 'edit_claim' && !empty($editClaimId)) {
     <!-- Printable Z-Report Summary Box -->
     <div class="border border-outline-variant/30 rounded-2xl p-6 font-mono text-xs bg-slate-50 shadow-2xs">
         <div class="text-center pb-4 border-b border-dashed border-slate-300 space-y-1">
-            <h2 class="text-base font-bold text-slate-800 uppercase">FRCS EFD FISCAL SUMMARY REPORT</h2>
+            <h2 class="text-base font-bold text-slate-800 uppercase">DAILY SUMMARY REPORT (Z-REPORT)</h2>
             <?php if ($fromDate && $toDate): ?>
                 <p class="text-xs font-bold text-primary">Period: <?= htmlspecialchars(date('M d, Y', strtotime($fromDate))) ?> &mdash; <?= htmlspecialchars(date('M d, Y', strtotime($toDate))) ?></p>
             <?php else: ?>
                 <p class="text-xs font-bold text-primary">Daily Report Date: <?= htmlspecialchars($zReportData['date']) ?></p>
             <?php endif; ?>
-            <p class="text-[11px] text-slate-500">TIN: <?= htmlspecialchars($vmsSettings['vms_seller_tin'] ?? '502579006') ?> | POS ID: <?= htmlspecialchars($vmsSettings['vms_pos_number'] ?? 'ASDF238/1.2') ?></p>
         </div>
 
         <div class="py-4 border-b border-dashed border-slate-300 space-y-2">
@@ -573,79 +547,15 @@ if (($_GET['action'] ?? '') === 'edit_claim' && !empty($editClaimId)) {
     </div>
 </div>
 
-<?php elseif ($activeTab === 'settings'): ?>
-<!-- VMS Settings Form -->
-<div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs max-w-2xl">
-    <h2 class="text-base font-bold text-on-surface mb-4 flex items-center gap-2">
-        <span class="material-symbols-outlined text-primary">settings</span>
-        VMS Phase 3 & EFD Integration Settings
-    </h2>
-
-    <form action="actions/vms_save_settings.php" method="POST" class="space-y-4 text-xs">
-        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>">
-
-        <div class="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl">
-            <input type="checkbox" id="vms_enabled" name="vms_enabled" value="1" <?= ($vmsSettings['vms_enabled'] ?? '1') === '1' ? 'checked' : '' ?> class="w-4 h-4 text-primary rounded focus:ring-primary">
-            <label for="vms_enabled" class="font-bold text-on-surface">Enable FRCS VMS Fiscalization for all created invoices</label>
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-            <div>
-                <label class="block font-bold text-outline mb-1">Taxpayer Seller TIN</label>
-                <input type="text" name="vms_seller_tin" value="<?= htmlspecialchars($vmsSettings['vms_seller_tin'] ?? '502579006') ?>" required class="w-full px-3 py-2 border border-outline-variant/40 rounded-xl font-mono">
-            </div>
-            <div>
-                <label class="block font-bold text-outline mb-1">Accredited POS Number</label>
-                <input type="text" name="vms_pos_number" value="<?= htmlspecialchars($vmsSettings['vms_pos_number'] ?? 'ASDF238/1.2') ?>" required class="w-full px-3 py-2 border border-outline-variant/40 rounded-xl font-mono">
-            </div>
-        </div>
-
-        <div>
-            <label class="block font-bold text-outline mb-1">Business Location Address</label>
-            <input type="text" name="vms_business_location" value="<?= htmlspecialchars($vmsSettings['vms_business_location'] ?? 'Suva Central Clinic, 2 Woodstand Road, Suva') ?>" required class="w-full px-3 py-2 border border-outline-variant/40 rounded-xl">
-        </div>
-
-        <div>
-            <label class="block font-bold text-outline mb-1">SDC / VMS Sandbox API Base URL</label>
-            <input type="url" name="vms_sdc_url" value="<?= htmlspecialchars($vmsSettings['vms_sdc_url'] ?? 'https://tap.sandbox.vms.frcs.org.fj') ?>" required class="w-full px-3 py-2 border border-outline-variant/40 rounded-xl font-mono">
-        </div>
-
-        <div class="pt-2 border-t border-outline-variant/20">
-            <h3 class="font-bold text-on-surface mb-2">VMS Tax Label Rates (%)</h3>
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block font-medium text-outline mb-1">Label A (Standard VAT %)</label>
-                    <input type="number" step="0.01" name="vms_tax_rate_a" value="<?= htmlspecialchars($vmsSettings['vms_tax_rate_a'] ?? '15.00') ?>" class="w-full px-3 py-2 border border-outline-variant/40 rounded-xl font-mono">
-                </div>
-                <div>
-                    <label class="block font-medium text-outline mb-1">Label E (Exempt %)</label>
-                    <input type="number" step="0.01" name="vms_tax_rate_e" value="<?= htmlspecialchars($vmsSettings['vms_tax_rate_e'] ?? '0.00') ?>" class="w-full px-3 py-2 border border-outline-variant/40 rounded-xl font-mono">
-                </div>
-                <div>
-                    <label class="block font-medium text-outline mb-1">Label F (Zero-Rated %)</label>
-                    <input type="number" step="0.01" name="vms_tax_rate_f" value="<?= htmlspecialchars($vmsSettings['vms_tax_rate_f'] ?? '0.00') ?>" class="w-full px-3 py-2 border border-outline-variant/40 rounded-xl font-mono">
-                </div>
-                <div>
-                    <label class="block font-medium text-outline mb-1">Label P (Special Tax %)</label>
-                    <input type="number" step="0.01" name="vms_tax_rate_p" value="<?= htmlspecialchars($vmsSettings['vms_tax_rate_p'] ?? '0.25') ?>" class="w-full px-3 py-2 border border-outline-variant/40 rounded-xl font-mono">
-                </div>
-            </div>
-        </div>
-
-        <button type="submit" class="px-4 py-2 bg-primary text-on-primary rounded-xl text-xs font-bold hover:bg-primary-hover transition">
-            Save VMS Configuration
-        </button>
-    </form>
-</div>
 <?php endif; ?>
 
-<!-- Create VMS Invoice Modal -->
+<!-- Create Invoice Modal -->
 <div id="createInvoiceModal" class="hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
     <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 w-full max-w-3xl p-6 shadow-xl max-h-[90vh] overflow-y-auto text-xs">
         <div class="flex items-center justify-between pb-3 border-b border-outline-variant/30 mb-4">
             <h2 class="text-base font-bold text-on-surface flex items-center gap-2">
                 <span class="material-symbols-outlined text-primary">receipt</span>
-                New VMS Fiscal Invoice (POS Mode)
+                New Medical Invoice
             </h2>
             <button onclick="document.getElementById('createInvoiceModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times;</button>
         </div>
@@ -695,16 +605,6 @@ if (($_GET['action'] ?? '') === 'edit_claim' && !empty($editClaimId)) {
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
-                <div>
-                    <label class="block font-bold text-outline mb-1">Buyer TIN (Optional for B2B / Cancel)</label>
-                    <input type="text" name="buyer_tin" placeholder="e.g. 502579006" class="w-full px-3 py-2 border border-outline-variant/40 rounded-xl font-mono">
-                </div>
-                <div>
-                    <label class="block font-bold text-outline mb-1">Buyer Cost Center (Optional)</label>
-                    <input type="text" name="buyer_cost_center" placeholder="e.g. COST-01" class="w-full px-3 py-2 border border-outline-variant/40 rounded-xl font-mono">
-                </div>
-            </div>
 
             <div>
                 <div class="flex items-center justify-between mb-2">
@@ -722,7 +622,6 @@ if (($_GET['action'] ?? '') === 'edit_claim' && !empty($editClaimId)) {
                                 <th class="py-2 px-2">SKU / GTIN</th>
                                 <th class="py-2 px-2 w-16">Qty</th>
                                 <th class="py-2 px-2 w-24">Price ($)</th>
-                                <th class="py-2 px-2 w-20">Tax Label</th>
                                 <th class="py-2 px-2 w-10"></th>
                             </tr>
                         </thead>
@@ -753,14 +652,6 @@ if (($_GET['action'] ?? '') === 'edit_claim' && !empty($editClaimId)) {
                                 </td>
                                 <td class="py-2 px-2">
                                     <input type="number" step="0.01" name="unit_price[]" value="150.00" required class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-mono">
-                                </td>
-                                <td class="py-2 px-2">
-                                    <select name="tax_label[]" class="w-full px-1 py-1 border border-outline-variant/40 rounded-lg font-bold">
-                                        <option value="A" selected>A (15% VAT)</option>
-                                        <option value="E">E (Exempt 0%)</option>
-                                        <option value="F">F (Zero 0%)</option>
-                                        <option value="P">P (0.25%)</option>
-                                    </select>
                                 </td>
                                 <td class="py-2 px-2 text-center">
                                     <button type="button" onclick="this.closest('tr').remove()" class="text-red-500 font-bold">&times;</button>
@@ -797,7 +688,7 @@ if (($_GET['action'] ?? '') === 'edit_claim' && !empty($editClaimId)) {
                 </button>
                 <button type="submit" class="px-5 py-2 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition flex items-center gap-1.5">
                     <span class="material-symbols-outlined text-base">task_alt</span>
-                    Create & Fiscalize Invoice
+                    Create Invoice
                 </button>
             </div>
         </form>
@@ -870,14 +761,6 @@ function addInvoiceRow() {
         </td>
         <td class="py-2 px-2">
             <input type="number" step="0.01" name="unit_price[]" value="0.00" required class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-mono">
-        </td>
-        <td class="py-2 px-2">
-            <select name="tax_label[]" class="w-full px-1 py-1 border border-outline-variant/40 rounded-lg font-bold">
-                <option value="A">A (15% VAT)</option>
-                <option value="E">E (Exempt 0%)</option>
-                <option value="F">F (Zero 0%)</option>
-                <option value="P">P (0.25%)</option>
-            </select>
         </td>
         <td class="py-2 px-2 text-center">
             <button type="button" onclick="this.closest('tr').remove()" class="text-red-500 font-bold">&times;</button>

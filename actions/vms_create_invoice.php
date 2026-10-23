@@ -187,9 +187,6 @@ try {
 
     $pdo->commit();
 
-    // Auto-fiscalize invoice with SDC
-    $vmsService->fiscalizeInvoice($invoiceId);
-
     // Automatically send invoice email to patient if email exists
     try {
         if (!empty($patientId)) {
@@ -212,7 +209,7 @@ try {
         $logger->warning("Automated invoice email error: " . $e->getMessage());
     }
 
-    $_SESSION['flash_success'] = "Invoice {$invoiceNumber} successfully created and fiscalized with VMS!";
+    $_SESSION['flash_success'] = "Invoice {$invoiceNumber} successfully created!";
 } catch (\Throwable $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();

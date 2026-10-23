@@ -728,13 +728,13 @@ include __DIR__ . '/includes/header.php';
     </div>
 </form>
 
-<!-- Modal: Finalize Encounter & VMS Fiscal Invoice Options -->
+<!-- Modal: Finalize Encounter & Medical Invoice Options -->
 <div id="finalizeModal" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-surface-container-lowest rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-outline-variant/30 space-y-4 max-h-[90vh] overflow-y-auto text-xs">
         <div class="flex items-center justify-between pb-3 border-b border-outline-variant/20">
             <h3 class="text-base font-bold text-on-surface flex items-center gap-2">
                 <span class="material-symbols-outlined text-emerald-600">task_alt</span>
-                <span>Finalize Encounter & Issue VMS Fiscal Invoice</span>
+                <span>Finalize Encounter & Issue Invoice</span>
             </h3>
             <button type="button" onclick="document.getElementById('finalizeModal').classList.add('hidden')" class="text-outline hover:text-on-surface">
                 <span class="material-symbols-outlined">close</span>
@@ -742,7 +742,7 @@ include __DIR__ . '/includes/header.php';
         </div>
 
         <p class="text-xs text-on-surface-variant">
-            You are finalizing the clinical encounter for <strong><?= htmlspecialchars($patient['first_name'] . ' ' . $patient['last_name']) ?></strong>. This will archive the visit record, deduct stock, and generate an itemized FRCS VMS Fiscal Invoice.
+            You are finalizing the clinical encounter for <strong><?= htmlspecialchars($patient['first_name'] . ' ' . $patient['last_name']) ?></strong>. This will archive the visit record, deduct stock, and generate an itemized medical invoice.
         </p>
 
         <form action="actions/encounter_save.php" method="POST" class="space-y-4">
@@ -781,7 +781,7 @@ include __DIR__ . '/includes/header.php';
 
                     <div>
                         <div class="flex items-center justify-between mb-1.5">
-                            <label class="font-bold text-on-surface">VMS Invoice Line Items</label>
+                            <label class="font-bold text-on-surface">Invoice Line Items</label>
                             <button type="button" onclick="addFinalizeRow()" class="px-2 py-0.5 bg-emerald-600 text-white rounded-lg text-[10px] font-bold hover:bg-emerald-700 transition">
                                 + Add Line Item
                             </button>
