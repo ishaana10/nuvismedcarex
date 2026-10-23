@@ -735,6 +735,63 @@ $usersList = $usersStmt->fetchAll();
                         <option value="onedrive">Microsoft OneDrive</option>
                     </select>
                 </div>
+
+                <div class="md:col-span-2 pt-2 border-t border-slate-200">
+                    <h4 class="font-bold text-slate-800 text-xs flex items-center gap-1 mb-2">
+                        <span class="material-symbols-outlined text-primary text-base">payments</span>
+                        <span>Subscription & Nuvis ERP Integration Details</span>
+                    </h4>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Plan Price Amount</label>
+                    <div class="flex gap-2">
+                        <select name="currency" class="w-24 bg-slate-50 px-2 py-2 rounded-xl border border-slate-300 font-bold text-xs">
+                            <option value="FJD" selected>FJD ($)</option>
+                            <option value="USD">USD ($)</option>
+                            <option value="AUD">AUD ($)</option>
+                            <option value="NZD">NZD ($)</option>
+                            <option value="EUR">EUR (€)</option>
+                        </select>
+                        <input type="number" step="0.01" min="0" name="plan_price" placeholder="99.00" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-bold">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Billing Cycle</label>
+                    <select name="billing_cycle" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-bold">
+                        <option value="monthly" selected>Monthly</option>
+                        <option value="quarterly">Quarterly (3 Months)</option>
+                        <option value="semi_annual">Semi-Annual (6 Months)</option>
+                        <option value="yearly">Yearly (Annual)</option>
+                        <option value="one_time">One-Time Lifetime</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Subscription Status</label>
+                    <select name="subscription_status" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-bold">
+                        <option value="active" selected>Active</option>
+                        <option value="trial">Trial Period</option>
+                        <option value="past_due">Past Due / Pending Payment</option>
+                        <option value="canceled">Canceled</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Next Renewal Date</label>
+                    <input type="date" name="next_renewal_date" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-medium">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Billing Email Contact</label>
+                    <input type="email" name="billing_email" placeholder="billing@clinic.com.fj" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-medium">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Nuvis ERP Client Reference ID (nuviserpx)</label>
+                    <input type="text" name="nuvis_erp_client_id" placeholder="e.g. ERP-CLI-9021" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-mono font-bold text-emerald-800">
+                </div>
             </div>
 
             <div class="flex items-center justify-between pt-3 border-t border-slate-200">
@@ -958,6 +1015,13 @@ function openTenantModal(tnt = null) {
         if (form.elements['email']) form.elements['email'].value = tnt.email || '';
         if (form.elements['storage_limit_mb']) form.elements['storage_limit_mb'].value = tnt.storage_limit_mb || '500';
         if (form.elements['storage_provider']) form.elements['storage_provider'].value = tnt.storage_provider || 'server';
+        if (form.elements['plan_price']) form.elements['plan_price'].value = tnt.plan_price || '0.00';
+        if (form.elements['billing_cycle']) form.elements['billing_cycle'].value = tnt.billing_cycle || 'monthly';
+        if (form.elements['currency']) form.elements['currency'].value = tnt.currency || 'FJD';
+        if (form.elements['next_renewal_date']) form.elements['next_renewal_date'].value = tnt.next_renewal_date || '';
+        if (form.elements['billing_email']) form.elements['billing_email'].value = tnt.billing_email || tnt.email || '';
+        if (form.elements['nuvis_erp_client_id']) form.elements['nuvis_erp_client_id'].value = tnt.nuvis_erp_client_id || '';
+        if (form.elements['subscription_status']) form.elements['subscription_status'].value = tnt.subscription_status || 'active';
     } else {
         form.reset();
         if (form.elements['tenant_id']) form.elements['tenant_id'].readOnly = false;

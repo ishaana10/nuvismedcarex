@@ -328,6 +328,41 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
                 $pdo->exec("ALTER TABLE tenants ADD COLUMN storage_provider VARCHAR(50) NOT NULL DEFAULT 'server'");
             } catch (Throwable $ex) {}
         }
+        if (!in_array('plan_price', $tntCols)) {
+            try {
+                $pdo->exec("ALTER TABLE tenants ADD COLUMN plan_price DECIMAL(10,2) NOT NULL DEFAULT 0.00");
+            } catch (Throwable $ex) {}
+        }
+        if (!in_array('billing_cycle', $tntCols)) {
+            try {
+                $pdo->exec("ALTER TABLE tenants ADD COLUMN billing_cycle VARCHAR(50) NOT NULL DEFAULT 'monthly'");
+            } catch (Throwable $ex) {}
+        }
+        if (!in_array('currency', $tntCols)) {
+            try {
+                $pdo->exec("ALTER TABLE tenants ADD COLUMN currency VARCHAR(10) NOT NULL DEFAULT 'FJD'");
+            } catch (Throwable $ex) {}
+        }
+        if (!in_array('next_renewal_date', $tntCols)) {
+            try {
+                $pdo->exec("ALTER TABLE tenants ADD COLUMN next_renewal_date DATE NULL");
+            } catch (Throwable $ex) {}
+        }
+        if (!in_array('billing_email', $tntCols)) {
+            try {
+                $pdo->exec("ALTER TABLE tenants ADD COLUMN billing_email VARCHAR(191) NULL");
+            } catch (Throwable $ex) {}
+        }
+        if (!in_array('nuvis_erp_client_id', $tntCols)) {
+            try {
+                $pdo->exec("ALTER TABLE tenants ADD COLUMN nuvis_erp_client_id VARCHAR(100) NULL");
+            } catch (Throwable $ex) {}
+        }
+        if (!in_array('subscription_status', $tntCols)) {
+            try {
+                $pdo->exec("ALTER TABLE tenants ADD COLUMN subscription_status VARCHAR(50) NOT NULL DEFAULT 'active'");
+            } catch (Throwable $ex) {}
+        }
     } catch (Throwable $te) {}
 
     // Auto-migrate user_tenants table columns

@@ -19,6 +19,12 @@ CREATE TABLE IF NOT EXISTS tenants (
     billing_info TEXT,
     storage_limit_mb INT DEFAULT 500,
     storage_provider VARCHAR(50) DEFAULT 'server',
+    plan_price DECIMAL(10,2) DEFAULT 0.00,
+    billing_cycle VARCHAR(50) DEFAULT 'monthly',
+    next_renewal_date DATE,
+    billing_email VARCHAR(191),
+    nuvis_erp_client_id VARCHAR(100),
+    subscription_status VARCHAR(50) DEFAULT 'active',
     is_active TINYINT(1) DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

@@ -40,6 +40,13 @@ if ($action === 'save_tenant') {
     $email = trim($_POST['email'] ?? '');
     $storageLimitMb = (int)($_POST['storage_limit_mb'] ?? 500);
     $storageProvider = in_array($_POST['storage_provider'] ?? 'server', ['server', 'googledrive', 'onedrive'], true) ? $_POST['storage_provider'] : 'server';
+    $planPrice = (float)($_POST['plan_price'] ?? 0.00);
+    $billingCycle = trim($_POST['billing_cycle'] ?? 'monthly');
+    $currency = trim($_POST['currency'] ?? 'FJD');
+    $nextRenewalDate = trim($_POST['next_renewal_date'] ?? '');
+    $billingEmail = trim($_POST['billing_email'] ?? '');
+    $nuvisErpClientId = trim($_POST['nuvis_erp_client_id'] ?? '');
+    $subscriptionStatus = trim($_POST['subscription_status'] ?? 'active');
 
     if ($id === '' || $name === '' || $code === '') {
         setToast('Validation Error', 'Tenant ID, Name, and Code are required.', 'error');
@@ -58,7 +65,14 @@ if ($action === 'save_tenant') {
             'phone' => $phone,
             'email' => $email,
             'storage_limit_mb' => $storageLimitMb,
-            'storage_provider' => $storageProvider
+            'storage_provider' => $storageProvider,
+            'plan_price' => $planPrice,
+            'billing_cycle' => $billingCycle,
+            'currency' => $currency,
+            'next_renewal_date' => $nextRenewalDate,
+            'billing_email' => $billingEmail,
+            'nuvis_erp_client_id' => $nuvisErpClientId,
+            'subscription_status' => $subscriptionStatus
         ]);
         setToast('Clinic Saved', "Clinic tenant '{$name}' saved successfully with {$storageLimitMb}MB storage allocation.");
     } catch (\Throwable $e) {
