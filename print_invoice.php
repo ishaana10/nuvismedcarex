@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/includes/autoloader.php';
 require_once __DIR__ . '/core/SessionBootstrap.php';
 if (empty($_SESSION['authenticated'])) {
     header('Location: login.php');
@@ -72,6 +73,20 @@ if (!empty($invoice['patient_id'])) {
     $patient = $pStmt->fetch();
 }
 
+// Fetch Attending Doctor / Cashier info for E-signature and Digital Stamp
+$attendingDoc = null;
+if (!empty($invoice['cashier'])) {
+    $docStmt = $pdo->prepare("SELECT * FROM doctors WHERE (name = ? OR email = ?) AND (tenant_id = ? OR tenant_id IS NULL) LIMIT 1");
+    $docStmt->execute([$invoice['cashier'], $invoice['cashier'], $currentTenantId]);
+    $attendingDoc = $docStmt->fetch();
+}
+if (!$attendingDoc) {
+    // Fallback to active doctor for tenant
+    $docStmt = $pdo->prepare("SELECT * FROM doctors WHERE (tenant_id = ? OR tenant_id IS NULL) AND is_active = 1 ORDER BY esignature DESC, digital_stamp DESC LIMIT 1");
+    $docStmt->execute([$currentTenantId]);
+    $attendingDoc = $docStmt->fetch();
+}
+
 $subtotal = 0.00;
 foreach ($items as $it) {
     $subtotal += (float)($it['total_price'] ?? 0);
@@ -88,6 +103,7 @@ $patientOwed = (float)($invoice['patient_owed'] ?? max(0, $grandTotal - $insuran
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Commercial Invoice <?= htmlspecialchars($invoice['invoice_number']) ?> - <?= htmlspecialchars($clinicName) ?></title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -232,16 +248,28 @@ $patientOwed = (float)($invoice['patient_owed'] ?? max(0, $grandTotal - $insuran
         </div>
     </div>
 
-    <!-- Official Signature Line -->
+    <!-- Official Signature & Digital Stamp Line -->
     <div class="pt-8 border-t border-slate-200 flex justify-between items-end">
         <div>
-            <p class="text-[10px] uppercase font-bold text-slate-400">Issued By</p>
-            <p class="font-bold text-slate-800 mt-1"><?= htmlspecialchars($clinicName) ?></p>
+            <?php if (!empty($attendingDoc['digital_stamp'])): ?>
+                <img src="<?= htmlspecialchars($attendingDoc['digital_stamp']) ?>" class="max-h-24 max-w-[160px] object-contain opacity-90 mb-2" alt="Clinic Digital Stamp">
+            <?php endif; ?>
+            <p class="text-[10px] uppercase font-bold text-slate-400">Issued By Practice</p>
+            <p class="font-bold text-slate-800 mt-0.5"><?= htmlspecialchars($clinicName) ?></p>
             <p class="text-slate-500 text-[10px]"><?= htmlspecialchars($clinicAddress) ?></p>
         </div>
-        <div class="text-right">
-            <div class="border-b border-slate-400 mb-1 pb-2 font-serif text-sm font-bold text-slate-800 italic">Nuvis MedcareX Finance</div>
-            <p class="font-bold text-slate-700">Authorized Financial Signatory</p>
+        <div class="text-right w-64 relative">
+            <?php if (!empty($attendingDoc['esignature'])): ?>
+                <img src="<?= htmlspecialchars($attendingDoc['esignature']) ?>" class="max-h-16 max-w-[180px] object-contain ml-auto -mb-2 relative z-10" alt="Authorising Signature">
+            <?php endif; ?>
+            <div class="border-b border-slate-400 mb-1 pb-1 font-serif text-sm font-bold text-slate-900 italic">
+                <?= htmlspecialchars($attendingDoc['name'] ?? 'Authorized Finance Officer') ?>
+            </div>
+            <p class="font-bold text-slate-800"><?= htmlspecialchars($attendingDoc['name'] ?? 'Billing Department') ?></p>
+            <p class="text-slate-500 text-[10px]"><?= htmlspecialchars($attendingDoc['specialty'] ?? 'Authorized Signatory') ?></p>
+            <?php if (!empty($attendingDoc['prc_number'])): ?>
+                <p class="text-[10px] font-mono text-slate-500">License: <?= htmlspecialchars($attendingDoc['prc_number']) ?></p>
+            <?php endif; ?>
         </div>
     </div>
 

@@ -73,6 +73,10 @@ $tab = $_GET['tab'] ?? 'general';
             <span class="material-symbols-outlined text-sm">shield</span>
             <span>Security & Access</span>
         </a>
+        <a href="settings.php?tab=subscription" class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 <?= $tab === 'subscription' ? 'bg-primary text-white shadow-xs' : 'bg-surface-container-low text-slate-600 hover:bg-surface-container' ?>">
+            <span class="material-symbols-outlined text-sm">payments</span>
+            <span>Subscription & Plan</span>
+        </a>
     </div>
 
     <!-- TAB 1: General & Branding Settings -->
@@ -217,6 +221,98 @@ $tab = $_GET['tab'] ?? 'general';
                 </div>
                 <div id="test-email-console" class="font-mono text-[11px] text-slate-300 bg-slate-950 p-2 rounded border border-slate-800 h-16 overflow-y-auto leading-relaxed">
                     [SMTP Test Console] Connecting to SMTP server...
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- TAB 5: Tenant Subscription & Billing View -->
+    <?php if ($tab === 'subscription'):
+        $tenantService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\TenantService::class);
+        $activeTenant = $tenantService->getTenantById($tenantId) ?? [];
+        $subStatus = strtolower($activeTenant['subscription_status'] ?? 'active');
+        $statusBg = ($subStatus === 'active') ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : (($subStatus === 'trial') ? 'bg-blue-100 text-blue-800 border-blue-300' : 'bg-amber-100 text-amber-800 border-amber-300');
+    ?>
+    <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-6 text-xs">
+        <div>
+            <div class="flex items-center justify-between border-b border-outline-variant/20 pb-4 mb-4">
+                <div>
+                    <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                        <span class="material-symbols-outlined text-base">verified</span>
+                        <span>Current Clinic Subscription & Billing Plan</span>
+                    </h2>
+                    <p class="text-slate-500 font-medium mt-1">Details for active tenant: <span class="font-bold text-slate-800"><?= htmlspecialchars($activeTenant['name'] ?? 'Clinic Tenant') ?></span> (ID: <span class="font-mono"><?= htmlspecialchars($tenantId) ?></span>)</p>
+                </div>
+                <span class="px-3 py-1 rounded-full text-xs font-extrabold uppercase border <?= $statusBg ?>">
+                    <?= htmlspecialchars($subStatus) ?>
+                </span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="p-4 bg-surface-container-low rounded-xl border border-outline-variant/30 space-y-2">
+                    <p class="text-slate-400 font-bold uppercase text-[10px]">Subscription Plan Tier</p>
+                    <p class="text-lg font-black text-slate-900 uppercase tracking-tight flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-primary text-xl">workspace_premium</span>
+                        <span><?= htmlspecialchars($activeTenant['plan'] ?? 'Standard') ?></span>
+                    </p>
+                    <p class="text-slate-500 font-medium">Includes medical records, appointment scheduling, pharmacy, & lab management.</p>
+                </div>
+
+                <div class="p-4 bg-surface-container-low rounded-xl border border-outline-variant/30 space-y-2">
+                    <p class="text-slate-400 font-bold uppercase text-[10px]">Plan Price & Billing Cycle</p>
+                    <p class="text-lg font-black text-emerald-700 tracking-tight flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-emerald-600 text-xl">payments</span>
+                        <span><?= htmlspecialchars($activeTenant['currency'] ?? 'FJD') ?> $<?= number_format((float)($activeTenant['plan_price'] ?? 0), 2) ?> / <?= htmlspecialchars(ucfirst($activeTenant['billing_cycle'] ?? 'monthly')) ?></span>
+                    </p>
+                    <p class="text-slate-500 font-medium">
+                        Next Renewal: <span class="font-bold text-slate-800"><?= !empty($activeTenant['next_renewal_date']) ? date('M d, Y', strtotime($activeTenant['next_renewal_date'])) : 'N/A' ?></span>
+                    </p>
+                </div>
+
+                <div class="p-4 bg-surface-container-low rounded-xl border border-outline-variant/30 space-y-2">
+                    <p class="text-slate-400 font-bold uppercase text-[10px]">Drive Storage Quota</p>
+                    <p class="text-lg font-black text-slate-900 tracking-tight flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-amber-600 text-xl">cloud</span>
+                        <span><?= ((int)($activeTenant['storage_limit_mb'] ?? 500) >= 1024) ? round(($activeTenant['storage_limit_mb'] ?? 500) / 1024, 1) . ' GB' : ($activeTenant['storage_limit_mb'] ?? 500) . ' MB' ?></span>
+                    </p>
+                    <p class="text-slate-500 font-medium">
+                        Storage Destination: <span class="font-bold text-amber-800 uppercase"><?= htmlspecialchars($activeTenant['storage_provider'] ?? 'server') ?></span>
+                    </p>
+                </div>
+            </div>
+
+            <div class="mt-6 p-5 rounded-2xl bg-slate-900 text-white space-y-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary text-xl">sync_alt</span>
+                        <h3 class="font-bold text-sm">Nuvis ERP Client Integration (`nuviserpx`)</h3>
+                    </div>
+                    <?php if (!empty($activeTenant['nuvis_erp_client_id'])): ?>
+                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span>ERP Client Linked</span>
+                        </span>
+                    <?php else: ?>
+                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">
+                            Unlinked / Standalone
+                        </span>
+                    <?php endif; ?>
+                </div>
+
+                <p class="text-slate-300 font-normal leading-relaxed text-xs">
+                    Subscription invoicing, official tenant receipts, and client account balances are managed and synchronized through <span class="font-bold text-white">Nuvis ERP (nuviserpx)</span>.
+                </p>
+
+                <div class="pt-2 flex flex-wrap items-center gap-4 text-xs font-mono text-slate-300">
+                    <div>
+                        <span class="text-slate-400">Billing Email:</span>
+                        <span class="font-bold text-white"><?= htmlspecialchars($activeTenant['billing_email'] ?: ($activeTenant['email'] ?: 'Not configured')) ?></span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400">Nuvis ERP Ref ID:</span>
+                        <span class="font-bold text-primary"><?= htmlspecialchars($activeTenant['nuvis_erp_client_id'] ?: 'Pending Assignment') ?></span>
+                    </div>
                 </div>
             </div>
         </div>

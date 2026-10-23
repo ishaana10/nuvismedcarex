@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/includes/autoloader.php';
 require_once __DIR__ . '/core/SessionBootstrap.php';
 if (empty($_SESSION['authenticated'])) {
     header('Location: login.php');
@@ -66,6 +67,20 @@ $totalAmountPaid = array_reduce($payments, fn($acc, $p) => $acc + (float)($p['am
 if ($totalAmountPaid <= 0) {
     $totalAmountPaid = (float)$invoice['amount'];
 }
+
+// Fetch Attending Doctor / Cashier info for E-signature and Digital Stamp
+$attendingDoc = null;
+if (!empty($invoice['cashier'])) {
+    $docStmt = $pdo->prepare("SELECT * FROM doctors WHERE (name = ? OR email = ?) AND (tenant_id = ? OR tenant_id IS NULL) LIMIT 1");
+    $docStmt->execute([$invoice['cashier'], $invoice['cashier'], $currentTenantId]);
+    $attendingDoc = $docStmt->fetch();
+}
+if (!$attendingDoc) {
+    // Fallback to active doctor for tenant
+    $docStmt = $pdo->prepare("SELECT * FROM doctors WHERE (tenant_id = ? OR tenant_id IS NULL) AND is_active = 1 ORDER BY esignature DESC, digital_stamp DESC LIMIT 1");
+    $docStmt->execute([$currentTenantId]);
+    $attendingDoc = $docStmt->fetch();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -74,6 +89,7 @@ if ($totalAmountPaid <= 0) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Payment Receipt REC-<?= htmlspecialchars($invoice['invoice_number']) ?> - <?= htmlspecialchars($clinicName) ?></title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -89,14 +105,58 @@ if ($totalAmountPaid <= 0) {
 <div class="max-w-2xl mx-auto bg-white p-8 sm:p-10 rounded-2xl shadow-xl border border-slate-200 print-card space-y-8">
 
     <!-- Action Controls -->
-    <div class="no-print flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-200">
+    <div class="no-print flex flex-col sm:flex-row justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-200 gap-3">
         <a href="billing.php" class="text-xs font-bold text-slate-600 hover:text-slate-900 transition flex items-center gap-1">
             &larr; Back to Billing
         </a>
-        <button onclick="window.print()" class="px-5 py-2.5 bg-emerald-700 text-white text-xs font-bold rounded-xl hover:bg-emerald-800 transition shadow-xs flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-            Print Official Receipt
-        </button>
+        <div class="flex items-center gap-2.5">
+            <button type="button" onclick="document.getElementById('sendEmailModal').classList.remove('hidden')" class="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold rounded-xl transition shadow-xs flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-base">mail</span>
+                <span>Send Receipt via Email</span>
+            </button>
+            <button onclick="window.print()" class="px-5 py-2 bg-emerald-700 text-white text-xs font-bold rounded-xl hover:bg-emerald-800 transition shadow-xs flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                <span>Print Receipt</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal: Send Receipt Email -->
+    <div id="sendEmailModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-blue-600 text-lg">mail</span>
+                    <span>Send Receipt via Email</span>
+                </h3>
+                <button type="button" onclick="document.getElementById('sendEmailModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-700">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <form action="actions/send_receipt_email.php" method="POST" class="space-y-4 text-xs">
+                <input type="hidden" name="invoice_id" value="<?= htmlspecialchars($invoice['id']) ?>">
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1.5">Recipient Patient Email <span class="text-rose-500">*</span></label>
+                    <input type="email" name="email" value="<?= htmlspecialchars($invoice['patient_email'] ?? $invoice['email'] ?? '') ?>" required placeholder="patient@example.com" class="w-full bg-slate-50 p-3 rounded-xl border border-slate-200 font-medium text-slate-800 focus:bg-white focus:outline-none focus:border-blue-600">
+                </div>
+
+                <p class="text-[11px] text-slate-500 italic">
+                    An itemized payment confirmation receipt for Invoice #<?= htmlspecialchars($invoice['invoice_number']) ?> will be sent immediately to the specified address.
+                </p>
+
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                    <button type="button" onclick="document.getElementById('sendEmailModal').classList.add('hidden')" class="px-4 py-2 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-5 py-2 bg-blue-700 text-white font-bold rounded-xl hover:bg-blue-800 transition shadow-xs flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-base">send</span>
+                        <span>Send Email Now</span>
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- Receipt Header -->
@@ -193,16 +253,28 @@ if ($totalAmountPaid <= 0) {
         </div>
     </div>
 
-    <!-- Official Signoff -->
+    <!-- Official Signature & Digital Stamp Line -->
     <div class="pt-6 border-t border-slate-200 flex justify-between items-end">
         <div>
-            <p class="text-[10px] uppercase font-bold text-slate-400">Issued By</p>
-            <p class="font-bold text-slate-800 mt-1"><?= htmlspecialchars($clinicName) ?></p>
+            <?php if (!empty($attendingDoc['digital_stamp'])): ?>
+                <img src="<?= htmlspecialchars($attendingDoc['digital_stamp']) ?>" class="max-h-24 max-w-[160px] object-contain opacity-90 mb-2" alt="Clinic Digital Stamp">
+            <?php endif; ?>
+            <p class="text-[10px] uppercase font-bold text-slate-400">Issued By Practice</p>
+            <p class="font-bold text-slate-800 mt-0.5"><?= htmlspecialchars($clinicName) ?></p>
             <p class="text-slate-500 text-[10px]"><?= htmlspecialchars($clinicPhone) ?></p>
         </div>
-        <div class="text-right">
-            <div class="border-b border-slate-400 mb-1 pb-2 font-serif text-sm font-bold text-emerald-900 italic">Nuvis MedcareX Finance</div>
-            <p class="font-bold text-slate-700">Authorized Cashier Sign-off</p>
+        <div class="text-right w-64 relative">
+            <?php if (!empty($attendingDoc['esignature'])): ?>
+                <img src="<?= htmlspecialchars($attendingDoc['esignature']) ?>" class="max-h-16 max-w-[180px] object-contain ml-auto -mb-2 relative z-10" alt="Authorising Signature">
+            <?php endif; ?>
+            <div class="border-b border-slate-400 mb-1 pb-1 font-serif text-sm font-bold text-emerald-900 italic">
+                <?= htmlspecialchars($attendingDoc['name'] ?? 'Authorized Cashier') ?>
+            </div>
+            <p class="font-bold text-slate-800"><?= htmlspecialchars($attendingDoc['name'] ?? 'Authorized Cashier') ?></p>
+            <p class="text-slate-500 text-[10px]"><?= htmlspecialchars($attendingDoc['specialty'] ?? 'Clinical Finance') ?></p>
+            <?php if (!empty($attendingDoc['prc_number'])): ?>
+                <p class="text-[10px] font-mono text-slate-500">License: <?= htmlspecialchars($attendingDoc['prc_number']) ?></p>
+            <?php endif; ?>
         </div>
     </div>
 
