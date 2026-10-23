@@ -404,17 +404,17 @@ class VMSService
         if ($fromDate !== null && $toDate !== null) {
             $stmt = $this->pdo->prepare("
                 SELECT * FROM invoices
-                WHERE tenant_id = ? AND is_fiscalized = 1 AND DATE(created_at) BETWEEN ? AND ?
+                WHERE tenant_id = ? AND (DATE(created_at) BETWEEN ? AND ? OR service_date BETWEEN ? AND ?)
                 ORDER BY created_at ASC
             ");
-            $stmt->execute([$tenantId, $fromDate, $toDate]);
+            $stmt->execute([$tenantId, $fromDate, $toDate, $fromDate, $toDate]);
         } else {
             $stmt = $this->pdo->prepare("
                 SELECT * FROM invoices
-                WHERE tenant_id = ? AND is_fiscalized = 1 AND DATE(created_at) = ?
+                WHERE tenant_id = ? AND (DATE(created_at) = ? OR service_date = ?)
                 ORDER BY created_at ASC
             ");
-            $stmt->execute([$tenantId, $date]);
+            $stmt->execute([$tenantId, $date, $date]);
         }
         $invoices = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -465,7 +465,7 @@ class VMSService
             $summary['total_vat'] += $tax;
 
             $payments = json_decode($inv['payment_methods'] ?? '[]', true);
-            if (is_array($payments)) {
+            if (is_array($payments) && !empty($payments)) {
                 foreach ($payments as $p) {
                     $pType = $p['type'] ?? 'Cash';
                     $pAmt = (float)($p['amount'] ?? 0);
@@ -475,6 +475,13 @@ class VMSService
                         $summary['by_payment'][$pType] = $pAmt;
                     }
                 }
+            } else {
+                // Fallback to primary payment method or status
+                $pType = $inv['payment_type'] ?? 'Cash';
+                if (!isset($summary['by_payment'][$pType])) {
+                    $summary['by_payment'][$pType] = 0.0;
+                }
+                $summary['by_payment'][$pType] += $amt;
             }
         }
 
