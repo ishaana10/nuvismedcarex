@@ -229,6 +229,9 @@ if ($fromDate && $toDate) {
                                 <a href="print_receipt.php?id=<?= htmlspecialchars($inv['id']) ?>" target="_blank" class="inline-block px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-lg text-[11px] font-semibold hover:bg-emerald-200 transition">
                                     Receipt
                                 </a>
+                                <a href="actions/send_receipt_email.php?invoice_id=<?= htmlspecialchars($inv['id']) ?>" onclick="return confirm('Send payment receipt via email to patient?')" class="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded-lg text-[11px] font-semibold hover:bg-blue-200 transition" title="Email Receipt">
+                                    Email
+                                </a>
                             <?php endif; ?>
                         </td>
                     </tr>
