@@ -6,6 +6,12 @@ namespace ClinicFlow\Shared;
 class TenantContext {
     private static ?string $currentTenantId = null;
 
+    public function __construct(?string $tenantId = null) {
+        if ($tenantId !== null && $tenantId !== '') {
+            self::$currentTenantId = trim($tenantId);
+        }
+    }
+
     public static function setTenantId(string $tenantId): void {
         self::$currentTenantId = trim($tenantId);
     }

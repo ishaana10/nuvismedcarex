@@ -16,7 +16,19 @@ final class MRN {
         $this->value = $trimmed;
     }
 
+    public static function generate(?string $prefix = '#'): self {
+        return new self(($prefix ?? '#') . random_int(10000, 99999));
+    }
+
+    public static function fromString(string $value): self {
+        return new self($value);
+    }
+
     public function getValue(): string {
+        return $this->value;
+    }
+
+    public function toString(): string {
         return $this->value;
     }
 

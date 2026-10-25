@@ -41,6 +41,31 @@ class Container {
                 return new \ClinicFlow\Services\CacheService();
             });
         }
+        if (!isset($this->bindings[TenantContext::class]) && !isset($this->instances[TenantContext::class])) {
+            $this->singleton(TenantContext::class, function () {
+                return new TenantContext();
+            });
+        }
+        if (!isset($this->bindings[\ClinicFlow\Repositories\PatientRepository::class]) && !isset($this->instances[\ClinicFlow\Repositories\PatientRepository::class])) {
+            $this->bind(\ClinicFlow\Repositories\PatientRepository::class, function (Container $c) {
+                return new \ClinicFlow\Repositories\PatientRepository($c->get(\PDO::class));
+            });
+        }
+        if (!isset($this->bindings[\ClinicFlow\Services\AuditService::class]) && !isset($this->instances[\ClinicFlow\Services\AuditService::class])) {
+            $this->bind(\ClinicFlow\Services\AuditService::class, function (Container $c) {
+                return new \ClinicFlow\Services\AuditService($c->get(\PDO::class));
+            });
+        }
+        if (!isset($this->bindings[\ClinicFlow\Application\Patient\RegisterPatientHandler::class]) && !isset($this->instances[\ClinicFlow\Application\Patient\RegisterPatientHandler::class])) {
+            $this->bind(\ClinicFlow\Application\Patient\RegisterPatientHandler::class, function (Container $c) {
+                return new \ClinicFlow\Application\Patient\RegisterPatientHandler(
+                    $c->get(\ClinicFlow\Repositories\PatientRepository::class),
+                    $c->get(TenantContext::class),
+                    $c->get(\ClinicFlow\Services\AuditService::class),
+                    $c->get(\PDO::class)
+                );
+            });
+        }
     }
 
     public function bind(string $abstract, Closure $factory): void {
