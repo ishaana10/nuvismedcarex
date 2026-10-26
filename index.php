@@ -120,13 +120,14 @@ $dashQuery('billing', function () use ($pdo, $currentTenantId, $todayDate, &$pen
     $overdueInvoicesCount = (int) $s->fetchColumn();
 });
 
-$dashQuery('stock', function () use ($pdo, $currentTenantId, $todayDate, &$lowStockItems, &$lowStockCount, &$expiringCount) {
+$expiryWindowDays = max(0, (int) nxSetting('inventory_expiry_warning_days', 30));
+$dashQuery('stock', function () use ($pdo, $currentTenantId, $todayDate, $expiryWindowDays, &$lowStockItems, &$lowStockCount, &$expiringCount) {
     $s = $pdo->prepare("SELECT name, current_stock, min_threshold, unit FROM inventory WHERE tenant_id = ? AND is_active = 1 AND current_stock <= min_threshold ORDER BY current_stock ASC");
     $s->execute([$currentTenantId]);
     $lowStockItems = $s->fetchAll() ?: [];
     $lowStockCount = count($lowStockItems);
     $s = $pdo->prepare("SELECT COUNT(*) FROM inventory WHERE tenant_id = ? AND is_active = 1 AND expiry_date IS NOT NULL AND expiry_date <= ?");
-    $s->execute([$currentTenantId, date('Y-m-d', strtotime('+30 days'))]);
+    $s->execute([$currentTenantId, date('Y-m-d', strtotime("+{$expiryWindowDays} days"))]);
     $expiringCount = (int) $s->fetchColumn();
 });
 
@@ -442,7 +443,7 @@ $canEncounter = nxCan('encounters', 'view');
                     ],
                     [
                         'module' => 'inventory', 'icon' => 'event_busy', 'tone' => $expiringCount ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600', 'url' => 'inventory.php',
-                        'label' => 'Expiring within 30 days',
+                        'label' => 'Expiring within ' . $expiryWindowDays . ' days',
                         'value' => (string) $expiringCount,
                         'note' => $expiringCount ? 'Use first or return to supplier' : 'Nothing close to expiry',
                         'warn' => $expiringCount > 0,

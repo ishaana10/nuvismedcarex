@@ -22,30 +22,16 @@ $pdo = getDB();
 $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 $isPreview = isset($_GET['preview']);
 
-// Clinic details: this clinic's settings, then shared defaults
-$settingsRows = [];
-try {
-    $st = $pdo->prepare("SELECT setting_key, setting_value FROM tenant_settings WHERE tenant_id = ?");
-    $st->execute([$currentTenantId]);
-    $settingsRows = $st->fetchAll(PDO::FETCH_KEY_PAIR) ?: [];
-    foreach ($pdo->query("SELECT setting_key, setting_value FROM clinic_settings")->fetchAll(PDO::FETCH_KEY_PAIR) ?: [] as $k => $v) {
-        if (!isset($settingsRows[$k])) $settingsRows[$k] = $v;
-    }
-} catch (\Throwable $e) {
-    error_log('[print_receipt] settings: ' . $e->getMessage());
-}
-$clinic = [
-    'name'     => $settingsRows['clinic_name'] ?? ($activeClinicName ?? 'Nuvis Medico Healthcare'),
-    'subtitle' => $settingsRows['clinic_subtitle'] ?? '',
-    'address'  => $settingsRows['clinic_address'] ?? '',
-    'phone'    => $settingsRows['clinic_phone'] ?? '',
-    'email'    => $settingsRows['clinic_email'] ?? '',
-    'license'  => $settingsRows['doc_prc_no'] ?? '',
-    'tin'      => $settingsRows['vms_seller_tin'] ?? ($settingsRows['invoice_tax_id'] ?? ''),
-];
+// Identity of the clinic this receipt belongs to
+$settingsRows = nxSettings();
+$clinic = nxClinic();
 
 $rs = new ReceiptSettings($pdo, $currentTenantId);
 $cfg = $rs->load();
+// A receipt with no logo of its own uses the clinic's logo
+if (($cfg['logo'] ?? '') === '' && !empty($clinic['logo'])) {
+    $cfg['logo'] = $clinic['logo'];
+}
 
 if ($isPreview) {
     // Designer preview: render the submitted (unsaved) settings with sample data

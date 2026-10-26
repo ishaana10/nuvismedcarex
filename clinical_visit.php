@@ -1202,11 +1202,10 @@ function closeEditRxModal() {
 
 <!-- Modal: Issue Medical Certificate in Clinical Visit -->
 <?php
-$settingsRows = $pdo->query("SELECT * FROM clinic_settings")->fetchAll();
+// Settings for the active clinic (its own values over the shared defaults)
+$settings = nxSettings();
 $clinicSettings = [];
-foreach ($settingsRows as $sr) {
-    $clinicSettings[$sr['setting_key']] = $sr['setting_value'];
-}
+$clinicSettings = $settings;
 ?>
 <div id="issueMedCertModal" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-surface-container-lowest rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-outline-variant/30 max-h-[90vh] overflow-y-auto">

@@ -13,20 +13,18 @@ $pdo = getDB();
 
 $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 
-// Fetch Clinic & Tenant Settings
-$settingsRows = $pdo->query("SELECT setting_key, setting_value FROM tenant_settings WHERE tenant_id = " . $pdo->quote($currentTenantId))->fetchAll(PDO::FETCH_KEY_PAIR);
-if (empty($settingsRows)) {
-    $settingsRows = $pdo->query("SELECT setting_key, setting_value FROM clinic_settings")->fetchAll(PDO::FETCH_KEY_PAIR);
-}
+// Settings and identity for the active clinic
+$settingsRows = nxSettings();
+$clinicProfile = nxClinic();
 
-$clinicName = $settingsRows['clinic_name'] ?? 'Nuvis Medico Healthcare';
-$clinicSubtitle = $settingsRows['clinic_subtitle'] ?? 'Medical & Clinical Practice';
-$clinicAddress = $settingsRows['clinic_address'] ?? '2 Woodstand Road, Suva, Fiji';
-$clinicPhone = $settingsRows['clinic_phone'] ?? '(+679) 330 1234';
-$clinicEmail = $settingsRows['clinic_email'] ?? 'billing@nuvismedcare.com';
-$docPrcNo = $settingsRows['doc_prc_no'] ?? 'LIC-984120';
+$clinicName = $clinicProfile['name'];
+$clinicSubtitle = $clinicProfile['subtitle'];
+$clinicAddress = $clinicProfile['address'];
+$clinicPhone = $clinicProfile['phone'];
+$clinicEmail = $clinicProfile['email'];
+$docPrcNo = $clinicProfile['license'];
 
-$invoiceHeaderTitle = 'COMMERCIAL INVOICE';
+$invoiceHeaderTitle = $settingsRows['invoice_header_title'] ?? 'Invoice';
 $invoicePaymentTerms = $settingsRows['invoice_payment_terms'] ?? 'Payment due upon receipt or within 30 days.';
 $invoiceFooterNote = $settingsRows['invoice_footer_note'] ?? 'Thank you for choosing Nuvis Medico Healthcare. For billing inquiries, please contact our financial department.';
 

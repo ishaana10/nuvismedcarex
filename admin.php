@@ -11,18 +11,8 @@ include __DIR__ . '/includes/header.php';
 // Ensure active tenant ID is initialized
 $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 
-// Fetch current clinic settings merged with tenant-specific settings
-$settingsRows = $pdo->query("SELECT * FROM clinic_settings")->fetchAll();
-$settings = [];
-foreach ($settingsRows as $r) {
-    $settings[$r['setting_key']] = $r['setting_value'];
-}
-
-$tenantSettingsStmt = $pdo->prepare("SELECT setting_key, setting_value FROM tenant_settings WHERE tenant_id = ?");
-$tenantSettingsStmt->execute([$currentTenantId]);
-while ($tr = $tenantSettingsStmt->fetch()) {
-    $settings[$tr['setting_key']] = $tr['setting_value'];
-}
+// Settings for the active clinic: its own values over the shared defaults
+$settings = nxSettings();
 
 // Fetch multi-tenants clinics list
 $tenantService = new \ClinicFlow\Services\TenantService($pdo);
@@ -239,188 +229,246 @@ $usersList = $usersStmt->fetchAll();
 
 <!-- ================= TAB 2: CLINIC & BRANDING SETTINGS ================= -->
 <div id="admin-tab-clinic" class="<?= $activeTab === 'clinic' ? '' : 'hidden' ?> space-y-6">
-    <form action="actions/admin_save_settings.php" method="POST" class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-5">
-        <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
-        <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
-            <span class="material-symbols-outlined text-base">domain</span>
-            <span>1. Clinic Branding & General Info</span>
-        </h2>
+<?php
+$cp = nxClinic();
+$clinicCanEdit = nxCan('settings', 'edit');
+$cdis = $clinicCanEdit ? '' : 'disabled';
+$sv = fn(string $k, string $fallback = '') => htmlspecialchars((string) ($settings[$k] ?? $fallback));
+?>
+    <div class="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-[13px] text-blue-900">
+        <span class="material-symbols-outlined text-[20px]">info</span>
+        <p>Everything here belongs to <strong><?= htmlspecialchars($cp['name']) ?></strong>. Other clinics on this installation keep their own details.</p>
+    </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-            <div class="md:col-span-2">
-                <label class="block font-bold text-slate-700 mb-1">Clinic Name <span class="text-red-500">*</span></label>
-                <input type="text" name="clinic_name" value="<?= htmlspecialchars($settings['clinic_name'] ?? 'Nuvis Medico Healthcare') ?>" required class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-bold text-on-surface">
-            </div>
+    <form action="actions/admin_save_settings.php" method="POST" enctype="multipart/form-data" id="clinic-form" class="space-y-6">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getCsrfToken()) ?>">
 
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 space-y-4">
             <div>
-                <label class="block font-bold text-slate-700 mb-1">Subtitle / Slogan</label>
-                <input type="text" name="clinic_subtitle" value="<?= htmlspecialchars($settings['clinic_subtitle'] ?? 'Integrated Healthcare Center') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium">
+                <h2 class="text-base font-semibold text-slate-900">Clinic identity</h2>
+                <p class="text-[13px] text-slate-500 mt-0.5">Used in the header, on printed documents and in emails to patients.</p>
             </div>
 
-            <div>
-                <label class="block font-bold text-slate-700 mb-1">Phone Number</label>
-                <input type="text" name="clinic_phone" value="<?= htmlspecialchars($settings['clinic_phone'] ?? '(555) 019-2831') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium">
+            <div class="flex flex-col sm:flex-row gap-5">
+                <div class="shrink-0">
+                    <span class="form-label">Logo</span>
+                    <div class="w-28 h-28 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden" id="clinic-logo-thumb">
+                        <?php if (!empty($cp['logo'])): ?>
+                            <img src="<?= htmlspecialchars($cp['logo']) ?>" alt="Current logo" class="max-w-full max-h-full object-contain">
+                        <?php else: ?>
+                            <span class="text-xs text-slate-400">No logo</span>
+                        <?php endif; ?>
+                    </div>
+                    <?php if ($clinicCanEdit): ?>
+                        <label class="btn-secondary !py-1.5 !px-3 mt-2 w-full cursor-pointer !text-xs">
+                            <input type="file" name="clinic_logo_file" id="clinic-logo-file" accept="image/png,image/jpeg,image/webp" class="sr-only">
+                            Choose image
+                        </label>
+                        <?php if (!empty($cp['logo'])): ?>
+                            <label class="flex items-center gap-1.5 mt-2 text-xs text-slate-600">
+                                <input type="checkbox" name="remove_clinic_logo" value="1" class="rounded border-slate-300 text-blue-700 focus:ring-blue-500/30">
+                                Remove logo
+                            </label>
+                        <?php endif; ?>
+                        <p class="text-[11px] text-slate-500 mt-1.5 max-w-[7rem]">PNG, JPG or WebP, under 300 KB.</p>
+                    <?php endif; ?>
+                </div>
+
+                <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
+                    <div class="md:col-span-2">
+                        <label class="form-label" for="f-clinic-name">Clinic name <span class="text-red-600">*</span></label>
+                        <input id="f-clinic-name" type="text" name="clinic_name" required maxlength="120" value="<?= htmlspecialchars($cp['name']) ?>" class="form-input !text-sm !font-semibold" <?= $cdis ?>>
+                        <p class="text-xs text-slate-500 mt-1">Shown in the header, the clinic switcher and at the top of every printed document.</p>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="form-label" for="f-clinic-subtitle">Strapline</label>
+                        <input id="f-clinic-subtitle" type="text" name="clinic_subtitle" maxlength="160" value="<?= $sv('clinic_subtitle') ?>" placeholder="e.g. Family medicine and minor surgery" class="form-input" <?= $cdis ?>>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="form-label" for="f-clinic-address">Address</label>
+                        <input id="f-clinic-address" type="text" name="clinic_address" maxlength="200" value="<?= htmlspecialchars($cp['address']) ?>" class="form-input" <?= $cdis ?>>
+                    </div>
+                    <div>
+                        <label class="form-label" for="f-clinic-phone">Phone</label>
+                        <input id="f-clinic-phone" type="text" name="clinic_phone" maxlength="60" value="<?= htmlspecialchars($cp['phone']) ?>" class="form-input" <?= $cdis ?>>
+                    </div>
+                    <div>
+                        <label class="form-label" for="f-clinic-email">Email</label>
+                        <input id="f-clinic-email" type="email" name="clinic_email" maxlength="120" value="<?= htmlspecialchars($cp['email']) ?>" class="form-input" <?= $cdis ?>>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="form-label" for="f-clinic-website">Website</label>
+                        <input id="f-clinic-website" type="text" name="clinic_website" maxlength="120" value="<?= $sv('clinic_website') ?>" placeholder="e.g. clinic.com.fj" class="form-input" <?= $cdis ?>>
+                    </div>
+                </div>
             </div>
 
-            <div>
-                <label class="block font-bold text-slate-700 mb-1">Clinic Email</label>
-                <input type="email" name="clinic_email" value="<?= htmlspecialchars($settings['clinic_email'] ?? 'medico@nuvistechnologies.com.fj') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium">
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <span class="text-xs font-medium text-slate-500">How it appears on a document</span>
+                <div class="mt-2 bg-white rounded-lg border border-slate-200 px-4 py-3 text-center">
+                    <div class="flex items-center justify-center gap-2.5">
+                        <?php if (!empty($cp['logo'])): ?><img src="<?= htmlspecialchars($cp['logo']) ?>" alt="" class="h-8 w-auto object-contain" id="prev-logo"><?php endif; ?>
+                        <span class="text-base font-semibold text-slate-900" id="prev-name"><?= htmlspecialchars($cp['name']) ?></span>
+                    </div>
+                    <div class="text-xs text-slate-500 mt-0.5" id="prev-sub"><?= $sv('clinic_subtitle') ?></div>
+                    <div class="text-[11px] text-slate-500 mt-1" id="prev-contact">
+                        <?= htmlspecialchars(trim(implode(' · ', array_filter([$cp['address'], $cp['phone'], $cp['email']])), ' ·')) ?>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5">
+            <h2 class="text-base font-semibold text-slate-900">Registration numbers</h2>
+            <p class="text-[13px] text-slate-500 mt-0.5 mb-4">Printed on prescriptions, invoices and certificates where they apply.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                    <label class="form-label" for="f-prc">Practitioner licence</label>
+                    <input id="f-prc" type="text" name="doc_prc_no" maxlength="60" value="<?= $sv('doc_prc_no') ?>" class="form-input font-mono" <?= $cdis ?>>
+                </div>
+                <div>
+                    <label class="form-label" for="f-ptr">Practice registration</label>
+                    <input id="f-ptr" type="text" name="doc_ptr_no" maxlength="60" value="<?= $sv('doc_ptr_no') ?>" class="form-input font-mono" <?= $cdis ?>>
+                </div>
+                <div>
+                    <label class="form-label" for="f-dea">Controlled drugs licence</label>
+                    <input id="f-dea" type="text" name="clinic_dea" maxlength="60" value="<?= $sv('clinic_dea') ?>" class="form-input font-mono" <?= $cdis ?>>
+                </div>
+                <div>
+                    <label class="form-label" for="f-npi">Provider number</label>
+                    <input id="f-npi" type="text" name="clinic_npi" maxlength="60" value="<?= $sv('clinic_npi') ?>" class="form-input font-mono" <?= $cdis ?>>
+                </div>
+            </div>
+        </section>
+
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 space-y-5">
+            <div class="flex items-start justify-between gap-3 flex-wrap">
+                <div>
+                    <h2 class="text-base font-semibold text-slate-900">Printed document wording</h2>
+                    <p class="text-[13px] text-slate-500 mt-0.5">Headings and small print on what patients take away.</p>
+                </div>
+                <a href="receipt_settings.php" class="btn-secondary !py-1.5 !text-xs">
+                    <span class="material-symbols-outlined text-[16px]">receipt</span> Receipt design
+                </a>
             </div>
 
-            <div>
-                <label class="block font-bold text-slate-700 mb-1">DEA License Number</label>
-                <input type="text" name="clinic_dea" value="<?= htmlspecialchars($settings['clinic_dea'] ?? 'FC9823019') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-mono font-medium">
-            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                <div class="space-y-3">
+                    <h3 class="text-[13px] font-semibold text-slate-800">Prescription</h3>
+                    <div>
+                        <label class="form-label" for="f-rx-title">Heading</label>
+                        <input id="f-rx-title" type="text" name="rx_header_title" maxlength="80" value="<?= $sv('rx_header_title', 'Prescription') ?>" class="form-input" <?= $cdis ?>>
+                    </div>
+                    <div>
+                        <label class="form-label" for="f-rx-disc">Notice</label>
+                        <textarea id="f-rx-disc" name="rx_disclaimer" rows="2" maxlength="400" class="form-textarea" <?= $cdis ?>><?= $sv('rx_disclaimer') ?></textarea>
+                    </div>
+                    <div>
+                        <label class="form-label" for="f-rx-foot">Footer</label>
+                        <input id="f-rx-foot" type="text" name="rx_footer_note" maxlength="200" value="<?= $sv('rx_footer_note') ?>" class="form-input" <?= $cdis ?>>
+                    </div>
+                </div>
 
-            <div>
-                <label class="block font-bold text-slate-700 mb-1">NPI Number</label>
-                <input type="text" name="clinic_npi" value="<?= htmlspecialchars($settings['clinic_npi'] ?? '1092830192') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-mono font-medium">
-            </div>
+                <div class="space-y-3">
+                    <h3 class="text-[13px] font-semibold text-slate-800">Invoice</h3>
+                    <div>
+                        <label class="form-label" for="f-inv-title">Heading</label>
+                        <input id="f-inv-title" type="text" name="invoice_header_title" maxlength="80" value="<?= $sv('invoice_header_title', 'Invoice') ?>" class="form-input" <?= $cdis ?>>
+                    </div>
+                    <div>
+                        <label class="form-label" for="f-inv-tax">Tax number on invoices</label>
+                        <input id="f-inv-tax" type="text" name="invoice_tax_id" maxlength="60" value="<?= $sv('invoice_tax_id') ?>" class="form-input font-mono" <?= $cdis ?>>
+                    </div>
+                    <div>
+                        <label class="form-label" for="f-inv-terms">Payment terms</label>
+                        <input id="f-inv-terms" type="text" name="invoice_payment_terms" maxlength="200" value="<?= $sv('invoice_payment_terms') ?>" class="form-input" <?= $cdis ?>>
+                    </div>
+                    <div>
+                        <label class="form-label" for="f-inv-foot">Footer</label>
+                        <input id="f-inv-foot" type="text" name="invoice_footer_note" maxlength="200" value="<?= $sv('invoice_footer_note') ?>" class="form-input" <?= $cdis ?>>
+                    </div>
+                </div>
 
-            <div class="md:col-span-2">
-                <label class="block font-bold text-slate-700 mb-1">Default Physician Medical License No.</label>
-                <input type="text" name="doc_prc_no" value="<?= htmlspecialchars($settings['doc_prc_no'] ?? 'LIC-0098412') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-mono font-medium">
+                <div class="space-y-3">
+                    <h3 class="text-[13px] font-semibold text-slate-800">Medical certificate</h3>
+                    <div>
+                        <label class="form-label" for="f-cert-title">Heading</label>
+                        <input id="f-cert-title" type="text" name="cert_header_title" maxlength="80" value="<?= $sv('cert_header_title', 'Medical certificate') ?>" class="form-input" <?= $cdis ?>>
+                    </div>
+                    <div>
+                        <label class="form-label" for="f-cert-disc">Notice</label>
+                        <textarea id="f-cert-disc" name="cert_disclaimer" rows="2" maxlength="400" class="form-textarea" <?= $cdis ?>><?= $sv('cert_disclaimer') ?></textarea>
+                    </div>
+                    <div>
+                        <label class="form-label" for="f-cert-foot">Footer</label>
+                        <input id="f-cert-foot" type="text" name="cert_footer_note" maxlength="200" value="<?= $sv('cert_footer_note') ?>" class="form-input" <?= $cdis ?>>
+                    </div>
+                </div>
             </div>
+        </section>
 
-            <div>
-                <label class="block font-bold text-slate-700 mb-1">Default Table Items Per Page (Pagination Limit)</label>
-                <select name="default_pagination_limit" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-bold text-primary">
-                    <?php
-                    $currDefLimit = (int)($settings['default_pagination_limit'] ?? 10);
-                    foreach ([5, 10, 25, 50, 100] as $optLimit): ?>
-                        <option value="<?= $optLimit ?>" <?= $currDefLimit === $optLimit ? 'selected' : '' ?>><?= $optLimit ?> items per page</option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5">
+            <h2 class="text-base font-semibold text-slate-900">Live notifications</h2>
+            <input type="hidden" name="sse_setting_submitted" value="1">
+            <label class="flex items-start gap-3 mt-3 cursor-pointer">
+                <input type="checkbox" name="sse_notifications_enabled" value="1" class="mt-0.5 rounded border-slate-300 text-blue-700 focus:ring-blue-500/30" <?= ($settings['sse_notifications_enabled'] ?? '1') === '1' ? 'checked' : '' ?> <?= $cdis ?>>
+                <span class="text-[13px] text-slate-700">
+                    Show staff a notification when a patient is registered or an appointment is booked
+                    <span class="block text-xs text-slate-500 mt-0.5">Turn this off if the clinic's connection makes the live updates unreliable.</span>
+                </span>
+            </label>
+        </section>
 
-            <div class="md:col-span-2">
-                <label class="block font-bold text-slate-700 mb-1">Physical Address</label>
-                <input type="text" name="clinic_address" value="<?= htmlspecialchars($settings['clinic_address'] ?? '100 Healthcare Way, Suite 400, Springfield, OR') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium">
-            </div>
+        <?php if ($clinicCanEdit): ?>
+        <div class="sticky bottom-3 z-10 flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/95 backdrop-blur px-4 py-3 shadow-pop">
+            <span class="text-[13px] text-slate-500">Applies to <?= htmlspecialchars($cp['name']) ?> only</span>
+            <button type="submit" class="btn-primary">Save clinic details</button>
         </div>
-
-        <hr class="border-outline-variant/20">
-
-        <!-- Fully Customisable Prescription Settings -->
-        <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
-            <span class="material-symbols-outlined text-base">print</span>
-            <span>2. Prescription Template Customization</span>
-        </h2>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-            <div class="md:col-span-2">
-                <label class="block font-bold text-slate-700 mb-1">Prescription Header Title</label>
-                <input type="text" name="rx_header_title" value="<?= htmlspecialchars($settings['rx_header_title'] ?? 'OFFICIAL MEDICAL PRESCRIPTION') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-bold">
-            </div>
-
-            <div class="md:col-span-2">
-                <label class="block font-bold text-slate-700 mb-1">Custom Disclaimer Text</label>
-                <textarea name="rx_disclaimer" rows="2" class="w-full bg-surface-container-low p-3 rounded-xl border border-outline-variant/40 font-medium"><?= htmlspecialchars($settings['rx_disclaimer'] ?? 'Notice: This prescription is valid for 30 days from date of issue.') ?></textarea>
-            </div>
-
-            <div class="md:col-span-2">
-                <label class="block font-bold text-slate-700 mb-1">Footer Instructions / Refill Policy Note</label>
-                <textarea name="rx_footer_note" rows="2" class="w-full bg-surface-container-low p-3 rounded-xl border border-outline-variant/40 font-medium"><?= htmlspecialchars($settings['rx_footer_note'] ?? 'Substitution Permitted unless DAW is indicated.') ?></textarea>
-            </div>
-        </div>
-
-        <hr class="border-outline-variant/20">
-
-        <!-- Fully Customisable Invoice & Receipt Settings -->
-        <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
-            <span class="material-symbols-outlined text-base">receipt_long</span>
-            <span>3. Invoice & Payment Receipt Customization</span>
-        </h2>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-            <div>
-                <label class="block font-bold text-slate-700 mb-1">Invoice Header Title</label>
-                <input type="text" name="invoice_header_title" value="<?= htmlspecialchars($settings['invoice_header_title'] ?? 'MEDICAL SERVICES INVOICE') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-bold">
-            </div>
-
-            <div>
-                <label class="block font-bold text-slate-700 mb-1">Tax ID / EIN Number</label>
-                <input type="text" name="invoice_tax_id" value="<?= htmlspecialchars($settings['invoice_tax_id'] ?? '93-1029384') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-mono font-medium">
-            </div>
-
-            <div class="md:col-span-2">
-                <label class="block font-bold text-slate-700 mb-1">Invoice Payment Terms & Instructions</label>
-                <input type="text" name="invoice_payment_terms" value="<?= htmlspecialchars($settings['invoice_payment_terms'] ?? 'Net 30 Days. Please remit payment promptly.') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium">
-            </div>
-
-            <div class="md:col-span-2">
-                <label class="block font-bold text-slate-700 mb-1">Invoice Footer Note</label>
-                <textarea name="invoice_footer_note" rows="2" class="w-full bg-surface-container-low p-3 rounded-xl border border-outline-variant/40 font-medium"><?= htmlspecialchars($settings['invoice_footer_note'] ?? 'Thank you for choosing Nuvis Medico Healthcare for your care.') ?></textarea>
-            </div>
-
-            <div>
-                <label class="block font-bold text-slate-700 mb-1">Receipt Header Title</label>
-                <input type="text" name="receipt_header_title" value="<?= htmlspecialchars($settings['receipt_header_title'] ?? 'OFFICIAL PAYMENT RECEIPT') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-bold">
-            </div>
-
-            <div class="md:col-span-2">
-                <label class="block font-bold text-slate-700 mb-1">Receipt Thank You & Confirmation Message</label>
-                <textarea name="receipt_thank_you_msg" rows="2" class="w-full bg-surface-container-low p-3 rounded-xl border border-outline-variant/40 font-medium"><?= htmlspecialchars($settings['receipt_thank_you_msg'] ?? 'Thank you for your payment. Your account balance for this invoice is cleared.') ?></textarea>
-            </div>
-        </div>
-
-        <hr class="border-outline-variant/20">
-
-        <!-- Server-Sent Events (SSE) Real-Time Patient Registration Notifications Toggle -->
-        <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
-            <span class="material-symbols-outlined text-base">sensors</span>
-            <span>4. Real-Time Patient Notifications (Server-Sent Events)</span>
-        </h2>
-
-        <div class="p-4 bg-surface-container-low rounded-xl border border-outline-variant/30 flex items-center justify-between gap-4">
-            <div>
-                <h3 class="font-bold text-on-surface text-xs flex items-center gap-1.5">
-                    <span class="material-symbols-outlined text-primary text-base">notifications_active</span>
-                    <span>Enable Real-Time SSE Patient Registration Stream</span>
-                </h3>
-                <p class="text-[11px] text-outline mt-0.5">Push instant audio/visual notifications to doctor dashboards whenever a new patient is registered in the clinic.</p>
-            </div>
-            <div class="flex items-center gap-2">
-                <input type="hidden" name="sse_setting_submitted" value="1">
-                <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" name="sse_notifications_enabled" value="1" <?= ($settings['sse_notifications_enabled'] ?? '1') === '1' ? 'checked' : '' ?> class="w-4 h-4 text-primary rounded focus:ring-primary">
-                    <span class="ml-2 font-bold text-xs text-on-surface">Enabled</span>
-                </label>
-            </div>
-        </div>
-
-        <hr class="border-outline-variant/20">
-
-        <!-- Fully Customisable Medical Certificate Settings -->
-        <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
-            <span class="material-symbols-outlined text-base">badge</span>
-            <span>5. Medical Certificate Customization</span>
-        </h2>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-            <div class="md:col-span-2">
-                <label class="block font-bold text-slate-700 mb-1">Medical Certificate Header Title</label>
-                <input type="text" name="cert_header_title" value="<?= htmlspecialchars($settings['cert_header_title'] ?? 'OFFICIAL MEDICAL CERTIFICATE') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-bold">
-            </div>
-
-            <div class="md:col-span-2">
-                <label class="block font-bold text-slate-700 mb-1">Certificate Purpose & Disclaimer Statement</label>
-                <textarea name="cert_disclaimer" rows="2" class="w-full bg-surface-container-low p-3 rounded-xl border border-outline-variant/40 font-medium"><?= htmlspecialchars($settings['cert_disclaimer'] ?? 'This medical certificate is issued upon request of the patient for whatever legal or administrative purpose it may serve.') ?></textarea>
-            </div>
-
-            <div class="md:col-span-2">
-                <label class="block font-bold text-slate-700 mb-1">Certificate Footer Note / Validity Notice</label>
-                <textarea name="cert_footer_note" rows="2" class="w-full bg-surface-container-low p-3 rounded-xl border border-outline-variant/40 font-medium"><?= htmlspecialchars($settings['cert_footer_note'] ?? 'Valid with official clinic digital stamp and physician e-signature.') ?></textarea>
-            </div>
-        </div>
-
-        <div class="flex justify-end pt-3">
-            <button type="submit" class="px-6 py-2.5 bg-primary text-white text-xs font-semibold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-2">
-                <span class="material-symbols-outlined text-base">save</span>
-                <span>Save Clinic & Financial Template Settings</span>
-            </button>
-        </div>
+        <?php else: ?>
+            <p class="text-[13px] text-slate-500">Changing clinic details needs Edit access to Clinic settings.</p>
+        <?php endif; ?>
     </form>
+
+    <script>
+    (function () {
+        var form = document.getElementById('clinic-form');
+        if (!form) return;
+        function bind(inputId, previewId) {
+            var i = document.getElementById(inputId), p = document.getElementById(previewId);
+            if (i && p) i.addEventListener('input', function () { p.textContent = i.value; });
+        }
+        bind('f-clinic-name', 'prev-name');
+        bind('f-clinic-subtitle', 'prev-sub');
+        ['f-clinic-address', 'f-clinic-phone', 'f-clinic-email'].forEach(function (id) {
+            var i = document.getElementById(id);
+            if (!i) return;
+            i.addEventListener('input', function () {
+                var parts = ['f-clinic-address', 'f-clinic-phone', 'f-clinic-email']
+                    .map(function (x) { var el = document.getElementById(x); return el ? el.value.trim() : ''; })
+                    .filter(Boolean);
+                document.getElementById('prev-contact').textContent = parts.join(' · ');
+            });
+        });
+        var file = document.getElementById('clinic-logo-file');
+        if (file) file.addEventListener('change', function () {
+            var f = file.files && file.files[0];
+            if (!f) return;
+            if (f.size > 300 * 1024) {
+                if (window.NX) NX.toast('Image too large', 'Choose a logo under 300 KB.', 'error');
+                file.value = '';
+                return;
+            }
+            var url = URL.createObjectURL(f);
+            var thumb = document.getElementById('clinic-logo-thumb');
+            thumb.innerHTML = '';
+            var img = new Image();
+            img.src = url; img.alt = 'New logo'; img.className = 'max-w-full max-h-full object-contain';
+            thumb.appendChild(img);
+            var prev = document.getElementById('prev-logo');
+            if (prev) prev.src = url;
+        });
+    })();
+    </script>
 </div>
 
 <!-- ================= TAB: AUDIT LOG ================= -->
@@ -597,42 +645,260 @@ $usersList = $usersStmt->fetchAll();
 
 <!-- ================= TAB: INVENTORY DEVELOPER SETTINGS ================= -->
 <div id="admin-tab-inventory" class="<?= $activeTab === 'inventory' ? '' : 'hidden' ?> space-y-6">
-    <form action="actions/admin_save_settings.php" method="POST" class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-5">
-        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>">
-        <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
-            <span class="material-symbols-outlined text-base">inventory_2</span>
-            <span>Developer & Administrator Inventory Customization</span>
-        </h2>
+<?php
+use ClinicFlow\Services\InventorySetup;
+$invCats = InventorySetup::parseList($settings['inventory_categories'] ?? '', InventorySetup::DEFAULT_CATEGORIES);
+$invUnits = InventorySetup::parseList($settings['inventory_units'] ?? '', InventorySetup::DEFAULT_UNITS);
+$invFields = InventorySetup::fields($settings['inventory_custom_fields_def'] ?? '[]');
+$invCanEdit = nxCan('settings', 'edit');
+?>
+    <form action="actions/admin_save_settings.php" method="POST" id="inv-setup-form" class="space-y-6">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getCsrfToken()) ?>">
+        <input type="hidden" name="inventory_categories" id="inv-categories-value">
+        <input type="hidden" name="inventory_units" id="inv-units-value">
+        <input type="hidden" name="inventory_custom_fields_def" id="inv-fields-value">
 
-        <div class="space-y-4 text-xs">
-            <div>
-                <label class="block font-bold text-slate-700 mb-1">Custom Inventory Categories (Comma-Separated)</label>
-                <input type="text" name="inventory_categories" value="<?= htmlspecialchars($settings['inventory_categories'] ?? 'Pharmaceuticals, Surgical Supplies, Medical Equipment, Diagnostics, Consumables') ?>" required class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium text-on-surface">
-                <p class="text-[11px] text-outline mt-1">Specify custom categories for the clinic. These will be available in search filters and add/edit modals.</p>
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5">
+            <h2 class="text-base font-semibold text-slate-900">Categories</h2>
+            <p class="text-[13px] text-slate-500 mt-0.5 mb-3">How <?= htmlspecialchars(nxClinicName()) ?> groups its stock. These appear in the filters and when adding an item.</p>
+            <div class="flex flex-wrap gap-2 mb-3" id="inv-categories" data-chips></div>
+            <div class="flex gap-2 max-w-md">
+                <label for="inv-cat-new" class="sr-only">New category</label>
+                <input id="inv-cat-new" type="text" maxlength="60" placeholder="Add a category, e.g. Vaccines" class="form-input" <?= $invCanEdit ? '' : 'disabled' ?>>
+                <button type="button" class="btn-secondary shrink-0" data-chip-add="inv-categories" <?= $invCanEdit ? '' : 'disabled' ?>>Add</button>
             </div>
+            <p class="text-xs text-slate-500 mt-2" data-chip-warn="inv-categories" hidden>Items already filed under a category you remove keep it until you edit them.</p>
+        </section>
 
-            <div>
-                <label class="block font-bold text-slate-700 mb-1">Default Low Stock Alert Threshold</label>
-                <input type="number" name="inventory_default_min_threshold" value="<?= (int)($settings['inventory_default_min_threshold'] ?? 10) ?>" min="1" required class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-mono font-bold text-on-surface">
-                <p class="text-[11px] text-outline mt-1">Default minimum reorder threshold applied to newly created inventory items.</p>
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5">
+            <h2 class="text-base font-semibold text-slate-900">Units</h2>
+            <p class="text-[13px] text-slate-500 mt-0.5 mb-3">Offered when someone types a unit on an item. They can still enter their own.</p>
+            <div class="flex flex-wrap gap-2 mb-3" id="inv-units" data-chips></div>
+            <div class="flex gap-2 max-w-md">
+                <label for="inv-unit-new" class="sr-only">New unit</label>
+                <input id="inv-unit-new" type="text" maxlength="60" placeholder="Add a unit, e.g. Sachet" class="form-input" <?= $invCanEdit ? '' : 'disabled' ?>>
+                <button type="button" class="btn-secondary shrink-0" data-chip-add="inv-units" <?= $invCanEdit ? '' : 'disabled' ?>>Add</button>
             </div>
+        </section>
 
-            <div>
-                <label class="block font-bold text-slate-700 mb-1">Developer Dynamic Custom Fields JSON Definition</label>
-                <textarea name="inventory_custom_fields_def" rows="5" class="w-full bg-surface-container-low p-3 rounded-xl border border-outline-variant/40 font-mono text-xs text-on-surface"><?= htmlspecialchars($settings['inventory_custom_fields_def'] ?? "[\n  {\"name\": \"manufacturer\", \"label\": \"Manufacturer / Brand\", \"type\": \"text\", \"placeholder\": \"e.g. Pfizer, GSK\"},\n  {\"name\": \"storage_temp\", \"label\": \"Storage Temperature\", \"type\": \"text\", \"placeholder\": \"e.g. 2°C - 8°C\"}\n]") ?></textarea>
-                <p class="text-[11px] text-outline mt-1">Define JSON array of custom attributes dynamically injected into inventory forms and displays. Example keys: name, label, type, placeholder.</p>
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5">
+            <h2 class="text-base font-semibold text-slate-900">Stock warnings</h2>
+            <p class="text-[13px] text-slate-500 mt-0.5 mb-4">When the dashboard and stock list should start flagging an item.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
+                <div>
+                    <label class="form-label" for="inv-threshold">Reorder level for new items</label>
+                    <input id="inv-threshold" type="number" name="inventory_default_min_threshold" min="0" max="100000"
+                           value="<?= (int) ($settings['inventory_default_min_threshold'] ?? 10) ?>" class="form-input" <?= $invCanEdit ? '' : 'disabled' ?>>
+                    <p class="text-xs text-slate-500 mt-1">Pre-filled when adding an item; each item can be set on its own.</p>
+                </div>
+                <div>
+                    <label class="form-label" for="inv-expiry">Warn about expiry this many days ahead</label>
+                    <input id="inv-expiry" type="number" name="inventory_expiry_warning_days" min="0" max="730"
+                           value="<?= (int) ($settings['inventory_expiry_warning_days'] ?? 30) ?>" class="form-input" <?= $invCanEdit ? '' : 'disabled' ?>>
+                    <p class="text-xs text-slate-500 mt-1">Shown on the dashboard as "expiring soon".</p>
+                </div>
             </div>
+        </section>
+
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5">
+            <div class="flex items-start justify-between gap-3 mb-1">
+                <div>
+                    <h2 class="text-base font-semibold text-slate-900">Extra details to record</h2>
+                    <p class="text-[13px] text-slate-500 mt-0.5">Add your own fields to the item form — manufacturer, supplier, storage temperature, anything you track.</p>
+                </div>
+                <button type="button" class="btn-secondary shrink-0" id="inv-add-field" <?= $invCanEdit ? '' : 'disabled' ?>>
+                    <span class="material-symbols-outlined text-[18px]">add</span> Add field
+                </button>
+            </div>
+            <div id="inv-fields" class="space-y-3 mt-4"></div>
+            <p class="nx-empty !py-6" id="inv-fields-empty" hidden>No extra fields yet. Items record name, SKU, category, stock, price, batch and expiry already.</p>
+            <p class="text-xs text-slate-500 mt-3">Up to <?= InventorySetup::MAX_FIELDS ?> fields. Removing one hides it from the form; values already saved on items are kept.</p>
+        </section>
+
+        <?php if ($invCanEdit): ?>
+        <div class="sticky bottom-3 z-10 flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/95 backdrop-blur px-4 py-3 shadow-pop">
+            <span class="text-[13px] text-slate-500" id="inv-status">Applies to <?= htmlspecialchars(nxClinicName()) ?> only</span>
+            <button type="submit" class="btn-primary">Save inventory set-up</button>
         </div>
-
-        <div class="flex justify-end pt-3 border-t border-outline-variant/20">
-            <button type="submit" class="px-6 py-2.5 bg-primary text-white text-xs font-semibold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-2">
-                <span class="material-symbols-outlined text-base">save</span>
-                <span>Save Inventory Customization Settings</span>
-            </button>
-        </div>
+        <?php else: ?>
+            <p class="text-[13px] text-slate-500">Changing the inventory set-up needs Edit access to Clinic settings.</p>
+        <?php endif; ?>
     </form>
-</div>
 
+    <script>
+    (function () {
+        var form = document.getElementById('inv-setup-form');
+        if (!form) return;
+        var canEdit = <?= $invCanEdit ? 'true' : 'false' ?>;
+        var state = {
+            'inv-categories': <?= json_encode(array_values($invCats)) ?>,
+            'inv-units': <?= json_encode(array_values($invUnits)) ?>
+        };
+        var fields = <?= json_encode(array_values($invFields)) ?>;
+        var TYPES = <?= json_encode(InventorySetup::FIELD_TYPES) ?>;
+        var MAX = <?= InventorySetup::MAX_FIELDS ?>;
+
+        function el(tag, attrs, kids) {
+            var n = document.createElement(tag);
+            Object.keys(attrs || {}).forEach(function (k) {
+                if (k === 'class') n.className = attrs[k];
+                else if (k === 'text') n.textContent = attrs[k];
+                else if (k.slice(0, 2) === 'on') n.addEventListener(k.slice(2), attrs[k]);
+                else n.setAttribute(k, attrs[k]);
+            });
+            (kids || []).forEach(function (c) { n.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
+            return n;
+        }
+        function icon(name) { return el('span', { class: 'material-symbols-outlined text-[16px]', text: name, 'aria-hidden': 'true' }); }
+
+        function drawChips(id) {
+            var box = document.getElementById(id);
+            box.innerHTML = '';
+            if (!state[id].length) box.appendChild(el('span', { class: 'text-[13px] text-slate-500', text: 'None yet — add one below.' }));
+            state[id].forEach(function (value, i) {
+                var chip = el('span', { class: 'inline-flex items-center gap-1 pl-3 pr-1 py-1 rounded-full bg-slate-100 border border-slate-200 text-[13px] text-slate-800' }, [value]);
+                if (canEdit) {
+                    chip.appendChild(el('button', {
+                        type: 'button', class: 'w-6 h-6 inline-flex items-center justify-center rounded-full text-slate-500 hover:bg-white hover:text-red-600',
+                        'aria-label': 'Remove ' + value,
+                        onclick: function () {
+                            state[id].splice(i, 1);
+                            drawChips(id);
+                            var warn = document.querySelector('[data-chip-warn="' + id + '"]');
+                            if (warn) warn.hidden = false;
+                            touch();
+                        }
+                    }, [icon('close')]));
+                }
+                box.appendChild(chip);
+            });
+        }
+        document.querySelectorAll('[data-chip-add]').forEach(function (btn) {
+            var id = btn.getAttribute('data-chip-add');
+            var input = btn.parentNode.querySelector('input');
+            function add() {
+                var v = input.value.trim().replace(/\s+/g, ' ').replace(/,/g, '');
+                if (!v) return;
+                var dupe = state[id].some(function (x) { return x.toLowerCase() === v.toLowerCase(); });
+                if (dupe) {
+                    if (window.NX) NX.toast('Already in the list', '“' + v + '” is there already.', 'info');
+                } else {
+                    state[id].push(v);
+                    drawChips(id);
+                    touch();
+                }
+                input.value = '';
+                input.focus();
+            }
+            btn.addEventListener('click', add);
+            input.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add(); }
+            });
+        });
+
+        function drawFields() {
+            var box = document.getElementById('inv-fields');
+            box.innerHTML = '';
+            document.getElementById('inv-fields-empty').hidden = fields.length > 0;
+            document.getElementById('inv-add-field').disabled = !canEdit || fields.length >= MAX;
+            fields.forEach(function (f, i) {
+                var row = el('div', { class: 'rounded-xl border border-slate-200 bg-slate-50/60 p-3' });
+                var grid = el('div', { class: 'grid grid-cols-1 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto] gap-2 items-end' });
+
+                var lbl = el('div', {}, []);
+                lbl.appendChild(el('label', { class: 'block text-xs font-medium text-slate-600 mb-1', text: 'Label shown on the form' }));
+                var lblIn = el('input', { type: 'text', value: f.label || '', maxlength: '60', class: 'form-input', placeholder: 'e.g. Manufacturer' });
+                lblIn.disabled = !canEdit;
+                lblIn.addEventListener('input', function () { f.label = lblIn.value; touch(); });
+                lbl.appendChild(lblIn);
+
+                var typ = el('div', {}, []);
+                typ.appendChild(el('label', { class: 'block text-xs font-medium text-slate-600 mb-1', text: 'Type' }));
+                var sel = el('select', { class: 'form-select' });
+                Object.keys(TYPES).forEach(function (k) {
+                    var o = el('option', { value: k, text: TYPES[k] });
+                    if ((f.type || 'text') === k) o.selected = true;
+                    sel.appendChild(o);
+                });
+                sel.disabled = !canEdit;
+                sel.addEventListener('change', function () { f.type = sel.value; drawFields(); touch(); });
+                typ.appendChild(sel);
+
+                var del = el('button', {
+                    type: 'button', class: 'nx-icon-btn hover:!bg-red-50 hover:!text-red-600 mb-0.5',
+                    'aria-label': 'Remove ' + (f.label || 'field'),
+                    onclick: function () { fields.splice(i, 1); drawFields(); touch(); }
+                }, [icon('delete')]);
+                del.disabled = !canEdit;
+
+                grid.appendChild(lbl); grid.appendChild(typ); grid.appendChild(del);
+                row.appendChild(grid);
+
+                var extra = el('div', { class: 'grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2' });
+                if (f.type === 'select') {
+                    var ow = el('div', {}, []);
+                    ow.appendChild(el('label', { class: 'block text-xs font-medium text-slate-600 mb-1', text: 'Choices, separated by commas' }));
+                    var oIn = el('input', { type: 'text', class: 'form-input', placeholder: 'e.g. Room temperature, 2–8 °C, Frozen',
+                        value: Array.isArray(f.options) ? f.options.join(', ') : (f.options || '') });
+                    oIn.disabled = !canEdit;
+                    oIn.addEventListener('input', function () {
+                        f.options = oIn.value.split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+                        touch();
+                    });
+                    ow.appendChild(oIn);
+                    extra.appendChild(ow);
+                } else {
+                    var pw = el('div', {}, []);
+                    pw.appendChild(el('label', { class: 'block text-xs font-medium text-slate-600 mb-1', text: 'Hint text (optional)' }));
+                    var pIn = el('input', { type: 'text', class: 'form-input', maxlength: '80', placeholder: 'e.g. 2–8 °C', value: f.placeholder || '' });
+                    pIn.disabled = !canEdit;
+                    pIn.addEventListener('input', function () { f.placeholder = pIn.value; touch(); });
+                    pw.appendChild(pIn);
+                    extra.appendChild(pw);
+                }
+                var req = el('label', { class: 'flex items-center gap-2 text-[13px] text-slate-700 sm:self-end sm:pb-2' });
+                var cb = el('input', { type: 'checkbox', class: 'rounded border-slate-300 text-blue-700 focus:ring-blue-500/30' });
+                cb.checked = !!f.required;
+                cb.disabled = !canEdit;
+                cb.addEventListener('change', function () { f.required = cb.checked; touch(); });
+                req.appendChild(cb);
+                req.appendChild(document.createTextNode('Must be filled in'));
+                extra.appendChild(req);
+                row.appendChild(extra);
+                box.appendChild(row);
+            });
+        }
+        document.getElementById('inv-add-field').addEventListener('click', function () {
+            if (fields.length >= MAX) return;
+            fields.push({ label: '', type: 'text', placeholder: '', required: false });
+            drawFields();
+            var inputs = document.querySelectorAll('#inv-fields input[type=text]');
+            if (inputs.length) inputs[inputs.length - 1].focus();
+            touch();
+        });
+
+        var status = document.getElementById('inv-status');
+        function touch() { if (status) status.textContent = 'Unsaved changes'; }
+
+        form.addEventListener('submit', function (e) {
+            var named = fields.filter(function (f) { return (f.label || '').trim() !== ''; });
+            var emptyChoice = named.filter(function (f) { return f.type === 'select' && !(f.options || []).length; });
+            if (emptyChoice.length) {
+                e.preventDefault();
+                if (window.NX) NX.toast('Add some choices', 'A choice list needs at least one option.', 'error');
+                return;
+            }
+            document.getElementById('inv-categories-value').value = state['inv-categories'].join(', ');
+            document.getElementById('inv-units-value').value = state['inv-units'].join(', ');
+            document.getElementById('inv-fields-value').value = JSON.stringify(named);
+        });
+
+        drawChips('inv-categories');
+        drawChips('inv-units');
+        drawFields();
+    })();
+    </script>
+</div>
 
 <!-- Modal: Add/Edit Clinic Tenant -->
 <div id="tenantModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">

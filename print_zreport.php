@@ -20,13 +20,11 @@ $stmtSet = $pdo->prepare("SELECT setting_key, setting_value FROM tenant_settings
 $stmtSet->execute([$currentTenantId]);
 $tenantSettings = $stmtSet->fetchAll(PDO::FETCH_KEY_PAIR);
 
-$stmtGlobal = $pdo->query("SELECT setting_key, setting_value FROM clinic_settings");
-$globalSettings = $stmtGlobal->fetchAll(PDO::FETCH_KEY_PAIR);
+$settings = nxSettings();
+$clinicProfile = nxClinic();
 
-$settings = array_merge($globalSettings, $tenantSettings);
-
-$sellerTin = $settings['vms_seller_tin'] ?? '502579006';
-$clinicName = $settings['clinic_name'] ?? 'Nuvis Medico Healthcare';
+$sellerTin = $settings['vms_seller_tin'] ?? $clinicProfile['tin'];
+$clinicName = $clinicProfile['name'];
 $businessLocation = $settings['vms_business_location'] ?? ($settings['clinic_address'] ?? '2 Woodstand Road, Suva');
 
 // Report date parameters

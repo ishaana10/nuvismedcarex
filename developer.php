@@ -19,17 +19,8 @@ include __DIR__ . '/includes/header.php';
 $pdo = getDB();
 $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 
-$settingsRows = $pdo->query("SELECT * FROM clinic_settings")->fetchAll();
-$settings = [];
-foreach ($settingsRows as $r) {
-    $settings[$r['setting_key']] = $r['setting_value'];
-}
-
-$tenantSettingsStmt = $pdo->prepare("SELECT setting_key, setting_value FROM tenant_settings WHERE tenant_id = ?");
-$tenantSettingsStmt->execute([$currentTenantId]);
-while ($tr = $tenantSettingsStmt->fetch()) {
-    $settings[$tr['setting_key']] = $tr['setting_value'];
-}
+// Settings for the active clinic: its own values over the shared defaults
+$settings = nxSettings();
 
 $tenantService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\TenantService::class);
 $tenantsList = $tenantService->getAllTenants();
