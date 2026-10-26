@@ -62,14 +62,22 @@ if (isset($_POST['vms_seller_tin'])) {
     $settings['vms_tax_rate_p']        = trim($_POST['vms_tax_rate_p'] ?? '0.25');
 }
 
-// Email Settings (if submitted)
-if (isset($_POST['smtp_host']) || (isset($_POST['section']) && $_POST['section'] === 'email')) {
-    $settings['smtp_host']   = trim($_POST['smtp_host'] ?? '');
-    $settings['smtp_port']   = trim($_POST['smtp_port'] ?? '587');
-    $settings['smtp_user']   = trim($_POST['smtp_user'] ?? '');
-    $settings['smtp_pass']   = trim($_POST['smtp_pass'] ?? '');
-    $settings['smtp_from']   = trim($_POST['smtp_from'] ?? '');
-    $settings['smtp_secure'] = trim($_POST['smtp_secure'] ?? 'tls');
+// Email: this clinic's own mailbox
+if (isset($_POST['section']) && $_POST['section'] === 'email') {
+    $settings['smtp_host']     = trim($_POST['smtp_host'] ?? '');
+    $settings['smtp_port']     = (string) max(1, min(65535, (int) ($_POST['smtp_port'] ?? 587)));
+    $settings['smtp_user']     = trim($_POST['smtp_user'] ?? '');
+    $settings['smtp_from']     = trim($_POST['smtp_from'] ?? '');
+    $settings['smtp_secure']   = in_array($_POST['smtp_secure'] ?? '', ['tls', 'ssl', 'none'], true) ? $_POST['smtp_secure'] : 'tls';
+    $settings['email_reply_to'] = trim($_POST['email_reply_to'] ?? '');
+    $provider = (string) ($_POST['smtp_provider'] ?? 'custom');
+    $settings['smtp_provider'] = isset(\ClinicFlow\Services\EmailService::PROVIDERS[$provider]) ? $provider : 'custom';
+
+    // An empty password box means "keep the one already saved", so a password
+    // is never wiped just because the form doesn't echo it back.
+    if (($_POST['smtp_pass'] ?? '') !== '') {
+        $settings['smtp_pass'] = (string) $_POST['smtp_pass'];
+    }
 }
 
 // Clinic logo (branding tab)

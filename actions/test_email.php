@@ -14,11 +14,21 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         echo json_encode(['success' => false, 'error' => 'Invalid request method.']);
         exit;
     }
-    header('Location: ../settings.php?tab=email');
+    header('Location: ../admin.php?tab=email');
     exit;
 }
 
-verifyCsrfToken($_POST['csrf_token'] ?? '');
+if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) {
+    $err = 'That request expired. Reload the page and try again.';
+    if ($isAjax) {
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'error' => $err]);
+        exit;
+    }
+    setToast('Not sent', $err, 'error');
+    header('Location: ../admin.php?tab=email');
+    exit;
+}
 
 $recipient = trim($_POST['recipient_email'] ?? $_POST['test_email_recipient'] ?? '');
 if (empty($recipient) || !filter_var($recipient, FILTER_VALIDATE_EMAIL)) {
@@ -29,7 +39,7 @@ if (empty($recipient) || !filter_var($recipient, FILTER_VALIDATE_EMAIL)) {
         exit;
     }
     setToast('Invalid Email', $err, 'error');
-    header('Location: ../settings.php?tab=email');
+    header('Location: ../admin.php?tab=email');
     exit;
 }
 
@@ -37,22 +47,40 @@ $container = \ClinicFlow\Shared\Container::getInstance();
 $emailService = $container->get(\ClinicFlow\Services\EmailService::class);
 
 // Custom SMTP settings if provided in test form, else use tenant saved settings
-$smtpConfig = [
-    'smtp_host'   => trim($_POST['smtp_host'] ?? ''),
-    'smtp_port'   => (int)($_POST['smtp_port'] ?? 587),
-    'smtp_user'   => trim($_POST['smtp_user'] ?? ''),
-    'smtp_pass'   => trim($_POST['smtp_pass'] ?? ''),
-    'smtp_from'   => trim($_POST['smtp_from'] ?? ''),
-    'smtp_secure' => trim($_POST['smtp_secure'] ?? 'tls'),
-];
-
-// If form fields were empty, resolve from tenant settings
-if (empty($smtpConfig['smtp_host'])) {
-    $smtpConfig = $emailService->getSmtpSettings();
+// Start from what this clinic has saved, then apply anything typed into the
+// form, so a test can be run before saving — and so leaving the password box
+// empty keeps using the stored one.
+$saved = $emailService->getSmtpSettings();
+$smtpConfig = $saved;
+foreach (['smtp_host', 'smtp_user', 'smtp_from', 'smtp_secure', 'smtp_from_name'] as $k) {
+    if (isset($_POST[$k]) && trim((string) $_POST[$k]) !== '') {
+        $smtpConfig[$k] = trim((string) $_POST[$k]);
+    }
+}
+if (isset($_POST['smtp_port']) && (int) $_POST['smtp_port'] > 0) {
+    $smtpConfig['smtp_port'] = (int) $_POST['smtp_port'];
+}
+if (isset($_POST['smtp_pass']) && $_POST['smtp_pass'] !== '') {
+    $smtpConfig['smtp_pass'] = (string) $_POST['smtp_pass'];
+}
+if (($smtpConfig['smtp_host'] ?? '') === '') {
+    $err = 'Add your outgoing mail server details first, then send a test.';
+    if ($isAjax) {
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'error' => $err]);
+        exit;
+    }
+    setToast('Not sent', $err, 'error');
+    header('Location: ../admin.php?tab=email');
+    exit;
 }
 
 $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId() ?: 'default-clinic';
-$subject = "Nuvis Healthcare - Test Email Dispatch";
+$clinicName = function_exists('nxClinicName') ? nxClinicName() : 'your clinic';
+if (($smtpConfig['smtp_from_name'] ?? '') === '') {
+    $smtpConfig['smtp_from_name'] = $clinicName; // patients see the clinic, not the mailbox
+}
+$subject = 'Test message from ' . $clinicName;
 $body = "
 <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;'>
     <h2 style='color: #2563eb; margin-bottom: 4px;'>Nuvis Healthcare Engine</h2>

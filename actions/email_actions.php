@@ -14,7 +14,11 @@ $container = \ClinicFlow\Shared\Container::getInstance();
 $emailService = $container->get(\ClinicFlow\Services\EmailService::class);
 
 if ($action === 'resend_email') {
-    verifyCsrfToken($_POST['csrf_token'] ?? '');
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'error' => 'That request expired. Reload the page and try again.']);
+        exit;
+    }
     $logId = trim($_POST['log_id'] ?? '');
 
     if (empty($logId)) {
