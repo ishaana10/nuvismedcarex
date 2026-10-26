@@ -1,6 +1,6 @@
 <?php
 /**
- * Login Page
+ * Sign-in page
  */
 require_once __DIR__ . '/core/SessionBootstrap.php';
 require_once __DIR__ . '/config/database.php';
@@ -14,92 +14,172 @@ if (isset($_SESSION['authenticated']) && $_SESSION['authenticated'] === true) {
 
 $toast = getToast();
 $csrfToken = generateCsrfToken();
+$expired = isset($_GET['expired']);
 ?>
 <!DOCTYPE html>
-<html class="light h-full bg-[#f8f9ff]" lang="en">
+<html class="h-full" lang="en">
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>Login - Nuvis Medcare X</title>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Sign in - Nuvis Medcare X</title>
+    <?php include __DIR__ . '/includes/theme_head.php'; ?>
 </head>
-<body class="h-full font-sans text-slate-800 bg-[#f8f9ff] flex items-center justify-center p-6">
+<body class="min-h-full font-sans text-slate-900 bg-background">
 
-<?php if ($toast): ?>
-<div id="toast-notification" class="fixed top-5 right-5 z-50 flex items-center p-4 text-gray-800 bg-white rounded-xl shadow-lg border border-slate-200" role="alert">
-    <div class="inline-flex items-center justify-center flex-shrink-0 w-9 h-9 text-<?= $toast['type'] === 'error' ? 'red-600 bg-red-100' : 'emerald-600 bg-emerald-100' ?> rounded-lg">
-        <span class="material-symbols-outlined"><?= $toast['type'] === 'error' ? 'error' : 'check_circle' ?></span>
-    </div>
-    <div class="ms-3 text-sm font-normal pr-4">
-        <div class="font-semibold text-gray-900"><?= htmlspecialchars($toast['title']) ?></div>
-        <div class="text-xs text-slate-600"><?= htmlspecialchars($toast['message']) ?></div>
-    </div>
-    <button type="button" onclick="document.getElementById('toast-notification').remove()" class="ms-auto -mx-1.5 -my-1.5 bg-white text-gray-400 hover:text-gray-900 rounded-lg p-1.5 hover:bg-gray-100 inline-flex items-center justify-center h-8 w-8">
-        <span class="material-symbols-outlined text-sm">close</span>
-    </button>
-</div>
-<?php endif; ?>
-
-<div class="max-w-4xl w-full bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden relative grid grid-cols-1 md:grid-cols-2">
-    <!-- Left Column: Login Form & Branding -->
-    <div class="flex flex-col justify-between">
-        <!-- Brand Header with Nuvis Medcare X logo & assets -->
-        <div class="bg-white p-6 border-b border-slate-100 text-center flex flex-col items-center justify-center">
-            <img src="assets/images/NuvisMedcareX_banner (1).jpg" alt="Nuvis Medcare X" class="h-16 object-contain mb-2 rounded-lg">
-            <div class="flex items-center gap-3 mt-1">
-                <img src="assets/images/stethoscope_heart.png" alt="Stethoscope" class="h-6 object-contain">
-                <span class="text-xs font-semibold text-slate-500 uppercase tracking-widest">Nuvis Medcare X EHR Platform <span class="font-mono text-[10px] text-blue-700 font-bold bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200"><?= defined('APP_VERSION') ? APP_VERSION : 'v2.1.0' ?></span></span>
-                <img src="assets/images/caduceus_logo.png" alt="Caduceus" class="h-6 object-contain">
-            </div>
+<div class="min-h-screen grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
+    <!-- Form -->
+    <main class="flex flex-col px-6 sm:px-12 py-8">
+        <div class="flex items-center justify-between">
+            <img src="assets/images/NuvisMedcareX_banner.jpg" alt="Nuvis Medcare X" class="h-11 w-auto object-contain mix-blend-multiply dark:mix-blend-normal dark:bg-white dark:rounded-lg dark:px-2">
+            <button type="button" class="nx-icon-btn" id="login-theme" aria-label="Switch colour theme">
+                <span class="material-symbols-outlined" id="login-theme-icon">dark_mode</span>
+            </button>
         </div>
 
-        <!-- Login Form -->
-        <div class="p-8">
-            <form action="actions/login.php" method="POST" class="space-y-5 text-xs">
-                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1.5">Email Address</label>
-                    <div class="relative">
-                        <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg">mail</span>
-                        <input type="email" name="email" value="" required placeholder="user@clinicflow.com" class="w-full bg-slate-50 pl-10 pr-4 py-3 rounded-xl border border-slate-300 font-medium text-slate-800 focus:outline-none focus:border-blue-600 focus:bg-white transition">
-                    </div>
-                </div>
+        <div class="flex-1 flex items-center">
+            <div class="w-full max-w-[400px] mx-auto py-10">
+                <h1 class="text-[28px] leading-tight font-semibold tracking-tight text-slate-900">Sign in to your clinic</h1>
+                <p class="mt-2 text-sm text-slate-500">Use the email address your administrator registered for you.</p>
 
-                <div>
-                    <div class="flex items-center justify-between mb-1.5">
-                        <label class="block font-bold text-slate-700">Password</label>
-                        <a href="forgot_password.php" class="text-xs font-semibold text-blue-700 hover:underline">Forgot Password?</a>
+                <?php if ($toast): ?>
+                    <div class="mt-6 flex gap-3 rounded-xl border px-4 py-3 text-[13px] <?= $toast['type'] === 'error' ? 'border-red-200 bg-red-50 text-red-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800' ?>" role="<?= $toast['type'] === 'error' ? 'alert' : 'status' ?>">
+                        <span class="material-symbols-outlined text-[20px]"><?= $toast['type'] === 'error' ? 'error' : 'check_circle' ?></span>
+                        <div>
+                            <div class="font-semibold"><?= htmlspecialchars($toast['title']) ?></div>
+                            <div class="opacity-90"><?= htmlspecialchars($toast['message']) ?></div>
+                        </div>
                     </div>
-                    <div class="relative">
-                        <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg">lock</span>
-                        <input type="password" name="password" value="" required placeholder="••••••••" class="w-full bg-slate-50 pl-10 pr-4 py-3 rounded-xl border border-slate-300 font-medium text-slate-800 focus:outline-none focus:border-blue-600 focus:bg-white transition">
+                <?php elseif ($expired): ?>
+                    <div class="mt-6 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 px-4 py-3 text-[13px]" role="status">
+                        <span class="material-symbols-outlined text-[20px]">schedule</span>
+                        <div>You were signed out after a period of inactivity. Sign in again to continue.</div>
                     </div>
-                </div>
+                <?php endif; ?>
 
-                <div class="pt-2">
-                    <button type="submit" class="w-full py-3.5 bg-blue-900 text-white font-bold text-xs rounded-xl hover:bg-blue-800 transition shadow-md flex items-center justify-center gap-2">
-                        <span class="material-symbols-outlined text-lg">login</span>
-                        <span>Sign In to Clinical Portal</span>
+                <form action="actions/login.php" method="POST" class="mt-8 space-y-5" id="login-form" novalidate>
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+
+                    <div>
+                        <label class="form-label" for="login-email">Email</label>
+                        <input id="login-email" type="email" name="email" required autocomplete="username" inputmode="email" autofocus
+                               class="form-input !py-3 !text-sm" placeholder="name@clinic.com">
+                        <p class="hidden mt-1.5 text-xs text-red-600" data-error-for="login-email">Enter a valid email address.</p>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between">
+                            <label class="form-label" for="login-password">Password</label>
+                            <a href="forgot_password.php" class="text-xs font-medium text-blue-700 hover:underline mb-1">Forgot password?</a>
+                        </div>
+                        <div class="relative">
+                            <input id="login-password" type="password" name="password" required autocomplete="current-password"
+                                   class="form-input !py-3 !pr-12 !text-sm">
+                            <button type="button" id="toggle-password" class="absolute right-1.5 top-1/2 -translate-y-1/2 nx-icon-btn !w-9 !h-9" aria-label="Show password" aria-pressed="false">
+                                <span class="material-symbols-outlined text-[20px]">visibility</span>
+                            </button>
+                        </div>
+                        <p class="hidden mt-1.5 text-xs text-amber-700 flex items-center gap-1" id="caps-warning">
+                            <span class="material-symbols-outlined text-[16px]">keyboard_capslock</span> Caps Lock is on
+                        </p>
+                        <p class="hidden mt-1.5 text-xs text-red-600" data-error-for="login-password">Enter your password.</p>
+                    </div>
+
+                    <label class="flex items-center gap-2 text-[13px] text-slate-600 select-none">
+                        <input type="checkbox" id="remember-email" class="rounded border-slate-300 text-blue-700 focus:ring-blue-500/30">
+                        Remember my email on this device
+                    </label>
+
+                    <button type="submit" class="btn-primary w-full !py-3 !text-sm" id="login-submit">
+                        <span class="material-symbols-outlined text-[20px] hidden" id="login-spinner">progress_activity</span>
+                        <span id="login-label">Sign in</span>
                     </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Right Column: Hero Image Attachment -->
-    <div class="hidden md:block relative bg-blue-900 overflow-hidden min-h-[450px]">
-        <img src="assets/images/NuvisMedcareX_login_sidepanel.jpg" alt="Nuvis Medcare X" class="w-full h-full object-cover">
-        <div class="absolute inset-0 bg-gradient-to-t from-blue-950/80 via-blue-950/20 to-transparent flex items-end p-8">
-            <div class="text-white">
-                <h3 class="text-xl font-bold">Nuvis Medcare X</h3>
-                <p class="text-xs font-semibold text-blue-200 mb-1">by Nuvis Technologies</p>
-                <p class="text-xs text-blue-100 leading-relaxed">Comprehensive electronic medical records, clinical decision support & patient care management platform.</p>
+                </form>
             </div>
         </div>
-    </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+            <span>&copy; <?= date('Y') ?> Nuvis Technologies</span>
+            <span class="font-mono text-[11px] text-slate-400"><?= htmlspecialchars(AppVersion::get('full')) ?></span>
+        </div>
+    </main>
+
+    <!-- Brand panel -->
+    <aside class="hidden lg:block relative overflow-hidden bg-blue-900">
+        <img src="assets/images/NuvisMedcareX_login_sidepanel.jpg" alt="" class="absolute inset-0 w-full h-full object-cover object-top">
+        <div class="absolute inset-0" style="background: linear-gradient(180deg, rgb(10 29 63 / 0) 40%, rgb(10 29 63 / .88) 100%);"></div>
+        <div class="absolute bottom-0 left-0 right-0 p-12 text-white max-w-xl">
+            <p class="text-[26px] leading-snug font-semibold tracking-tight">Patient records, appointments, prescriptions and fiscal billing in one place.</p>
+            <p class="mt-3 text-sm text-white/70">Built for clinics in Fiji and the Pacific, with FRCS VMS invoicing built in.</p>
+        </div>
+    </aside>
 </div>
 
+<script>
+(function () {
+    var html = document.documentElement;
+    var themeBtn = document.getElementById('login-theme'), themeIcon = document.getElementById('login-theme-icon');
+    function syncTheme() { themeIcon.textContent = html.classList.contains('dark') ? 'light_mode' : 'dark_mode'; }
+    themeBtn.addEventListener('click', function () {
+        var dark = !html.classList.contains('dark');
+        html.classList.toggle('dark', dark);
+        try { localStorage.setItem('nx-theme', dark ? 'dark' : 'light'); } catch (e) {}
+        syncTheme();
+    });
+    syncTheme();
+
+    var form = document.getElementById('login-form');
+    var email = document.getElementById('login-email'), pw = document.getElementById('login-password');
+    var remember = document.getElementById('remember-email');
+    try {
+        var saved = localStorage.getItem('nx-login-email');
+        if (saved) { email.value = saved; remember.checked = true; pw.focus(); }
+    } catch (e) {}
+
+    var toggle = document.getElementById('toggle-password');
+    toggle.addEventListener('click', function () {
+        var show = pw.type === 'password';
+        pw.type = show ? 'text' : 'password';
+        toggle.setAttribute('aria-pressed', show ? 'true' : 'false');
+        toggle.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+        toggle.firstElementChild.textContent = show ? 'visibility_off' : 'visibility';
+        pw.focus();
+    });
+
+    var caps = document.getElementById('caps-warning');
+    function capsCheck(e) { if (e.getModifierState) caps.classList.toggle('hidden', !e.getModifierState('CapsLock')); }
+    pw.addEventListener('keyup', capsCheck);
+    pw.addEventListener('keydown', capsCheck);
+
+    function showError(input, bad) {
+        var msg = document.querySelector('[data-error-for="' + input.id + '"]');
+        if (msg) msg.classList.toggle('hidden', !bad);
+        input.setAttribute('aria-invalid', bad ? 'true' : 'false');
+        input.classList.toggle('!border-red-400', bad);
+    }
+    [email, pw].forEach(function (i) { i.addEventListener('input', function () { showError(i, false); }); });
+
+    form.addEventListener('submit', function (e) {
+        var badEmail = !email.value.trim() || !email.checkValidity();
+        var badPw = !pw.value;
+        showError(email, badEmail); showError(pw, badPw);
+        if (badEmail || badPw) { e.preventDefault(); (badEmail ? email : pw).focus(); return; }
+        try {
+            if (remember.checked) localStorage.setItem('nx-login-email', email.value.trim());
+            else localStorage.removeItem('nx-login-email');
+        } catch (err) {}
+        var btn = document.getElementById('login-submit');
+        btn.disabled = true;
+        document.getElementById('login-spinner').classList.remove('hidden');
+        document.getElementById('login-spinner').style.animation = 'nx-spin 1s linear infinite';
+        document.getElementById('login-label').textContent = 'Signing in…';
+    });
+    window.addEventListener('pageshow', function () {
+        var btn = document.getElementById('login-submit');
+        btn.disabled = false;
+        document.getElementById('login-spinner').classList.add('hidden');
+        document.getElementById('login-label').textContent = 'Sign in';
+    });
+})();
+</script>
 </body>
 </html>

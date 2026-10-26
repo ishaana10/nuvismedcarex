@@ -11,6 +11,7 @@ return [
     'db_name'   => 'clinicflow',
     'db_user'   => 'root',
     'db_pass'   => '',
+    'timezone'  => 'Pacific/Fiji', // clinic-local time used for "today", schedules and timestamps
 
     // ─── Redis Configuration ──────────────────────────────────────────────────
     'redis' => [

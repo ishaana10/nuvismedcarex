@@ -702,7 +702,7 @@ $cloudSettings = $uploadService->getCloudSettings();
                                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>">
                                         <input type="hidden" name="action" value="delete_custom_role">
                                         <input type="hidden" name="role_name" value="<?= htmlspecialchars($crName) ?>">
-                                        <button type="submit" onclick="return confirm('Delete role \'<?= htmlspecialchars($crName) ?>\'?')" class="px-2 py-0.5 bg-rose-600 text-white rounded text-[10px] font-bold">Delete Role</button>
+                                        <button type="submit" data-nx-confirm="Delete role '<?= htmlspecialchars($crName) ?>'?" class="px-2 py-0.5 bg-rose-600 text-white rounded text-[10px] font-bold">Delete Role</button>
                                     </form>
                                 </div>
                             <?php endforeach; ?>
@@ -742,7 +742,7 @@ $cloudSettings = $uploadService->getCloudSettings();
                                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>">
                                         <input type="hidden" name="action" value="delete_custom_permission">
                                         <input type="hidden" name="permission_key" value="<?= htmlspecialchars($cKey) ?>">
-                                        <button type="submit" onclick="return confirm('Delete permission \'<?= htmlspecialchars($cKey) ?>\'?')" class="px-2 py-0.5 bg-rose-600 text-white rounded text-[10px] font-bold">Delete</button>
+                                        <button type="submit" data-nx-confirm="Delete permission '<?= htmlspecialchars($cKey) ?>'?" class="px-2 py-0.5 bg-rose-600 text-white rounded text-[10px] font-bold">Delete</button>
                                     </form>
                                 </div>
                             <?php endforeach; ?>

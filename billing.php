@@ -229,7 +229,7 @@ if ($fromDate && $toDate) {
                                 <a href="print_receipt.php?id=<?= htmlspecialchars($inv['id']) ?>" target="_blank" class="inline-block px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-lg text-[11px] font-semibold hover:bg-emerald-200 transition">
                                     Receipt
                                 </a>
-                                <a href="actions/send_receipt_email.php?invoice_id=<?= htmlspecialchars($inv['id']) ?>" onclick="return confirm('Send payment receipt via email to patient?')" class="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded-lg text-[11px] font-semibold hover:bg-blue-200 transition" title="Email Receipt">
+                                <a href="actions/send_receipt_email.php?invoice_id=<?= htmlspecialchars($inv['id']) ?>" data-nx-confirm="Send payment receipt via email to patient?" class="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded-lg text-[11px] font-semibold hover:bg-blue-200 transition" title="Email Receipt">
                                     Email
                                 </a>
                             <?php endif; ?>
@@ -316,7 +316,7 @@ if (($_GET['action'] ?? '') === 'edit_claim' && !empty($editClaimId)) {
                                     <a href="billing.php?tab=insurance&action=edit_claim&claim_id=<?= htmlspecialchars($claim['id']) ?>" class="p-1 text-slate-500 hover:text-blue-600 rounded-lg hover:bg-slate-100 transition" title="Edit Claim">
                                         <span class="material-symbols-outlined text-base">edit</span>
                                     </a>
-                                    <form action="actions/insurance_claim_save.php" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this insurance claim?');">
+                                    <form action="actions/insurance_claim_save.php" method="POST" class="inline" data-nx-confirm="Are you sure you want to delete this insurance claim?">
                                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getCsrfToken()) ?>">
                                         <input type="hidden" name="action" value="delete_claim">
                                         <input type="hidden" name="claim_id" value="<?= htmlspecialchars($claim['id']) ?>">

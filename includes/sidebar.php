@@ -1,135 +1,104 @@
 <?php
 /**
- * Shared Navigation Sidebar Component with Mobile Drawer
+ * Navigation: desktop rail (collapsible) + mobile drawer.
+ * Items come from includes/nav.php so both stay in sync with the command palette.
  */
+require_once __DIR__ . '/nav.php';
 $activePage = $activePage ?? 'dashboard';
+$nxUserRole = $nxUserRole ?? ($_SESSION['user_role'] ?? $_SESSION['role'] ?? 'Doctor');
+$nxNav = $nxNav ?? nxNavItems($nxUserRole);
+$nxCounts = $nxCounts ?? [];
+$nxClinic = $GLOBALS['activeClinicName'] ?? $activeClinicName ?? 'Nuvis Medico Healthcare';
 
-$userRole = $_SESSION['user_role'] ?? $_SESSION['role'] ?? 'Doctor';
+$nxGrouped = [];
+foreach ($nxNav as $item) { $nxGrouped[$item['group']][] = $item; }
 
-$navItems = [
-    ['id' => 'dashboard', 'label' => 'Dashboard', 'icon' => 'dashboard', 'url' => 'index.php'],
-    ['id' => 'patients', 'label' => 'Patients', 'icon' => 'group', 'url' => 'patients.php'],
-    ['id' => 'calendar', 'label' => 'Appointments', 'icon' => 'calendar_month', 'url' => 'appointment.php'],
-    ['id' => 'clinical-visit', 'label' => 'Clinical Encounter', 'icon' => 'clinical_notes', 'url' => 'clinical_visit.php'],
-    ['id' => 'billing', 'label' => 'Billing & Financials', 'icon' => 'payments', 'url' => 'billing.php'],
-    ['id' => 'inventory', 'label' => 'Inventory', 'icon' => 'inventory_2', 'url' => 'inventory.php'],
-    ['id' => 'uploads', 'label' => 'Upload Documents', 'icon' => 'cloud_upload', 'url' => 'uploads.php'],
-    ['id' => 'register-patient', 'label' => 'Register Patient', 'icon' => 'person_add', 'url' => 'register_patient.php'],
-    ['id' => 'settings', 'label' => 'Settings', 'icon' => 'settings', 'url' => 'settings.php'],
-    ['id' => 'admin', 'label' => 'Administrator', 'icon' => 'admin_panel_settings', 'url' => 'admin.php'],
+$nxCountTitles = [
+    'dashboard' => 'patients waiting',
+    'calendar'  => 'appointments still to see today',
 ];
 
-if ($userRole === 'Developer') {
-    $navItems[] = ['id' => 'developer', 'label' => 'Developer Options', 'icon' => 'code', 'url' => 'developer.php'];
-}
+$renderNav = function (bool $mobile) use ($nxGrouped, $activePage, $nxCounts, $nxCountTitles) {
+    foreach ($nxGrouped as $group => $items): ?>
+        <div class="nx-rail-group"><span><?= htmlspecialchars($group) ?></span></div>
+        <?php foreach ($items as $item):
+            $isActive = ($activePage === $item['id']);
+            $count = (int) ($nxCounts[$item['id']] ?? 0); ?>
+            <a href="<?= htmlspecialchars($item['url']) ?>" class="nx-rail-link" <?= $isActive ? 'aria-current="page"' : '' ?> title="<?= htmlspecialchars($item['label']) ?>">
+                <span class="material-symbols-outlined <?= $isActive ? 'fill' : '' ?>"><?= $item['icon'] ?></span>
+                <span class="nx-label"><?= htmlspecialchars($item['label']) ?></span>
+                <?php if ($count > 0): ?>
+                    <span class="nx-count" title="<?= $count ?> <?= htmlspecialchars($nxCountTitles[$item['id']] ?? '') ?>"><?= $count > 99 ? '99+' : $count ?></span>
+                <?php endif; ?>
+            </a>
+        <?php endforeach;
+    endforeach;
+};
 ?>
 
-<!-- Desktop Sidebar -->
-<aside class="desktop-sidebar w-64 bg-white border-r border-slate-200/80 flex-col justify-between p-4 shrink-0 hidden md:flex min-h-[calc(100vh-65px)]">
-    <div class="space-y-5">
-        <!-- Clinic Profile Badge -->
-        <div class="flex items-center gap-3 px-2 py-1">
-            <img src="assets/images/nuvis_medico_logo.png" alt="Clinic Logo" class="w-10 h-10 rounded-full object-cover border border-blue-500/30 shadow-xs">
-            <div class="overflow-hidden">
-                <div class="font-bold text-sm text-slate-900 truncate"><?= htmlspecialchars($GLOBALS['activeClinicName'] ?? $activeClinicName ?? 'Nuvis Medico Healthcare') ?></div>
-                <div class="text-[11px] font-medium text-slate-500">Admin Portal</div>
-            </div>
+<!-- Desktop rail -->
+<aside class="desktop-sidebar nx-rail flex-col shrink-0 z-30" aria-label="Main navigation">
+    <div class="nx-rail-brand flex items-center gap-3 px-4 shrink-0">
+        <img src="assets/images/nuvis_mark.png" alt="" class="w-9 h-9 rounded-lg object-contain bg-white p-0.5 shrink-0">
+        <div class="nx-label min-w-0 leading-tight">
+            <div class="text-[13px] font-semibold text-white truncate" title="<?= htmlspecialchars($nxClinic) ?>"><?= htmlspecialchars($nxClinic) ?></div>
+            <div class="text-[11px] text-white/50">Nuvis Medcare X</div>
         </div>
-
-        <!-- Primary Action Button -->
-        <a href="register_patient.php" class="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-blue-700 hover:bg-blue-800 text-white font-semibold text-xs rounded-xl shadow-md shadow-blue-700/20 transition">
-            <span class="material-symbols-outlined text-lg">add</span>
-            <span>Register Patient</span>
-        </a>
-
-        <!-- Navigation Menu -->
-        <nav class="space-y-1">
-            <?php foreach ($navItems as $item):
-                // Do not duplicate the primary action button in the list if it's register-patient
-                if ($item['id'] === 'register-patient') continue;
-                $isActive = ($activePage === $item['id']);
-            ?>
-                <a href="<?= $item['url'] ?>" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-xs transition-all <?= $isActive ? 'bg-blue-600 text-white font-semibold shadow-md shadow-blue-600/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' ?>">
-                    <span class="material-symbols-outlined text-lg <?= $isActive ? 'fill' : '' ?>"><?= $item['icon'] ?></span>
-                    <span><?= htmlspecialchars($item['label']) ?></span>
-                </a>
-            <?php endforeach; ?>
-        </nav>
     </div>
 
-    <!-- Quick Help & Doctor Profile Badge -->
-    <div class="space-y-2 pt-4 border-t border-slate-200/80 text-xs">
-        <button type="button" onclick="openChangePasswordModal()" class="w-full flex items-center gap-3 px-3.5 py-2 text-slate-600 hover:bg-slate-100 rounded-xl transition">
-            <span class="material-symbols-outlined text-lg">key</span>
-            <span>Change Password</span>
+    <a href="register_patient.php" class="nx-rail-cta" title="Register patient (N)" <?= $activePage === 'register-patient' ? 'aria-current="page"' : '' ?>>
+        <span class="material-symbols-outlined text-[20px]">person_add</span>
+        <span class="nx-label">Register patient</span>
+    </a>
+
+    <nav class="nx-rail-scroll flex-1 overflow-y-auto pb-4">
+        <?php $renderNav(false); ?>
+    </nav>
+
+    <div class="shrink-0 border-t border-white/10 p-2">
+        <button type="button" class="nx-rail-link w-[calc(100%-1rem)]" data-nx-sidebar-toggle title="Collapse sidebar ([)">
+            <span class="material-symbols-outlined nx-collapse-icon transition-transform">left_panel_close</span>
+            <span class="nx-label">Collapse</span>
         </button>
-        <a href="#" class="flex items-center gap-3 px-3.5 py-2 text-slate-600 hover:bg-slate-100 rounded-xl transition">
-            <span class="material-symbols-outlined text-lg">help_outline</span>
-            <span>Help</span>
-        </a>
-        <a href="actions/logout.php" class="flex items-center gap-3 px-3.5 py-2 text-slate-600 hover:bg-red-50 hover:text-red-600 rounded-xl transition">
-            <span class="material-symbols-outlined text-lg">logout</span>
-            <span>Logout</span>
-        </a>
     </div>
 </aside>
 
-<!-- Mobile Overlay Backdrop -->
-<div id="mobileBackdrop" onclick="toggleMobileSidebar()" class="mobile-backdrop fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[60] hidden md:hidden transition-opacity"></div>
-
-<!-- Mobile Drawer Sidebar -->
-<aside id="mobileSidebar" class="mobile-sidebar fixed top-0 left-0 bottom-0 w-[280px] sm:w-72 bg-surface-container-lowest z-[70] transform -translate-x-full transition-transform duration-300 ease-in-out md:hidden flex-col justify-between p-5 shadow-2xl border-r border-outline-variant/30 overflow-y-auto">
-    <div class="space-y-4">
-        <div class="flex items-center justify-between border-b border-outline-variant/30 pb-3">
-            <div class="flex items-center gap-2">
-                <img src="assets/images/nuvis_medico_logo.png" alt="Clinic Logo" class="w-8 h-8 rounded-full object-cover border border-blue-500/30">
-                <span class="font-bold text-sm text-slate-900"><?= htmlspecialchars($GLOBALS['activeClinicName'] ?? $activeClinicName ?? 'Nuvis Medico Healthcare') ?></span>
-            </div>
-            <button onclick="toggleMobileSidebar()" class="p-1.5 text-outline hover:text-on-surface rounded-lg">
-                <span class="material-symbols-outlined text-xl">close</span>
-            </button>
+<!-- Mobile drawer -->
+<div id="mobileBackdrop" onclick="toggleMobileSidebar()" class="mobile-backdrop fixed inset-0 bg-slate-950/50 backdrop-blur-xs z-[60] hidden md:hidden"></div>
+<aside id="mobileSidebar" class="mobile-sidebar nx-rail fixed top-0 left-0 bottom-0 !h-full w-[284px] z-[70] -translate-x-full transition-transform duration-300 ease-out md:hidden flex-col shadow-2xl" aria-label="Main navigation">
+    <div class="nx-rail-brand flex items-center gap-3 px-4 shrink-0">
+        <img src="assets/images/nuvis_mark.png" alt="" class="w-9 h-9 rounded-lg object-contain bg-white p-0.5">
+        <div class="min-w-0 flex-1 leading-tight">
+            <div class="text-[13px] font-semibold text-white truncate"><?= htmlspecialchars($nxClinic) ?></div>
+            <div class="text-[11px] text-white/50">Nuvis Medcare X</div>
         </div>
-
-        <nav class="space-y-1">
-            <?php foreach ($navItems as $item):
-                $isActive = ($activePage === $item['id']);
-            ?>
-                <a href="<?= $item['url'] ?>" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-xs transition-all <?= $isActive ? 'bg-surface-container-high text-primary font-bold shadow-2xs' : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface' ?>">
-                    <span class="material-symbols-outlined text-lg <?= $isActive ? 'fill text-primary' : '' ?>"><?= $item['icon'] ?></span>
-                    <span><?= htmlspecialchars($item['label']) ?></span>
-                </a>
-            <?php endforeach; ?>
-        </nav>
-    </div>
-
-    <div class="space-y-3 pt-4 border-t border-outline-variant/30">
-        <button type="button" onclick="openChangePasswordModal(); toggleMobileSidebar();" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 text-slate-800 text-xs font-semibold rounded-xl shadow-xs">
-            <span class="material-symbols-outlined text-base">key</span>
-            <span>Change Password</span>
+        <button type="button" onclick="toggleMobileSidebar()" class="p-2 -mr-2 rounded-lg text-white/70 hover:text-white hover:bg-white/10" aria-label="Close navigation">
+            <span class="material-symbols-outlined">close</span>
         </button>
-        <a href="register_patient.php" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white text-xs font-semibold rounded-xl shadow-xs">
-            <span class="material-symbols-outlined text-base">person_add</span>
-            <span>Register Patient</span>
-        </a>
-        <a href="appointment.php?action=book" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-container text-white text-xs font-semibold rounded-xl shadow-xs">
-            <span class="material-symbols-outlined text-base">calendar_add_on</span>
-            <span>Book Appointment</span>
-        </a>
+    </div>
+    <a href="register_patient.php" class="nx-rail-cta">
+        <span class="material-symbols-outlined text-[20px]">person_add</span>
+        <span>Register patient</span>
+    </a>
+    <nav class="nx-rail-scroll flex-1 overflow-y-auto pb-4">
+        <?php $renderNav(true); ?>
+    </nav>
+    <div class="shrink-0 border-t border-white/10 p-2 space-y-0.5">
+        <a href="appointment.php?action=book" class="nx-rail-link"><span class="material-symbols-outlined">calendar_add_on</span><span>Book appointment</span></a>
+        <button type="button" onclick="toggleMobileSidebar(); openChangePasswordModal();" class="nx-rail-link w-[calc(100%-1rem)]"><span class="material-symbols-outlined">key</span><span>Change password</span></button>
+        <a href="actions/logout.php" class="nx-rail-link"><span class="material-symbols-outlined">logout</span><span>Sign out</span></a>
     </div>
 </aside>
 
 <script>
 function toggleMobileSidebar() {
-    const sidebar = document.getElementById('mobileSidebar');
-    const backdrop = document.getElementById('mobileBackdrop');
-    if (sidebar.classList.contains('-translate-x-full')) {
-        sidebar.classList.remove('-translate-x-full');
-        sidebar.classList.add('translate-x-0');
-        backdrop.classList.remove('hidden');
-    } else {
-        sidebar.classList.add('-translate-x-full');
-        sidebar.classList.remove('translate-x-0');
-        backdrop.classList.add('hidden');
-    }
+    var sidebar = document.getElementById('mobileSidebar');
+    var backdrop = document.getElementById('mobileBackdrop');
+    var open = sidebar.classList.contains('-translate-x-full');
+    sidebar.classList.toggle('-translate-x-full', !open);
+    sidebar.classList.toggle('translate-x-0', open);
+    backdrop.classList.toggle('hidden', !open);
+    backdrop.style.setProperty('display', open ? 'block' : 'none', 'important');
+    document.body.style.overflow = open ? 'hidden' : '';
 }
 </script>

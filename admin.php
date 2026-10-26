@@ -233,7 +233,7 @@ $usersList = $usersStmt->fetchAll();
                                                 <span><?= $isActive ? 'Deactivate' : 'Activate' ?></span>
                                             </button>
                                         </form>
-                                        <a href="actions/doctor_actions.php?action=delete&id=<?= urlencode($usr['id']) ?>" onclick="return confirm('Are you sure you want to permanently delete user account \'<?= htmlspecialchars(addslashes($usr['name'])) ?>\'?')" class="p-1 text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Delete User Account">
+                                        <a href="actions/doctor_actions.php?action=delete&id=<?= urlencode($usr['id']) ?>" data-nx-confirm="Are you sure you want to permanently delete user account '<?= htmlspecialchars(($usr['name'])) ?>'?" class="p-1 text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Delete User Account">
                                             <span class="material-symbols-outlined text-base">delete</span>
                                         </a>
                                     </div>
