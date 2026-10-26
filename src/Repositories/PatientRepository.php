@@ -86,7 +86,7 @@ class PatientRepository extends BaseRepository {
     public function update(string $id, array $data): bool {
         $fields = [];
         $params = [];
-        $allowed = ['mrn', 'first_name', 'last_name', 'dob', 'age', 'gender', 'phone', 'email', 'address', 'emergency_contact_name', 'blood_group', 'known_allergies', 'chronic_conditions'];
+        $allowed = ['mrn', 'first_name', 'last_name', 'dob', 'age', 'gender', 'phone', 'email', 'address', 'emergency_contact_name', 'emergency_contact_relationship', 'emergency_contact_phone', 'insurance_provider', 'insurance_policy_number', 'insurance_group_number', 'blood_group', 'known_allergies', 'chronic_conditions', 'initials'];
         foreach ($allowed as $field) {
             if (array_key_exists($field, $data)) {
                 $fields[] = "{$field} = ?";
@@ -102,6 +102,44 @@ class PatientRepository extends BaseRepository {
         $sql = "UPDATE patients SET " . implode(', ', $fields) . " WHERE id = ? AND tenant_id = ?";
         $stmt = $this->db->prepare($sql);
         return $stmt->execute($params);
+    }
+
+    public function save(\ClinicFlow\Domain\Patient\Patient $patient): void {
+        $stmt = $this->db->prepare("
+            INSERT INTO patients (
+                id, tenant_id, mrn, first_name, last_name, dob, age, gender,
+                phone, email, address,
+                emergency_contact_name, emergency_contact_relationship, emergency_contact_phone,
+                insurance_provider, insurance_policy_number, insurance_group_number,
+                known_allergies, blood_group, chronic_conditions,
+                initials, registration_date
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+
+        $stmt->execute([
+            $patient->id,
+            $patient->tenantId,
+            $patient->mrn->getValue(),
+            $patient->firstName,
+            $patient->lastName,
+            $patient->dateOfBirth->format('Y-m-d'),
+            $patient->age,
+            $patient->gender,
+            $patient->phone,
+            $patient->email,
+            $patient->address,
+            $patient->emergencyContactName,
+            $patient->emergencyContactRelationship,
+            $patient->emergencyContactPhone,
+            $patient->insuranceProvider,
+            $patient->insurancePolicyNumber,
+            $patient->insuranceGroupNumber,
+            $patient->knownAllergies,
+            $patient->bloodGroup,
+            $patient->chronicConditions,
+            $patient->initials,
+            $patient->registrationDate ?? date('Y-m-d')
+        ]);
     }
 
     public function create(array $data): string {
