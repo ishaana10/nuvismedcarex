@@ -121,6 +121,13 @@ Run the automated PHPUnit test suite covering Domain Entities, Repositories, Ser
 
 ## 📜 Version History & Release Notes
 
+### **Access control & receipt design** - *October 2026*
+- **Per-clinic role access (Administration → Access & roles):** a grid of roles against the nine areas of the app, each set to No access / View / Edit / Full. Defaults ship for Administrator, Doctor, Nurse, Receptionist and Staff; each clinic can change them and add its own roles (e.g. Pharmacist), starting from an existing role's access. Staff are assigned roles on the same screen.
+- **Enforced in three places:** the menu hides areas a role can't open, pages check on load, and `nxGuardRequest()` checks every action endpoint and print page, so posting directly to an endpoint is blocked too. Administrator and Developer keep full control of Staff & access, so a clinic can't lock itself out.
+- **Role changes apply immediately:** the signed-in user's role and active status are re-read each request, so a changed role takes effect on the next page load and a deactivated account is signed out at once.
+- **Receipt design per clinic (Administration → Receipts):** paper size (A4, Letter, 80 mm and 58 mm rolls), accent colour, text size, date format, logo and placement, wording (title, receipt-number prefix, thank-you message, footer note), currency symbol, copies per print, and 18 toggles for what is printed — all with a live preview beside the form.
+- **Fixes:** receipt settings had no save endpoint, so the design could not be stored; the settings sanitiser warned on every preview when "copies per print" was absent; the FRCS verification QR came from an external service with no fallback, so an offline front desk printed a broken image — the receipt now prints the verification link as text instead.
+
 ### **UI refresh** - *October 2026*
 - **New app shell:** collapsible navy sidebar with grouped navigation and live counts (patients waiting, appointments left today), a slimmer top bar, profile menu holding the clinician/clinic switchers, skip-to-content link.
 - **Light and dark themes:** every colour now resolves to a CSS variable (`includes/theme_head.php`, `assets/css/custom.css`), so existing pages pick up dark mode without per-page edits. Follows the OS setting until the user chooses.

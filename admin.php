@@ -3,6 +3,9 @@ require_once __DIR__ . '/includes/security.php';
 require_once __DIR__ . '/includes/pagination.php';
 $pageTitle = "Administrator Settings - NuvisMedcareX";
 $activePage = "admin";
+// Staff and audit need "Staff & access"; the clinic set-up tabs need "Clinic settings"
+$requestedTab = $_GET['tab'] ?? 'users';
+$pageAccess = in_array($requestedTab, ['clinic', 'email', 'inventory'], true) ? ['settings', 'view'] : ['users', 'view'];
 include __DIR__ . '/includes/header.php';
 
 // Ensure active tenant ID is initialized
@@ -97,36 +100,11 @@ $usersStmt->execute();
 $usersList = $usersStmt->fetchAll();
 ?>
 
-<div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-    <div>
-        <h1 class="text-2xl font-bold text-on-surface">System Administration</h1>
-        <p class="text-xs text-outline font-medium">Manage user accounts, clinic profile, prescription templates, and system updates</p>
-    </div>
-
-    <!-- Navigation Tabs -->
-    <div class="flex items-center gap-2 bg-surface-container-low p-1.5 rounded-2xl border border-outline-variant/30 text-xs font-bold flex-wrap">
-        <button type="button" onclick="switchAdminTab('users')" id="tab-btn-users" class="px-4 py-2 rounded-xl transition flex items-center gap-1.5 <?= ($activeTab === 'users') ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high' ?>">
-            <span class="material-symbols-outlined text-base">group</span>
-            <span>User Management</span>
-        </button>
-        <button type="button" onclick="switchAdminTab('clinic')" id="tab-btn-clinic" class="px-4 py-2 rounded-xl transition flex items-center gap-1.5 <?= $activeTab === 'clinic' ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high' ?>">
-            <span class="material-symbols-outlined text-base">domain</span>
-            <span>Clinic & Branding Settings</span>
-        </button>
-        <button type="button" onclick="switchAdminTab('email')" id="tab-btn-email" class="px-4 py-2 rounded-xl transition flex items-center gap-1.5 <?= $activeTab === 'email' ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high' ?>">
-            <span class="material-symbols-outlined text-base">mail</span>
-            <span>Email Setup</span>
-        </button>
-        <button type="button" onclick="switchAdminTab('inventory')" id="tab-btn-inventory" class="px-4 py-2 rounded-xl transition flex items-center gap-1.5 <?= $activeTab === 'inventory' ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high' ?>">
-            <span class="material-symbols-outlined text-base">inventory_2</span>
-            <span>Inventory Settings</span>
-        </button>
-        <button type="button" onclick="switchAdminTab('audit')" id="tab-btn-audit" class="px-4 py-2 rounded-xl transition flex items-center gap-1.5 <?= $activeTab === 'audit' ? 'bg-primary text-white shadow-xs' : 'text-on-surface-variant hover:bg-surface-container-high' ?>">
-            <span class="material-symbols-outlined text-base">history_edu</span>
-            <span>Audit Log</span>
-        </button>
-    </div>
+<div class="mb-4">
+    <h1 class="nx-page-title">Administration</h1>
+    <p class="nx-page-sub">Staff accounts, what each role can do, clinic details and printed documents</p>
 </div>
+<?php $adminSection = $activeTab; include __DIR__ . '/includes/admin_nav.php'; ?>
 
 <!-- ================= TAB 1: USER MANAGEMENT ================= -->
 <div id="admin-tab-users" class="<?= $activeTab === 'users' ? '' : 'hidden' ?> space-y-6">
@@ -233,9 +211,16 @@ $usersList = $usersStmt->fetchAll();
                                                 <span><?= $isActive ? 'Deactivate' : 'Activate' ?></span>
                                             </button>
                                         </form>
-                                        <a href="actions/doctor_actions.php?action=delete&id=<?= urlencode($usr['id']) ?>" data-nx-confirm="Are you sure you want to permanently delete user account '<?= htmlspecialchars(($usr['name'])) ?>'?" class="p-1 text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Delete User Account">
-                                            <span class="material-symbols-outlined text-base">delete</span>
-                                        </a>
+                                        <?php if (nxCan('users', 'full')): ?>
+                                        <form action="actions/doctor_actions.php" method="POST" class="inline" data-nx-confirm="Permanently delete the account for <?= htmlspecialchars($usr['name']) ?>? Their past records stay, but they can no longer sign in.">
+                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getCsrfToken()) ?>">
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="id" value="<?= htmlspecialchars($usr['id']) ?>">
+                                            <button type="submit" class="p-1 text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Delete account" aria-label="Delete account for <?= htmlspecialchars($usr['name']) ?>">
+                                                <span class="material-symbols-outlined text-base">delete</span>
+                                            </button>
+                                        </form>
+                                        <?php endif; ?>
                                     </div>
                                 </td>
                             </tr>
@@ -900,13 +885,11 @@ $usersList = $usersStmt->fetchAll();
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">User Role <span class="text-red-500">*</span></label>
                     <select name="role" id="usr_role" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-bold">
-                        <option value="Doctor">Doctor</option>
-                        <option value="Administrator">Administrator</option>
-                        <option value="Developer">Developer</option>
-                        <option value="Nurse">Nurse</option>
-                        <option value="Receptionist">Receptionist</option>
-                        <option value="Staff">Staff</option>
+                        <?php foreach (nxAccess()->roles(nxCurrentRole() === 'Developer') as $roleOpt): ?>
+                            <option value="<?= htmlspecialchars($roleOpt) ?>" title="<?= htmlspecialchars(nxAccess()->describe($roleOpt)) ?>"><?= htmlspecialchars($roleOpt) ?></option>
+                        <?php endforeach; ?>
                     </select>
+                    <p class="text-[11px] text-slate-500 mt-1">What each role can do is set in <a href="access.php" class="text-blue-700 font-semibold hover:underline">Access &amp; roles</a>.</p>
                 </div>
 
                 <div>

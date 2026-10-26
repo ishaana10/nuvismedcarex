@@ -20,6 +20,20 @@ if (!function_exists('nxNavItems')) {
             ['id' => 'admin',          'label' => 'Administration',     'icon' => 'admin_panel_settings',  'url' => 'admin.php',          'group' => 'System',     'keywords' => 'users staff audit log email tenants'],
             ['id' => 'developer',      'label' => 'Developer',          'icon' => 'terminal',              'url' => 'developer.php',      'group' => 'System',     'keywords' => 'git redis migrations debug', 'roles' => ['Developer']],
         ];
-        return array_values(array_filter($items, fn($i) => empty($i['roles']) || in_array($role, $i['roles'], true)));
+        if (function_exists('nxCan') && !nxCan('users') && nxCan('settings')) {
+            foreach ($items as &$it) { if ($it['id'] === 'admin') $it['url'] = 'admin.php?tab=clinic'; }
+            unset($it);
+        }
+        return array_values(array_filter($items, function ($i) use ($role) {
+            if (!empty($i['roles']) && !in_array($role, $i['roles'], true)) return false;
+            // Hide areas this role has no access to in the current clinic
+            if ($i['id'] === 'admin' && function_exists('nxCan')) {
+                return nxCan('users') || nxCan('settings');
+            }
+            if (function_exists('nxCan') && defined('NX_PAGE_ACCESS') && isset(NX_PAGE_ACCESS[$i['id']])) {
+                return nxCan(NX_PAGE_ACCESS[$i['id']][0], 'view');
+            }
+            return true;
+        }));
     }
 }

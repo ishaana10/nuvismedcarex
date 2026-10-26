@@ -53,3 +53,12 @@ if (session_status() === PHP_SESSION_NONE) {
 
     session_start();
 }
+
+// Role-based access: block action endpoints and print pages the signed-in
+// user's role isn't allowed to use (see includes/access.php).
+require_once NU_ROOT . '/includes/access.php';
+if (!defined('NU_ACCESS_GUARDED')) {
+    define('NU_ACCESS_GUARDED', true);
+    nxRefreshSessionUser();
+    nxGuardRequest();
+}

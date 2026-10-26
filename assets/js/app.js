@@ -324,10 +324,10 @@
   /* ------------------------------------------------------ Command palette */
   var palette, paletteInput, paletteList, paletteItems = [], paletteIndex = 0, searchTimer, searchSeq = 0;
   var actions = [
-    { label: 'Register a new patient', icon: 'person_add', url: 'register_patient.php', keywords: 'new add patient create', hint: 'N' },
-    { label: 'Book an appointment', icon: 'calendar_add_on', url: 'appointment.php?action=book', keywords: 'schedule booking new' },
-    { label: 'Start a clinical encounter', icon: 'stethoscope', url: 'clinical_visit.php', keywords: 'visit consult soap' },
-    { label: 'Create an invoice', icon: 'receipt_long', url: 'billing.php', keywords: 'bill charge payment' },
+    { label: 'Register a new patient', icon: 'person_add', url: 'register_patient.php', need: ['patients', 2], keywords: 'new add patient create', hint: 'N' },
+    { label: 'Book an appointment', icon: 'calendar_add_on', url: 'appointment.php?action=book', need: ['appointments', 2], keywords: 'schedule booking new' },
+    { label: 'Start a clinical encounter', icon: 'stethoscope', url: 'clinical_visit.php', need: ['encounters', 2], keywords: 'visit consult soap' },
+    { label: 'Create an invoice', icon: 'receipt_long', url: 'billing.php', need: ['billing', 2], keywords: 'bill charge payment' },
     { label: 'Switch light / dark theme', icon: 'contrast', run: function () { NX.toggleTheme(); }, keywords: 'dark mode theme night', hint: 'Shift D' },
     { label: 'Keyboard shortcuts', icon: 'keyboard', run: function () { NX.showHelp(); }, keywords: 'help keys', hint: '?' },
     { label: 'Sign out', icon: 'logout', url: 'actions/logout.php', keywords: 'logout exit' }
@@ -383,7 +383,8 @@
     }
     var pages = (ctx.nav || []).map(function (n) { return { label: n.label, icon: n.icon, url: n.url, s: Math.max(score(n.label, q), score(n.keywords || '', q) ? 1 : 0), hint: 'Page' }; })
       .filter(function (n) { return n.s > 0; }).sort(function (a, b) { return b.s - a.s; });
-    var acts = actions.map(function (a) { return Object.assign({ s: Math.max(score(a.label, q), score(a.keywords || '', q) ? 1 : 0) }, a); })
+    var canDo = function (a) { return !a.need || !ctx.can || (ctx.can[a.need[0]] || 0) >= a.need[1]; };
+    var acts = actions.filter(canDo).map(function (a) { return Object.assign({ s: Math.max(score(a.label, q), score(a.keywords || '', q) ? 1 : 0) }, a); })
       .filter(function (a) { return a.s > 0; });
     if (pages.length) sections.push({ title: q ? 'Pages' : 'Go to', items: pages.slice(0, q ? 5 : 10) });
     if (acts.length) sections.push({ title: 'Actions', items: acts.slice(0, q ? 4 : 7) });

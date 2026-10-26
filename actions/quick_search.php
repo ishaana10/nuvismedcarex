@@ -28,6 +28,13 @@ try {
     $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
     $like = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $q) . '%';
 
+    $canPatients = nxCan('patients', 'view');
+    $canAppointments = nxCan('appointments', 'view');
+    if (!$canPatients && !$canAppointments) {
+        echo json_encode(['patients' => [], 'appointments' => []]);
+        exit;
+    }
+
     $stmt = $pdo->prepare(
         "SELECT id, first_name, last_name, mrn, phone, gender, age, known_allergies, avatar, initials
            FROM patients
@@ -63,7 +70,7 @@ try {
     $apptStmt->execute(['tid' => $tenantId, 'today' => date('Y-m-d'), 's1' => $like, 's2' => $like]);
     $appointments = $apptStmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-    echo json_encode(['patients' => $patients, 'appointments' => $appointments]);
+    echo json_encode(['patients' => $canPatients ? $patients : [], 'appointments' => $canAppointments ? $appointments : []]);
 } catch (\Throwable $e) {
     error_log('[quick_search] ' . $e->getMessage());
     http_response_code(500);
