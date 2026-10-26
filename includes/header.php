@@ -67,11 +67,15 @@ try {
 }
 
 // Tenants for the clinic switcher
+// Switching the active clinic is a developer-only action
+$nxCanSwitchClinic = ($nxUserRole === 'Developer');
 $allTenantsHeader = [];
-try {
-    $tenantServiceHeader = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\TenantService::class);
-    $allTenantsHeader = $tenantServiceHeader->getAllTenants();
-} catch (\Throwable $e) {}
+if ($nxCanSwitchClinic) {
+    try {
+        $tenantServiceHeader = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\TenantService::class);
+        $allTenantsHeader = $tenantServiceHeader->getAllTenants();
+    } catch (\Throwable $e) {}
+}
 
 $nxAvatar = $currentDoctor['avatar'] ?? '';
 $nxCsrf = htmlspecialchars(getCsrfToken());
@@ -124,8 +128,8 @@ $nxCsrf = htmlspecialchars(getCsrfToken());
         </button>
 
         <div class="ml-auto flex items-center gap-1 sm:gap-1.5">
-            <?php if (count($allTenantsHeader) > 1): ?>
-            <form action="actions/tenant_actions.php" method="POST" class="hidden lg:block">
+            <?php if ($nxCanSwitchClinic && count($allTenantsHeader) > 1): ?>
+            <form action="actions/tenant_actions.php" method="POST" class="hidden lg:block" title="Developer only: change which clinic you are working in">
                 <input type="hidden" name="csrf_token" value="<?= $nxCsrf ?>">
                 <input type="hidden" name="action" value="switch_tenant">
                 <label class="sr-only" for="nx-tenant">Active clinic</label>
@@ -196,7 +200,7 @@ $nxCsrf = htmlspecialchars(getCsrfToken());
                         </select>
                     </form>
                     <?php endif; ?>
-                    <?php if (count($allTenantsHeader) > 1): ?>
+                    <?php if ($nxCanSwitchClinic && count($allTenantsHeader) > 1): ?>
                     <form action="actions/tenant_actions.php" method="POST" class="px-3 pb-2 lg:hidden">
                         <input type="hidden" name="csrf_token" value="<?= $nxCsrf ?>">
                         <input type="hidden" name="action" value="switch_tenant">

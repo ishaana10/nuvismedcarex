@@ -15,7 +15,7 @@ class RbacService {
             'view_patients', 'create_patient', 'edit_patient', 'delete_patient',
             'view_billing', 'create_invoice', 'process_payment', 'vms_fiscalize',
             'view_inventory', 'manage_inventory', 'restock_inventory',
-            'manage_settings', 'view_audit_logs', 'manage_users', 'switch_tenant'
+            'manage_settings', 'view_audit_logs', 'manage_users'
         ],
         'Developer' => [
             'view_patients', 'create_patient', 'edit_patient', 'delete_patient',
@@ -27,13 +27,13 @@ class RbacService {
             'view_patients', 'create_patient', 'edit_patient',
             'view_billing', 'create_invoice', 'process_payment', 'vms_fiscalize',
             'view_inventory', 'manage_inventory', 'restock_inventory',
-            'manage_settings', 'view_audit_logs', 'manage_users', 'switch_tenant'
+            'manage_settings', 'view_audit_logs', 'manage_users'
         ],
         'Administrator' => [
             'view_patients', 'create_patient', 'edit_patient',
             'view_billing', 'create_invoice', 'process_payment', 'vms_fiscalize',
             'view_inventory', 'manage_inventory', 'restock_inventory',
-            'manage_settings', 'view_audit_logs', 'manage_users', 'switch_tenant'
+            'manage_settings', 'view_audit_logs', 'manage_users'
         ],
         'Doctor/Physician' => [
             'view_patients', 'create_patient', 'edit_patient', 'create_encounter',

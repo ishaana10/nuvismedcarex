@@ -32,11 +32,13 @@ final class ClinicSettings
         'doc_prc_no', 'doc_ptr_no',
         'rx_*', 'invoice_*', 'receipt_*', 'cert_*', 'lab_catalog',
         'vms_*', 'inventory_*', 'access_*', 'sse_notifications_enabled',
+        // Each clinic sends patient email from its own mailbox
+        'smtp_*', 'email_*',
     ];
 
     /** Keys that are always installation-wide, even if they match above. */
     private const ALWAYS_GLOBAL = [
-        'smtp_*', 'git_*', 'cloud_*', 'rbac_*', 'update_branch', 'dev_environment',
+        'git_*', 'cloud_*', 'rbac_*', 'update_branch', 'dev_environment',
         'default_pagination_limit', 'inventory_api_key',
     ];
 

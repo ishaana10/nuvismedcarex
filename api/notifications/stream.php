@@ -1,27 +1,28 @@
 <?php
 /**
- * Server-Sent Events (SSE) Real-Time Notification Stream Endpoint
- * Pushes instant patient registration notifications to doctor dashboards with multi-tenant isolation.
+ * Live notifications (Server-Sent Events).
+ *
+ * Pushes new patient registrations and appointment bookings for the active
+ * clinic. The stream closes itself after ~25 seconds so hosts don't kill a
+ * long-running PHP process; the browser reconnects automatically and sends
+ * back the id of the last event it saw (Last-Event-ID), so nothing that
+ * happens during the gap is missed and nothing is delivered twice.
  */
 
 require_once __DIR__ . '/../../core/SessionBootstrap.php';
-
 require_once __DIR__ . '/../../includes/security.php';
 require_once __DIR__ . '/../../config/database.php';
 
-// Set SSE Headers
 header('Content-Type: text/event-stream');
 header('Cache-Control: no-cache, no-transform');
 header('Connection: keep-alive');
-header('X-Accel-Buffering: no');
+header('X-Accel-Buffering: no'); // nginx: don't buffer the stream
 
-// Disable output buffering
 while (ob_get_level() > 0) {
     ob_end_flush();
 }
 ob_implicit_flush(true);
 
-// Authentication Check
 if (empty($_SESSION['authenticated'])) {
     echo "data: " . json_encode(['error' => 'Unauthorized', 'status' => 'unauthenticated']) . "\n\n";
     flush();
@@ -31,161 +32,161 @@ if (empty($_SESSION['authenticated'])) {
 $pdo = getDB();
 $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 
-// Release session lock so concurrent HTTP page loads for this session are not blocked during the long-polling loop
+// Let other requests for this session proceed while we hold the connection open
 session_write_close();
 
-// Helper to check if SSE is enabled for the active tenant
-function checkSseEnabled(PDO $pdo, string $tenantId): bool {
+/** Is this clinic using live notifications? Its own choice, else the installation default. */
+function nxSseEnabled(PDO $pdo, string $tenantId): bool
+{
     try {
         $stmt = $pdo->prepare("SELECT setting_value FROM tenant_settings WHERE tenant_id = :tid AND setting_key = 'sse_notifications_enabled' LIMIT 1");
         $stmt->execute(['tid' => $tenantId]);
         $val = $stmt->fetchColumn();
-        if ($val !== false && $val !== null) {
+        if ($val !== false && $val !== null && $val !== '') {
             return $val === '1' || $val === 'true';
         }
-    } catch (\Throwable $e) {}
-
-    try {
-        // Installation default when this clinic has not chosen
-        $stmt = $pdo->prepare("SELECT setting_value FROM clinic_settings WHERE setting_key = 'sse_notifications_enabled' LIMIT 1");
-        $stmt->execute();
-        $val = $stmt->fetchColumn();
-        if ($val !== false && $val !== null) {
+        $stmt = $pdo->query("SELECT setting_value FROM clinic_settings WHERE setting_key = 'sse_notifications_enabled' LIMIT 1");
+        $val = $stmt ? $stmt->fetchColumn() : false;
+        if ($val !== false && $val !== null && $val !== '') {
             return $val === '1' || $val === 'true';
         }
-    } catch (\Throwable $e) {}
-
+    } catch (\Throwable $e) {
+        error_log('[sse] enabled check: ' . $e->getMessage());
+    }
     return true;
 }
 
-// If SSE notifications are deactivated for this tenant, notify frontend and close
-if (!checkSseEnabled($pdo, $tenantId)) {
-    echo "data: " . json_encode(['status' => 'disabled', 'enabled' => false, 'tenant_id' => $tenantId]) . "\n\n";
+$send = static function (string $event, array $payload, ?string $id = null): void {
+    if ($id !== null) {
+        echo 'id: ' . $id . "\n";
+    }
+    echo 'data: ' . json_encode($payload) . "\n\n";
     flush();
+};
+
+echo "retry: 3000\n\n"; // reconnect quickly if the connection drops
+
+if (!nxSseEnabled($pdo, $tenantId)) {
+    $send('message', ['status' => 'disabled', 'enabled' => false, 'tenant_id' => $tenantId]);
     exit;
 }
 
-// Send initial connection event
-echo "data: " . json_encode([
-    'status' => 'connected',
-    'enabled' => true,
+/**
+ * Where to resume from. The event id is "<cursor timestamp>|<tenant>"; the
+ * tenant is included so a stream resumed after switching clinics starts fresh
+ * rather than replaying another clinic's events.
+ */
+$cursor = null;
+$lastEventId = (string) ($_SERVER['HTTP_LAST_EVENT_ID'] ?? $_GET['lastEventId'] ?? '');
+if ($lastEventId !== '' && str_contains($lastEventId, '|')) {
+    [$ts, $forTenant] = explode('|', $lastEventId, 2);
+    if ($forTenant === $tenantId && strtotime($ts) !== false) {
+        $cursor = $ts;
+    }
+}
+$isResume = $cursor !== null;
+if ($cursor === null) {
+    // A fresh connection only reports what happens from now on
+    $cursor = date('Y-m-d H:i:s');
+}
+
+$send('message', [
+    'status'    => $isResume ? 'resumed' : 'connected',
+    'enabled'   => true,
     'tenant_id' => $tenantId,
-    'timestamp' => date('Y-m-d H:i:s')
-]) . "\n\n";
-flush();
+    'timestamp' => date('Y-m-d H:i:s'),
+]);
 
-// Track time window for new patient registrations
-$lastCheck = date('Y-m-d H:i:s', time() - 3);
-$sentIds = [];
-
-// Loop duration limit (25 seconds per HTTP request loop to prevent server process timeouts)
 $startTime = time();
 $maxDuration = 25;
+$lastEnabledCheck = time();
 
 while ((time() - $startTime) < $maxDuration) {
     if (connection_aborted()) {
         break;
     }
 
-    // Re-verify enablement
-    if (!checkSseEnabled($pdo, $tenantId)) {
-        echo "data: " . json_encode(['status' => 'disabled', 'enabled' => false, 'tenant_id' => $tenantId]) . "\n\n";
-        flush();
-        break;
+    // Re-check every 10s rather than every loop, to keep the query load down
+    if (time() - $lastEnabledCheck >= 10) {
+        $lastEnabledCheck = time();
+        if (!nxSseEnabled($pdo, $tenantId)) {
+            $send('message', ['status' => 'disabled', 'enabled' => false, 'tenant_id' => $tenantId]);
+            break;
+        }
     }
 
     try {
-        // Query new patients registered strictly for this tenant
-        $stmt = $pdo->prepare("
-            SELECT id, mrn, first_name, last_name, created_at
-            FROM patients
-            WHERE tenant_id = :tid AND created_at >= :last_check
-            ORDER BY created_at ASC
-        ");
-        $stmt->execute([
-            'tid' => $tenantId,
-            'last_check' => $lastCheck
-        ]);
-        $newPatients = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // Both queries read from the same cursor, and the cursor only moves
+        // once both have been collected — otherwise advancing it for patients
+        // would skip appointments booked a moment earlier.
+        $events = [];
 
-        foreach ($newPatients as $p) {
-            $key = 'pat_' . $p['id'];
-            if (in_array($key, $sentIds, true)) {
-                continue;
-            }
-
-            $sentIds[] = $key;
+        $stmt = $pdo->prepare(
+            "SELECT id, mrn, first_name, last_name, created_at
+               FROM patients
+              WHERE tenant_id = :tid AND created_at > :cursor
+              ORDER BY created_at ASC LIMIT 25"
+        );
+        $stmt->execute(['tid' => $tenantId, 'cursor' => $cursor]);
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $p) {
             $fullName = trim(($p['first_name'] ?? '') . ' ' . ($p['last_name'] ?? ''));
-            $mrn = $p['mrn'] ?? '#00000';
-
-            $payload = [
-                'title' => 'New Patient Registered',
-                'message' => "Patient {$fullName} ({$mrn}) is waiting.",
-                'patient_id' => $p['id'],
-                'patient_name' => $fullName,
-                'mrn' => $mrn,
-                'timestamp' => $p['created_at'] ?? date('Y-m-d H:i:s'),
-                'tenant_id' => $tenantId,
-                'enabled' => true
+            $events[] = [
+                'at'      => (string) $p['created_at'],
+                'payload' => [
+                    'type'         => 'patient_registered',
+                    'title'        => 'New patient registered',
+                    'message'      => trim($fullName . ' (' . ($p['mrn'] ?? '') . ')') . ' has been added.',
+                    'patient_id'   => $p['id'],
+                    'patient_name' => $fullName,
+                    'mrn'          => $p['mrn'] ?? '',
+                    'timestamp'    => $p['created_at'],
+                    'tenant_id'    => $tenantId,
+                    'enabled'      => true,
+                ],
             ];
-
-            echo "data: " . json_encode($payload) . "\n\n";
-            flush();
-
-            if (!empty($p['created_at']) && $p['created_at'] > $lastCheck) {
-                $lastCheck = $p['created_at'];
-            }
         }
 
-        // Query new appointments booked strictly for this tenant
-        $aptStmt = $pdo->prepare("
-            SELECT id, patient_id, patient_name, doctor_name, appointment_date, time, created_at
-            FROM appointments
-            WHERE tenant_id = :tid AND created_at >= :last_check
-            ORDER BY created_at ASC
-        ");
-        $aptStmt->execute([
-            'tid' => $tenantId,
-            'last_check' => $lastCheck
-        ]);
-        $newAppointments = $aptStmt->fetchAll(PDO::FETCH_ASSOC);
-
-        foreach ($newAppointments as $apt) {
-            $key = 'apt_' . $apt['id'];
-            if (in_array($key, $sentIds, true)) {
-                continue;
-            }
-
-            $sentIds[] = $key;
-            $pName = $apt['patient_name'] ?? 'Patient';
-            $dName = $apt['doctor_name'] ?? 'Doctor';
-            $aTime = $apt['time'] ?? '';
-            $aDate = $apt['appointment_date'] ?? '';
-
-            $payload = [
-                'title' => 'New Appointment Booked',
-                'message' => "{$pName} booked with {$dName} for {$aDate} at {$aTime}.",
-                'patient_id' => $apt['patient_id'],
-                'patient_name' => $pName,
-                'timestamp' => $apt['created_at'] ?? date('Y-m-d H:i:s'),
-                'tenant_id' => $tenantId,
-                'enabled' => true
+        $stmt = $pdo->prepare(
+            "SELECT id, patient_id, patient_name, doctor_name, appointment_date, time, created_at
+               FROM appointments
+              WHERE tenant_id = :tid AND created_at > :cursor
+              ORDER BY created_at ASC LIMIT 25"
+        );
+        $stmt->execute(['tid' => $tenantId, 'cursor' => $cursor]);
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $a) {
+            $when = trim((string) ($a['appointment_date'] ?? '') . ' ' . (string) ($a['time'] ?? ''));
+            $events[] = [
+                'at'      => (string) $a['created_at'],
+                'payload' => [
+                    'type'         => 'appointment_booked',
+                    'title'        => 'Appointment booked',
+                    'message'      => ($a['patient_name'] ?? 'A patient') . ' with ' . ($a['doctor_name'] ?? 'a clinician') . ($when !== '' ? ', ' . $when : '') . '.',
+                    'patient_id'   => $a['patient_id'],
+                    'patient_name' => $a['patient_name'] ?? '',
+                    'timestamp'    => $a['created_at'],
+                    'tenant_id'    => $tenantId,
+                    'enabled'      => true,
+                ],
             ];
+        }
 
-            echo "data: " . json_encode($payload) . "\n\n";
-            flush();
-
-            if (!empty($apt['created_at']) && $apt['created_at'] > $lastCheck) {
-                $lastCheck = $apt['created_at'];
+        usort($events, fn($x, $y) => strcmp($x['at'], $y['at']));
+        foreach ($events as $e) {
+            $send('message', $e['payload'], $e['at'] . '|' . $tenantId);
+            if ($e['at'] > $cursor) {
+                $cursor = $e['at'];
             }
         }
     } catch (\Throwable $e) {
-        error_log("SSE Stream Query Error: " . $e->getMessage());
+        error_log('[sse] query: ' . $e->getMessage());
     }
 
-    // Ping keep-alive
-    echo ": ping\n\n";
+    echo ": ping\n\n"; // keeps proxies from closing an idle connection
     flush();
-
     sleep(2);
 }
+
+// Tell the browser where to pick up, even if nothing was sent this round
+echo 'id: ' . $cursor . '|' . $tenantId . "\n";
+echo "data: " . json_encode(['status' => 'idle', 'enabled' => true]) . "\n\n";
+flush();

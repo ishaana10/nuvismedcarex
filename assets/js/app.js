@@ -295,30 +295,54 @@
 
   function startStream() {
     if (typeof EventSource === 'undefined') return;
-    var es, retries = 0;
+    var es, retries = 0, closed = false;
+    var idKey = 'nx-sse-id:' + (ctx.tenant || 'default');
+
+    // Remember where the stream got to, so a reconnect — or the next page —
+    // picks up from there instead of silently skipping what happened between.
+    function lastId() { return store.get(idKey, ''); }
+    function rememberId(id) { if (id) store.set(idKey, id); }
+
     function connect() {
-      es = new EventSource('api/notifications/stream.php');
+      if (closed) return;
+      var url = 'api/notifications/stream.php';
+      var resumeFrom = lastId();
+      if (resumeFrom) url += '?lastEventId=' + encodeURIComponent(resumeFrom);
+      es = new EventSource(url);
+
       es.onmessage = function (event) {
+        rememberId(event.lastEventId);
         var data;
         try { data = JSON.parse(event.data); } catch (e) { return; }
         retries = 0;
         if (data.status === 'unauthenticated' || data.enabled === false) {
+          closed = true;
           es.close();
-          var s = $('#notif-status'); if (s) s.textContent = data.enabled === false ? 'Live updates are turned off for this clinic' : 'Sign in again to receive updates';
+          var s = $('#notif-status');
+          if (s) s.textContent = data.enabled === false
+            ? 'Live updates are turned off for this clinic'
+            : 'Sign in again to receive updates';
           return;
         }
         if (data.title && data.message) addNotif(data);
       };
+
       es.onerror = function () {
-        // Server closes the stream every ~25s by design; back off if it keeps failing
-        if (es.readyState === EventSource.CLOSED) {
+        // The server ends each stream after ~25s on purpose. The browser
+        // reconnects on its own; we only step in once it has given up.
+        if (es.readyState === EventSource.CLOSED && !closed) {
           retries++;
-          if (retries < 8) setTimeout(connect, Math.min(30000, 2000 * retries));
+          if (retries < 10) setTimeout(connect, Math.min(30000, 2000 * retries));
+          else {
+            var s = $('#notif-status');
+            if (s) s.textContent = 'Live updates are offline — reload to try again';
+          }
         }
       };
     }
+
     connect();
-    window.addEventListener('pagehide', function () { if (es) es.close(); });
+    window.addEventListener('pagehide', function () { closed = true; if (es) es.close(); });
   }
 
   /* ------------------------------------------------------ Command palette */

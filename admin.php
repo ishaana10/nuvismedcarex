@@ -582,65 +582,302 @@ $sv = fn(string $k, string $fallback = '') => htmlspecialchars((string) ($settin
 
 <!-- ================= TAB: EMAIL SETUP ================= -->
 <div id="admin-tab-email" class="<?= $activeTab === 'email' ? '' : 'hidden' ?> space-y-6">
-    <form action="actions/admin_save_settings.php" method="POST" class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-5">
-        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>">
+<?php
+use ClinicFlow\Services\EmailService;
+$emailSvc = \ClinicFlow\Shared\Container::getInstance()->get(EmailService::class);
+$mail = $emailSvc->getSmtpSettings($currentTenantId);
+$mailCanEdit = nxCan('settings', 'edit');
+$mdis = $mailCanEdit ? '' : 'disabled';
+$hasPassword = $mail['smtp_pass'] !== '';
+$providers = EmailService::PROVIDERS;
+$activeProvider = $mail['smtp_provider'] ?: 'custom';
+if (!isset($providers[$activeProvider])) $activeProvider = 'custom';
+
+// Audit log
+$emailStatus = $_GET['email_status'] ?? 'all';
+$emailSearch = trim($_GET['email_search'] ?? '');
+$emailPage = max(1, (int) ($_GET['email_page'] ?? 1));
+$emailPerPage = 10;
+$emailLogs = [];
+$emailLogTotal = 0;
+try {
+    $emailLogs = $emailSvc->getEmailLogs($currentTenantId, $emailPerPage, ($emailPage - 1) * $emailPerPage, $emailStatus, $emailSearch);
+    $emailLogTotal = $emailSvc->getEmailLogsCount($currentTenantId, $emailStatus, $emailSearch);
+} catch (\Throwable $e) {
+    error_log('[admin email log] ' . $e->getMessage());
+}
+$emailPages = max(1, (int) ceil($emailLogTotal / $emailPerPage));
+$emailQuery = fn(array $extra) => 'admin.php?' . http_build_query(array_merge(
+    ['tab' => 'email', 'email_status' => $emailStatus, 'email_search' => $emailSearch, 'email_page' => $emailPage], $extra));
+?>
+    <div class="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-[13px] text-blue-900">
+        <span class="material-symbols-outlined text-[20px]">mail</span>
+        <p><strong><?= htmlspecialchars(nxClinicName()) ?></strong> sends from its own mailbox. Receipts, invoices and prescriptions go to patients from the address below, wherever this system is hosted.</p>
+    </div>
+
+    <form action="actions/admin_save_settings.php" method="POST" id="email-form" class="space-y-6">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getCsrfToken()) ?>">
         <input type="hidden" name="section" value="email">
-        <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
-            <span class="material-symbols-outlined text-base">mail</span>
-            <span>Email Server (SMTP) & Automated Notifications Configuration</span>
-        </h2>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-medium">
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 space-y-4">
             <div>
-                <label class="block font-bold text-on-surface mb-1">SMTP Host Server</label>
-                <input type="text" name="smtp_host" value="<?= htmlspecialchars($settings['smtp_host'] ?? 'smtp.a2hosting.com') ?>" placeholder="smtp.mailserver.com" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40">
+                <h2 class="text-base font-semibold text-slate-900">Who sends the email</h2>
+                <p class="text-[13px] text-slate-500 mt-0.5">Pick your provider and we'll fill in the server details.</p>
             </div>
 
-            <div>
-                <label class="block font-bold text-on-surface mb-1">SMTP Port</label>
-                <input type="number" name="smtp_port" value="<?= htmlspecialchars($settings['smtp_port'] ?? '587') ?>" placeholder="587" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40">
+            <fieldset class="grid grid-cols-2 lg:grid-cols-5 gap-2" <?= $mdis ?>>
+                <legend class="sr-only">Email provider</legend>
+                <?php foreach ($providers as $key => $pr): ?>
+                    <label class="relative cursor-pointer">
+                        <input type="radio" name="smtp_provider" value="<?= $key ?>" class="peer sr-only" data-provider
+                               data-host="<?= htmlspecialchars($pr['host']) ?>" data-port="<?= (int) $pr['port'] ?>" data-secure="<?= $pr['secure'] ?>"
+                               data-help="<?= htmlspecialchars($pr['help']) ?>" <?= $activeProvider === $key ? 'checked' : '' ?>>
+                        <span class="block rounded-xl border border-slate-200 px-3 py-2.5 text-[13px] text-center text-slate-700 peer-checked:border-blue-600 peer-checked:bg-blue-50 peer-checked:text-blue-900 peer-focus-visible:ring-2 peer-focus-visible:ring-blue-500 hover:border-slate-300">
+                            <?= htmlspecialchars($pr['label']) ?>
+                        </span>
+                    </label>
+                <?php endforeach; ?>
+            </fieldset>
+
+            <p class="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5 text-[13px] text-amber-900" id="provider-help">
+                <span class="material-symbols-outlined text-[18px]">lightbulb</span>
+                <span id="provider-help-text"><?= htmlspecialchars($providers[$activeProvider]['help']) ?></span>
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="form-label" for="m-user">Email address patients will see</label>
+                    <input id="m-user" type="email" name="smtp_user" value="<?= htmlspecialchars($mail['smtp_user']) ?>" placeholder="clinic@gmail.com" autocomplete="username" class="form-input" <?= $mdis ?>>
+                    <p class="text-xs text-slate-500 mt-1">The mailbox you sign in to. Used as the sender unless you set a different one below.</p>
+                </div>
+                <div>
+                    <label class="form-label" for="m-pass">Password <?= $hasPassword ? '<span class="font-normal text-slate-400">(saved)</span>' : '' ?></label>
+                    <input id="m-pass" type="password" name="smtp_pass" value="" autocomplete="new-password"
+                           placeholder="<?= $hasPassword ? 'Leave blank to keep the saved password' : 'App password from your provider' ?>" class="form-input" <?= $mdis ?>>
+                    <p class="text-xs text-slate-500 mt-1">Stored for this clinic only. Leave blank to keep what's already saved.</p>
+                </div>
+                <div>
+                    <label class="form-label" for="m-from">Send from a different address <span class="font-normal text-slate-400">(optional)</span></label>
+                    <input id="m-from" type="email" name="smtp_from" value="<?= htmlspecialchars($mail['smtp_from']) ?>" placeholder="noreply@yourclinic.com" class="form-input" <?= $mdis ?>>
+                    <p class="text-xs text-slate-500 mt-1">Most providers only allow the mailbox you signed in with.</p>
+                </div>
+                <div>
+                    <label class="form-label" for="m-reply">Replies should go to <span class="font-normal text-slate-400">(optional)</span></label>
+                    <input id="m-reply" type="email" name="email_reply_to" value="<?= htmlspecialchars($mail['email_reply_to']) ?>" placeholder="frontdesk@yourclinic.com" class="form-input" <?= $mdis ?>>
+                </div>
             </div>
 
-            <div>
-                <label class="block font-bold text-on-surface mb-1">SMTP Username / Email</label>
-                <input type="text" name="smtp_user" value="<?= htmlspecialchars($settings['smtp_user'] ?? 'no-reply@nuvistechnologies.com.fj') ?>" placeholder="user@nuvistechnologies.com.fj" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40">
-            </div>
+            <details class="rounded-xl border border-slate-200 bg-slate-50/60 p-3" <?= $activeProvider === 'custom' ? 'open' : '' ?>>
+                <summary class="text-[13px] font-medium text-slate-700 cursor-pointer">Server details</summary>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+                    <div>
+                        <label class="form-label" for="m-host">Outgoing server</label>
+                        <input id="m-host" type="text" name="smtp_host" value="<?= htmlspecialchars($mail['smtp_host']) ?>" placeholder="smtp.example.com" class="form-input font-mono" <?= $mdis ?>>
+                    </div>
+                    <div>
+                        <label class="form-label" for="m-port">Port</label>
+                        <input id="m-port" type="number" name="smtp_port" value="<?= (int) $mail['smtp_port'] ?>" min="1" max="65535" class="form-input font-mono" <?= $mdis ?>>
+                    </div>
+                    <div>
+                        <label class="form-label" for="m-secure">Encryption</label>
+                        <select id="m-secure" name="smtp_secure" class="form-select" <?= $mdis ?>>
+                            <option value="tls" <?= $mail['smtp_secure'] === 'tls' ? 'selected' : '' ?>>STARTTLS (usually port 587)</option>
+                            <option value="ssl" <?= $mail['smtp_secure'] === 'ssl' ? 'selected' : '' ?>>SSL/TLS (usually port 465)</option>
+                            <option value="none" <?= $mail['smtp_secure'] === 'none' ? 'selected' : '' ?>>None (local server only)</option>
+                        </select>
+                    </div>
+                </div>
+                <p class="text-xs text-slate-500 mt-2">If mail times out, your web host may block the port. Port 465 with SSL often works where 587 does not.</p>
+            </details>
+        </section>
 
-            <div>
-                <label class="block font-bold text-on-surface mb-1">SMTP Password</label>
-                <input type="password" name="smtp_pass" value="<?= htmlspecialchars($settings['smtp_pass'] ?? '') ?>" placeholder="••••••••" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40">
+        <?php if ($mailCanEdit): ?>
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5">
+            <h2 class="text-base font-semibold text-slate-900">Send yourself a test</h2>
+            <p class="text-[13px] text-slate-500 mt-0.5 mb-3">Checks the settings above without emailing a patient. Save first to test the stored password.</p>
+            <div class="flex flex-col sm:flex-row gap-2 max-w-xl">
+                <label class="sr-only" for="m-test">Send a test to</label>
+                <input id="m-test" type="email" placeholder="you@yourclinic.com" value="<?= htmlspecialchars($mail['smtp_user']) ?>" class="form-input">
+                <button type="button" class="btn-secondary shrink-0" id="m-test-btn">Send test</button>
             </div>
+            <p class="mt-3 text-[13px] hidden" id="m-test-result" role="status"></p>
+        </section>
 
-            <div>
-                <label class="block font-bold text-on-surface mb-1">Sender 'From' Email Address</label>
-                <input type="email" name="smtp_from" value="<?= htmlspecialchars($settings['smtp_from'] ?? 'no-reply@nuvistechnologies.com.fj') ?>" placeholder="no-reply@nuvistechnologies.com.fj" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40">
-            </div>
-
-            <div>
-                <label class="block font-bold text-on-surface mb-1">Encryption Protocol</label>
-                <select name="smtp_secure" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40">
-                    <option value="tls" <?= ($settings['smtp_secure'] ?? 'tls') === 'tls' ? 'selected' : '' ?>>TLS (Port 587)</option>
-                    <option value="ssl" <?= ($settings['smtp_secure'] ?? '') === 'ssl' ? 'selected' : '' ?>>SSL (Port 465)</option>
-                    <option value="none" <?= ($settings['smtp_secure'] ?? '') === 'none' ? 'selected' : '' ?>>None (Port 25)</option>
-                </select>
-            </div>
+        <div class="sticky bottom-3 z-10 flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/95 backdrop-blur px-4 py-3 shadow-pop">
+            <span class="text-[13px] text-slate-500">Applies to <?= htmlspecialchars(nxClinicName()) ?> only</span>
+            <button type="submit" class="btn-primary">Save email settings</button>
         </div>
-
-        <div class="p-4 bg-primary/5 rounded-xl border border-primary/20 text-xs text-on-surface space-y-1">
-            <span class="font-bold flex items-center gap-1.5 text-primary">
-                <span class="material-symbols-outlined text-sm">mark_email_read</span>
-                <span>Automated Document Emailing Active</span>
-            </span>
-            <p class="text-outline">Patient invoices, payment receipts, and clinical prescriptions are dispatched automatically to patient email addresses using these SMTP server settings.</p>
-        </div>
-
-        <div class="flex justify-end pt-3">
-            <button type="submit" class="px-6 py-2.5 bg-primary text-white text-xs font-semibold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-2">
-                <span class="material-symbols-outlined text-base">save</span>
-                <span>Save Email SMTP Settings</span>
-            </button>
-        </div>
+        <?php else: ?>
+            <p class="text-[13px] text-slate-500">Changing email settings needs Edit access to Clinic settings.</p>
+        <?php endif; ?>
     </form>
+
+    <!-- Audit log -->
+    <section class="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+        <div class="px-5 pt-5 pb-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div class="min-w-0">
+                <h2 class="text-base font-semibold text-slate-900">Email history</h2>
+                <p class="text-[13px] text-slate-500 mt-0.5">Every message this clinic has tried to send, and why any failed.</p>
+            </div>
+            <form method="GET" action="admin.php" class="flex items-center gap-2 shrink-0">
+                <input type="hidden" name="tab" value="email">
+                <label class="sr-only" for="email-search">Search email history</label>
+                <input id="email-search" type="search" name="email_search" value="<?= htmlspecialchars($emailSearch) ?>" placeholder="Recipient or subject" class="form-input !py-2 w-40 lg:w-56">
+                <label class="sr-only" for="email-status">Status</label>
+                <select id="email-status" name="email_status" onchange="this.form.submit()" class="form-select !py-2">
+                    <?php foreach (['all' => 'All', 'Sent' => 'Sent', 'Failed' => 'Failed'] as $k => $label): ?>
+                        <option value="<?= $k ?>" <?= $emailStatus === $k ? 'selected' : '' ?>><?= $label ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <button type="submit" class="btn-secondary !py-2">Search</button>
+            </form>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="border-y border-slate-200 bg-slate-50 text-[12px] font-semibold text-slate-500">
+                        <th class="py-2.5 px-5">Sent</th>
+                        <th class="py-2.5 px-3">To</th>
+                        <th class="py-2.5 px-3 hidden md:table-cell">About</th>
+                        <th class="py-2.5 px-3">Status</th>
+                        <th class="py-2.5 px-5 text-right"><span class="sr-only">Actions</span></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <?php if (!$emailLogs): ?>
+                        <tr><td colspan="5" class="px-5">
+                            <div class="nx-empty">
+                                <span class="material-symbols-outlined">outgoing_mail</span>
+                                <p><?= ($emailSearch !== '' || $emailStatus !== 'all')
+                                    ? 'No messages match that search.'
+                                    : 'Nothing sent yet. Receipts and invoices emailed to patients will be listed here.' ?></p>
+                            </div>
+                        </td></tr>
+                    <?php endif; ?>
+                    <?php foreach ($emailLogs as $log):
+                        $failed = ($log['status'] ?? '') !== 'Sent';
+                        $when = strtotime((string) ($log['sent_at'] ?? ''));
+                    ?>
+                        <tr class="hover:bg-slate-50 transition align-top">
+                            <td class="py-3 px-5 whitespace-nowrap">
+                                <div class="text-[13px] text-slate-900"><?= $when ? htmlspecialchars(date('j M Y', $when)) : '—' ?></div>
+                                <div class="text-[11px] text-slate-500 tabular"><?= $when ? htmlspecialchars(date('H:i', $when)) : '' ?></div>
+                            </td>
+                            <td class="py-3 px-3">
+                                <div class="text-[13px] text-slate-900 break-all"><?= htmlspecialchars($log['recipient'] ?? '') ?></div>
+                                <div class="text-[11px] text-slate-500 truncate max-w-[280px]"><?= htmlspecialchars($log['subject'] ?? '') ?></div>
+                            </td>
+                            <td class="py-3 px-3 hidden md:table-cell">
+                                <span class="inline-flex px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[12px] font-medium">
+                                    <?= htmlspecialchars(ucfirst(str_replace('_', ' ', (string) ($log['document_type'] ?? 'general')))) ?>
+                                </span>
+                            </td>
+                            <td class="py-3 px-3">
+                                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[12px] font-semibold ring-1 <?= $failed ? 'bg-red-50 text-red-700 ring-red-200' : 'bg-emerald-50 text-emerald-800 ring-emerald-200' ?>">
+                                    <span class="nx-dot !w-1.5 !h-1.5 <?= $failed ? 'bg-red-500' : 'bg-emerald-500' ?>"></span><?= htmlspecialchars($log['status'] ?? '') ?>
+                                </span>
+                                <?php if ($failed && !empty($log['error_message'])): ?>
+                                    <div class="text-[11px] text-red-700 mt-1 max-w-[320px]"><?= htmlspecialchars($log['error_message']) ?></div>
+                                <?php endif; ?>
+                            </td>
+                            <td class="py-3 px-5 text-right whitespace-nowrap">
+                                <?php if ($failed && $mailCanEdit): ?>
+                                    <button type="button" class="btn-secondary !py-1.5 !px-3 !text-[12px]" data-resend="<?= htmlspecialchars($log['id']) ?>">Try again</button>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+
+        <?php if ($emailPages > 1): ?>
+            <div class="flex items-center justify-between gap-3 px-5 py-3 border-t border-slate-200 text-[13px] text-slate-600">
+                <span>Page <?= $emailPage ?> of <?= $emailPages ?> · <?= number_format($emailLogTotal) ?> messages</span>
+                <div class="flex gap-2">
+                    <?php if ($emailPage > 1): ?><a href="<?= htmlspecialchars($emailQuery(['email_page' => $emailPage - 1])) ?>" class="btn-secondary !py-1.5">Previous</a><?php endif; ?>
+                    <?php if ($emailPage < $emailPages): ?><a href="<?= htmlspecialchars($emailQuery(['email_page' => $emailPage + 1])) ?>" class="btn-secondary !py-1.5">Next</a><?php endif; ?>
+                </div>
+            </div>
+        <?php endif; ?>
+    </section>
+
+    <script>
+    (function () {
+        var form = document.getElementById('email-form');
+        if (!form) return;
+        var csrf = form.querySelector('[name=csrf_token]').value;
+
+        // Picking a provider fills in its server details
+        form.querySelectorAll('[data-provider]').forEach(function (radio) {
+            radio.addEventListener('change', function () {
+                if (!radio.checked) return;
+                var help = document.getElementById('provider-help-text');
+                if (help) help.textContent = radio.getAttribute('data-help');
+                var host = radio.getAttribute('data-host');
+                if (host) {
+                    document.getElementById('m-host').value = host;
+                    document.getElementById('m-port').value = radio.getAttribute('data-port');
+                    document.getElementById('m-secure').value = radio.getAttribute('data-secure');
+                }
+            });
+        });
+
+        var testBtn = document.getElementById('m-test-btn');
+        if (testBtn) testBtn.addEventListener('click', function () {
+            var to = document.getElementById('m-test').value.trim();
+            var out = document.getElementById('m-test-result');
+            if (!to) { if (window.NX) NX.toast('Add an address', 'Enter where the test should go.', 'error'); return; }
+            testBtn.disabled = true;
+            testBtn.textContent = 'Sending…';
+            out.className = 'mt-3 text-[13px] text-slate-500';
+            out.textContent = 'Connecting to the mail server…';
+            var body = new FormData();
+            body.append('csrf_token', csrf);
+            body.append('recipient_email', to);
+            ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from', 'smtp_secure'].forEach(function (n) {
+                var el = form.querySelector('[name=' + n + ']');
+                if (el) body.append(n, el.value);
+            });
+            fetch('actions/test_email.php', { method: 'POST', body: body, headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    if (d.success) {
+                        out.className = 'mt-3 text-[13px] text-emerald-700';
+                        out.textContent = 'Sent. Check ' + to + ' — it may take a minute to arrive.';
+                    } else {
+                        out.className = 'mt-3 text-[13px] text-red-700';
+                        out.textContent = d.error || 'The test could not be sent.';
+                    }
+                })
+                .catch(function () {
+                    out.className = 'mt-3 text-[13px] text-red-700';
+                    out.textContent = 'Could not reach the server to run the test.';
+                })
+                .finally(function () { testBtn.disabled = false; testBtn.textContent = 'Send test'; });
+        });
+
+        document.querySelectorAll('[data-resend]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                NX.confirm('Send this message again to the same address?', { danger: false, okLabel: 'Send again' }).then(function (yes) {
+                    if (!yes) return;
+                    btn.disabled = true; btn.textContent = 'Sending…';
+                    var body = new FormData();
+                    body.append('csrf_token', csrf);
+                    body.append('log_id', btn.getAttribute('data-resend'));
+                    fetch('actions/email_actions.php?action=resend_email', { method: 'POST', body: body, headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+                        .then(function (r) { return r.json(); })
+                        .then(function (d) {
+                            if (d.success) { NX.toast('Sent', d.message || 'The message was sent.', 'success'); setTimeout(function () { location.reload(); }, 900); }
+                            else { NX.toast('Still failing', d.error || d.message || 'It could not be sent.', 'error'); btn.disabled = false; btn.textContent = 'Try again'; }
+                        })
+                        .catch(function () { NX.toast('Could not retry', 'Check your connection and try again.', 'error'); btn.disabled = false; btn.textContent = 'Try again'; });
+                });
+            });
+        });
+    })();
+    </script>
 </div>
 
 <!-- ================= TAB: INVENTORY DEVELOPER SETTINGS ================= -->

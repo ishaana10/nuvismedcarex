@@ -2,6 +2,7 @@
 /**
  * Multi-Tenancy Clinic Actions Handler
  */
+require_once __DIR__ . '/../core/SessionBootstrap.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/security.php';
 
@@ -17,6 +18,13 @@ $tenantService = Container::getInstance()->get(TenantService::class);
 $logger = Container::getInstance()->get(Logger::class);
 
 if ($action === 'switch_tenant') {
+    // Working inside another clinic's records is a maintenance action, not an
+    // everyday one: only developers may change the active clinic.
+    if (nxCurrentRole() !== 'Developer') {
+        setToast('Not allowed', 'Only a developer can change the active clinic. Ask your administrator if you need access to another clinic.', 'error');
+        header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '../index.php'));
+        exit;
+    }
     $tenantId = $_POST['tenant_id'] ?? '';
     if ($tenantService->switchTenant($tenantId)) {
         setToast('Clinic Switched', "Switched active clinic context to '{$tenantId}'.");
