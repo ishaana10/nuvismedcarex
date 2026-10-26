@@ -179,6 +179,8 @@ $statusStyle = static function (string $status): array {
     };
 };
 $csrf = htmlspecialchars(getCsrfToken());
+$canQueue = nxCan('appointments', 'edit');
+$canEncounter = nxCan('encounters', 'view');
 ?>
 
 <!-- Greeting -->
@@ -195,12 +197,16 @@ $csrf = htmlspecialchars(getCsrfToken());
         </p>
     </div>
     <div class="flex flex-wrap items-center gap-2">
+        <?php if (nxCan('appointments', 'edit')): ?>
         <a href="appointment.php?action=book" class="btn-secondary">
             <span class="material-symbols-outlined text-[18px]">calendar_add_on</span> Book appointment
         </a>
+        <?php endif; ?>
+        <?php if (nxCan('patients', 'edit')): ?>
         <a href="register_patient.php" class="btn-primary">
             <span class="material-symbols-outlined text-[18px]">person_add</span> Register patient
         </a>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -235,6 +241,7 @@ $csrf = htmlspecialchars(getCsrfToken());
                                     </div>
                                     <span class="text-[11px] font-medium text-slate-500 whitespace-nowrap tabular" title="Appointment time"><?= htmlspecialchars($q['time'] ?? '') ?></span>
                                 </div>
+                                <?php if ($canQueue): ?>
                                 <form action="actions/queue_update.php" method="POST" class="flex items-center gap-1.5 mt-2.5">
                                     <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
                                     <input type="hidden" name="queue_id" value="<?= htmlspecialchars($q['id'] ?? '') ?>">
@@ -245,6 +252,7 @@ $csrf = htmlspecialchars(getCsrfToken());
                                         <span class="material-symbols-outlined text-[16px]">meeting_room</span> Call in
                                     </button>
                                 </form>
+                                <?php endif; ?>
                             </li>
                         <?php endforeach; ?>
                         <?php if (!$waiting): ?>
@@ -270,10 +278,13 @@ $csrf = htmlspecialchars(getCsrfToken());
                                     </div>
                                     <span class="text-[11px] font-semibold text-blue-800 bg-white border border-blue-200 rounded-md px-1.5 py-0.5 whitespace-nowrap"><?= htmlspecialchars(($q['room'] ?? '') ?: 'In room') ?></span>
                                 </div>
-                                <div class="flex items-center gap-1.5 mt-2.5">
+                                <div class="flex items-center gap-1.5 mt-2.5 <?= ($canQueue || $canEncounter) ? '' : 'hidden' ?>">
+                                    <?php if ($canEncounter): ?>
                                     <a href="clinical_visit.php?patient_id=<?= urlencode($q['patient_id'] ?? '') ?>" class="h-8 flex-1 inline-flex items-center justify-center gap-1 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-xs font-semibold">
                                         <span class="material-symbols-outlined text-[16px]">stethoscope</span> Encounter
                                     </a>
+                                    <?php endif; ?>
+                                    <?php if ($canQueue): ?>
                                     <form action="actions/queue_update.php" method="POST">
                                         <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
                                         <input type="hidden" name="queue_id" value="<?= htmlspecialchars($q['id'] ?? '') ?>">
@@ -290,6 +301,7 @@ $csrf = htmlspecialchars(getCsrfToken());
                                             <span class="material-symbols-outlined text-[16px]">task_alt</span>
                                         </button>
                                     </form>
+                                    <?php endif; ?>
                                 </div>
                             </li>
                         <?php endforeach; ?>
@@ -385,7 +397,7 @@ $csrf = htmlspecialchars(getCsrfToken());
                             <tr><td colspan="5" class="px-5 py-6">
                                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                     <p class="text-[13px] text-slate-600"><?= $seenToday ? 'Everyone booked for today has been seen.' : 'No appointments booked for today.' ?></p>
-                                    <a href="appointment.php?action=book" class="btn-outline-blue !text-[13px] !py-1.5">Book an appointment</a>
+                                    <?php if (nxCan('appointments', 'edit')): ?><a href="appointment.php?action=book" class="btn-outline-blue !text-[13px] !py-1.5">Book an appointment</a><?php endif; ?>
                                 </div>
                             </td></tr>
                         <?php endif; ?>
@@ -409,39 +421,40 @@ $csrf = htmlspecialchars(getCsrfToken());
                 <?php
                 $glance = [
                     [
-                        'icon' => 'event', 'tone' => 'bg-blue-50 text-blue-700', 'url' => 'appointment.php',
+                        'module' => 'appointments', 'icon' => 'event', 'tone' => 'bg-blue-50 text-blue-700', 'url' => 'appointment.php',
                         'label' => 'Appointments today',
                         'value' => (string) (count($todayAppointments) + count($seenToday)),
                         'note' => count($todayAppointments) . ' remaining',
                     ],
                     [
-                        'icon' => 'payments', 'tone' => $overdueInvoicesCount ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600', 'url' => 'billing.php',
+                        'module' => 'billing', 'icon' => 'payments', 'tone' => $overdueInvoicesCount ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600', 'url' => 'billing.php',
                         'label' => 'Unpaid invoices',
                         'value' => $currencySymbol . number_format($pendingBillingSum, 2),
                         'note' => $overdueInvoicesCount ? $overdueInvoicesCount . ' overdue' : ($pendingInvoicesCount ? $pendingInvoicesCount . ' open, none overdue' : 'All settled'),
                         'warn' => $overdueInvoicesCount > 0,
                     ],
                     [
-                        'icon' => 'inventory_2', 'tone' => $lowStockCount ? 'bg-red-50 text-red-700' : 'bg-slate-100 text-slate-600', 'url' => 'inventory.php',
+                        'module' => 'inventory', 'icon' => 'inventory_2', 'tone' => $lowStockCount ? 'bg-red-50 text-red-700' : 'bg-slate-100 text-slate-600', 'url' => 'inventory.php',
                         'label' => 'Stock to reorder',
                         'value' => (string) $lowStockCount,
                         'note' => $lowStockCount ? implode(', ', array_map(fn($i) => $i['name'], array_slice($lowStockItems, 0, 2))) . ($lowStockCount > 2 ? ' and ' . ($lowStockCount - 2) . ' more' : '') : 'Stock levels are fine',
                         'warn' => $lowStockCount > 0,
                     ],
                     [
-                        'icon' => 'event_busy', 'tone' => $expiringCount ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600', 'url' => 'inventory.php',
+                        'module' => 'inventory', 'icon' => 'event_busy', 'tone' => $expiringCount ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600', 'url' => 'inventory.php',
                         'label' => 'Expiring within 30 days',
                         'value' => (string) $expiringCount,
                         'note' => $expiringCount ? 'Use first or return to supplier' : 'Nothing close to expiry',
                         'warn' => $expiringCount > 0,
                     ],
                     [
-                        'icon' => 'groups', 'tone' => 'bg-emerald-50 text-emerald-700', 'url' => 'patients.php',
+                        'module' => 'patients', 'icon' => 'groups', 'tone' => 'bg-emerald-50 text-emerald-700', 'url' => 'patients.php',
                         'label' => 'Registered patients',
                         'value' => number_format($totalPatientsCount),
                         'note' => $newPatientsThisMonth . ' new this month',
                     ],
                 ];
+                $glance = array_filter($glance, fn($g) => nxCan($g['module']));
                 foreach ($glance as $g): ?>
                     <li>
                         <a href="<?= $g['url'] ?>" class="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-slate-50 transition group">

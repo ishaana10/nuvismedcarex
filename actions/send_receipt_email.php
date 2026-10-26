@@ -15,6 +15,13 @@ if (empty($_SESSION['authenticated'])) {
     exit;
 }
 
+require_once __DIR__ . '/../includes/security.php';
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && !verifyCsrfToken($_POST['csrf_token'] ?? null)) {
+    setToast('Not sent', 'That request expired. Reload the receipt and try again.', 'error');
+    header('Location: ../billing.php');
+    exit;
+}
+
 $pdo = getDB();
 $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 

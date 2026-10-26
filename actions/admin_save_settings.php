@@ -16,31 +16,36 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $pdo = getDB();
+require_once __DIR__ . '/../includes/security.php';
 
-$settings = [
-    'clinic_name'      => trim($_POST['clinic_name'] ?? 'ClinicFlow Medical Center'),
-    'clinic_subtitle'  => trim($_POST['clinic_subtitle'] ?? ''),
-    'clinic_address'   => trim($_POST['clinic_address'] ?? ''),
-    'clinic_phone'     => trim($_POST['clinic_phone'] ?? ''),
-    'clinic_email'     => trim($_POST['clinic_email'] ?? ''),
-    'clinic_dea'       => trim($_POST['clinic_dea'] ?? ''),
-    'clinic_npi'       => trim($_POST['clinic_npi'] ?? ''),
-    'rx_header_title'       => trim($_POST['rx_header_title'] ?? 'OFFICIAL MEDICAL PRESCRIPTION'),
-    'rx_disclaimer'         => trim($_POST['rx_disclaimer'] ?? ''),
-    'rx_footer_note'        => trim($_POST['rx_footer_note'] ?? ''),
-    'invoice_header_title'  => trim($_POST['invoice_header_title'] ?? 'MEDICAL SERVICES INVOICE'),
-    'invoice_tax_id'        => trim($_POST['invoice_tax_id'] ?? ''),
-    'invoice_payment_terms' => trim($_POST['invoice_payment_terms'] ?? ''),
-    'invoice_footer_note'   => trim($_POST['invoice_footer_note'] ?? ''),
-    'receipt_header_title'  => trim($_POST['receipt_header_title'] ?? 'OFFICIAL PAYMENT RECEIPT'),
-    'receipt_thank_you_msg' => trim($_POST['receipt_thank_you_msg'] ?? ''),
-    'cert_header_title'     => trim($_POST['cert_header_title'] ?? 'OFFICIAL MEDICAL CERTIFICATE'),
-    'cert_disclaimer'       => trim($_POST['cert_disclaimer'] ?? ''),
-    'cert_footer_note'      => trim($_POST['cert_footer_note'] ?? ''),
-    'doc_prc_no'            => trim($_POST['doc_prc_no'] ?? ''),
-    'doc_ptr_no'            => trim($_POST['doc_ptr_no'] ?? ''),
-    'default_pagination_limit' => (int)($_POST['default_pagination_limit'] ?? 10)
+if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) {
+    setToast('Not saved', 'Your session token expired. Reload the page and try again.', 'error');
+    header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '../admin.php'));
+    exit;
+}
+
+// Only keys present in the submitted form are saved, so saving one section
+// (e.g. email) never resets another (e.g. the clinic name) to a default.
+$textKeys = [
+    'clinic_name', 'clinic_subtitle', 'clinic_address', 'clinic_phone', 'clinic_email', 'clinic_dea', 'clinic_npi',
+    'rx_header_title', 'rx_disclaimer', 'rx_footer_note',
+    'invoice_header_title', 'invoice_tax_id', 'invoice_payment_terms', 'invoice_footer_note',
+    'receipt_header_title', 'receipt_thank_you_msg',
+    'cert_header_title', 'cert_disclaimer', 'cert_footer_note',
+    'doc_prc_no', 'doc_ptr_no',
 ];
+$settings = [];
+foreach ($textKeys as $k) {
+    if (array_key_exists($k, $_POST)) {
+        $settings[$k] = trim((string) $_POST[$k]);
+    }
+}
+if (isset($settings['clinic_name']) && $settings['clinic_name'] === '') {
+    unset($settings['clinic_name']); // a clinic always keeps a name
+}
+if (array_key_exists('default_pagination_limit', $_POST)) {
+    $settings['default_pagination_limit'] = (int) $_POST['default_pagination_limit'];
+}
 
 // VMS Fiscal Settings (if submitted)
 if (isset($_POST['vms_seller_tin'])) {
@@ -53,66 +58,6 @@ if (isset($_POST['vms_seller_tin'])) {
     $settings['vms_tax_rate_e']        = trim($_POST['vms_tax_rate_e'] ?? '0.00');
     $settings['vms_tax_rate_f']        = trim($_POST['vms_tax_rate_f'] ?? '0.00');
     $settings['vms_tax_rate_p']        = trim($_POST['vms_tax_rate_p'] ?? '0.25');
-}
-
-$action = $_POST['action'] ?? '';
-
-// Dynamic Custom Role Addition / Deletion
-if ($action === 'add_custom_role') {
-    $roleName = trim($_POST['role_name'] ?? '');
-    if ($roleName !== '') {
-        $stmtSel = $pdo->prepare("SELECT setting_value FROM clinic_settings WHERE setting_key = 'rbac_custom_roles'");
-        $stmtSel->execute();
-        $currJson = $stmtSel->fetchColumn();
-        $currArr = json_decode($currJson ?: '[]', true) ?: [];
-        if (!in_array($roleName, $currArr, true)) {
-            $currArr[] = $roleName;
-        }
-        $settings['rbac_custom_roles'] = json_encode(array_values($currArr));
-    }
-}
-
-if ($action === 'delete_custom_role') {
-    $roleName = trim($_POST['role_name'] ?? '');
-    if ($roleName !== '') {
-        $stmtSel = $pdo->prepare("SELECT setting_value FROM clinic_settings WHERE setting_key = 'rbac_custom_roles'");
-        $stmtSel->execute();
-        $currJson = $stmtSel->fetchColumn();
-        $currArr = json_decode($currJson ?: '[]', true) ?: [];
-        $currArr = array_values(array_filter($currArr, fn($r) => $r !== $roleName));
-        $settings['rbac_custom_roles'] = json_encode($currArr);
-    }
-}
-
-// Dynamic Custom Permission Addition / Deletion
-if ($action === 'add_custom_permission') {
-    $key = strtolower(preg_replace('/[^a-zA-Z0-9_]/', '', trim($_POST['permission_key'] ?? '')));
-    $label = trim($_POST['permission_label'] ?? '');
-    if ($key !== '' && $label !== '') {
-        $stmtSel = $pdo->prepare("SELECT setting_value FROM clinic_settings WHERE setting_key = 'rbac_custom_modules'");
-        $stmtSel->execute();
-        $currJson = $stmtSel->fetchColumn();
-        $currArr = json_decode($currJson ?: '{}', true) ?: [];
-        $currArr[$key] = $label;
-        $settings['rbac_custom_modules'] = json_encode($currArr);
-    }
-}
-
-if ($action === 'delete_custom_permission') {
-    $key = trim($_POST['permission_key'] ?? '');
-    if ($key !== '') {
-        $stmtSel = $pdo->prepare("SELECT setting_value FROM clinic_settings WHERE setting_key = 'rbac_custom_modules'");
-        $stmtSel->execute();
-        $currJson = $stmtSel->fetchColumn();
-        $currArr = json_decode($currJson ?: '{}', true) ?: [];
-        unset($currArr[$key]);
-        $settings['rbac_custom_modules'] = json_encode($currArr);
-    }
-}
-
-// RBAC Group Permissions Settings (if submitted)
-if (isset($_POST['rbac'])) {
-    $settings['rbac_group_permissions'] = json_encode($_POST['rbac']);
 }
 
 // Email Settings (if submitted)

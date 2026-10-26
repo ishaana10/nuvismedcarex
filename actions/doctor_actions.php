@@ -10,16 +10,41 @@ if (!isset($_SESSION['authenticated']) || $_SESSION['authenticated'] !== true) {
     exit;
 }
 
-// Ensure Admin or Developer role
-$currentUserRole = $_SESSION['user_role'] ?? $_SESSION['user']['role'] ?? '';
-if (!in_array($currentUserRole, ['Developer', 'Administrator', 'Admin', 'Doctor'])) {
-    setToast("Access Denied", "Only Administrators and Developers can manage user accounts.", "error");
+// Who may manage staff is decided by Administration → Access & roles
+// ("Staff & access": edit to add/change, full to delete). See includes/access.php.
+require_once __DIR__ . '/../includes/security.php';
+$currentUserRole = nxCurrentRole();
+
+$pdo = getDB();
+$action = $_POST['action'] ?? $_GET['action'] ?? 'save';
+$tenantIdCtx = \ClinicFlow\Shared\TenantContext::getTenantId();
+$selfId = (string) ($_SESSION['user_id'] ?? '');
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !verifyCsrfToken($_POST['csrf_token'] ?? null)) {
+    setToast('Not saved', 'That request expired. Reload the page and try again.', 'error');
     header("Location: ../admin.php?tab=users");
     exit;
 }
 
-$pdo = getDB();
-$action = $_POST['action'] ?? $_GET['action'] ?? 'save';
+/** Load a staff account that belongs to the active clinic. */
+$loadUser = function (string $id) use ($pdo, $tenantIdCtx): ?array {
+    if ($id === '') return null;
+    $st = $pdo->prepare("SELECT id, name, role, is_active FROM doctors WHERE id = ? AND (tenant_id = ? OR tenant_id IS NULL)");
+    $st->execute([$id, $tenantIdCtx]);
+    return $st->fetch(PDO::FETCH_ASSOC) ?: null;
+};
+/** Would this change leave the clinic without an active administrator? */
+$isLastAdmin = function (string $id) use ($pdo, $tenantIdCtx): bool {
+    $st = $pdo->prepare("SELECT id, role FROM doctors WHERE (tenant_id = ? OR tenant_id IS NULL) AND is_active = 1");
+    $st->execute([$tenantIdCtx]);
+    $admins = array_filter($st->fetchAll(PDO::FETCH_ASSOC), fn($u) => in_array(\ClinicFlow\Services\AccessControl::normaliseRole((string) $u['role']), ['Administrator', 'Developer'], true));
+    return count($admins) === 1 && (string) reset($admins)['id'] === $id;
+};
+$bounce = function (string $title, string $msg) {
+    setToast($title, $msg, 'error');
+    header("Location: ../admin.php?tab=users");
+    exit;
+};
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($action === 'save' || $action === 'save_doctor')) {
     $docId = !empty($_POST['doctor_id']) ? trim($_POST['doctor_id']) : ('usr-' . time());
@@ -29,7 +54,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($action === 'save' || $action === 
     $specialty = trim($_POST['specialty'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
-    $role = $_POST['role'] ?? 'Doctor';
+    $role = trim((string) ($_POST['role'] ?? 'Doctor'));
+    $assignable = nxAccess()->roles($currentUserRole === 'Developer');
+    if (!in_array($role, $assignable, true)) {
+        $bounce('Role not available', "“{$role}” isn't a role at this clinic. Pick one from the list.");
+    }
+    if ($isEdit) {
+        $existing = $loadUser($docId);
+        if (!$existing) $bounce('Account not found', 'That staff account belongs to another clinic or was removed.');
+        $wasAdmin = in_array(\ClinicFlow\Services\AccessControl::normaliseRole((string) $existing['role']), ['Administrator', 'Developer'], true);
+        $staysAdmin = in_array($role, ['Administrator', 'Developer'], true);
+        if ($wasAdmin && !$staysAdmin && $isLastAdmin($docId)) {
+            $bounce('Role not changed', 'This is the only administrator. Make someone else an administrator first.');
+        }
+        if (\ClinicFlow\Services\AccessControl::normaliseRole((string) $existing['role']) === 'Developer' && $currentUserRole !== 'Developer') {
+            $bounce('Not allowed', 'Only a developer can change a developer account.');
+        }
+    }
     $isActive = isset($_POST['is_active']) ? (int)$_POST['is_active'] : 1;
     $color = $_POST['color'] ?? '#10B981';
     $dotColorClass = $_POST['dot_color_class'] ?? 'bg-emerald-500';
@@ -164,6 +205,10 @@ if ($action === 'toggle_status') {
     $userId = $_POST['user_id'] ?? '';
     $status = isset($_POST['status']) ? (int)$_POST['status'] : 1;
 
+    $target = $loadUser((string) $userId);
+    if (!$target) $bounce('Account not found', 'That staff account belongs to another clinic or was removed.');
+    if ($status === 0 && $userId === $selfId) $bounce('Not changed', "You can't deactivate your own account.");
+    if ($status === 0 && $isLastAdmin((string) $userId)) $bounce('Not changed', 'This is the only active administrator. Make someone else an administrator first.');
     if (!empty($userId)) {
         $stmt = $pdo->prepare("UPDATE doctors SET is_active = ? WHERE id = ?");
         $stmt->execute([$status, $userId]);
@@ -175,7 +220,14 @@ if ($action === 'toggle_status') {
 }
 
 if ($action === 'delete') {
-    $docId = $_GET['id'] ?? '';
+    $docId = (string) ($_POST['id'] ?? '');
+    $target = $loadUser($docId);
+    if (!$target) $bounce('Account not found', 'That staff account belongs to another clinic or was removed.');
+    if ($docId === $selfId) $bounce('Not deleted', "You can't delete your own account.");
+    if ($isLastAdmin($docId)) $bounce('Not deleted', 'This is the only active administrator. Make someone else an administrator first.');
+    if (\ClinicFlow\Services\AccessControl::normaliseRole((string) $target['role']) === 'Developer' && $currentUserRole !== 'Developer') {
+        $bounce('Not allowed', 'Only a developer can remove a developer account.');
+    }
     if (!empty($docId)) {
         $stmt = $pdo->prepare("DELETE FROM doctors WHERE id = ?");
         $stmt->execute([$docId]);

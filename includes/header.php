@@ -7,11 +7,15 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/security.php';
 
 $pdo = getDB();
-$toast = getToast();
 $activePage = $activePage ?? 'dashboard';
 
-// Authentication Check
+// Authentication + role access for this page (see includes/access.php)
 requireAuth();
+$pageAccess = $pageAccess ?? (NX_PAGE_ACCESS[$activePage] ?? null);
+if ($pageAccess) {
+    requireAccess(...$pageAccess);
+}
+$toast = getToast();
 
 // Get doctors for current tenant context selector
 $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
@@ -98,6 +102,7 @@ $nxCsrf = htmlspecialchars(getCsrfToken());
           'role' => $nxUserRole,
           'nav' => array_map(fn($n) => ['label' => $n['label'], 'url' => $n['url'], 'icon' => $n['icon'], 'keywords' => $n['keywords'] ?? ''], $nxNav),
           'toast' => $toast ?: null,
+          'can' => array_map(fn($m) => nxAccess()->level($nxUserRole, $m), array_combine(array_keys(\ClinicFlow\Services\AccessControl::MODULES), array_keys(\ClinicFlow\Services\AccessControl::MODULES))),
       ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
     </script>
     <script src="assets/js/app.js?v=<?= $nxAssetVersion ?>" defer></script>

@@ -46,10 +46,12 @@ $renderNav = function (bool $mobile) use ($nxGrouped, $activePage, $nxCounts, $n
         </div>
     </div>
 
+    <?php if (nxCan('patients', 'edit')): ?>
     <a href="register_patient.php" class="nx-rail-cta" title="Register patient (N)" <?= $activePage === 'register-patient' ? 'aria-current="page"' : '' ?>>
         <span class="material-symbols-outlined text-[20px]">person_add</span>
         <span class="nx-label">Register patient</span>
     </a>
+    <?php endif; ?>
 
     <nav class="nx-rail-scroll flex-1 overflow-y-auto pb-4">
         <?php $renderNav(false); ?>
@@ -76,15 +78,17 @@ $renderNav = function (bool $mobile) use ($nxGrouped, $activePage, $nxCounts, $n
             <span class="material-symbols-outlined">close</span>
         </button>
     </div>
+    <?php if (nxCan('patients', 'edit')): ?>
     <a href="register_patient.php" class="nx-rail-cta">
         <span class="material-symbols-outlined text-[20px]">person_add</span>
         <span>Register patient</span>
     </a>
+    <?php endif; ?>
     <nav class="nx-rail-scroll flex-1 overflow-y-auto pb-4">
         <?php $renderNav(true); ?>
     </nav>
     <div class="shrink-0 border-t border-white/10 p-2 space-y-0.5">
-        <a href="appointment.php?action=book" class="nx-rail-link"><span class="material-symbols-outlined">calendar_add_on</span><span>Book appointment</span></a>
+        <?php if (nxCan('appointments', 'edit')): ?><a href="appointment.php?action=book" class="nx-rail-link"><span class="material-symbols-outlined">calendar_add_on</span><span>Book appointment</span></a><?php endif; ?>
         <button type="button" onclick="toggleMobileSidebar(); openChangePasswordModal();" class="nx-rail-link w-[calc(100%-1rem)]"><span class="material-symbols-outlined">key</span><span>Change password</span></button>
         <a href="actions/logout.php" class="nx-rail-link"><span class="material-symbols-outlined">logout</span><span>Sign out</span></a>
     </div>

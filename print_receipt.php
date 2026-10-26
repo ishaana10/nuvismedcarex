@@ -1,284 +1,214 @@
 <?php
+/**
+ * Payment receipt (print / PDF). Layout comes from the clinic's receipt
+ * design in Administration → Receipts.
+ *
+ *   print_receipt.php?id=INVOICE_ID          the receipt for one invoice
+ *   print_receipt.php?preview=1  (POST)      live preview for the receipt designer
+ */
 require_once __DIR__ . '/includes/autoloader.php';
 require_once __DIR__ . '/core/SessionBootstrap.php';
 if (empty($_SESSION['authenticated'])) {
     header('Location: login.php');
     exit;
 }
-
-$invoiceId = $_GET['id'] ?? '';
-
 require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/includes/security.php';
+require_once __DIR__ . '/includes/receipt_template.php';
+
+use ClinicFlow\Services\ReceiptSettings;
+
 $pdo = getDB();
-
 $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+$isPreview = isset($_GET['preview']);
 
-// Fetch Clinic & Tenant Settings
-$settingsRows = $pdo->query("SELECT setting_key, setting_value FROM tenant_settings WHERE tenant_id = " . $pdo->quote($currentTenantId))->fetchAll(PDO::FETCH_KEY_PAIR);
-if (empty($settingsRows)) {
-    $settingsRows = $pdo->query("SELECT setting_key, setting_value FROM clinic_settings")->fetchAll(PDO::FETCH_KEY_PAIR);
+// Clinic details: this clinic's settings, then shared defaults
+$settingsRows = [];
+try {
+    $st = $pdo->prepare("SELECT setting_key, setting_value FROM tenant_settings WHERE tenant_id = ?");
+    $st->execute([$currentTenantId]);
+    $settingsRows = $st->fetchAll(PDO::FETCH_KEY_PAIR) ?: [];
+    foreach ($pdo->query("SELECT setting_key, setting_value FROM clinic_settings")->fetchAll(PDO::FETCH_KEY_PAIR) ?: [] as $k => $v) {
+        if (!isset($settingsRows[$k])) $settingsRows[$k] = $v;
+    }
+} catch (\Throwable $e) {
+    error_log('[print_receipt] settings: ' . $e->getMessage());
+}
+$clinic = [
+    'name'     => $settingsRows['clinic_name'] ?? ($activeClinicName ?? 'Nuvis Medico Healthcare'),
+    'subtitle' => $settingsRows['clinic_subtitle'] ?? '',
+    'address'  => $settingsRows['clinic_address'] ?? '',
+    'phone'    => $settingsRows['clinic_phone'] ?? '',
+    'email'    => $settingsRows['clinic_email'] ?? '',
+    'license'  => $settingsRows['doc_prc_no'] ?? '',
+    'tin'      => $settingsRows['vms_seller_tin'] ?? ($settingsRows['invoice_tax_id'] ?? ''),
+];
+
+$rs = new ReceiptSettings($pdo, $currentTenantId);
+$cfg = $rs->load();
+
+if ($isPreview) {
+    // Designer preview: render the submitted (unsaved) settings with sample data
+    if (!nxCan('settings', 'view')) { http_response_code(403); exit('No access'); }
+    $previewError = '';
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+        try {
+            $cfg = ReceiptSettings::sanitise($_POST, $cfg, $_FILES['logo_file'] ?? null);
+        } catch (\InvalidArgumentException $e) {
+            $previewError = $e->getMessage();
+            $cfg = ReceiptSettings::sanitise($_POST, $cfg, null);
+        }
+    }
+    $signer = ['name' => $_SESSION['user_name'] ?? 'Dr. Sarah Jenkins', 'title' => 'Attending physician', 'signature' => '', 'stamp' => ''];
+    try {
+        $d = $pdo->prepare("SELECT name, specialty, esignature, digital_stamp FROM doctors WHERE id = ?");
+        $d->execute([$_SESSION['user_id'] ?? '']);
+        if ($row = $d->fetch(PDO::FETCH_ASSOC)) {
+            $signer = ['name' => $row['name'], 'title' => (string) $row['specialty'], 'signature' => (string) ($row['esignature'] ?? ''), 'stamp' => (string) ($row['digital_stamp'] ?? '')];
+        }
+    } catch (\Throwable $e) {}
+    $data = nxSampleReceiptData($clinic, $rs->currencySymbol($cfg), $signer);
+    ?><!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Receipt preview</title>
+<style><?= nxReceiptCss($cfg) ?>
+body{margin:0;padding:20px 12px;background:#e9edf2;font-family:system-ui,sans-serif}
+.rc-screen-frame{box-shadow:0 8px 30px rgb(15 43 92 / .14);border-radius:6px;overflow:hidden;margin:0 auto;width:max-content;max-width:100%}
+.pv-err{max-width:520px;margin:0 auto 12px;padding:10px 12px;border-radius:8px;background:#fdf2f1;color:#962b1f;font-size:13px;border:1px solid #f7c4be}
+</style></head><body>
+<?php if ($previewError): ?><div class="pv-err"><?= htmlspecialchars($previewError) ?></div><?php endif; ?>
+<div class="rc-screen-frame"><?= nxRenderReceipt($cfg, $data) ?></div>
+</body></html><?php
+    exit;
 }
 
-$clinicName = $settingsRows['clinic_name'] ?? 'Nuvis Medico Healthcare';
-$clinicSubtitle = $settingsRows['clinic_subtitle'] ?? 'Medical & Clinical Practice';
-$clinicAddress = $settingsRows['clinic_address'] ?? '2 Woodstand Road, Suva, Fiji';
-$clinicPhone = $settingsRows['clinic_phone'] ?? '(+679) 330 1234';
-$clinicEmail = $settingsRows['clinic_email'] ?? 'billing@nuvismedcare.com';
-$docPrcNo = $settingsRows['doc_prc_no'] ?? 'LIC-984120';
-
-$receiptHeaderTitle = 'OFFICIAL PAYMENT RECEIPT';
-$receiptThankYouMsg = $settingsRows['receipt_thank_you_msg'] ?? 'Thank you for your payment. Your medical account balance for this transaction is cleared.';
-
-// Fetch Invoice
-$stmt = $pdo->prepare("SELECT * FROM invoices WHERE (id = ? OR invoice_number = ?) AND tenant_id = ?");
+// ----------------------------------------------------------------- real receipt
+$invoiceId = (string) ($_GET['id'] ?? '');
+$stmt = $pdo->prepare("SELECT i.*, p.email AS patient_email FROM invoices i LEFT JOIN patients p ON p.id = i.patient_id WHERE (i.id = ? OR i.invoice_number = ?) AND i.tenant_id = ?");
 $stmt->execute([$invoiceId, $invoiceId, $currentTenantId]);
-$invoice = $stmt->fetch();
+$invoice = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$invoice) {
-    // Fallback to any recent invoice for tenant
-    $stmt = $pdo->prepare("SELECT * FROM invoices WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 1");
-    $stmt->execute([$currentTenantId]);
-    $invoice = $stmt->fetch();
+    // Never fall back to another patient's invoice
+    http_response_code(404);
+    setToast('Receipt not found', 'That invoice doesn\'t exist at this clinic. Open it from Billing.', 'error');
+    header('Location: billing.php');
+    exit;
 }
 
-if (!$invoice) {
-    die("Receipt record not found.");
-}
-
-// Fetch Itemized lines
 $stmtItems = $pdo->prepare("SELECT * FROM invoice_items WHERE invoice_id = ?");
 $stmtItems->execute([$invoice['id']]);
-$items = $stmtItems->fetchAll();
-
-if (empty($items)) {
-    $services = json_decode($invoice['services'] ?? '[]', true) ?: ['Medical Service / Consultation'];
+$items = $stmtItems->fetchAll(PDO::FETCH_ASSOC) ?: [];
+if (!$items) {
+    $services = json_decode($invoice['services'] ?? '[]', true) ?: ['Medical service'];
+    $each = count($services) ? (float) $invoice['amount'] / count($services) : (float) $invoice['amount'];
     foreach ($services as $svc) {
-        $items[] = [
-            'name' => $svc,
-            'quantity' => 1,
-            'unit_price' => $invoice['amount'],
-            'total_price' => $invoice['amount']
-        ];
+        $items[] = ['name' => is_array($svc) ? ($svc['name'] ?? 'Service') : $svc, 'quantity' => 1, 'unit_price' => $each, 'total_price' => $each, 'tax_amount' => 0];
     }
 }
 
-$payments = json_decode($invoice['payment_methods'] ?? '[]', true) ?: [['type' => ($invoice['payment_type'] ?? 'Cash'), 'amount' => (float)$invoice['amount']]];
-$totalAmountPaid = array_reduce($payments, fn($acc, $p) => $acc + (float)($p['amount'] ?? 0), 0.00);
-if ($totalAmountPaid <= 0) {
-    $totalAmountPaid = (float)$invoice['amount'];
+$payments = json_decode($invoice['payment_methods'] ?? '[]', true);
+if (!is_array($payments) || !$payments) {
+    $payments = [['type' => $invoice['payment_type'] ?? 'Cash', 'amount' => (float) $invoice['amount']]];
 }
+$payments = array_map(fn($p) => ['type' => (string) ($p['type'] ?? $p['method'] ?? 'Cash'), 'amount' => (float) ($p['amount'] ?? 0)], $payments);
+$totalPaid = array_sum(array_column($payments, 'amount')) ?: (float) $invoice['amount'];
+$taxTotal = array_sum(array_map(fn($i) => (float) ($i['tax_amount'] ?? 0), $items)) ?: (float) ($invoice['total_tax'] ?? 0);
+$balance = ($invoice['status'] ?? '') === 'Paid' ? 0.0 : max(0.0, (float) ($invoice['patient_owed'] ?? 0));
 
-// Fetch Attending Doctor / Cashier info for E-signature and Digital Stamp
-$attendingDoc = null;
+// Who signs: the cashier on the invoice, else the clinician printing it
+$signerRow = null;
 if (!empty($invoice['cashier'])) {
     $docStmt = $pdo->prepare("SELECT * FROM doctors WHERE (name = ? OR email = ?) AND (tenant_id = ? OR tenant_id IS NULL) LIMIT 1");
     $docStmt->execute([$invoice['cashier'], $invoice['cashier'], $currentTenantId]);
-    $attendingDoc = $docStmt->fetch();
+    $signerRow = $docStmt->fetch(PDO::FETCH_ASSOC) ?: null;
 }
-if (!$attendingDoc) {
-    // Fallback to active doctor for tenant
-    $docStmt = $pdo->prepare("SELECT * FROM doctors WHERE (tenant_id = ? OR tenant_id IS NULL) AND is_active = 1 ORDER BY esignature DESC, digital_stamp DESC LIMIT 1");
-    $docStmt->execute([$currentTenantId]);
-    $attendingDoc = $docStmt->fetch();
+if (!$signerRow && !empty($_SESSION['current_doctor_id'])) {
+    $docStmt = $pdo->prepare("SELECT * FROM doctors WHERE id = ?");
+    $docStmt->execute([$_SESSION['current_doctor_id']]);
+    $signerRow = $docStmt->fetch(PDO::FETCH_ASSOC) ?: null;
 }
+
+$data = [
+    'currency' => $rs->currencySymbol($cfg),
+    'clinic'   => $clinic,
+    'receipt'  => [
+        'number'           => $invoice['invoice_number'],
+        'invoice_number'   => $invoice['invoice_number'],
+        'paid_at'          => (!empty($invoice['pos_time']) && strtotime((string) $invoice['pos_time'])) ? $invoice['pos_time'] : time(),
+        'service_date'     => $invoice['service_date'] ?? '',
+        'ref'              => (string) ($invoice['ref_no'] ?? ''),
+        'cashier'          => (string) ($invoice['cashier'] ?? ''),
+        'tin'              => (string) ($invoice['seller_tin'] ?: $clinic['tin']),
+        'verification_url' => !empty($invoice['is_fiscalized']) ? (string) ($invoice['verification_url'] ?? '') : '',
+    ],
+    'patient'  => ['name' => (string) $invoice['patient_name'], 'mrn' => (string) ($invoice['patient_mrn'] ?? '')],
+    'items'    => $items,
+    'payments' => $payments,
+    'total'    => (float) $invoice['amount'],
+    'tax_total' => $taxTotal,
+    'total_paid' => $totalPaid,
+    'balance'  => $balance,
+    'signer'   => [
+        'name'      => (string) ($signerRow['name'] ?? ''),
+        'title'     => (string) ($signerRow['specialty'] ?? ''),
+        'signature' => (string) ($signerRow['esignature'] ?? ''),
+        'stamp'     => (string) ($signerRow['digital_stamp'] ?? ''),
+    ],
+];
+$receiptNo = $cfg['number_prefix'] . $invoice['invoice_number'];
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Payment Receipt REC-<?= htmlspecialchars($invoice['invoice_number']) ?> - <?= htmlspecialchars($clinicName) ?></title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title><?= htmlspecialchars($receiptNo . ' · ' . $clinic['name']) ?></title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        @media print {
-            .no-print { display: none !important; }
-            body { background: white; padding: 0; }
-            .print-card { border: none !important; shadow: none !important; padding: 0 !important; }
-        }
+        <?= nxReceiptCss($cfg) ?>
+        body { margin: 0; background: #e9edf2; font-family: "IBM Plex Sans", system-ui, sans-serif; color: #1b2430; }
+        .bar { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; padding: 10px 16px; background: #fff; border-bottom: 1px solid #d6dde6; }
+        .bar a, .bar button { font: 600 13px/1 inherit; font-family: inherit; border-radius: 9px; padding: 9px 14px; border: 1px solid #d6dde6; background: #fff; color: #1b2430; cursor: pointer; text-decoration: none; }
+        .bar .primary { background: #164487; border-color: #164487; color: #fff; }
+        .bar .meta { font-size: 12px; color: #5b6878; }
+        .wrap { padding: 24px 12px 48px; }
+        .rc-screen-frame { box-shadow: 0 8px 30px rgb(15 43 92 / .14); border-radius: 6px; overflow: hidden; margin: 0 auto; width: max-content; max-width: 100%; background: #fff; }
+        dialog { border: 0; border-radius: 14px; padding: 0; width: min(420px, calc(100vw - 32px)); box-shadow: 0 30px 80px -20px rgb(10 29 63 / .45); }
+        dialog::backdrop { background: rgb(10 17 25 / .45); }
+        dialog form { padding: 20px; display: grid; gap: 12px; font-size: 14px; }
+        dialog h2 { margin: 0; font-size: 16px; }
+        dialog input { font: inherit; padding: 9px 11px; border: 1px solid #c9d2dd; border-radius: 9px; }
+        dialog .row { display: flex; justify-content: flex-end; gap: 8px; }
+        dialog p { margin: 0; color: #5b6878; font-size: 13px; }
+        @media print { .wrap { padding: 0; } }
     </style>
 </head>
-<body class="bg-slate-100 p-4 sm:p-8 min-h-screen text-slate-800 text-xs">
-
-<div class="max-w-2xl mx-auto bg-white p-8 sm:p-10 rounded-2xl shadow-xl border border-slate-200 print-card space-y-8">
-
-    <!-- Action Controls -->
-    <div class="no-print flex flex-col sm:flex-row justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-200 gap-3">
-        <a href="billing.php" class="text-xs font-bold text-slate-600 hover:text-slate-900 transition flex items-center gap-1">
-            &larr; Back to Billing
-        </a>
-        <div class="flex items-center gap-2.5">
-            <button type="button" onclick="document.getElementById('sendEmailModal').classList.remove('hidden')" class="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold rounded-xl transition shadow-xs flex items-center gap-1.5">
-                <span class="material-symbols-outlined text-base">mail</span>
-                <span>Send Receipt via Email</span>
-            </button>
-            <button onclick="window.print()" class="px-5 py-2 bg-emerald-700 text-white text-xs font-bold rounded-xl hover:bg-emerald-800 transition shadow-xs flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                <span>Print Receipt</span>
-            </button>
-        </div>
-    </div>
-
-    <!-- Modal: Send Receipt Email -->
-    <div id="sendEmailModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
-                    <span class="material-symbols-outlined text-blue-600 text-lg">mail</span>
-                    <span>Send Receipt via Email</span>
-                </h3>
-                <button type="button" onclick="document.getElementById('sendEmailModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-700">
-                    <span class="material-symbols-outlined">close</span>
-                </button>
-            </div>
-
-            <form action="actions/send_receipt_email.php" method="POST" class="space-y-4 text-xs">
-                <input type="hidden" name="invoice_id" value="<?= htmlspecialchars($invoice['id']) ?>">
-
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1.5">Recipient Patient Email <span class="text-rose-500">*</span></label>
-                    <input type="email" name="email" value="<?= htmlspecialchars($invoice['patient_email'] ?? $invoice['email'] ?? '') ?>" required placeholder="patient@example.com" class="w-full bg-slate-50 p-3 rounded-xl border border-slate-200 font-medium text-slate-800 focus:bg-white focus:outline-none focus:border-blue-600">
-                </div>
-
-                <p class="text-[11px] text-slate-500 italic">
-                    An itemized payment confirmation receipt for Invoice #<?= htmlspecialchars($invoice['invoice_number']) ?> will be sent immediately to the specified address.
-                </p>
-
-                <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-                    <button type="button" onclick="document.getElementById('sendEmailModal').classList.add('hidden')" class="px-4 py-2 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition">
-                        Cancel
-                    </button>
-                    <button type="submit" class="px-5 py-2 bg-blue-700 text-white font-bold rounded-xl hover:bg-blue-800 transition shadow-xs flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-base">send</span>
-                        <span>Send Email Now</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Receipt Header -->
-    <div class="flex flex-col sm:flex-row justify-between items-start border-b-2 border-emerald-900 pb-6 gap-6">
-        <div>
-            <h1 class="text-2xl font-extrabold text-emerald-900 uppercase tracking-tight"><?= htmlspecialchars($clinicName) ?></h1>
-            <p class="text-xs font-semibold text-emerald-700 mt-0.5"><?= htmlspecialchars($clinicSubtitle) ?></p>
-            <div class="text-slate-500 space-y-0.5 mt-2 leading-relaxed">
-                <p><?= htmlspecialchars($clinicAddress) ?></p>
-                <p>Phone: <span class="font-medium text-slate-700"><?= htmlspecialchars($clinicPhone) ?></span> &nbsp;|&nbsp; Email: <span class="font-medium text-slate-700"><?= htmlspecialchars($clinicEmail) ?></span></p>
-                <p>Medical License: <span class="font-mono font-semibold text-slate-700"><?= htmlspecialchars($docPrcNo) ?></span></p>
-            </div>
-        </div>
-
-        <div class="text-left sm:text-right space-y-1">
-            <span class="inline-block px-3 py-1 bg-emerald-50 text-emerald-800 font-extrabold text-sm uppercase tracking-wider rounded-lg border border-emerald-200">
-                <?= htmlspecialchars($receiptHeaderTitle) ?>
-            </span>
-            <p class="text-lg font-mono font-bold text-slate-900 mt-2">REC-<?= htmlspecialchars($invoice['invoice_number']) ?></p>
-            <p class="text-slate-500 font-medium">Receipt Date: <span class="font-mono font-bold text-slate-800"><?= date('M d, Y') ?></span></p>
-            <p class="text-slate-500 font-medium">Invoice Ref: <span class="font-mono font-bold text-slate-800"><?= htmlspecialchars($invoice['invoice_number']) ?></span></p>
-        </div>
-    </div>
-
-    <!-- Settlement Confirmation Box -->
-    <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div class="flex items-center gap-4">
-            <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-2xl shadow-xs shrink-0">
-                ✓
-            </div>
-            <div>
-                <h3 class="font-extrabold text-emerald-900 text-sm">Payment Confirmed & Settled</h3>
-                <p class="text-emerald-700 text-xs mt-0.5 leading-relaxed"><?= htmlspecialchars($receiptThankYouMsg) ?></p>
-            </div>
-        </div>
-        <div class="text-right font-mono bg-white px-4 py-2.5 rounded-xl border border-emerald-200 shrink-0">
-            <span class="text-[10px] uppercase font-bold text-slate-400 block">Total Amount Paid</span>
-            <span class="text-xl font-extrabold text-emerald-800">$<?= number_format($totalAmountPaid, 2) ?></span>
-        </div>
-    </div>
-
-    <!-- Patient & Payment Method Details Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-slate-50 p-5 rounded-2xl border border-slate-200">
-        <div>
-            <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Received From</h3>
-            <p class="text-sm font-bold text-slate-900"><?= htmlspecialchars($invoice['patient_name'] ?? 'Patient') ?></p>
-            <p class="text-slate-600 mt-0.5">Medical Record Number (MRN): <span class="font-mono font-bold text-slate-800"><?= htmlspecialchars($invoice['patient_mrn'] ?? 'N/A') ?></span></p>
-            <p class="text-slate-500 mt-0.5">Service Date: <?= date('M d, Y', strtotime($invoice['service_date'] ?? $invoice['created_at'])) ?></p>
-        </div>
-
-        <div class="space-y-1 text-slate-600 sm:text-right">
-            <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Payment Method Breakdown</h3>
-            <?php foreach ($payments as $pm): ?>
-                <p><?= htmlspecialchars($pm['type'] ?? 'Cash') ?> Payment: <span class="font-mono font-bold text-slate-900">$<?= number_format((float)($pm['amount'] ?? $totalAmountPaid), 2) ?></span></p>
-            <?php endforeach; ?>
-            <p>Attending Cashier: <span class="font-semibold text-slate-800"><?= htmlspecialchars($invoice['cashier'] ?? 'Clinical Finance') ?></span></p>
-            <?php if (!empty($invoice['ref_no'])): ?>
-                <p>Encounter Ref: <span class="font-mono font-semibold text-slate-800"><?= htmlspecialchars($invoice['ref_no']) ?></span></p>
-            <?php endif; ?>
-        </div>
-    </div>
-
-    <!-- Paid Services Table -->
-    <div class="border border-slate-200 rounded-2xl overflow-hidden">
-        <table class="w-full text-left border-collapse">
-            <thead>
-                <tr class="bg-slate-900 text-white text-[10px] font-bold uppercase tracking-wider">
-                    <th class="py-3 px-4">Services / Items Rendered</th>
-                    <th class="py-3 px-3 text-center w-16">Qty</th>
-                    <th class="py-3 px-4 text-right w-28">Amount</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-200 bg-white">
-                <?php foreach ($items as $item): ?>
-                    <tr>
-                        <td class="py-3 px-4 font-bold text-slate-900 text-xs"><?= htmlspecialchars($item['name']) ?></td>
-                        <td class="py-3 px-3 text-center font-mono font-semibold text-slate-700"><?= (float)($item['quantity'] ?? 1) ?></td>
-                        <td class="py-3 px-4 text-right font-mono font-bold text-slate-900">$<?= number_format((float)($item['total_price'] ?? 0), 2) ?></td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Remaining Balance & Notes -->
-    <div class="flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs">
-        <div>
-            <span class="font-bold text-slate-900 block">Payment Status: <span class="text-emerald-700">PAID IN FULL</span></span>
-            <span class="text-slate-500 text-[11px]">All medical services listed on this receipt have been settled.</span>
-        </div>
-        <div class="font-mono text-right">
-            <span class="text-slate-500 text-[10px] uppercase font-bold block">Patient Balance Remaining</span>
-            <span class="text-lg font-extrabold text-slate-900">$0.00</span>
-        </div>
-    </div>
-
-    <!-- Official Signature & Digital Stamp Line -->
-    <div class="pt-6 border-t border-slate-200 flex justify-between items-end">
-        <div>
-            <?php if (!empty($attendingDoc['digital_stamp'])): ?>
-                <img src="<?= htmlspecialchars($attendingDoc['digital_stamp']) ?>" class="max-h-24 max-w-[160px] object-contain opacity-90 mb-2" alt="Clinic Digital Stamp">
-            <?php endif; ?>
-            <p class="text-[10px] uppercase font-bold text-slate-400">Issued By Practice</p>
-            <p class="font-bold text-slate-800 mt-0.5"><?= htmlspecialchars($clinicName) ?></p>
-            <p class="text-slate-500 text-[10px]"><?= htmlspecialchars($clinicPhone) ?></p>
-        </div>
-        <div class="text-right w-64 relative">
-            <?php if (!empty($attendingDoc['esignature'])): ?>
-                <img src="<?= htmlspecialchars($attendingDoc['esignature']) ?>" class="max-h-16 max-w-[180px] object-contain ml-auto -mb-2 relative z-10" alt="Authorising Signature">
-            <?php endif; ?>
-            <div class="border-b border-slate-400 mb-1 pb-1 font-serif text-sm font-bold text-emerald-900 italic">
-                <?= htmlspecialchars($attendingDoc['name'] ?? 'Authorized Cashier') ?>
-            </div>
-            <p class="font-bold text-slate-800"><?= htmlspecialchars($attendingDoc['name'] ?? 'Authorized Cashier') ?></p>
-            <p class="text-slate-500 text-[10px]"><?= htmlspecialchars($attendingDoc['specialty'] ?? 'Clinical Finance') ?></p>
-            <?php if (!empty($attendingDoc['prc_number'])): ?>
-                <p class="text-[10px] font-mono text-slate-500">License: <?= htmlspecialchars($attendingDoc['prc_number']) ?></p>
-            <?php endif; ?>
-        </div>
-    </div>
-
+<body>
+<div class="bar no-print">
+    <a href="billing.php">&larr; Billing</a>
+    <span class="meta"><?= htmlspecialchars(\ClinicFlow\Services\ReceiptSettings::PAPER[$cfg['paper']] ?? '') ?><?php if (nxCan('settings', 'view')): ?> · <a href="receipt_settings.php" style="border:0;padding:0;color:#164487">Change receipt design</a><?php endif; ?></span>
+    <span style="display:flex;gap:8px">
+        <button type="button" onclick="document.getElementById('email-dlg').showModal()">Email to patient</button>
+        <button type="button" class="primary" onclick="window.print()">Print</button>
+    </span>
 </div>
 
+<dialog id="email-dlg">
+    <form action="actions/send_receipt_email.php" method="POST">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getCsrfToken()) ?>">
+        <input type="hidden" name="invoice_id" value="<?= htmlspecialchars($invoice['id']) ?>">
+        <h2>Email this receipt</h2>
+        <label for="rc-email">Patient's email</label>
+        <input id="rc-email" type="email" name="email" required value="<?= htmlspecialchars($invoice['patient_email'] ?? '') ?>" placeholder="name@example.com">
+        <p>Receipt <?= htmlspecialchars($receiptNo) ?> will be sent straight away.</p>
+        <div class="row">
+            <button type="button" onclick="this.closest('dialog').close()" style="font:inherit;padding:9px 14px;border-radius:9px;border:1px solid #d6dde6;background:#fff">Cancel</button>
+            <button type="submit" style="font:inherit;font-weight:600;padding:9px 14px;border-radius:9px;border:0;background:#164487;color:#fff">Send receipt</button>
+        </div>
+    </form>
+</dialog>
+
+<div class="wrap"><div class="rc-screen-frame"><?= nxRenderReceipt($cfg, $data) ?></div></div>
 </body>
 </html>
