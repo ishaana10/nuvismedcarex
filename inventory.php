@@ -271,7 +271,7 @@ $csrfToken = getCsrfToken();
                                         </button>
 
                                         <!-- Delete Item Form -->
-                                        <form action="actions/inventory_delete.php" method="POST" onsubmit="return confirm('Are you sure you want to delete this inventory record? Historical logs will be preserved.');" class="inline">
+                                        <form action="actions/inventory_delete.php" method="POST" data-nx-confirm="Are you sure you want to delete this inventory record? Historical logs will be preserved." class="inline">
                                             <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
                                             <input type="hidden" name="item_id" value="<?= htmlspecialchars($item['id']) ?>">
                                             <button type="submit" title="Delete Inventory Item" class="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-semibold transition">

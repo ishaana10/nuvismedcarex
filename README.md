@@ -121,6 +121,17 @@ Run the automated PHPUnit test suite covering Domain Entities, Repositories, Ser
 
 ## 📜 Version History & Release Notes
 
+### **UI refresh** - *October 2026*
+- **New app shell:** collapsible navy sidebar with grouped navigation and live counts (patients waiting, appointments left today), a slimmer top bar, profile menu holding the clinician/clinic switchers, skip-to-content link.
+- **Light and dark themes:** every colour now resolves to a CSS variable (`includes/theme_head.php`, `assets/css/custom.css`), so existing pages pick up dark mode without per-page edits. Follows the OS setting until the user chooses.
+- **Command palette (Ctrl/⌘+K or `/`):** live patient search by name, MRN, phone or email (`actions/quick_search.php`), upcoming appointments, page jumps and quick actions. Allergies show in results.
+- **Keyboard shortcuts** (`?` for the list): `G` then `D/P/A/E/B/I` to navigate, `N` new patient, `Shift+D` theme, `[` sidebar.
+- **Dashboard:** "Clinic flow" board (waiting → with a clinician → seen today) with room assignment on call-in and send-back; today's schedule now shows only today's appointments sorted by real time, with "Coming up" below; "At a glance" adds expiring stock and new patients this month.
+- **Patients:** filters (with allergies, self pay, new this month), sort options, search-as-you-type across all pages, full-name search, clearer allergy flags.
+- **Sign-in and password reset** redesigned: show-password, Caps Lock warning, remember email, inline validation, step indicator and one-time-code input.
+- **Global behaviour:** non-blocking toasts replace `alert()`, styled confirm dialogs (`data-nx-confirm`), Esc/backdrop closes modals, double-submit protection on forms, notifications keep an unread count across page loads.
+- **Fixes:** dashboard counted all appointments as "today"; times like "1:00 PM" sorted before "9:00 AM"; app used server time instead of clinic time (now `Pacific/Fiji` by default, `timezone` in config or `APP_TIMEZONE`); queue actions had no CSRF check or tenant scoping and always used "Room 2"; notification text was injected as HTML; CSP blocked the Google Drive picker scripts on Documents; undefined colour classes (`primary-container`, `shadow-xs`, …) rendered unstyled.
+
 ### **v2.1.31** (Build 31) - *October 2026*
 - **Refactoring & UI Cleanliness:** Externalized inline upload JavaScript in `uploads.php` to dedicated `assets/js/uploads.js` with module initialization.
 - **Pagination Componentization:** Modularized `includes/pagination.php` into single-responsibility helper functions (`getPaginationParams`, `calculatePaginationStats`, `buildPaginationUrl`, `renderPaginationSummary`, `renderPaginationControls`) with unit tests in `tests/PaginationTest.php`.

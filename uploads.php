@@ -281,7 +281,7 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
                                         <span class="material-symbols-outlined text-sm">visibility</span> View Document
                                     </button>
 
-                                    <form action="actions/delete_uploaded_file.php" method="POST" onsubmit="return confirm('Are you sure you want to delete this document?');" class="inline">
+                                    <form action="actions/delete_uploaded_file.php" method="POST" data-nx-confirm="Are you sure you want to delete this document?" class="inline">
                                         <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
                                         <input type="hidden" name="file_id" value="<?= htmlspecialchars($file['id']) ?>">
                                         <button type="submit" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Delete Document">

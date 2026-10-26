@@ -267,7 +267,7 @@ if ($action === 'edit' && !empty($editApptId)) {
 <?php endif; ?>
 
 <!-- Navigation Tabs: Active vs Completed -->
-<div class="flex items-center gap-2 mb-4 border-b border-outline-variant/30 pb-2">
+<div class="flex flex-wrap items-center gap-2 mb-4 border-b border-outline-variant/30 pb-2">
     <a href="appointment.php?tab=active" class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 <?= $tab === 'active' ? 'bg-primary text-white shadow-xs' : 'bg-surface-container-low text-slate-600 hover:bg-surface-container' ?>">
         <span class="material-symbols-outlined text-sm">schedule</span>
         <span>Active / Upcoming (<?= $activeCount ?>)</span>
@@ -343,7 +343,7 @@ if ($action === 'edit' && !empty($editApptId)) {
                                 <a href="appointment.php?action=edit&id=<?= htmlspecialchars($a['id'] ?? '') ?>&tab=<?= $tab ?>" class="p-1 text-slate-500 hover:text-blue-600 rounded-lg hover:bg-slate-100 transition" title="Edit Appointment">
                                     <span class="material-symbols-outlined text-base">edit</span>
                                 </a>
-                                <form action="actions/appointment_delete.php" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this appointment?');">
+                                <form action="actions/appointment_delete.php" method="POST" class="inline" data-nx-confirm="Are you sure you want to delete this appointment?">
                                     <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
                                     <input type="hidden" name="appointment_id" value="<?= htmlspecialchars($a['id'] ?? '') ?>">
                                     <button type="submit" class="p-1 text-slate-500 hover:text-red-600 rounded-lg hover:bg-slate-100 transition" title="Delete Appointment">

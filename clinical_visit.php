@@ -611,7 +611,7 @@ include __DIR__ . '/includes/header.php';
                             <button type="button" onclick='openEditRxModal(<?= htmlspecialchars(json_encode($rx), ENT_QUOTES, "UTF-8") ?>)' class="p-1 text-slate-600 hover:text-primary hover:bg-slate-200 rounded-md transition" title="Edit Medication">
                                 <span class="material-symbols-outlined text-base">edit</span>
                             </button>
-                            <a href="actions/encounter_save.php?action=delete_rx&rx_id=<?= htmlspecialchars($rx['id']) ?>&patient_id=<?= htmlspecialchars($patient['id']) ?>&visit_id=<?= htmlspecialchars($visitId) ?>" onclick="return confirm('Remove this medication line?')" class="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-md transition" title="Delete Medication">
+                            <a href="actions/encounter_save.php?action=delete_rx&rx_id=<?= htmlspecialchars($rx['id']) ?>&patient_id=<?= htmlspecialchars($patient['id']) ?>&visit_id=<?= htmlspecialchars($visitId) ?>" data-nx-confirm="Remove this medication line?" class="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-md transition" title="Delete Medication">
                                 <span class="material-symbols-outlined text-base">delete</span>
                             </a>
                         </div>
@@ -717,7 +717,7 @@ include __DIR__ . '/includes/header.php';
                                     <span>Copy to Current Encounter</span>
                                 </a>
 
-                                <a href="actions/encounter_save.php?action=delete_rx&rx_id=<?= htmlspecialchars($hrx['id']) ?>&patient_id=<?= htmlspecialchars($patient['id']) ?>&visit_id=<?= htmlspecialchars($visitId) ?>" onclick="return confirm('Permanently delete this historical prescription record?')" class="text-rose-500 hover:text-rose-700" title="Delete Historical Record">
+                                <a href="actions/encounter_save.php?action=delete_rx&rx_id=<?= htmlspecialchars($hrx['id']) ?>&patient_id=<?= htmlspecialchars($patient['id']) ?>&visit_id=<?= htmlspecialchars($visitId) ?>" data-nx-confirm="Permanently delete this historical prescription record?" class="text-rose-500 hover:text-rose-700" title="Delete Historical Record">
                                     <span class="material-symbols-outlined text-sm">delete</span>
                                 </a>
                             </div>

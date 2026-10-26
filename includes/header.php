@@ -39,386 +39,250 @@ if (!$tenantRow) {
 } else {
     $activeClinicName = $tenantRow['name'];
 }
+
+require_once __DIR__ . '/nav.php';
+
+$nxUserRole = $_SESSION['user_role'] ?? $_SESSION['role'] ?? 'Doctor';
+$nxUserName = $_SESSION['user_name'] ?? $currentDoctor['name'] ?? 'Clinician';
+$nxNav = nxNavItems($nxUserRole);
+$nxActiveNav = null;
+foreach ($nxNav as $nxItem) {
+    if ($nxItem['id'] === $activePage) { $nxActiveNav = $nxItem; break; }
+}
+if (!function_exists('nxInitials')) {
+    function nxInitials(string $name): string {
+        $name = preg_replace('/^(Dr\.?|Mr\.?|Mrs\.?|Ms\.?)\s+/i', '', trim($name));
+        $parts = preg_split('/\s+/', $name) ?: [];
+        $out = '';
+        foreach (array_slice($parts, 0, 2) as $p) { $out .= mb_strtoupper(mb_substr($p, 0, 1)); }
+        return $out ?: '?';
+    }
+}
+
+// Live counters for the sidebar (cheap COUNT queries; never block rendering)
+$nxCounts = ['calendar' => 0, 'dashboard' => 0, 'inventory' => 0];
+try {
+    $c = $pdo->prepare("SELECT COUNT(*) FROM appointments WHERE tenant_id = ? AND appointment_date = ? AND status NOT IN ('Completed','Cancelled')");
+    $c->execute([$currentTenantId, date('Y-m-d')]);
+    $nxCounts['calendar'] = (int) $c->fetchColumn();
+    $c = $pdo->prepare("SELECT COUNT(*) FROM queue WHERE tenant_id = ? AND status = 'Waiting'");
+    $c->execute([$currentTenantId]);
+    $nxCounts['dashboard'] = (int) $c->fetchColumn();
+} catch (\Throwable $e) {
+    error_log('[header] counters: ' . $e->getMessage());
+}
+
+// Tenants for the clinic switcher
+$allTenantsHeader = [];
+try {
+    $tenantServiceHeader = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\TenantService::class);
+    $allTenantsHeader = $tenantServiceHeader->getAllTenants();
+} catch (\Throwable $e) {}
+
+$nxAvatar = $currentDoctor['avatar'] ?? '';
+$nxCsrf = htmlspecialchars(getCsrfToken());
 ?>
 <!DOCTYPE html>
-<html class="light h-full bg-[#f8f9ff]" lang="en">
+<html class="h-full" lang="en">
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title><?= htmlspecialchars($pageTitle ?? 'Nuvis Medicoz') ?></title>
-
-    <!-- Material Symbols Outlined -->
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com"/>
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
-
-    <?php require_once __DIR__ . '/../config/version.php'; ?>
+    <meta name="csrf-token" content="<?= $nxCsrf ?>"/>
+    <title><?= htmlspecialchars($pageTitle ?? 'Nuvis Medcare X') ?></title>
+    <?php include __DIR__ . '/theme_head.php'; ?>
     <script>
-        window.NUVIS_VERSION = "<?= addslashes(AppVersion::get('full')) ?>";
+      window.NUVIS_VERSION = <?= json_encode(AppVersion::get('full')) ?>;
+      window.NX_CONTEXT = <?= json_encode([
+          'tenant' => $currentTenantId,
+          'user' => $nxUserName,
+          'role' => $nxUserRole,
+          'nav' => array_map(fn($n) => ['label' => $n['label'], 'url' => $n['url'], 'icon' => $n['icon'], 'keywords' => $n['keywords'] ?? ''], $nxNav),
+          'toast' => $toast ?: null,
+      ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
     </script>
-    <!-- Custom Unified Clinic Stylesheet -->
-    <link rel="stylesheet" href="assets/css/custom.css?v=<?= urlencode(AppVersion::get('commit')) ?>"/>
-
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <script id="tailwind-config">
-      tailwind.config = {
-        darkMode: "class",
-        theme: {
-          extend: {
-            colors: {
-              primary: {
-                DEFAULT: '#1d4ed8', // Vibrant modern blue matching Dashboard.png
-                50: '#eff6ff',
-                100: '#dbeafe',
-                500: '#3b82f6',
-                600: '#2563eb',
-                700: '#1d4ed8',
-                800: '#1e40af',
-                900: '#1e3a8a',
-              },
-              brand: {
-                blue: '#1d4ed8',
-                accent: '#2563eb',
-                bg: '#f8fafc',
-                card: '#ffffff',
-                border: '#e2e8f0',
-                sidebar: '#f8fafc',
-              },
-              "surface-container-lowest": "#ffffff",
-              "surface-container-low": "#f8fafc",
-              "surface-container": "#f1f5f9",
-              "surface-container-high": "#e2e8f0",
-              "on-surface": "#0f172a",
-              "on-surface-variant": "#475569",
-              "outline": "#64748b",
-              "outline-variant": "#cbd5e1"
-            },
-            fontFamily: {
-              sans: ["Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
-              mono: ["JetBrains Mono", "monospace"]
-            }
-          }
-        }
-      };
-    </script>
-    <style>
-      .material-symbols-outlined {
-        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-      }
-      .material-symbols-outlined.fill {
-        font-variation-settings: 'FILL' 1;
-      }
-
-      /* Instant Sidebar Render Protection */
-      .desktop-sidebar { display: none; }
-      .mobile-backdrop { display: none !important; }
-      .mobile-sidebar { display: none; }
-      @media (min-width: 768px) {
-        .desktop-sidebar { display: flex !important; }
-        .mobile-sidebar, .mobile-backdrop { display: none !important; }
-      }
-      @media (max-width: 767px) {
-        .desktop-sidebar { display: none !important; }
-        .mobile-sidebar { display: flex; }
-      }
-    </style>
+    <script src="assets/js/app.js?v=<?= $nxAssetVersion ?>" defer></script>
 </head>
-<body class="h-full font-sans text-on-surface bg-background flex flex-col min-h-screen">
+<body class="min-h-full font-sans text-slate-900 bg-background">
+<a href="#nx-main" class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[200] focus:bg-white focus:px-4 focus:py-2 focus:rounded-lg focus:shadow-pop">Skip to content</a>
 
-<!-- Toast Notification -->
-<?php if ($toast): ?>
-<div id="toast-notification" class="fixed top-5 right-5 z-50 flex items-center p-4 mb-4 text-gray-800 bg-white rounded-xl shadow-lg border border-slate-200 max-w-sm" role="alert">
-    <div class="inline-flex items-center justify-center flex-shrink-0 w-9 h-9 text-<?= $toast['type'] === 'error' ? 'red-600 bg-red-100' : 'emerald-600 bg-emerald-100' ?> rounded-lg">
-        <span class="material-symbols-outlined"><?= $toast['type'] === 'error' ? 'error' : 'check_circle' ?></span>
-    </div>
-    <div class="ms-3 text-sm font-normal pr-4">
-        <div class="font-semibold text-gray-900"><?= htmlspecialchars($toast['title']) ?></div>
-        <div class="text-xs text-slate-600"><?= htmlspecialchars($toast['message']) ?></div>
-    </div>
-    <button type="button" onclick="document.getElementById('toast-notification').remove()" class="ms-auto -mx-1.5 -my-1.5 bg-white text-gray-400 hover:text-gray-900 rounded-lg p-1.5 hover:bg-gray-100 inline-flex items-center justify-center h-8 w-8">
-        <span class="material-symbols-outlined text-sm">close</span>
-    </button>
-</div>
-<script>
-  setTimeout(() => {
-    const el = document.getElementById('toast-notification');
-    if (el) el.remove();
-  }, 4000);
-</script>
-<?php endif; ?>
+<div class="flex min-h-screen">
+<?php include __DIR__ . '/sidebar.php'; ?>
 
-<!-- Top Navigation Bar -->
-<header class="bg-white border-b border-slate-200/80 sticky top-0 z-30 shadow-xs">
-    <div class="flex items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3">
-        <!-- Logo & Mobile Toggle -->
-        <div class="flex items-center gap-3 shrink-0">
-            <button type="button" onclick="toggleMobileSidebar()" aria-label="Toggle Navigation Menu" class="md:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-xl transition flex items-center justify-center border border-slate-200">
-                <span class="material-symbols-outlined text-2xl font-bold">menu</span>
-            </button>
-            <a href="index.php" class="flex items-center gap-2">
-                <span class="font-bold text-xl text-blue-900 tracking-tight"><?= htmlspecialchars($activeClinicName) ?></span>
-                <?php if ($currentTenantId !== 'default-clinic'): ?>
-                    <span class="px-2 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 rounded-md border border-amber-300" title="Active Tenant Context: <?= htmlspecialchars($currentTenantId) ?>">
-                        Tenant: <?= htmlspecialchars($currentTenantId) ?>
-                    </span>
-                <?php endif; ?>
-            </a>
+<div class="flex-1 min-w-0 flex flex-col">
+<!-- Top bar -->
+<header class="nx-header sticky top-0 z-40">
+    <div class="h-full flex items-center gap-3 px-3 sm:px-6">
+        <button type="button" onclick="toggleMobileSidebar()" aria-label="Open navigation" class="nx-icon-btn md:hidden">
+            <span class="material-symbols-outlined">menu</span>
+        </button>
+
+        <div class="min-w-0 hidden sm:block">
+            <div class="text-[15px] font-semibold text-slate-900 truncate leading-tight"><?= htmlspecialchars($nxActiveNav['label'] ?? ($activePage === 'register-patient' ? 'Register patient' : 'Nuvis Medcare X')) ?></div>
+            <div class="text-xs text-slate-500 truncate leading-tight"><?= htmlspecialchars($activeClinicName) ?></div>
         </div>
 
-        <!-- Global Search Bar (Dashboard.png style) -->
-        <div class="relative w-80 lg:w-[480px] hidden md:block">
-            <form action="patients.php" method="GET" class="relative">
-                <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
-                <input type="text" name="q" placeholder="Search patients, doctors..." class="w-full bg-slate-100/80 pl-11 pr-4 py-2 rounded-full text-xs font-medium border border-transparent focus:border-blue-500 focus:bg-white focus:outline-none transition-all placeholder:text-slate-400">
+        <!-- Search / command palette trigger -->
+        <button type="button" data-nx-palette-open class="nx-search-trigger min-w-0 flex-1 sm:flex-none sm:w-72 lg:w-96 sm:ml-6" aria-label="Search patients and pages">
+            <span class="material-symbols-outlined text-[18px]">search</span>
+            <span class="truncate">Search patients, MRN, pages…</span>
+            <span class="ml-auto hidden sm:flex items-center gap-1"><kbd data-nx-mod>Ctrl</kbd><kbd>K</kbd></span>
+        </button>
+
+        <div class="ml-auto flex items-center gap-1 sm:gap-1.5">
+            <?php if (count($allTenantsHeader) > 1): ?>
+            <form action="actions/tenant_actions.php" method="POST" class="hidden lg:block">
+                <input type="hidden" name="csrf_token" value="<?= $nxCsrf ?>">
+                <input type="hidden" name="action" value="switch_tenant">
+                <label class="sr-only" for="nx-tenant">Active clinic</label>
+                <select id="nx-tenant" name="tenant_id" onchange="this.form.submit()" class="h-[38px] max-w-[200px] bg-slate-50 border border-slate-200 text-slate-800 text-[13px] rounded-[10px] pl-3 pr-8 focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500">
+                    <?php foreach ($allTenantsHeader as $tn): ?>
+                        <option value="<?= htmlspecialchars($tn['id']) ?>" <?= $tn['id'] === $currentTenantId ? 'selected' : '' ?>><?= htmlspecialchars($tn['name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
             </form>
-        </div>
+            <?php endif; ?>
 
-        <!-- Right Utilities & Profile -->
-        <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-            <!-- Notifications Dropdown Container -->
+            <button type="button" class="nx-icon-btn hidden sm:inline-flex" data-nx-theme-toggle aria-label="Switch colour theme" title="Switch theme (Shift+D)">
+                <span class="material-symbols-outlined" data-nx-theme-icon>dark_mode</span>
+            </button>
+
+            <!-- Notifications -->
             <div class="relative">
-                <button type="button" id="notif-bell-btn" onclick="toggleNotificationDropdown()" class="relative p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-full transition flex items-center">
-                    <span class="material-symbols-outlined text-xl">notifications</span>
-                    <span id="notif-badge" class="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-rose-500 border-2 border-white hidden"></span>
+                <button type="button" id="notif-bell-btn" class="nx-icon-btn" aria-haspopup="true" aria-expanded="false" aria-controls="notif-dropdown" aria-label="Notifications">
+                    <span class="material-symbols-outlined">notifications</span>
+                    <span id="notif-badge" class="hidden absolute top-1 right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-600 text-white text-[10px] font-bold leading-[18px] text-center ring-2 ring-white"></span>
                 </button>
-
-                <!-- Notifications Panel Dropdown -->
-                <div id="notif-dropdown" class="hidden absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 overflow-hidden text-xs">
-                    <div class="p-3 bg-slate-900 text-white flex items-center justify-between">
-                        <div class="flex items-center gap-1.5">
-                            <span class="material-symbols-outlined text-amber-400 text-sm">notifications_active</span>
-                            <span class="font-bold">Real-time System Alerts</span>
+                <div id="notif-dropdown" class="nx-menu w-[min(380px,calc(100vw-24px))] p-0 overflow-hidden" hidden>
+                    <div class="flex items-center justify-between px-4 py-3 border-b border-slate-200">
+                        <div>
+                            <div class="text-sm font-semibold text-slate-900">Notifications</div>
+                            <div class="text-xs text-slate-500" id="notif-status">Live updates for this clinic</div>
                         </div>
-                        <button type="button" onclick="clearAllNotifications()" class="text-[11px] text-slate-300 hover:text-white underline">Clear All</button>
+                        <button type="button" data-nx-notif-clear class="text-xs font-medium text-blue-700 hover:underline">Clear all</button>
                     </div>
-                    <div id="notif-list" class="max-h-64 overflow-y-auto divide-y divide-slate-100">
-                        <div id="notif-empty" class="p-6 text-center text-slate-400">
-                            <span class="material-symbols-outlined text-2xl text-slate-300 mb-1">notifications_none</span>
-                            <p class="font-medium text-xs">No new notifications</p>
-                        </div>
+                    <div id="notif-list" class="max-h-[360px] overflow-y-auto"></div>
+                    <div id="notif-empty" class="nx-empty">
+                        <span class="material-symbols-outlined">notifications_off</span>
+                        <p>You're all caught up. New registrations and bookings appear here.</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Help Icon -->
-            <button type="button" class="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-full transition flex items-center">
-                <span class="material-symbols-outlined text-xl">help</span>
+            <button type="button" class="nx-icon-btn hidden sm:inline-flex" data-nx-help-open aria-label="Keyboard shortcuts and help" title="Shortcuts (?)">
+                <span class="material-symbols-outlined">help</span>
             </button>
 
-            <!-- Clinic Tenant Switcher -->
-            <?php
-            $containerHeader = \ClinicFlow\Shared\Container::getInstance();
-            $tenantServiceHeader = $containerHeader->get(\ClinicFlow\Services\TenantService::class);
-            $allTenantsHeader = [];
-            try {
-                $allTenantsHeader = $tenantServiceHeader->getAllTenants();
-            } catch (\Throwable $e) {}
-            $activeTenantIdHeader = \ClinicFlow\Shared\TenantContext::getTenantId();
-            ?>
-            <?php if (!empty($allTenantsHeader)): ?>
-                <form action="actions/tenant_actions.php" method="POST" class="inline-block">
-                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getCsrfToken()) ?>">
-                    <input type="hidden" name="action" value="switch_tenant">
-                    <select name="tenant_id" onchange="this.form.submit()" class="bg-slate-100 border border-slate-200 text-slate-800 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                        <?php foreach ($allTenantsHeader as $tn): ?>
-                            <option value="<?= htmlspecialchars($tn['id']) ?>" <?= $tn['id'] === $activeTenantIdHeader ? 'selected' : '' ?>>
-                                🏥 <?= htmlspecialchars($tn['name']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </form>
-            <?php endif; ?>
-
-            <!-- Doctor Selector & Profile -->
-            <div class="flex items-center gap-2 pl-2 border-l border-slate-200">
-                <form action="actions/set_doctor.php" method="POST" class="flex items-center gap-2">
-                    <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
-                    <select name="doctor_id" onchange="this.form.submit()" class="bg-transparent border-none text-xs font-bold text-slate-800 focus:outline-none cursor-pointer max-w-[130px] sm:max-w-none truncate">
-                        <?php foreach ($doctors as $doc): ?>
-                            <option value="<?= htmlspecialchars($doc['id']) ?>" <?= $doc['id'] === $currentDoctor['id'] ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($doc['name']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </form>
-                <button type="button" onclick="openChangePasswordModal()" title="Change Account Password" class="flex items-center hover:opacity-80 transition">
-                    <img src="<?= htmlspecialchars($currentDoctor['avatar'] ?? 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=200') ?>" class="w-8 h-8 rounded-full object-cover border border-slate-200 shadow-xs" alt="Doctor Avatar">
+            <!-- Profile menu -->
+            <div class="relative pl-1 sm:pl-2 sm:ml-1 sm:border-l border-slate-200">
+                <button type="button" id="nx-profile-btn" class="flex items-center gap-2.5 rounded-xl p-1 pr-2 hover:bg-slate-100 transition" aria-haspopup="true" aria-expanded="false" aria-controls="nx-profile-menu">
+                    <span class="nx-avatar w-8 h-8 text-xs">
+                        <?php if ($nxAvatar): ?><img src="<?= htmlspecialchars($nxAvatar) ?>" alt="" onerror="this.remove()"><?php endif; ?>
+                        <span><?= htmlspecialchars(nxInitials($currentDoctor['name'] ?? $nxUserName)) ?></span>
+                    </span>
+                    <span class="hidden lg:block text-left leading-tight">
+                        <span class="block text-[13px] font-semibold text-slate-900 max-w-[160px] truncate"><?= htmlspecialchars($currentDoctor['name'] ?? $nxUserName) ?></span>
+                        <span class="block text-[11px] text-slate-500 max-w-[160px] truncate"><?= htmlspecialchars($currentDoctor['specialty'] ?? $nxUserRole) ?></span>
+                    </span>
+                    <span class="material-symbols-outlined text-[18px] text-slate-400 hidden lg:inline-block">expand_more</span>
                 </button>
+                <div id="nx-profile-menu" class="nx-menu p-1.5" hidden>
+                    <div class="px-3 pt-2 pb-3 border-b border-slate-200 mb-1.5">
+                        <div class="text-sm font-semibold text-slate-900"><?= htmlspecialchars($nxUserName) ?></div>
+                        <div class="text-xs text-slate-500"><?= htmlspecialchars($nxUserRole) ?> · <?= htmlspecialchars($activeClinicName) ?></div>
+                    </div>
+                    <?php if (count($doctors) > 1): ?>
+                    <form action="actions/set_doctor.php" method="POST" class="px-3 pb-2">
+                        <input type="hidden" name="csrf_token" value="<?= $nxCsrf ?>">
+                        <label for="nx-doctor" class="block text-xs font-medium text-slate-500 mb-1">Acting clinician</label>
+                        <select id="nx-doctor" name="doctor_id" onchange="this.form.submit()" class="w-full bg-slate-50 border border-slate-200 text-[13px] text-slate-900 rounded-lg py-1.5 focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500">
+                            <?php foreach ($doctors as $doc): ?>
+                                <option value="<?= htmlspecialchars($doc['id']) ?>" <?= $doc['id'] === $currentDoctor['id'] ? 'selected' : '' ?>><?= htmlspecialchars($doc['name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </form>
+                    <?php endif; ?>
+                    <?php if (count($allTenantsHeader) > 1): ?>
+                    <form action="actions/tenant_actions.php" method="POST" class="px-3 pb-2 lg:hidden">
+                        <input type="hidden" name="csrf_token" value="<?= $nxCsrf ?>">
+                        <input type="hidden" name="action" value="switch_tenant">
+                        <label for="nx-tenant-m" class="block text-xs font-medium text-slate-500 mb-1">Clinic</label>
+                        <select id="nx-tenant-m" name="tenant_id" onchange="this.form.submit()" class="w-full bg-slate-50 border border-slate-200 text-[13px] text-slate-900 rounded-lg py-1.5">
+                            <?php foreach ($allTenantsHeader as $tn): ?>
+                                <option value="<?= htmlspecialchars($tn['id']) ?>" <?= $tn['id'] === $currentTenantId ? 'selected' : '' ?>><?= htmlspecialchars($tn['name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </form>
+                    <?php endif; ?>
+                    <button type="button" class="nx-menu-item" onclick="openChangePasswordModal()"><span class="material-symbols-outlined">key</span>Change password</button>
+                    <a href="settings.php" class="nx-menu-item"><span class="material-symbols-outlined">tune</span>Settings</a>
+                    <button type="button" class="nx-menu-item sm:hidden" data-nx-theme-toggle><span class="material-symbols-outlined" data-nx-theme-icon>dark_mode</span>Switch theme</button>
+                    <button type="button" class="nx-menu-item hidden sm:flex" data-nx-help-open><span class="material-symbols-outlined">keyboard</span>Keyboard shortcuts</button>
+                    <div class="my-1.5 border-t border-slate-200"></div>
+                    <a href="actions/logout.php" class="nx-menu-item is-danger"><span class="material-symbols-outlined">logout</span>Sign out</a>
+                </div>
             </div>
-
-            <!-- Logout Button (Header Right) -->
-            <a href="actions/logout.php" class="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-full transition flex items-center" title="Logout">
-                <span class="material-symbols-outlined text-xl">logout</span>
-            </a>
         </div>
     </div>
 </header>
 
-<!-- Change Password Global Modal -->
-<div id="modal-change-password-global" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center hidden p-4">
-    <div class="bg-surface-container-lowest rounded-3xl border border-outline-variant/30 shadow-2xl max-w-md w-full overflow-hidden">
-        <div class="p-5 bg-slate-900 text-white flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary text-xl">key</span>
-                <h3 class="font-bold text-sm">Change Account Password</h3>
+<!-- Change password -->
+<div id="modal-change-password-global" class="fixed inset-0 z-[80] bg-slate-950/50 backdrop-blur-xs flex items-center justify-center hidden p-4" data-nx-modal>
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-pop max-w-md w-full overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="nx-cp-title">
+        <div class="px-6 pt-5 pb-4 flex items-start justify-between">
+            <div>
+                <h3 id="nx-cp-title" class="font-semibold text-base text-slate-900">Change password</h3>
+                <p class="text-xs text-slate-500 mt-0.5">At least 8 characters, with one capital letter and one number.</p>
             </div>
-            <button type="button" onclick="closeChangePasswordModal()" class="text-slate-400 hover:text-white">
-                <span class="material-symbols-outlined">close</span>
-            </button>
+            <button type="button" onclick="closeChangePasswordModal()" class="nx-icon-btn -mr-2 -mt-1" aria-label="Close"><span class="material-symbols-outlined">close</span></button>
         </div>
-        <form action="actions/change_password.php" method="POST" class="p-6 space-y-4 text-xs">
-            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>">
+        <form action="actions/change_password.php" method="POST" class="px-6 pb-6 space-y-4" data-nx-password-form>
+            <input type="hidden" name="csrf_token" value="<?= $nxCsrf ?>">
+            <input type="text" name="username" value="<?= htmlspecialchars($_SESSION['user_email'] ?? '') ?>" autocomplete="username" class="hidden" tabindex="-1" aria-hidden="true">
             <input type="hidden" name="redirect_url" value="<?= htmlspecialchars($_SERVER['REQUEST_URI'] ?? '../index.php') ?>">
-
-            <!-- Password Policy Rule Box -->
-            <div class="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-900 text-[11px] space-y-1">
-                <div class="font-bold flex items-center gap-1">
-                    <span class="material-symbols-outlined text-sm text-blue-700">shield</span>
-                    <span>Password Policy Requirements:</span>
-                </div>
-                <ul class="list-disc list-inside text-slate-700 space-y-0.5 pl-1">
-                    <li>Minimum 8 characters in length</li>
-                    <li>At least one uppercase letter (A-Z)</li>
-                    <li>At least one numeric digit (0-9)</li>
+            <div>
+                <label class="form-label" for="nx-cp-current">Current password</label>
+                <input id="nx-cp-current" type="password" name="current_password" required autocomplete="current-password" class="form-input">
+            </div>
+            <div>
+                <label class="form-label" for="nx-cp-new">New password</label>
+                <input id="nx-cp-new" type="password" name="new_password" required minlength="8" autocomplete="new-password" pattern="(?=.*[A-Z])(?=.*\d).{8,}" title="At least 8 characters, one capital letter and one number" class="form-input">
+                <ul class="mt-2 grid grid-cols-3 gap-1.5 text-[11px] text-slate-500" data-nx-pw-rules>
+                    <li data-rule="len" class="flex items-center gap-1"><span class="nx-dot bg-slate-300"></span>8+ characters</li>
+                    <li data-rule="upper" class="flex items-center gap-1"><span class="nx-dot bg-slate-300"></span>Capital letter</li>
+                    <li data-rule="digit" class="flex items-center gap-1"><span class="nx-dot bg-slate-300"></span>Number</li>
                 </ul>
             </div>
-
             <div>
-                <label class="block font-bold text-slate-700 mb-1">Current Password *</label>
-                <input type="password" name="current_password" required placeholder="••••••••" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium text-on-surface focus:outline-none focus:border-primary">
+                <label class="form-label" for="nx-cp-confirm">Confirm new password</label>
+                <input id="nx-cp-confirm" type="password" name="confirm_password" required minlength="8" autocomplete="new-password" class="form-input">
+                <p class="hidden mt-1 text-xs text-red-600" data-nx-pw-mismatch>Passwords don't match yet.</p>
             </div>
-
-            <div>
-                <label class="block font-bold text-slate-700 mb-1">New Password *</label>
-                <input type="password" name="new_password" required minlength="8" placeholder="At least 8 characters (e.g. SecurePass1)" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium text-on-surface focus:outline-none focus:border-primary">
-            </div>
-
-            <div>
-                <label class="block font-bold text-slate-700 mb-1">Confirm New Password *</label>
-                <input type="password" name="confirm_password" required minlength="8" placeholder="Repeat new password" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium text-on-surface focus:outline-none focus:border-primary">
-            </div>
-
-            <div class="flex items-center justify-end gap-2 pt-3 border-t border-outline-variant/20">
-                <button type="button" onclick="closeChangePasswordModal()" class="px-4 py-2 bg-surface-container hover:bg-surface-container-high rounded-xl font-semibold text-on-surface">Cancel</button>
-                <button type="submit" class="px-5 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 shadow-xs flex items-center gap-1.5">
-                    <span class="material-symbols-outlined text-base">lock_reset</span>
-                    <span>Update Password</span>
-                </button>
+            <div class="flex items-center justify-end gap-2 pt-2">
+                <button type="button" onclick="closeChangePasswordModal()" class="btn-secondary">Cancel</button>
+                <button type="submit" class="btn-primary">Update password</button>
             </div>
         </form>
     </div>
 </div>
 
 <script>
-function openChangePasswordModal() {
-    document.getElementById('modal-change-password-global').classList.remove('hidden');
-}
-function closeChangePasswordModal() {
-    document.getElementById('modal-change-password-global').classList.add('hidden');
-}
+function openChangePasswordModal() { if (window.NX) NX.openModal('modal-change-password-global'); else document.getElementById('modal-change-password-global').classList.remove('hidden'); }
+function closeChangePasswordModal() { if (window.NX) NX.closeModal('modal-change-password-global'); else document.getElementById('modal-change-password-global').classList.add('hidden'); }
 
-// Notification Dropdown & SSE Handler
-function toggleNotificationDropdown() {
-    const dropdown = document.getElementById('notif-dropdown');
-    if (dropdown) {
-        dropdown.classList.toggle('hidden');
-    }
-}
-
-function clearAllNotifications() {
-    const list = document.getElementById('notif-list');
-    if (list) {
-        list.innerHTML = `
-            <div id="notif-empty" class="p-6 text-center text-slate-400">
-                <span class="material-symbols-outlined text-2xl text-slate-300 mb-1">notifications_none</span>
-                <p class="font-medium text-xs">No new notifications</p>
-            </div>`;
-    }
-    const badge = document.getElementById('notif-badge');
-    if (badge) badge.classList.add('hidden');
-}
-
-function addNotificationItem(notif) {
-    const emptyState = document.getElementById('notif-empty');
-    if (emptyState) emptyState.remove();
-
-    const list = document.getElementById('notif-list');
-    const badge = document.getElementById('notif-badge');
-    if (badge) badge.classList.remove('hidden');
-
-    if (list) {
-        const item = document.createElement('a');
-        item.href = notif.patient_id ? `patient_detail.php?id=${notif.patient_id}` : '#';
-        item.className = 'block p-3 hover:bg-slate-50 transition border-b border-slate-100 last:border-0';
-        item.innerHTML = `
-            <div class="flex items-start gap-2.5">
-                <div class="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 font-bold">
-                    <span class="material-symbols-outlined text-sm">person_add</span>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <p class="font-bold text-slate-800 text-xs truncate">${notif.title || 'Notification'}</p>
-                    <p class="text-[11px] text-slate-600 truncate">${notif.message || ''}</p>
-                    <span class="text-[10px] text-slate-400 font-mono mt-0.5 block">${notif.timestamp || ''}</span>
-                </div>
-            </div>
-        `;
-        list.prepend(item);
-    }
-}
-
-// Global SSE Real-time Notification EventSource Listener
-if (typeof(EventSource) !== "undefined") {
-    const sseSource = new EventSource('api/notifications/stream.php');
-    sseSource.onmessage = function(event) {
-        try {
-            const data = JSON.parse(event.data);
-            if (data.title && data.message) {
-                addNotificationItem(data);
-            }
-        } catch (e) {}
-    };
-}
-
-// Global JavaScript Runtime Error & Rejection Listener
-window.onerror = function(msg, url, lineNo, columnNo, error) {
+// Report uncaught browser errors to the server log
+window.onerror = function (msg, url, lineNo, columnNo, error) {
     try {
-        const errorData = {
-            message: msg,
-            url: url,
-            line: lineNo,
-            column: columnNo,
-            stack: error && error.stack ? error.stack : '',
-            userAgent: navigator.userAgent
-        };
-        fetch('actions/log_js_error.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(errorData)
-        }).catch(function() {});
-    } catch(e) {}
+        fetch('actions/log_js_error.php', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: msg, url: url, line: lineNo, column: columnNo, stack: error && error.stack ? error.stack : '', userAgent: navigator.userAgent }) }).catch(function () {});
+    } catch (e) {}
     return false;
 };
-
-window.onunhandledrejection = function(event) {
+window.onunhandledrejection = function (event) {
     try {
-        const errorData = {
-            message: 'Unhandled Promise Rejection: ' + (event.reason ? (event.reason.message || event.reason) : 'Unknown reason'),
-            url: window.location.href,
-            stack: event.reason && event.reason.stack ? event.reason.stack : '',
-            userAgent: navigator.userAgent
-        };
-        fetch('actions/log_js_error.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(errorData)
-        }).catch(function() {});
-    } catch(e) {}
+        fetch('actions/log_js_error.php', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: 'Unhandled Promise Rejection: ' + (event.reason ? (event.reason.message || event.reason) : 'Unknown reason'), url: window.location.href, stack: event.reason && event.reason.stack ? event.reason.stack : '', userAgent: navigator.userAgent }) }).catch(function () {});
+    } catch (e) {}
 };
 </script>
 
-<div class="flex flex-1 overflow-hidden relative">
-<?php include __DIR__ . '/sidebar.php'; ?>
-<main class="flex-1 overflow-y-auto p-3 sm:p-6 w-full">
+<main id="nx-main" class="flex-1 w-full max-w-[1680px] mx-auto px-3 py-4 sm:px-6 sm:py-6 lg:px-8">

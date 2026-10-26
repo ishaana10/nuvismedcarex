@@ -7,6 +7,16 @@ if (!defined('NU_ROOT')) {
 
 require_once NU_ROOT . '/config/database.php';
 
+// Clinic-local time: "today", greetings and timestamps follow the clinic, not the server.
+// Override with 'timezone' in config/config.php or the APP_TIMEZONE environment variable.
+if (!defined('NU_TIMEZONE_SET')) {
+    define('NU_TIMEZONE_SET', true);
+    $nuTz = getenv('APP_TIMEZONE') ?: ((getAppConfig()['timezone'] ?? '') ?: 'Pacific/Fiji');
+    if (in_array($nuTz, timezone_identifiers_list(), true)) {
+        date_default_timezone_set($nuTz);
+    }
+}
+
 if (session_status() === PHP_SESSION_NONE) {
     // Configure secure session cookie attributes before session start
     $isHttps = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';

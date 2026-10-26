@@ -1,6 +1,7 @@
 <?php
 /**
- * Patient Queue Action Handler (Check-In & Complete)
+ * Patient queue actions: call into a room, send back to waiting, complete.
+ * Scoped to the active tenant and protected by CSRF.
  */
 require_once __DIR__ . '/../core/SessionBootstrap.php';
 if (empty($_SESSION['authenticated'])) {
@@ -8,22 +9,51 @@ if (empty($_SESSION['authenticated'])) {
     exit;
 }
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../includes/security.php';
 
-$queueId = $_POST['queue_id'] ?? '';
-$action = $_POST['action'] ?? '';
-
-$pdo = getDB();
-
-if ($action === 'check_in' && $queueId !== '') {
-    $stmt = $pdo->prepare("UPDATE queue SET status = 'In Room', room = 'Room 2' WHERE id = ?");
-    $stmt->execute([$queueId]);
-    setToast("Patient Checked In", "Moved patient to Room 2.", "info");
-} elseif ($action === 'complete' && $queueId !== '') {
-    $stmt = $pdo->prepare("DELETE FROM queue WHERE id = ?");
-    $stmt->execute([$queueId]);
-    setToast("Queue Updated", "Patient encounter completed and removed from queue.");
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST' || !verifyCsrfToken($_POST['csrf_token'] ?? null)) {
+    setToast('Action blocked', 'Your session token expired. Reload the page and try again.', 'error');
+    header('Location: ../index.php');
+    exit;
 }
 
-$referer = $_SERVER['HTTP_REFERER'] ?? '../index.php';
-header("Location: " . $referer);
+$queueId  = trim((string) ($_POST['queue_id'] ?? ''));
+$action   = (string) ($_POST['action'] ?? '');
+$room     = trim((string) ($_POST['room'] ?? ''));
+$tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+$pdo = getDB();
+
+$row = null;
+if ($queueId !== '') {
+    $stmt = $pdo->prepare("SELECT id, patient_name FROM queue WHERE id = ? AND tenant_id = ?");
+    $stmt->execute([$queueId, $tenantId]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+}
+
+if (!$row) {
+    setToast('Patient not found in queue', 'They may already have been seen. The queue has been refreshed.', 'error');
+} elseif ($action === 'check_in') {
+    $room = $room !== '' ? mb_substr($room, 0, 40) : 'Room 1';
+    $stmt = $pdo->prepare("UPDATE queue SET status = 'In Room', room = ?, check_in_time = ? WHERE id = ? AND tenant_id = ?");
+    $stmt->execute([$room, date('H:i'), $queueId, $tenantId]);
+    setToast('Called in', "{$row['patient_name']} is now in {$room}.", 'info');
+} elseif ($action === 'send_back') {
+    $stmt = $pdo->prepare("UPDATE queue SET status = 'Waiting', room = NULL WHERE id = ? AND tenant_id = ?");
+    $stmt->execute([$queueId, $tenantId]);
+    setToast('Back to waiting', "{$row['patient_name']} has been moved back to the waiting list.", 'info');
+} elseif ($action === 'complete') {
+    $stmt = $pdo->prepare("DELETE FROM queue WHERE id = ? AND tenant_id = ?");
+    $stmt->execute([$queueId, $tenantId]);
+    setToast('Visit completed', "{$row['patient_name']} has been removed from the queue.");
+}
+
+// Return to the page the user came from (same host only)
+$back = '../index.php';
+$referer = $_SERVER['HTTP_REFERER'] ?? '';
+if ($referer !== '' && parse_url($referer, PHP_URL_HOST) === ($_SERVER['HTTP_HOST'] ?? '') ) {
+    $back = $referer;
+} elseif ($referer !== '' && parse_url($referer, PHP_URL_HOST) === parse_url('//' . ($_SERVER['HTTP_HOST'] ?? ''), PHP_URL_HOST)) {
+    $back = $referer;
+}
+header('Location: ' . $back);
 exit;

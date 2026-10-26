@@ -18,166 +18,101 @@ $step = $_GET['step'] ?? 'request';
 $email = sanitizeInput($_GET['email'] ?? '');
 ?>
 <!DOCTYPE html>
-<html class="light h-full bg-[#f8f9ff]" lang="en">
+<html class="h-full" lang="en">
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>Forgot Password - Nuvis Medcare X</title>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Reset password - Nuvis Medcare X</title>
+    <?php include __DIR__ . '/includes/theme_head.php'; ?>
 </head>
-<body class="h-full font-sans text-slate-800 bg-[#f8f9ff] flex items-center justify-center p-6">
+<body class="min-h-full font-sans text-slate-900 bg-background">
+<div class="min-h-screen flex flex-col px-6 sm:px-12 py-8">
+    <div><a href="login.php"><img src="assets/images/NuvisMedcareX_banner.jpg" alt="Nuvis Medcare X" class="h-11 w-auto object-contain mix-blend-multiply dark:mix-blend-normal dark:bg-white dark:rounded-lg dark:px-2"></a></div>
 
-<?php if ($toast): ?>
-<div id="toast-notification" class="fixed top-5 right-5 z-50 flex items-center p-4 text-gray-800 bg-white rounded-xl shadow-lg border border-slate-200" role="alert">
-    <div class="inline-flex items-center justify-center flex-shrink-0 w-9 h-9 text-<?= $toast['type'] === 'error' ? 'red-600 bg-red-100' : 'emerald-600 bg-emerald-100' ?> rounded-lg">
-        <span class="material-symbols-outlined"><?= $toast['type'] === 'error' ? 'error' : 'check_circle' ?></span>
-    </div>
-    <div class="ms-3 text-sm font-normal pr-4">
-        <div class="font-semibold text-gray-900"><?= htmlspecialchars($toast['title']) ?></div>
-        <div class="text-xs text-slate-600"><?= htmlspecialchars($toast['message']) ?></div>
-    </div>
-    <button type="button" onclick="document.getElementById('toast-notification').remove()" class="ms-auto -mx-1.5 -my-1.5 bg-white text-gray-400 hover:text-gray-900 rounded-lg p-1.5 hover:bg-gray-100 inline-flex items-center justify-center h-8 w-8">
-        <span class="material-symbols-outlined text-sm">close</span>
-    </button>
-</div>
-<?php endif; ?>
+    <main class="flex-1 flex items-center">
+        <div class="w-full max-w-[420px] mx-auto py-10">
+            <!-- Progress: request code, then verify -->
+            <ol class="flex items-center gap-2 text-xs font-medium mb-6" aria-label="Steps">
+                <li class="flex items-center gap-1.5 <?= $step === 'verify' ? 'text-emerald-700' : 'text-blue-700' ?>">
+                    <span class="w-5 h-5 rounded-full flex items-center justify-center text-[11px] text-white <?= $step === 'verify' ? 'bg-emerald-600' : 'bg-blue-700' ?>">1</span> Get a code
+                </li>
+                <li class="flex-1 h-px bg-slate-200"></li>
+                <li class="flex items-center gap-1.5 <?= $step === 'verify' ? 'text-blue-700' : 'text-slate-400' ?>" <?= $step === 'verify' ? 'aria-current="step"' : '' ?>>
+                    <span class="w-5 h-5 rounded-full flex items-center justify-center text-[11px] <?= $step === 'verify' ? 'bg-blue-700 text-white' : 'bg-slate-200 text-slate-500' ?>">2</span> Choose a new password
+                </li>
+            </ol>
 
-<div class="max-w-4xl w-full bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden relative grid grid-cols-1 md:grid-cols-2">
-    <!-- Left Column: Form & Branding -->
-    <div class="flex flex-col justify-between">
-        <!-- Brand Header -->
-        <div class="bg-white p-6 border-b border-slate-100 text-center flex flex-col items-center justify-center">
-            <img src="assets/images/NuvisMedcareX_banner (1).jpg" alt="Nuvis Medcare X" class="h-16 object-contain mb-2 rounded-lg">
-            <div class="flex items-center gap-3 mt-1">
-                <img src="assets/images/stethoscope_heart.png" alt="Stethoscope" class="h-6 object-contain">
-                <span class="text-xs font-semibold text-slate-500 uppercase tracking-widest">Nuvis Medcare X EHR Platform <span class="font-mono text-[10px] text-blue-700 font-bold bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200"><?= defined('APP_VERSION') ? APP_VERSION : 'v2.1.0' ?></span></span>
-                <img src="assets/images/caduceus_logo.png" alt="Caduceus" class="h-6 object-contain">
-            </div>
-        </div>
+            <?php if ($toast): ?>
+                <div class="mb-6 flex gap-3 rounded-xl border px-4 py-3 text-[13px] <?= $toast['type'] === 'error' ? 'border-red-200 bg-red-50 text-red-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800' ?>" role="<?= $toast['type'] === 'error' ? 'alert' : 'status' ?>">
+                    <span class="material-symbols-outlined text-[20px]"><?= $toast['type'] === 'error' ? 'error' : 'check_circle' ?></span>
+                    <div><div class="font-semibold"><?= htmlspecialchars($toast['title']) ?></div><div class="opacity-90"><?= htmlspecialchars($toast['message']) ?></div></div>
+                </div>
+            <?php endif; ?>
 
-        <!-- Form Body -->
-        <div class="p-8">
             <?php if ($step === 'verify'): ?>
-                <!-- Step 2: Verify OTP & Reset Password -->
-                <div class="mb-6">
-                    <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-blue-900">pin</span>
-                        <span>Verify Code & Reset Password</span>
-                    </h2>
-                    <p class="text-xs text-slate-500 mt-1">Enter the 6-digit verification code sent to your email along with your new password.</p>
-                </div>
+                <h1 class="text-[26px] leading-tight font-semibold tracking-tight">Enter your code</h1>
+                <p class="mt-2 text-sm text-slate-500">We emailed a 6-digit code<?= $email ? ' to <span class="font-medium text-slate-700">' . htmlspecialchars($email) . '</span>' : '' ?>. It expires shortly, so use it now.</p>
 
-                <form action="actions/reset_password_otp.php" method="POST" class="space-y-4 text-xs">
+                <form action="actions/reset_password_otp.php" method="POST" class="mt-8 space-y-5" id="reset-form">
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
-
                     <div>
-                        <label class="block font-bold text-slate-700 mb-1">Email Address</label>
-                        <div class="relative">
-                            <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg">mail</span>
-                            <input type="email" name="email" value="<?= htmlspecialchars($email) ?>" required placeholder="user@clinicflow.com" class="w-full bg-slate-50 pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 font-medium text-slate-800 focus:outline-none focus:border-blue-600 focus:bg-white transition">
-                        </div>
+                        <label class="form-label" for="fp-email">Email</label>
+                        <input id="fp-email" type="email" name="email" value="<?= htmlspecialchars($email) ?>" required autocomplete="username" class="form-input !py-3 !text-sm">
                     </div>
-
                     <div>
-                        <label class="block font-bold text-slate-700 mb-1">6-Digit Verification Code (OTP)</label>
-                        <div class="relative">
-                            <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg">key</span>
-                            <input type="text" name="otp" required maxlength="6" placeholder="123456" autocomplete="off" class="w-full bg-slate-50 pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 font-mono text-base font-bold text-blue-900 tracking-widest focus:outline-none focus:border-blue-600 focus:bg-white transition">
-                        </div>
+                        <label class="form-label" for="fp-otp">Verification code</label>
+                        <input id="fp-otp" type="text" name="otp" required maxlength="6" minlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code" <?= $email ? 'autofocus' : '' ?>
+                               class="form-input !py-3 !text-xl font-mono tracking-[0.5em] text-center" placeholder="••••••">
                     </div>
-
                     <div>
-                        <label class="block font-bold text-slate-700 mb-1">New Password</label>
-                        <div class="relative">
-                            <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg">lock</span>
-                            <input type="password" name="new_password" required placeholder="••••••••" class="w-full bg-slate-50 pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 font-medium text-slate-800 focus:outline-none focus:border-blue-600 focus:bg-white transition">
-                        </div>
-                        <p class="text-[10px] text-slate-500 mt-1">Must be at least 8 characters, with 1 uppercase letter and 1 number.</p>
+                        <label class="form-label" for="fp-new">New password</label>
+                        <input id="fp-new" type="password" name="new_password" required minlength="8" pattern="(?=.*[A-Z])(?=.*\d).{8,}" autocomplete="new-password" class="form-input !py-3 !text-sm" title="At least 8 characters, one capital letter and one number">
+                        <p class="mt-1.5 text-xs text-slate-500">At least 8 characters, with a capital letter and a number.</p>
                     </div>
-
                     <div>
-                        <label class="block font-bold text-slate-700 mb-1">Confirm New Password</label>
-                        <div class="relative">
-                            <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg">lock_reset</span>
-                            <input type="password" name="confirm_password" required placeholder="••••••••" class="w-full bg-slate-50 pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 font-medium text-slate-800 focus:outline-none focus:border-blue-600 focus:bg-white transition">
-                        </div>
+                        <label class="form-label" for="fp-confirm">Confirm new password</label>
+                        <input id="fp-confirm" type="password" name="confirm_password" required autocomplete="new-password" class="form-input !py-3 !text-sm">
+                        <p class="hidden mt-1.5 text-xs text-red-600" id="fp-mismatch">Passwords don't match yet.</p>
                     </div>
-
-                    <div class="pt-2">
-                        <button type="submit" class="w-full py-3 bg-blue-900 text-white font-bold text-xs rounded-xl hover:bg-blue-800 transition shadow-md flex items-center justify-center gap-2">
-                            <span class="material-symbols-outlined text-lg">check_circle</span>
-                            <span>Reset Password</span>
-                        </button>
-                    </div>
+                    <button type="submit" class="btn-primary w-full !py-3 !text-sm">Reset password</button>
                 </form>
 
-                <div class="mt-5 flex items-center justify-between text-xs font-semibold text-slate-600 pt-3 border-t border-slate-100">
-                    <a href="forgot_password.php?step=request&email=<?= urlencode($email) ?>" class="text-blue-700 hover:underline flex items-center gap-1">
-                        <span class="material-symbols-outlined text-sm">refresh</span>
-                        <span>Resend Verification Code</span>
-                    </a>
-                    <a href="login.php" class="text-slate-500 hover:text-slate-800 flex items-center gap-1">
-                        <span class="material-symbols-outlined text-sm">arrow_back</span>
-                        <span>Back to Sign In</span>
-                    </a>
+                <div class="mt-6 flex items-center justify-between text-[13px]">
+                    <a href="forgot_password.php?step=request&email=<?= urlencode($email) ?>" class="text-blue-700 font-medium hover:underline">Send a new code</a>
+                    <a href="login.php" class="text-slate-500 hover:text-slate-800">Back to sign in</a>
                 </div>
-
             <?php else: ?>
-                <!-- Step 1: Request OTP -->
-                <div class="mb-6">
-                    <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-blue-900">lock_reset</span>
-                        <span>Forgot Password?</span>
-                    </h2>
-                    <p class="text-xs text-slate-500 mt-1">Enter your account email address. We'll send you a 6-digit verification code (OTP) to reset your password.</p>
-                </div>
+                <h1 class="text-[26px] leading-tight font-semibold tracking-tight">Reset your password</h1>
+                <p class="mt-2 text-sm text-slate-500">Enter the email you sign in with and we'll send you a 6-digit code.</p>
 
-                <form action="actions/request_otp.php" method="POST" class="space-y-5 text-xs">
+                <form action="actions/request_otp.php" method="POST" class="mt-8 space-y-5">
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
                     <div>
-                        <label class="block font-bold text-slate-700 mb-1.5">Email Address</label>
-                        <div class="relative">
-                            <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg">mail</span>
-                            <input type="email" name="email" value="<?= htmlspecialchars($email) ?>" required placeholder="user@clinicflow.com" class="w-full bg-slate-50 pl-10 pr-4 py-3 rounded-xl border border-slate-300 font-medium text-slate-800 focus:outline-none focus:border-blue-600 focus:bg-white transition">
-                        </div>
+                        <label class="form-label" for="fp-email">Email</label>
+                        <input id="fp-email" type="email" name="email" value="<?= htmlspecialchars($email) ?>" required autofocus autocomplete="username" class="form-input !py-3 !text-sm" placeholder="name@clinic.com">
                     </div>
-
-                    <div class="pt-2">
-                        <button type="submit" class="w-full py-3.5 bg-blue-900 text-white font-bold text-xs rounded-xl hover:bg-blue-800 transition shadow-md flex items-center justify-center gap-2">
-                            <span class="material-symbols-outlined text-lg">send</span>
-                            <span>Send Verification Code</span>
-                        </button>
-                    </div>
+                    <button type="submit" class="btn-primary w-full !py-3 !text-sm">Email me a code</button>
                 </form>
 
-                <div class="mt-6 flex items-center justify-between text-xs font-semibold text-slate-600 pt-4 border-t border-slate-100">
-                    <a href="forgot_password.php?step=verify" class="text-blue-700 hover:underline flex items-center gap-1">
-                        <span class="material-symbols-outlined text-sm">pin</span>
-                        <span>Already have a code?</span>
-                    </a>
-                    <a href="login.php" class="text-slate-500 hover:text-slate-800 flex items-center gap-1">
-                        <span class="material-symbols-outlined text-sm">arrow_back</span>
-                        <span>Back to Sign In</span>
-                    </a>
+                <div class="mt-6 flex items-center justify-between text-[13px]">
+                    <a href="forgot_password.php?step=verify" class="text-blue-700 font-medium hover:underline">I already have a code</a>
+                    <a href="login.php" class="text-slate-500 hover:text-slate-800">Back to sign in</a>
                 </div>
             <?php endif; ?>
         </div>
-    </div>
-
-    <!-- Right Column: Hero Image -->
-    <div class="hidden md:block relative bg-blue-900 overflow-hidden min-h-[450px]">
-        <img src="assets/images/NuvisMedcareX_login_sidepanel.jpg" alt="Nuvis Medcare X" class="w-full h-full object-cover">
-        <div class="absolute inset-0 bg-gradient-to-t from-blue-950/80 via-blue-950/20 to-transparent flex items-end p-8">
-            <div class="text-white">
-                <h3 class="text-xl font-bold">Nuvis Medcare X</h3>
-                <p class="text-xs font-semibold text-blue-200 mb-1">by Nuvis Technologies</p>
-                <p class="text-xs text-blue-100 leading-relaxed">Secure One-Time Password verification for account password recovery and clinical access protection.</p>
-            </div>
-        </div>
-    </div>
+    </main>
+    <div class="text-xs text-slate-500">&copy; <?= date('Y') ?> Nuvis Technologies</div>
 </div>
-
+<script>
+(function () {
+    var f = document.getElementById('reset-form');
+    if (!f) return;
+    var a = document.getElementById('fp-new'), b = document.getElementById('fp-confirm'), m = document.getElementById('fp-mismatch');
+    var otp = document.getElementById('fp-otp');
+    otp.addEventListener('input', function () { otp.value = otp.value.replace(/\D/g, '').slice(0, 6); });
+    function check() { var bad = b.value && a.value !== b.value; m.classList.toggle('hidden', !bad); b.setCustomValidity(bad ? "Passwords don't match" : ''); }
+    a.addEventListener('input', check); b.addEventListener('input', check);
+})();
+</script>
 </body>
 </html>
