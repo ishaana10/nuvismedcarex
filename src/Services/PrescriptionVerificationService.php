@@ -2,6 +2,7 @@
 
 namespace ClinicFlow\Services;
 
+use ClinicFlow\Services\ClinicSettings;
 use ClinicFlow\Utils\Uuid;
 use PDO;
 use Throwable;
@@ -93,12 +94,11 @@ class PrescriptionVerificationService
         }
         $prescriptions = $rxStmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Fetch clinic settings
-        $settingsRows = $pdo->query("SELECT * FROM clinic_settings")->fetchAll(PDO::FETCH_ASSOC);
-        $settings = [];
-        foreach ($settingsRows as $r) {
-            $settings[$r['setting_key']] = $r['setting_value'];
-        }
+        // Details of the clinic that issued this prescription, not whichever
+        // clinic happens to be active (this page is opened by patients)
+        $clinicSettings = new ClinicSettings($pdo, (string) $tenantId);
+        $settings = $clinicSettings->all();
+        $issuingClinic = $clinicSettings->profile();
 
         // Fetch doctor details
         $docStmt = $pdo->query("SELECT * FROM doctors WHERE role = 'Doctor' LIMIT 1");
@@ -127,12 +127,12 @@ class PrescriptionVerificationService
                 'allergies' => $patient['known_allergies'] ?: 'NKDA'
             ],
             'clinic' => [
-                'name' => $settings['clinic_name'] ?? 'Nuvis Medico Healthcare',
-                'address' => $settings['clinic_address'] ?? '100 Healthcare Way, Suite 400, Springfield, OR 97477',
-                'phone' => $settings['clinic_phone'] ?? '(555) 019-2831',
-                'email' => $settings['clinic_email'] ?? 'medico@nuvistechnologies.com.fj',
-                'dea' => $settings['clinic_dea'] ?? 'FC9823019',
-                'npi' => $settings['clinic_npi'] ?? '1092830192',
+                'name' => $issuingClinic['name'],
+                'address' => $issuingClinic['address'],
+                'phone' => $issuingClinic['phone'],
+                'email' => $issuingClinic['email'],
+                'dea' => $issuingClinic['dea'],
+                'npi' => $issuingClinic['npi'],
                 'disclaimer' => $settings['rx_disclaimer'] ?? 'Notice: This prescription is valid for 30 days from date of issue unless specified otherwise.'
             ],
             'doctor' => [

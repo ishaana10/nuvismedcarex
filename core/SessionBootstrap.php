@@ -54,6 +54,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Settings for the active clinic (see includes/settings.php)
+require_once NU_ROOT . '/includes/settings.php';
+
 // Role-based access: block action endpoints and print pages the signed-in
 // user's role isn't allowed to use (see includes/access.php).
 require_once NU_ROOT . '/includes/access.php';

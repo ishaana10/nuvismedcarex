@@ -71,11 +71,10 @@ $paginationMC = getPaginationParams(5, [5, 10, 25], $pdo);
 $paginatedMedCerts = array_slice($medCerts, $paginationMC['offset'], $paginationMC['limit']);
 
 // Fetch default settings for Medical Certificate modal defaults
-$settingsRows = $pdo->query("SELECT * FROM clinic_settings")->fetchAll();
+// Settings for the active clinic (its own values over the shared defaults)
+$settings = nxSettings();
 $clinicSettings = [];
-foreach ($settingsRows as $sr) {
-    $clinicSettings[$sr['setting_key']] = $sr['setting_value'];
-}
+$clinicSettings = $settings;
 ?>
 
 <!-- Patient Header Card -->

@@ -11,15 +11,13 @@ require_once __DIR__ . '/config/database.php';
 $pdo = getDB();
 
 // Fetch Clinic Settings
-$settingsRows = $pdo->query("SELECT * FROM clinic_settings")->fetchAll();
+// Settings for the active clinic (its own values over the shared defaults)
+$settings = nxSettings();
 $settings = [];
-foreach ($settingsRows as $r) {
-    $settings[$r['setting_key']] = $r['setting_value'];
-}
 
-$clinicName = $settings['clinic_name'] ?? 'ClinicFlow Medical Center';
-$clinicName = $settings['clinic_name'] ?? 'Nuvis Medico Healthcare';
-$clinicAddress = $settings['clinic_address'] ?? '100 Healthcare Way, Suite 400, Springfield, OR 97477';
+$clinicProfile = nxClinic();
+$clinicName = $clinicProfile['name'];
+$clinicAddress = $clinicProfile['address'];
 $clinicPhone = $settings['clinic_phone'] ?? '(555) 019-2831';
 $clinicEmail = $settings['clinic_email'] ?? 'medico@nuvistechnologies.com.fj';
 

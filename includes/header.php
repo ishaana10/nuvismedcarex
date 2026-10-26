@@ -30,19 +30,9 @@ $currentDoctorId = $_SESSION['current_doctor_id'] ?? ($doctors[0]['id'] ?? 'doc-
 $currentDoctor = array_filter($doctors, fn($d) => $d['id'] === $currentDoctorId);
 $currentDoctor = reset($currentDoctor) ?: ($doctors[0] ?? ['id' => 'doc-1', 'name' => 'Dr. Sarah Jenkins', 'specialty' => 'Internal Medicine']);
 
-// Fetch Active Clinic Name dynamically
-$tenantStmt = $pdo->prepare("SELECT name FROM tenants WHERE id = :tid LIMIT 1");
-$tenantStmt->execute(['tid' => $currentTenantId]);
-$tenantRow = $tenantStmt->fetch(PDO::FETCH_ASSOC);
-
-if (!$tenantRow) {
-    $settingStmt = $pdo->prepare("SELECT setting_value FROM tenant_settings WHERE tenant_id = :tid AND setting_key = 'clinic_name' LIMIT 1");
-    $settingStmt->execute(['tid' => $currentTenantId]);
-    $settingRow = $settingStmt->fetch(PDO::FETCH_ASSOC);
-    $activeClinicName = $settingRow['setting_value'] ?? 'Nuvis Medico Healthcare';
-} else {
-    $activeClinicName = $tenantRow['name'];
-}
+// The clinic currently being worked in (see includes/settings.php)
+$activeClinic = nxClinic();
+$activeClinicName = $activeClinic['name'];
 
 require_once __DIR__ . '/nav.php';
 

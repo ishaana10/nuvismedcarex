@@ -14,7 +14,11 @@ $inventoryService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow
 // Fetch Clinic Inventory Settings & Custom Fields Definition
 $settings = $inventoryService->getInventorySettings();
 $categories = $settings['categories'];
+$units = $settings['units'];
 $customFieldsDef = $settings['custom_fields_def'];
+$defaultMinThreshold = $settings['default_min_threshold'];
+$expiryWarningDays = $settings['expiry_warning_days'];
+require_once __DIR__ . '/includes/inventory_fields.php';
 
 // Search and Filter parameters
 $searchQuery = trim($_GET['q'] ?? '');
@@ -31,7 +35,13 @@ $lowStockCount = 0;
 $outOfStockCount = 0;
 $totalValuation = 0.0;
 
+$expiringSoonCount = 0;
+$expiryCutoff = date('Y-m-d', strtotime("+{$expiryWarningDays} days"));
+
 foreach ($items as $item) {
+    if (!empty($item['expiry_date']) && $item['expiry_date'] <= $expiryCutoff) {
+        $expiringSoonCount++;
+    }
     if ((int)$item['current_stock'] <= 0) {
         $outOfStockCount++;
     } elseif ((int)$item['current_stock'] <= (int)$item['min_threshold']) {
@@ -53,7 +63,7 @@ $csrfToken = getCsrfToken();
 <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
     <div>
         <h1 class="text-2xl font-bold text-on-surface">Pharmacy & Supplies Inventory</h1>
-        <p class="text-xs text-outline font-medium">Manage medical inventory, track stock levels, restock history, and customize developer fields</p>
+        <p class="nx-page-sub">Stock levels, batches and restocking for <?= htmlspecialchars(nxClinicName()) ?></p>
     </div>
     <div class="flex items-center gap-2">
         <button onclick="openModal('modal-audit-logs')" class="px-3.5 py-2 bg-surface-container border border-outline-variant/40 text-on-surface hover:bg-surface-container-high rounded-xl text-xs font-semibold transition flex items-center gap-1.5 shadow-xs">
@@ -70,49 +80,27 @@ $csrfToken = getCsrfToken();
     </div>
 </div>
 
-<!-- Stats Header -->
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    <div class="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/30 shadow-xs flex items-center justify-between">
-        <div>
-            <div class="text-[11px] font-bold tracking-wider text-outline uppercase">Total Catalog Items</div>
-            <div class="text-2xl font-bold text-on-surface mt-1"><?= number_format($totalItemsCount) ?></div>
-        </div>
-        <div class="p-3 bg-blue-50 text-blue-600 rounded-xl">
-            <span class="material-symbols-outlined text-2xl">inventory_2</span>
-        </div>
-    </div>
-
-    <div class="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/30 shadow-xs flex items-center justify-between">
-        <div>
-            <div class="text-[11px] font-bold tracking-wider text-outline uppercase">Low / Out of Stock</div>
-            <div class="text-2xl font-bold <?= $lowStockCount + $outOfStockCount > 0 ? 'text-red-600' : 'text-emerald-600' ?> mt-1">
-                <?= number_format($lowStockCount + $outOfStockCount) ?>
+<!-- Stats -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <?php
+    $invStats = [
+        ['label' => 'Items in the catalogue', 'value' => number_format($totalItemsCount), 'icon' => 'inventory_2', 'tone' => 'bg-blue-50 text-blue-700', 'note' => count($categories) . ' categories'],
+        ['label' => 'Need reordering', 'value' => number_format($lowStockCount + $outOfStockCount), 'icon' => 'warning', 'tone' => ($lowStockCount + $outOfStockCount) ? 'bg-red-50 text-red-700' : 'bg-slate-100 text-slate-600', 'note' => $outOfStockCount ? $outOfStockCount . ' out of stock' : 'None out of stock', 'warn' => ($lowStockCount + $outOfStockCount) > 0],
+        ['label' => 'Expiring within ' . $expiryWarningDays . ' days', 'value' => number_format($expiringSoonCount), 'icon' => 'event_busy', 'tone' => $expiringSoonCount ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600', 'note' => $expiringSoonCount ? 'Use first or return' : 'Nothing close to expiry', 'warn' => $expiringSoonCount > 0],
+        ['label' => 'Stock on hand', 'value' => nxCurrencySymbol() . number_format($totalValuation, 2), 'icon' => 'payments', 'tone' => 'bg-emerald-50 text-emerald-700', 'note' => 'At selling price'],
+    ];
+    foreach ($invStats as $st): ?>
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+            <div class="flex items-start justify-between gap-2">
+                <span class="text-[13px] text-slate-600"><?= htmlspecialchars($st['label']) ?></span>
+                <span class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 <?= $st['tone'] ?>">
+                    <span class="material-symbols-outlined text-[18px]"><?= $st['icon'] ?></span>
+                </span>
             </div>
+            <div class="text-2xl font-semibold text-slate-900 mt-2 tabular"><?= htmlspecialchars($st['value']) ?></div>
+            <div class="text-[11px] mt-0.5 <?= !empty($st['warn']) ? 'text-amber-700 font-medium' : 'text-slate-500' ?>"><?= htmlspecialchars($st['note']) ?></div>
         </div>
-        <div class="p-3 bg-red-50 text-red-600 rounded-xl">
-            <span class="material-symbols-outlined text-2xl">warning</span>
-        </div>
-    </div>
-
-    <div class="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/30 shadow-xs flex items-center justify-between">
-        <div>
-            <div class="text-[11px] font-bold tracking-wider text-outline uppercase">Estimated Valuation</div>
-            <div class="text-2xl font-bold text-emerald-700 mt-1">$<?= number_format($totalValuation, 2) ?></div>
-        </div>
-        <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
-            <span class="material-symbols-outlined text-2xl">payments</span>
-        </div>
-    </div>
-
-    <div class="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/30 shadow-xs flex items-center justify-between">
-        <div>
-            <div class="text-[11px] font-bold tracking-wider text-outline uppercase">Custom Categories</div>
-            <div class="text-2xl font-bold text-indigo-600 mt-1"><?= count($categories) ?></div>
-        </div>
-        <div class="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
-            <span class="material-symbols-outlined text-2xl">category</span>
-        </div>
-    </div>
+    <?php endforeach; ?>
 </div>
 
 <!-- Filter Bar -->
@@ -215,8 +203,8 @@ $csrfToken = getCsrfToken();
                                 <span class="block text-[10px] text-outline font-normal">Min Threshold: <?= number_format($mThresh) ?></span>
                             </td>
                             <td class="py-3.5 px-3 font-mono">
-                                <span class="text-emerald-700 font-bold">$<?= number_format((float)$item['unit_price'], 2) ?></span>
-                                <span class="block text-[10px] text-outline">Cost: $<?= number_format((float)$item['cost_price'], 2) ?></span>
+                                <span class="text-emerald-700 font-bold"><?= htmlspecialchars(nxCurrencySymbol()) ?><?= number_format((float)$item['unit_price'], 2) ?></span>
+                                <span class="block text-[10px] text-outline">Cost: <?= htmlspecialchars(nxCurrencySymbol()) ?><?= number_format((float)$item['cost_price'], 2) ?></span>
                             </td>
                             <td class="py-3.5 px-3 font-mono text-xs">
                                 <?php if (!empty($item['batch_number'])): ?>
@@ -330,7 +318,7 @@ $csrfToken = getCsrfToken();
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-on-surface mb-1">Unit Type</label>
-                    <input type="text" name="unit" value="Boxes" placeholder="e.g. Boxes, Bottles, Vials" class="w-full bg-surface-container-low px-3 py-2 rounded-xl text-xs border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none">
+                    <input type="text" name="unit" value="<?= htmlspecialchars($units[0] ?? 'Box') ?>" list="nx-units" placeholder="e.g. Box, Bottle, Vial" class="w-full bg-surface-container-low px-3 py-2 rounded-xl text-xs border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-on-surface mb-1">VMS Tax Label</label>
@@ -350,7 +338,7 @@ $csrfToken = getCsrfToken();
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-on-surface mb-1">Low Stock Threshold</label>
-                    <input type="number" name="min_threshold" value="<?= (int)($settingsMap['inventory_default_min_threshold'] ?? 10) ?>" min="1" class="w-full bg-surface-container-low px-3 py-2 rounded-xl text-xs border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none font-mono">
+                    <input type="number" name="min_threshold" value="<?= $defaultMinThreshold ?>" min="1" class="w-full bg-surface-container-low px-3 py-2 rounded-xl text-xs border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none font-mono">
                 </div>
             </div>
 
@@ -375,21 +363,7 @@ $csrfToken = getCsrfToken();
                     <input type="date" name="expiry_date" class="w-full bg-surface-container-low px-3 py-2 rounded-xl text-xs border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none font-mono">
                 </div>
             </div>
-
-            <!-- Dynamic Custom Fields Section -->
-            <?php if (!empty($customFieldsDef)): ?>
-                <div class="border-t border-outline-variant/30 pt-3">
-                    <h4 class="text-xs font-bold text-outline uppercase tracking-wider mb-2">Developer Dynamic Custom Fields</h4>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <?php foreach ($customFieldsDef as $cf): ?>
-                            <div>
-                                <label class="block text-[11px] font-semibold text-on-surface mb-1"><?= htmlspecialchars($cf['label'] ?? $cf['name']) ?></label>
-                                <input type="<?= htmlspecialchars($cf['type'] ?? 'text') ?>" name="custom_fields[<?= htmlspecialchars($cf['name']) ?>]" placeholder="<?= htmlspecialchars($cf['placeholder'] ?? '') ?>" class="w-full bg-surface-container-low px-3 py-1.5 rounded-xl text-xs border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none">
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-            <?php endif; ?>
+            <?= nxRenderInventoryFields($customFieldsDef, [], 'add') ?>
 
             <div class="flex items-center justify-end gap-2 border-t border-outline-variant/30 pt-4">
                 <button type="button" onclick="closeModal('modal-add-item')" class="px-4 py-2 bg-surface-container hover:bg-surface-container-high rounded-xl text-xs font-semibold text-on-surface">Cancel</button>
@@ -437,7 +411,7 @@ $csrfToken = getCsrfToken();
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-on-surface mb-1">Unit Type</label>
-                    <input type="text" name="unit" id="edit-unit" class="w-full bg-surface-container-low px-3 py-2 rounded-xl text-xs border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none">
+                    <input type="text" name="unit" id="edit-unit" list="nx-units" class="w-full bg-surface-container-low px-3 py-2 rounded-xl text-xs border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-on-surface mb-1">VMS Tax Label</label>
@@ -476,19 +450,7 @@ $csrfToken = getCsrfToken();
                 </div>
             </div>
 
-            <?php if (!empty($customFieldsDef)): ?>
-                <div class="border-t border-outline-variant/30 pt-3">
-                    <h4 class="text-xs font-bold text-outline uppercase tracking-wider mb-2">Developer Dynamic Custom Fields</h4>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <?php foreach ($customFieldsDef as $cf): ?>
-                            <div>
-                                <label class="block text-[11px] font-semibold text-on-surface mb-1"><?= htmlspecialchars($cf['label'] ?? $cf['name']) ?></label>
-                                <input type="<?= htmlspecialchars($cf['type'] ?? 'text') ?>" name="custom_fields[<?= htmlspecialchars($cf['name']) ?>]" id="edit-cf-<?= htmlspecialchars($cf['name']) ?>" class="w-full bg-surface-container-low px-3 py-1.5 rounded-xl text-xs border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none">
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-            <?php endif; ?>
+            <?= nxRenderInventoryFields($customFieldsDef, [], 'edit') ?>
 
             <div class="flex items-center justify-end gap-2 border-t border-outline-variant/30 pt-4">
                 <button type="button" onclick="closeModal('modal-edit-item')" class="px-4 py-2 bg-surface-container hover:bg-surface-container-high rounded-xl text-xs font-semibold text-on-surface">Cancel</button>
@@ -610,7 +572,7 @@ $csrfToken = getCsrfToken();
                                 <td class="py-2.5 px-2 text-xs">
                                     <span class="font-medium text-slate-800"><?= htmlspecialchars($log['supplier'] ?: 'N/A') ?></span>
                                     <?php if ((float)$log['unit_cost'] > 0): ?>
-                                        <span class="block text-[10px] font-mono text-emerald-700">$<?= number_format((float)$log['unit_cost'], 2) ?>/unit</span>
+                                        <span class="block text-[10px] font-mono text-emerald-700"><?= htmlspecialchars(nxCurrencySymbol()) ?><?= number_format((float)$log['unit_cost'], 2) ?>/unit</span>
                                     <?php endif; ?>
                                 </td>
                                 <td class="py-2.5 px-2 text-xs">
@@ -651,11 +613,13 @@ function openEditModal(item) {
     document.getElementById('edit-batch-number').value = item.batch_number || '';
     document.getElementById('edit-expiry-date').value = item.expiry_date || '';
 
-    // Custom fields prefill
+    // Extra fields: clear every one first, then fill in what this item has,
+    // so values from the previously edited item never linger.
+    document.querySelectorAll('#modal-edit-item [data-cf]').forEach(function (el) { el.value = ''; });
     try {
         const customObj = JSON.parse(item.custom_fields || '{}');
         for (const [k, v] of Object.entries(customObj)) {
-            const input = document.getElementById('edit-cf-' + k);
+            const input = document.querySelector('#modal-edit-item [data-cf="' + CSS.escape(k) + '"]');
             if (input) input.value = v;
         }
     } catch (e) {}

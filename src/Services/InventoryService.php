@@ -15,18 +15,28 @@ class InventoryService {
         $this->audit = $audit ?? new AuditService($db);
     }
 
-    public function getInventorySettings(): array {
-        $stmt = $this->db->query("SELECT setting_key, setting_value FROM clinic_settings WHERE setting_key IN ('inventory_categories', 'inventory_default_min_threshold', 'inventory_custom_fields_def')");
-        $settingsMap = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+    /**
+     * Inventory set-up for the active clinic: its categories, units, reorder
+     * and expiry levels, and any extra fields it records against an item.
+     * Falls back to the installation defaults where a clinic has set nothing.
+     */
+    public function getInventorySettings(?string $tenantId = null): array {
+        $tenantId = $tenantId ?? TenantContext::getTenantId();
+        $settings = (new ClinicSettings($this->db, $tenantId))->all();
 
-        $rawCategories = $settingsMap['inventory_categories'] ?? 'Pharmaceuticals, Surgical Supplies, Medical Equipment, Diagnostics, Consumables';
-        $categories = array_filter(array_map('trim', explode(',', $rawCategories)));
-        $customFieldsDef = json_decode($settingsMap['inventory_custom_fields_def'] ?? '[]', true) ?: [];
+        $rawCategories = (string) ($settings['inventory_categories'] ?? '');
+        $categories = InventorySetup::parseList($rawCategories, InventorySetup::DEFAULT_CATEGORIES);
+        $rawUnits = (string) ($settings['inventory_units'] ?? '');
+        $units = InventorySetup::parseList($rawUnits, InventorySetup::DEFAULT_UNITS);
 
         return [
-            'raw_categories' => $rawCategories,
-            'categories' => $categories,
-            'custom_fields_def' => $customFieldsDef
+            'raw_categories'      => $rawCategories !== '' ? $rawCategories : implode(', ', $categories),
+            'categories'          => $categories,
+            'raw_units'           => $rawUnits !== '' ? $rawUnits : implode(', ', $units),
+            'units'               => $units,
+            'default_min_threshold' => (int) ($settings['inventory_default_min_threshold'] ?? 10),
+            'expiry_warning_days' => (int) ($settings['inventory_expiry_warning_days'] ?? 30),
+            'custom_fields_def'   => InventorySetup::fields($settings['inventory_custom_fields_def'] ?? '[]'),
         ];
     }
 

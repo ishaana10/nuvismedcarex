@@ -17,6 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $pdo = getDB();
 require_once __DIR__ . '/../includes/security.php';
+$tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 
 if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) {
     setToast('Not saved', 'Your session token expired. Reload the page and try again.', 'error');
@@ -33,6 +34,7 @@ $textKeys = [
     'receipt_header_title', 'receipt_thank_you_msg',
     'cert_header_title', 'cert_disclaimer', 'cert_footer_note',
     'doc_prc_no', 'doc_ptr_no',
+    'clinic_website',
 ];
 $settings = [];
 foreach ($textKeys as $k) {
@@ -70,11 +72,29 @@ if (isset($_POST['smtp_host']) || (isset($_POST['section']) && $_POST['section']
     $settings['smtp_secure'] = trim($_POST['smtp_secure'] ?? 'tls');
 }
 
-// Inventory Developer Settings (if submitted)
+// Clinic logo (branding tab)
+if (!empty($_POST['remove_clinic_logo'])) {
+    $settings['clinic_logo'] = '';
+}
+$logo = $_FILES['clinic_logo_file'] ?? null;
+if ($logo && (int) ($logo['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK && is_uploaded_file((string) $logo['tmp_name'])) {
+    try {
+        $settings['clinic_logo'] = \ClinicFlow\Services\ClinicSettings::logoToDataUri($logo);
+    } catch (\InvalidArgumentException $e) {
+        setToast('Logo not updated', $e->getMessage(), 'error');
+        unset($settings['clinic_logo']);
+    }
+} elseif ($logo && (int) ($logo['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_INI_SIZE) {
+    setToast('Logo not updated', 'That image was too large to upload. Use one under 300 KB.', 'error');
+}
+
+// Inventory set-up (built by the editor on the Inventory tab)
 if (isset($_POST['inventory_categories'])) {
-    $settings['inventory_categories']            = trim($_POST['inventory_categories']);
-    $settings['inventory_default_min_threshold'] = (int)($_POST['inventory_default_min_threshold'] ?? 10);
-    $settings['inventory_custom_fields_def']     = trim($_POST['inventory_custom_fields_def'] ?? '[]');
+    $settings['inventory_categories'] = \ClinicFlow\Services\InventorySetup::cleanCategoryList((string) $_POST['inventory_categories']);
+    $settings['inventory_units'] = \ClinicFlow\Services\InventorySetup::cleanCategoryList((string) ($_POST['inventory_units'] ?? ''));
+    $settings['inventory_default_min_threshold'] = max(0, (int) ($_POST['inventory_default_min_threshold'] ?? 10));
+    $settings['inventory_expiry_warning_days'] = max(0, (int) ($_POST['inventory_expiry_warning_days'] ?? 30));
+    $settings['inventory_custom_fields_def'] = \ClinicFlow\Services\InventorySetup::cleanFieldJson((string) ($_POST['inventory_custom_fields_def'] ?? '[]'));
 }
 
 // SSE Real-Time Notifications Toggle (if submitted)
@@ -87,41 +107,36 @@ if (isset($_POST['lab_catalog_json'])) {
     $settings['lab_catalog'] = trim($_POST['lab_catalog_json']);
 }
 
-$driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
-$query = ($driver === 'sqlite')
-    ? "INSERT INTO clinic_settings (setting_key, setting_value) VALUES (?, ?) ON CONFLICT(setting_key) DO UPDATE SET setting_value = excluded.setting_value"
-    : "INSERT INTO clinic_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)";
-$stmt = $pdo->prepare($query);
-
-$tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
-$tsQuery = ($driver === 'sqlite')
-    ? "INSERT INTO tenant_settings (id, tenant_id, setting_key, setting_value) VALUES (?, ?, ?, ?) ON CONFLICT(tenant_id, setting_key) DO UPDATE SET setting_value = excluded.setting_value, updated_at = CURRENT_TIMESTAMP"
-    : "INSERT INTO tenant_settings (id, tenant_id, setting_key, setting_value) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = CURRENT_TIMESTAMP";
-$tsStmt = $pdo->prepare($tsQuery);
-
-foreach ($settings as $key => $val) {
-    $stmt->execute([$key, $val]);
-    try {
-        $tsStmt->execute(['ts-' . $tenantId . '-' . $key, $tenantId, $key, $val]);
-    } catch (\Throwable $te) {
-        // Fallback
-    }
+// Each value is written to the store that owns it: clinic identity, document
+// wording, tax numbers and inventory set-up belong to this clinic alone;
+// SMTP and other installation-wide keys stay shared. See ClinicSettings.
+$svc = nxClinicSettings();
+try {
+    $counts = $svc->save($settings);
+} catch (\Throwable $e) {
+    error_log('[admin_save_settings] ' . $e->getMessage());
+    setToast('Not saved', 'Those settings could not be saved. Try again, or contact your administrator.', 'error');
+    header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '../admin.php'));
+    exit;
 }
 
-// Also update tenants table name if clinic_name was saved
+// The tenant record carries the name shown in the clinic switcher
 if (!empty($settings['clinic_name'])) {
     try {
         $tStmt = $pdo->prepare("UPDATE tenants SET name = ? WHERE id = ?");
         $tStmt->execute([$settings['clinic_name'], $tenantId]);
     } catch (\Throwable $te) {
-        // Fallback
+        error_log('[admin_save_settings] tenant name: ' . $te->getMessage());
     }
 }
 
 require_once __DIR__ . '/../core/Cache.php';
 \NuCache::getInstance()->invalidateSystemSettings();
 
-setToast("Settings Saved", "Clinic branding and prescription settings updated successfully.");
+$clinicName = $settings['clinic_name'] ?? nxClinicName();
+setToast('Settings saved', $counts['clinic'] > 0
+    ? 'Updated for ' . $clinicName . '. Other clinics are unaffected.'
+    : 'Updated for every clinic on this installation.');
 $redirect = $_SERVER['HTTP_REFERER'] ?? '../admin.php';
 header("Location: " . $redirect);
 exit;

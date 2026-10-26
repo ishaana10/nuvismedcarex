@@ -8,7 +8,9 @@ $activePage = $activePage ?? 'dashboard';
 $nxUserRole = $nxUserRole ?? ($_SESSION['user_role'] ?? $_SESSION['role'] ?? 'Doctor');
 $nxNav = $nxNav ?? nxNavItems($nxUserRole);
 $nxCounts = $nxCounts ?? [];
-$nxClinic = $GLOBALS['activeClinicName'] ?? $activeClinicName ?? 'Nuvis Medico Healthcare';
+$nxClinic = $GLOBALS['activeClinicName'] ?? $activeClinicName ?? nxClinicName();
+// A clinic that has uploaded a logo shows it here instead of the product mark
+$nxClinicLogo = (function_exists('nxClinic') ? (nxClinic()['logo'] ?? '') : '') ?: 'assets/images/nuvis_mark.png';
 
 $nxGrouped = [];
 foreach ($nxNav as $item) { $nxGrouped[$item['group']][] = $item; }
@@ -39,7 +41,7 @@ $renderNav = function (bool $mobile) use ($nxGrouped, $activePage, $nxCounts, $n
 <!-- Desktop rail -->
 <aside class="desktop-sidebar nx-rail flex-col shrink-0 z-30" aria-label="Main navigation">
     <div class="nx-rail-brand flex items-center gap-3 px-4 shrink-0">
-        <img src="assets/images/nuvis_mark.png" alt="" class="w-9 h-9 rounded-lg object-contain bg-white p-0.5 shrink-0">
+        <img src="<?= htmlspecialchars($nxClinicLogo) ?>" alt="" class="w-9 h-9 rounded-lg object-contain bg-white p-0.5 shrink-0">
         <div class="nx-label min-w-0 leading-tight">
             <div class="text-[13px] font-semibold text-white truncate" title="<?= htmlspecialchars($nxClinic) ?>"><?= htmlspecialchars($nxClinic) ?></div>
             <div class="text-[11px] text-white/50">Nuvis Medcare X</div>
@@ -69,7 +71,7 @@ $renderNav = function (bool $mobile) use ($nxGrouped, $activePage, $nxCounts, $n
 <div id="mobileBackdrop" onclick="toggleMobileSidebar()" class="mobile-backdrop fixed inset-0 bg-slate-950/50 backdrop-blur-xs z-[60] hidden md:hidden"></div>
 <aside id="mobileSidebar" class="mobile-sidebar nx-rail fixed top-0 left-0 bottom-0 !h-full w-[284px] z-[70] -translate-x-full transition-transform duration-300 ease-out md:hidden flex-col shadow-2xl" aria-label="Main navigation">
     <div class="nx-rail-brand flex items-center gap-3 px-4 shrink-0">
-        <img src="assets/images/nuvis_mark.png" alt="" class="w-9 h-9 rounded-lg object-contain bg-white p-0.5">
+        <img src="<?= htmlspecialchars($nxClinicLogo) ?>" alt="" class="w-9 h-9 rounded-lg object-contain bg-white p-0.5">
         <div class="min-w-0 flex-1 leading-tight">
             <div class="text-[13px] font-semibold text-white truncate"><?= htmlspecialchars($nxClinic) ?></div>
             <div class="text-[11px] text-white/50">Nuvis Medcare X</div>

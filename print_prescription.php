@@ -16,15 +16,14 @@ $csrfToken = generateCsrfToken();
 $pdo = getDB();
 
 // Fetch Clinic Settings
-$settingsRows = $pdo->query("SELECT * FROM clinic_settings")->fetchAll();
+// Settings for the active clinic (its own values over the shared defaults)
+$settings = nxSettings();
 $settings = [];
-foreach ($settingsRows as $r) {
-    $settings[$r['setting_key']] = $r['setting_value'];
-}
 
-$clinicName = $settings['clinic_name'] ?? 'Nuvis Medico Healthcare';
-$clinicSubtitle = $settings['clinic_subtitle'] ?? 'EHR & Clinical Management System';
-$clinicAddress = $settings['clinic_address'] ?? '100 Healthcare Way, Suite 400, Springfield, OR 97477';
+$clinicProfile = nxClinic();
+$clinicName = $clinicProfile['name'];
+$clinicSubtitle = $clinicProfile['subtitle'];
+$clinicAddress = $clinicProfile['address'];
 $clinicPhone = $settings['clinic_phone'] ?? '(555) 019-2831';
 $clinicEmail = $settings['clinic_email'] ?? 'medico@nuvistechnologies.com.fj';
 $clinicDea = $settings['clinic_dea'] ?? 'FC9823019';

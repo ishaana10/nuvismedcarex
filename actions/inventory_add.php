@@ -57,7 +57,11 @@ try {
         'batch_number' => trim($_POST['batch_number'] ?? ''),
         'expiry_date' => !empty($_POST['expiry_date']) ? $_POST['expiry_date'] : null,
         'vms_tax_code' => trim($_POST['vms_tax_code'] ?? 'A'),
-        'custom_fields' => $_POST['custom_fields'] ?? []
+        // Only the fields this clinic defined, with values that match their type
+        'custom_fields' => \ClinicFlow\Services\InventorySetup::valuesFromRequest(
+            $inventoryService->getInventorySettings()['custom_fields_def'],
+            (array) ($_POST['custom_fields'] ?? [])
+        )
     ];
 
     $item = $inventoryService->addItem($itemData);

@@ -46,6 +46,7 @@ function checkSseEnabled(PDO $pdo, string $tenantId): bool {
     } catch (\Throwable $e) {}
 
     try {
+        // Installation default when this clinic has not chosen
         $stmt = $pdo->prepare("SELECT setting_value FROM clinic_settings WHERE setting_key = 'sse_notifications_enabled' LIMIT 1");
         $stmt->execute();
         $val = $stmt->fetchColumn();
