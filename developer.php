@@ -1568,12 +1568,17 @@ function testDrive(key) {
     })
         .then(r => r.json())
         .then(d => {
+            // Three outcomes, not two: "warn" means nothing could be proved
+            // from the server, which is not the same as a working connection.
+            const state = d.status || (d.success ? 'ok' : 'fail');
+            const mark = state === 'ok' ? '\u2714 ' : (state === 'warn' ? '\u26a0 ' : '\u2716 ');
             const lines = (d.logs || []).slice();
             lines.push('');
-            lines.push((d.success ? '\u2714 ' : '\u2716 ') + (d.success ? (d.message || 'Connected.') : (d.error || 'The test failed.')));
+            lines.push(mark + (state === 'ok' ? (d.message || 'Connected.') : (d.error || 'The test failed.')));
             out.textContent = lines.join('\n');
-            out.classList.toggle('text-emerald-200', !!d.success);
-            out.classList.toggle('text-rose-200', !d.success);
+            out.classList.toggle('text-emerald-200', state === 'ok');
+            out.classList.toggle('text-amber-200', state === 'warn');
+            out.classList.toggle('text-rose-200', state === 'fail');
         })
         .catch(err => {
             out.textContent = 'The test could not run: ' + String(err);

@@ -454,7 +454,12 @@ $clinicSettings = $settings;
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">Insurance Provider</label>
-                    <input type="text" name="insurance_provider" value="<?= htmlspecialchars($patient['insurance_provider'] ?? '') ?>" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-medium">
+                    <?php
+                    $ipValue = (string) ($patient['insurance_provider'] ?? '');
+                    $ipId = 'edit-insurance-provider';
+                    $ipClass = 'w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-medium';
+                    include __DIR__ . '/includes/insurance_provider_field.php';
+                    ?>
                 </div>
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">Policy Number</label>

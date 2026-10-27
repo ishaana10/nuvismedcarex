@@ -26,6 +26,12 @@ $emergencyRel = trim($_POST['emergency_contact_relationship'] ?? '');
 $emergencyPhone = trim($_POST['emergency_contact_phone'] ?? '');
 
 $insuranceProvider = trim($_POST['insurance_provider'] ?? '');
+// "Another insurer…" carries the name in its own box
+if ($insuranceProvider === '__other__') {
+    $insuranceProvider = \ClinicFlow\Services\InsuranceReportSettings::cleanProviderName(
+        (string) ($_POST['insurance_provider_other'] ?? '')
+    );
+}
 $insurancePolicy = trim($_POST['insurance_policy_number'] ?? '');
 $insuranceGroup = trim($_POST['insurance_group_number'] ?? '');
 

@@ -260,6 +260,22 @@ html.dark .bg-slate-900.text-white,
 html.dark .bg-slate-800.text-white { background-color: rgb(var(--c-slate-50)); color: rgb(var(--c-slate-900)); }
 html.dark img { opacity: .94; }
 html.dark input, html.dark select, html.dark textarea { color-scheme: dark; }
+/* A control with no background utility of its own falls back to the browser's
+   default — a mid grey under a dark colour-scheme, which left blue or dark
+   label text sitting on it unreadably. Any bg-* utility still wins over this. */
+html.dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="submit"]):not([type="button"]),
+html.dark select,
+html.dark textarea {
+  background-color: rgb(var(--nx-card));
+  color: rgb(var(--c-slate-900));
+}
+/* Blue is used as a text colour inside controls. The dark palette runs the
+   other way round, so the readable blue on a dark field is the 500, not a
+   lower number. */
+html.dark input.text-primary, html.dark select.text-primary, html.dark textarea.text-primary,
+html.dark input.text-blue-700, html.dark select.text-blue-700, html.dark textarea.text-blue-700 {
+  color: rgb(var(--c-blue-500));
+}
 html.dark ::placeholder { color: rgb(var(--c-slate-400)) !important; }
 html.dark select option { background: rgb(var(--nx-card)); color: rgb(var(--c-slate-900)); }
 

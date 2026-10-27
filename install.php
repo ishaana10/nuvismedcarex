@@ -26,9 +26,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Clinic Profile Setup
     $clinicName     = trim($_POST['clinic_name'] ?? 'Nuvis Medico Healthcare');
     $clinicSubtitle = trim($_POST['clinic_subtitle'] ?? 'Integrated Primary & Specialist Healthcare Platform');
-    $clinicPhone    = trim($_POST['clinic_phone'] ?? '(555) 019-2831');
+    $clinicPhone    = trim($_POST['clinic_phone'] ?? '+679 331 2233');
     $clinicEmail    = trim($_POST['clinic_email'] ?? 'contact@nuvistechnologies.com.fj');
-    $clinicAddress  = trim($_POST['clinic_address'] ?? '100 Healthcare Way, Suite 400, Springfield, OR 97477');
+    $clinicAddress  = trim($_POST['clinic_address'] ?? 'Level 2, Nuvis House, 12 Gordon Street, Suva');
 
     // Dynamic Developer Custom Fields (Keys & Values)
     $customKeys   = $_POST['custom_keys'] ?? [];
@@ -278,7 +278,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         <div>
                             <label class="block font-bold text-slate-700 mb-1">Clinic Phone</label>
-                            <input type="text" name="clinic_phone" value="(555) 019-2831" required class="w-full bg-slate-50 px-3 py-2.5 rounded-xl border border-slate-300 font-medium focus:outline-none focus:border-blue-600">
+                            <input type="text" name="clinic_phone" value="+679 331 2233" required class="w-full bg-slate-50 px-3 py-2.5 rounded-xl border border-slate-300 font-medium focus:outline-none focus:border-blue-600">
                         </div>
 
                         <div>
@@ -288,7 +288,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         <div class="md:col-span-2">
                             <label class="block font-bold text-slate-700 mb-1">Clinic Address</label>
-                            <input type="text" name="clinic_address" value="100 Healthcare Way, Suite 400, Springfield, OR 97477" required class="w-full bg-slate-50 px-3 py-2.5 rounded-xl border border-slate-300 font-medium focus:outline-none focus:border-blue-600">
+                            <input type="text" name="clinic_address" value="Level 2, Nuvis House, 12 Gordon Street, Suva" required class="w-full bg-slate-50 px-3 py-2.5 rounded-xl border border-slate-300 font-medium focus:outline-none focus:border-blue-600">
                         </div>
                     </div>
                 </div>
