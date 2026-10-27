@@ -11,9 +11,13 @@ $vmsService = new VMSService($pdo);
 
 $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 
-// Fetch settings
-$stmtSet = $pdo->query("SELECT setting_key, setting_value FROM clinic_settings WHERE setting_key LIKE 'vms_%'");
-$vmsSettings = $stmtSet->fetchAll(PDO::FETCH_KEY_PAIR);
+// VMS settings belong to the clinic, so read them through nxSettings() rather
+// than the installation-wide table, which held one clinic's values for all.
+$vmsSettings = array_filter(
+    nxSettings(),
+    static fn($k) => str_starts_with((string) $k, 'vms_'),
+    ARRAY_FILTER_USE_KEY
+);
 
 // Fetch all patients for dropdown selection (Tenant Scoped)
 $patientsStmt = $pdo->prepare("SELECT id, first_name, last_name, mrn, phone FROM patients WHERE tenant_id = ? ORDER BY first_name ASC");
@@ -35,49 +39,19 @@ $totalOverdue = array_reduce($invoices, fn($acc, $i) => $i['status'] === 'Overdu
 $totalCollected = array_reduce($invoices, fn($acc, $i) => $i['status'] === 'Paid' ? $acc + $i['amount'] : $acc, 0);
 $totalVat = array_reduce($invoices, fn($acc, $i) => $acc + (float)($i['total_tax'] ?? 0), 0);
 
-$activeTab = $_GET['tab'] ?? 'invoices';
+$activeTab = (string) ($_GET['tab'] ?? 'invoices');
+if (!in_array($activeTab, ['invoices', 'insurance', 'zreport'], true)) {
+    $activeTab = 'invoices';
+}
 
 $totalInvoicesCount = count($invoices);
 $paginationInvoices = getPaginationParams(10, [5, 10, 25, 50, 100], $pdo);
 $paginatedInvoices = array_slice($invoices, $paginationInvoices['offset'], $paginationInvoices['limit']);
 
-// Date range report parameters
-$selectedDate = $_GET['report_date'] ?? date('Y-m-d');
-$fromDate = $_GET['from_date'] ?? null;
-$toDate = $_GET['to_date'] ?? null;
-$preset = $_GET['preset'] ?? null;
-
-if ($preset === 'quarterly') {
-    $month = (int)date('n');
-    $quarter = ceil($month / 3);
-    $startMonth = ($quarter - 1) * 3 + 1;
-    $endMonth = $quarter * 3;
-    $fromDate = date("Y-") . sprintf("%02d", $startMonth) . "-01";
-    $toDate = date("Y-m-t", strtotime(date("Y-") . sprintf("%02d", $endMonth) . "-01"));
-} elseif ($preset === 'half_yearly') {
-    $month = (int)date('n');
-    if ($month <= 6) {
-        $fromDate = date("Y-01-01");
-        $toDate = date("Y-06-30");
-    } else {
-        $fromDate = date("Y-07-01");
-        $toDate = date("Y-12-31");
-    }
-} elseif ($preset === 'yearly') {
-    $fromDate = date("Y-01-01");
-    $toDate = date("Y-12-31");
-}
-
-if (!empty($_GET['custom_range']) && !empty($_GET['from_date']) && !empty($_GET['to_date'])) {
-    $fromDate = $_GET['from_date'];
-    $toDate = $_GET['to_date'];
-}
-
-if ($fromDate && $toDate) {
-    $zReportData = $vmsService->getDailyFiscalReport($selectedDate, $fromDate, $toDate, $currentTenantId);
-} else {
-    $zReportData = $vmsService->getDailyFiscalReport($selectedDate, null, null, $currentTenantId);
-}
+// Which period the Z-Report covers (validated, and shared with the printable
+// version and the CSV export)
+require_once __DIR__ . '/includes/zreport_query.php';
+$cur = nxCurrencySymbol();
 ?>
 
 <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -86,7 +60,7 @@ if ($fromDate && $toDate) {
         <p class="text-xs text-outline font-medium">Patient billing and invoice management</p>
     </div>
     <div class="flex items-center gap-2">
-        <button onclick="document.getElementById('createInvoiceModal').classList.remove('hidden')" class="px-4 py-2 bg-primary text-on-primary rounded-xl text-xs font-bold shadow-xs hover:bg-primary-hover transition flex items-center gap-1.5">
+        <button onclick="NX.openModal('createInvoiceModal')" class="px-4 py-2 bg-primary text-on-primary rounded-xl text-xs font-bold shadow-xs hover:bg-primary-hover transition flex items-center gap-1.5">
             <span class="material-symbols-outlined text-base">receipt_long</span>
             Create Invoice
         </button>
@@ -156,18 +130,7 @@ if ($fromDate && $toDate) {
     </div>
 </div>
 
-<!-- Tabs Navigation -->
-<div class="flex border-b border-outline-variant/30 mb-6 space-x-6 text-xs font-bold">
-    <a href="billing.php?tab=invoices" class="pb-3 border-b-2 <?= $activeTab === 'invoices' ? 'border-primary text-primary' : 'border-transparent text-outline hover:text-on-surface' ?>">
-        Invoices List
-    </a>
-    <a href="billing.php?tab=insurance" class="pb-3 border-b-2 <?= $activeTab === 'insurance' ? 'border-primary text-primary' : 'border-transparent text-outline hover:text-on-surface' ?>">
-        Insurance Claims
-    </a>
-    <a href="billing.php?tab=zreport" class="pb-3 border-b-2 <?= $activeTab === 'zreport' ? 'border-primary text-primary' : 'border-transparent text-outline hover:text-on-surface' ?>">
-        Z-Report
-    </a>
-</div>
+<?php include __DIR__ . '/includes/billing_tabs.php'; ?>
 
 <?php if ($activeTab === 'invoices'): ?>
 <!-- Invoices Table -->
@@ -268,7 +231,7 @@ if (($_GET['action'] ?? '') === 'edit_claim' && !empty($editClaimId)) {
             <span class="material-symbols-outlined text-primary text-base">verified</span>
             <span>Submitted Insurance Claims</span>
         </h3>
-        <button onclick="document.getElementById('createClaimModal').classList.remove('hidden')" class="px-3 py-1.5 bg-primary text-white rounded-xl text-xs font-bold hover:bg-primary-hover transition flex items-center gap-1">
+        <button onclick="NX.openModal('createClaimModal')" class="px-3 py-1.5 bg-primary text-white rounded-xl text-xs font-bold hover:bg-primary-hover transition flex items-center gap-1">
             <span class="material-symbols-outlined text-sm">add</span>
             <span>Submit Claim</span>
         </button>
@@ -294,7 +257,7 @@ if (($_GET['action'] ?? '') === 'edit_claim' && !empty($editClaimId)) {
                 <?php else: ?>
                     <?php foreach ($paginatedClaims as $claim): ?>
                         <tr class="hover:bg-surface-container-low/50">
-                            <td class="py-3 px-4 font-mono font-bold"><?= htmlspecialchars(substr($claim['id'], 0, 8)) ?></td>
+                            <td class="py-3 px-4 font-mono font-bold"><?= htmlspecialchars(\ClinicFlow\Services\InsuranceReportService::claimReference($claim['id'], (string) ($claim['created_at'] ?? ''))) ?></td>
                             <td class="py-3 px-4 font-mono"><?= htmlspecialchars($claim['invoice_id']) ?></td>
                             <td class="py-3 px-4"><?= htmlspecialchars($claim['provider_name']) ?></td>
                             <td class="py-3 px-4 font-mono"><?= htmlspecialchars($claim['policy_number']) ?></td>
@@ -337,7 +300,7 @@ if (($_GET['action'] ?? '') === 'edit_claim' && !empty($editClaimId)) {
 
 <!-- Modal Edit Insurance Claim -->
 <?php if ($editClaim): ?>
-<div class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+<div class="nx-overlay items-center justify-center p-4" data-nx-modal data-nx-static>
     <div class="bg-surface-container-lowest rounded-3xl border border-outline-variant/30 shadow-2xl max-w-md w-full overflow-hidden">
         <div class="p-5 bg-slate-900 text-white flex items-center justify-between">
             <h3 class="font-bold text-sm">Edit Insurance Claim</h3>
@@ -389,11 +352,11 @@ if (($_GET['action'] ?? '') === 'edit_claim' && !empty($editClaimId)) {
 <?php endif; ?>
 
 <!-- Modal Submit Insurance Claim -->
-<div id="createClaimModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center hidden p-4">
+<div id="createClaimModal" class="nx-overlay hidden items-center justify-center p-4" data-nx-modal>
     <div class="bg-surface-container-lowest rounded-3xl border border-outline-variant/30 shadow-2xl max-w-md w-full overflow-hidden">
         <div class="p-5 bg-slate-900 text-white flex items-center justify-between">
             <h3 class="font-bold text-sm">Submit New Insurance Claim</h3>
-            <button type="button" onclick="document.getElementById('createClaimModal').classList.add('hidden')" class="text-slate-400 hover:text-white">
+            <button type="button" onclick="NX.closeModal('createClaimModal')" class="text-slate-400 hover:text-white">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
@@ -433,7 +396,7 @@ if (($_GET['action'] ?? '') === 'edit_claim' && !empty($editClaimId)) {
             </div>
 
             <div class="flex items-center justify-end gap-2 pt-3 border-t border-outline-variant/20">
-                <button type="button" onclick="document.getElementById('createClaimModal').classList.add('hidden')" class="px-4 py-2 bg-surface-container rounded-xl font-semibold">Cancel</button>
+                <button type="button" onclick="NX.closeModal('createClaimModal')" class="px-4 py-2 bg-surface-container rounded-xl font-semibold">Cancel</button>
                 <button type="submit" class="px-5 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90">Submit Claim</button>
             </div>
         </form>
@@ -441,126 +404,245 @@ if (($_GET['action'] ?? '') === 'edit_claim' && !empty($editClaimId)) {
 </div>
 
 <?php elseif ($activeTab === 'zreport'): ?>
-<!-- Daily Z-Report & Range Summary View -->
-<div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs max-w-4xl space-y-6">
-    <!-- Filter Bar & Preset Period Selectors -->
-    <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-4">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary text-xl">tune</span>
-                <span class="font-bold text-xs text-slate-800">Quick Period Presets</span>
-            </div>
-            <div class="flex flex-wrap items-center gap-2 text-xs">
-                <a href="billing.php?tab=zreport&preset=quarterly" class="px-3 py-1.5 bg-white border border-slate-300 rounded-xl font-semibold text-slate-700 hover:bg-slate-100 transition <?= $preset === 'quarterly' ? 'bg-primary text-white border-primary' : '' ?>">
-                    Quarterly Report
-                </a>
-                <a href="billing.php?tab=zreport&preset=half_yearly" class="px-3 py-1.5 bg-white border border-slate-300 rounded-xl font-semibold text-slate-700 hover:bg-slate-100 transition <?= $preset === 'half_yearly' ? 'bg-primary text-white border-primary' : '' ?>">
-                    Half-Yearly Report
-                </a>
-                <a href="billing.php?tab=zreport&preset=yearly" class="px-3 py-1.5 bg-white border border-slate-300 rounded-xl font-semibold text-slate-700 hover:bg-slate-100 transition <?= $preset === 'yearly' ? 'bg-primary text-white border-primary' : '' ?>">
-                    Yearly Report
-                </a>
-            </div>
-        </div>
+<?php
+$z = $zReportData;
+$hasRows = $z['total_invoices'] > 0;
+$reconOff = abs($z['reconciliation']) >= 0.01;
+?>
 
-        <form method="GET" action="billing.php" class="flex flex-col sm:flex-row items-center gap-3 text-xs pt-3 border-t border-slate-200">
-            <input type="hidden" name="tab" value="zreport">
-            <input type="hidden" name="custom_range" value="1">
-            <div class="flex items-center gap-2">
-                <label class="font-bold text-slate-700">From:</label>
-                <input type="date" name="from_date" value="<?= htmlspecialchars($fromDate ?: $selectedDate) ?>" class="px-3 py-1.5 border border-slate-300 rounded-xl font-medium focus:ring-1 focus:ring-primary">
-            </div>
-            <div class="flex items-center gap-2">
-                <label class="font-bold text-slate-700">To:</label>
-                <input type="date" name="to_date" value="<?= htmlspecialchars($toDate ?: $selectedDate) ?>" class="px-3 py-1.5 border border-slate-300 rounded-xl font-medium focus:ring-1 focus:ring-primary">
-            </div>
-            <div class="flex items-center gap-2">
-                <button type="submit" class="px-4 py-1.5 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 transition shadow-xs">
-                    Filter Range
-                </button>
-                <?php
-                $pdfParams = "report_date=" . urlencode($selectedDate);
-                if ($fromDate && $toDate) {
-                    $pdfParams .= "&from_date=" . urlencode($fromDate) . "&to_date=" . urlencode($toDate);
-                }
-                if ($preset) {
-                    $pdfParams .= "&preset=" . urlencode($preset);
-                }
-                ?>
-                <a href="print_zreport.php?<?= $pdfParams ?>" target="_blank" class="px-4 py-1.5 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition shadow-xs flex items-center gap-1.5">
-                    <span class="material-symbols-outlined text-base">picture_as_pdf</span>
-                    <span>Export to PDF / Print</span>
-                </a>
-            </div>
-        </form>
+<!-- Period ----------------------------------------------------------------- -->
+<form method="GET" action="billing.php" class="bg-white border border-slate-200 rounded-2xl p-4 mb-6 shadow-2xs space-y-4">
+    <input type="hidden" name="tab" value="zreport">
+    <div class="flex flex-wrap items-center gap-1.5">
+        <span class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mr-1">Period</span>
+        <?php foreach ($zPresets as $key => [$label, , ]):
+            $on = $zPreset === $key; ?>
+            <a href="billing.php?tab=zreport&preset=<?= $key ?>"
+               class="px-2.5 py-1 rounded-full text-[12px] font-medium border transition <?= $on ? 'bg-blue-700 text-white border-blue-700' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300' ?>">
+                <?= htmlspecialchars($label) ?>
+            </a>
+        <?php endforeach; ?>
     </div>
-
-    <!-- Printable Z-Report Summary Box -->
-    <div class="border border-outline-variant/30 rounded-2xl p-6 font-mono text-xs bg-slate-50 shadow-2xs">
-        <div class="text-center pb-4 border-b border-dashed border-slate-300 space-y-1">
-            <h2 class="text-base font-bold text-slate-800 uppercase">DAILY SUMMARY REPORT (Z-REPORT)</h2>
-            <?php if ($fromDate && $toDate): ?>
-                <p class="text-xs font-bold text-primary">Period: <?= htmlspecialchars(date('M d, Y', strtotime($fromDate))) ?> &mdash; <?= htmlspecialchars(date('M d, Y', strtotime($toDate))) ?></p>
-            <?php else: ?>
-                <p class="text-xs font-bold text-primary">Daily Report Date: <?= htmlspecialchars($zReportData['date']) ?></p>
-            <?php endif; ?>
+    <div class="flex flex-wrap items-end gap-3 pt-3 border-t border-slate-100">
+        <div>
+            <label class="form-label" for="z-date">Single day</label>
+            <input id="z-date" type="date" name="report_date" value="<?= htmlspecialchars($zSelectedDate) ?>" class="form-input !py-2">
         </div>
+        <span class="text-[11px] text-slate-400 pb-2.5">or a range</span>
+        <div>
+            <label class="form-label" for="z-from">From</label>
+            <input id="z-from" type="date" name="from_date" value="<?= htmlspecialchars($zFrom ?? '') ?>" class="form-input !py-2">
+        </div>
+        <div>
+            <label class="form-label" for="z-to">To</label>
+            <input id="z-to" type="date" name="to_date" value="<?= htmlspecialchars($zTo ?? '') ?>" class="form-input !py-2">
+        </div>
+        <button type="submit" class="btn-primary">Show report</button>
+        <a href="billing.php?tab=zreport" class="btn-secondary">Today</a>
+        <div class="flex items-center gap-2 ml-auto">
+            <a href="actions/zreport_export.php?<?= $zQueryString ?>" class="btn-secondary">
+                <span class="material-symbols-outlined text-[18px]">table_view</span>
+                <span>CSV</span>
+            </a>
+            <a href="print_zreport.php?<?= $zQueryString ?>" target="_blank" rel="noopener" class="btn-outline-blue">
+                <span class="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+                <span>Print / PDF</span>
+            </a>
+        </div>
+    </div>
+</form>
 
-        <div class="py-4 border-b border-dashed border-slate-300 space-y-2">
-            <h3 class="font-bold text-slate-800">SUMMARY BY INVOICE / TRANSACTION TYPE</h3>
-            <table class="w-full text-left">
-                <thead>
-                    <tr class="text-[10px] text-slate-500 uppercase border-b border-slate-200">
-                        <th class="py-1">Type</th>
-                        <th class="py-1 text-center">Count</th>
-                        <th class="py-1 text-right">Amount (FJD)</th>
-                        <th class="py-1 text-right">VAT Tax (FJD)</th>
+<div class="mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+    <h2 class="text-[15px] font-semibold text-slate-900">
+        <?= $z['is_range'] ? 'Fiscal summary' : 'Daily Z-Report' ?>
+    </h2>
+    <span class="text-[13px] text-slate-500"><?= htmlspecialchars($zPeriodLabel) ?></span>
+    <?php if ($hasRows): ?>
+        <span class="text-[12px] text-slate-500">
+            <?= $z['total_invoices'] ?> invoice<?= $z['total_invoices'] === 1 ? '' : 's' ?>
+            <?php if ($z['first_invoice'] !== ''): ?>
+                &middot; <?= htmlspecialchars($z['first_invoice']) ?> to <?= htmlspecialchars($z['last_invoice']) ?>
+            <?php endif; ?>
+        </span>
+    <?php endif; ?>
+</div>
+
+<?php if (!$hasRows): ?>
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-2xs">
+        <div class="nx-empty">
+            <span class="material-symbols-outlined">receipt_long</span>
+            No invoices were raised in this period. Pick another day or widen the range.
+        </div>
+    </div>
+<?php else: ?>
+
+<!-- Headline figures ------------------------------------------------------- -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <?php
+    $zCards = [
+        ['label' => 'Turnover', 'value' => $cur . number_format($z['total_sales'] - $z['total_refunds'], 2), 'note' => $z['sales_count'] . ' sales, ' . $z['refund_count'] . ' refunds', 'icon' => 'point_of_sale', 'tone' => 'bg-blue-50 text-blue-700'],
+        ['label' => 'Net of VAT', 'value' => $cur . number_format($z['net_sales'], 2), 'note' => 'VAT ' . $cur . number_format($z['total_vat'], 2), 'icon' => 'account_balance', 'tone' => 'bg-emerald-50 text-emerald-700'],
+        ['label' => 'Paid by patients', 'value' => $cur . number_format($z['patient_share'], 2), 'note' => $z['insurance_covered'] > 0 ? $cur . number_format($z['insurance_covered'], 2) . ' billed to insurers' : 'No insurance on these invoices', 'icon' => 'payments', 'tone' => 'bg-slate-100 text-slate-600'],
+        ['label' => 'Fiscalised', 'value' => $z['fiscalised_count'] . ' / ' . $z['total_invoices'], 'note' => $z['unfiscalised_count'] ? $z['unfiscalised_count'] . ' not sent to FRCS' : 'All invoices signed', 'icon' => $z['unfiscalised_count'] ? 'gpp_maybe' : 'verified_user', 'tone' => $z['unfiscalised_count'] ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700', 'warn' => $z['unfiscalised_count'] > 0],
+    ];
+    foreach ($zCards as $c): ?>
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+            <div class="flex items-start justify-between gap-2">
+                <span class="text-[13px] text-slate-600"><?= htmlspecialchars($c['label']) ?></span>
+                <span class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 <?= $c['tone'] ?>">
+                    <span class="material-symbols-outlined text-[18px]"><?= $c['icon'] ?></span>
+                </span>
+            </div>
+            <div class="text-2xl font-semibold text-slate-900 mt-2 tabular"><?= htmlspecialchars($c['value']) ?></div>
+            <div class="text-[11px] mt-0.5 <?= !empty($c['warn']) ? 'text-amber-700 font-medium' : 'text-slate-500' ?>"><?= htmlspecialchars($c['note']) ?></div>
+        </div>
+    <?php endforeach; ?>
+</div>
+
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-5 mb-6">
+    <!-- By invoice type -->
+    <div class="xl:col-span-2 bg-white border border-slate-200 rounded-2xl shadow-2xs overflow-hidden">
+        <div class="px-4 py-3 border-b border-slate-100">
+            <h3 class="text-[13px] font-semibold text-slate-900">By invoice and transaction type</h3>
+            <p class="text-[11px] text-slate-500 mt-0.5">The breakdown FRCS expects on a Z-Report</p>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-[13px]">
+                <thead class="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
+                    <tr>
+                        <th class="text-left font-semibold px-4 py-2">Type</th>
+                        <th class="text-right font-semibold px-3 py-2">Count</th>
+                        <th class="text-right font-semibold px-3 py-2">Amount</th>
+                        <th class="text-right font-semibold px-4 py-2">VAT</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <?php foreach ($zReportData['by_type'] as $type => $data): ?>
-                        <tr>
-                            <td class="py-1 font-bold"><?= htmlspecialchars($type) ?></td>
-                            <td class="py-1 text-center"><?= $data['count'] ?></td>
-                            <td class="py-1 text-right">$<?= number_format($data['amount'], 2) ?></td>
-                            <td class="py-1 text-right">$<?= number_format($data['tax'], 2) ?></td>
+                <tbody class="divide-y divide-slate-100">
+                    <?php foreach ($z['by_type'] as $type => $data):
+                        $used = $data['count'] > 0; ?>
+                        <tr class="<?= $used ? '' : 'text-slate-400' ?>">
+                            <td class="px-4 py-2 <?= $used ? 'font-medium text-slate-900' : '' ?>"><?= htmlspecialchars(str_replace('-', ' · ', $type)) ?></td>
+                            <td class="px-3 py-2 text-right tabular"><?= $data['count'] ?></td>
+                            <td class="px-3 py-2 text-right tabular"><?= $cur . number_format($data['amount'], 2) ?></td>
+                            <td class="px-4 py-2 text-right tabular"><?= $cur . number_format($data['tax'], 2) ?></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
+                <tfoot class="bg-slate-50 font-semibold text-slate-900">
+                    <tr>
+                        <td class="px-4 py-2">Total</td>
+                        <td class="px-3 py-2 text-right tabular"><?= $z['total_invoices'] ?></td>
+                        <td class="px-3 py-2 text-right tabular"><?= $cur . number_format($z['total_sales'] + $z['total_refunds'], 2) ?></td>
+                        <td class="px-4 py-2 text-right tabular"><?= $cur . number_format($z['total_vat'], 2) ?></td>
+                    </tr>
+                </tfoot>
             </table>
         </div>
+    </div>
 
-        <div class="py-4 border-b border-dashed border-slate-300 space-y-2">
-            <h3 class="font-bold text-slate-800">SUMMARY BY PAYMENT TYPE</h3>
-            <div class="grid grid-cols-2 gap-2 text-[11px]">
-                <?php foreach ($zReportData['by_payment'] as $pType => $pAmt): ?>
-                    <div class="flex justify-between py-0.5 border-b border-slate-200/50">
-                        <span><?= htmlspecialchars($pType) ?>:</span>
-                        <span class="font-bold">$<?= number_format($pAmt, 2) ?></span>
-                    </div>
-                <?php endforeach; ?>
-            </div>
+    <!-- How it was paid -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-2xs overflow-hidden">
+        <div class="px-4 py-3 border-b border-slate-100">
+            <h3 class="text-[13px] font-semibold text-slate-900">How it was paid</h3>
+            <p class="text-[11px] text-slate-500 mt-0.5">Insurance is shown separately so the lines add up to turnover</p>
         </div>
-
-        <div class="pt-4 space-y-1 text-right font-bold text-sm text-slate-900">
-            <div>Total Turnover Sales: $<?= number_format($zReportData['total_sales'], 2) ?></div>
-            <div>Total Refunds / Credits: $<?= number_format($zReportData['total_refunds'], 2) ?></div>
-            <div class="text-blue-600">Total VAT Collected: $<?= number_format($zReportData['total_vat'], 2) ?></div>
+        <ul class="divide-y divide-slate-100">
+            <?php
+            $paid = array_filter($z['by_payment'], static fn($amt) => abs((float) $amt) >= 0.01);
+            if ($paid === []): ?>
+                <li class="px-4 py-6 text-center text-[12px] text-slate-500">No payments recorded against these invoices.</li>
+            <?php else:
+                arsort($paid);
+                $paidTotal = array_sum($paid);
+                foreach ($paid as $type => $amount):
+                    $share = $paidTotal > 0 ? ($amount / $paidTotal * 100) : 0; ?>
+                    <li class="px-4 py-2.5">
+                        <div class="flex items-baseline justify-between gap-2 text-[13px]">
+                            <span class="text-slate-700"><?= htmlspecialchars((string) $type) ?></span>
+                            <span class="tabular font-medium text-slate-900"><?= $cur . number_format((float) $amount, 2) ?></span>
+                        </div>
+                        <div class="mt-1.5 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                            <div class="h-full rounded-full <?= $type === 'Insurance / third party' ? 'bg-violet-500' : 'bg-blue-600' ?>" style="width: <?= number_format(max($share, 2), 2) ?>%"></div>
+                        </div>
+                    </li>
+                <?php endforeach;
+            endif; ?>
+        </ul>
+        <div class="px-4 py-3 border-t border-slate-100 text-[12px] flex items-center justify-between">
+            <span class="text-slate-500">Recorded against turnover</span>
+            <span class="tabular font-semibold <?= $reconOff ? 'text-amber-700' : 'text-emerald-700' ?>">
+                <?= $cur . number_format($z['payments_total'], 2) ?>
+            </span>
         </div>
+        <?php if ($reconOff): ?>
+            <p class="px-4 pb-3 text-[11px] text-amber-800">
+                <?= $z['reconciliation'] > 0 ? 'Payments exceed turnover by ' : 'Turnover exceeds payments by ' ?>
+                <strong><?= $cur . number_format(abs($z['reconciliation']), 2) ?></strong>.
+                Usually an invoice with no payment lines recorded, or a part payment still outstanding.
+            </p>
+        <?php endif; ?>
     </div>
 </div>
+
+<!-- VAT by tax label ------------------------------------------------------- -->
+<?php if (!empty($z['by_tax'])): ?>
+<div class="bg-white border border-slate-200 rounded-2xl shadow-2xs overflow-hidden mb-6">
+    <div class="px-4 py-3 border-b border-slate-100">
+        <h3 class="text-[13px] font-semibold text-slate-900">VAT by tax label</h3>
+        <p class="text-[11px] text-slate-500 mt-0.5">From the invoice line items — A standard, E exempt, F zero rated, P prescribed</p>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-[13px]">
+            <thead class="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
+                <tr>
+                    <th class="text-left font-semibold px-4 py-2">Label</th>
+                    <th class="text-right font-semibold px-3 py-2">Rate</th>
+                    <th class="text-right font-semibold px-3 py-2">Lines</th>
+                    <th class="text-right font-semibold px-3 py-2">Net</th>
+                    <th class="text-right font-semibold px-3 py-2">VAT</th>
+                    <th class="text-right font-semibold px-4 py-2">Gross</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                <?php foreach ($z['by_tax'] as $row): ?>
+                    <tr>
+                        <td class="px-4 py-2 font-medium text-slate-900"><?= htmlspecialchars($row['label']) ?></td>
+                        <td class="px-3 py-2 text-right tabular"><?= $row['rate'] === null ? '—' : number_format((float) $row['rate'], 2) . '%' ?></td>
+                        <td class="px-3 py-2 text-right tabular"><?= $row['lines'] ?></td>
+                        <td class="px-3 py-2 text-right tabular"><?= $cur . number_format($row['net'], 2) ?></td>
+                        <td class="px-3 py-2 text-right tabular"><?= $cur . number_format($row['tax'], 2) ?></td>
+                        <td class="px-4 py-2 text-right tabular"><?= $cur . number_format($row['gross'], 2) ?></td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+</div>
+<?php endif; ?>
+
+<?php if ($z['unfiscalised_count'] > 0): ?>
+    <p class="mb-6 text-[12px] text-amber-900 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-start gap-2">
+        <span class="material-symbols-outlined text-[18px]">gpp_maybe</span>
+        <span>
+            <?= $z['unfiscalised_count'] ?> invoice<?= $z['unfiscalised_count'] === 1 ? ' has' : 's have' ?>
+            no FRCS signature yet, so <?= $z['unfiscalised_count'] === 1 ? 'it is' : 'they are' ?> included in these
+            totals but not yet reported to the revenue service.
+        </span>
+    </p>
+<?php endif; ?>
+
+<?php endif; // has rows ?>
 
 <?php endif; ?>
 
 <!-- Create Invoice Modal -->
-<div id="createInvoiceModal" class="hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+<div id="createInvoiceModal" class="nx-overlay hidden items-center justify-center p-4" data-nx-modal>
     <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 w-full max-w-3xl p-6 shadow-xl max-h-[90vh] overflow-y-auto text-xs">
         <div class="flex items-center justify-between pb-3 border-b border-outline-variant/30 mb-4">
             <h2 class="text-base font-bold text-on-surface flex items-center gap-2">
                 <span class="material-symbols-outlined text-primary">receipt</span>
                 New Medical Invoice
             </h2>
-            <button onclick="document.getElementById('createInvoiceModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times;</button>
+            <button onclick="NX.closeModal('createInvoiceModal')" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times;</button>
         </div>
 
         <form action="actions/vms_create_invoice.php" method="POST" class="space-y-4">
@@ -702,7 +784,7 @@ if (($_GET['action'] ?? '') === 'edit_claim' && !empty($editClaimId)) {
             </div>
 
             <div class="pt-3 border-t border-outline-variant/30 flex items-center justify-end gap-2">
-                <button type="button" onclick="document.getElementById('createInvoiceModal').classList.add('hidden')" class="px-4 py-2 bg-surface-container-high text-outline rounded-xl font-bold hover:bg-surface-container-highest transition">
+                <button type="button" onclick="NX.closeModal('createInvoiceModal')" class="px-4 py-2 bg-surface-container-high text-outline rounded-xl font-bold hover:bg-surface-container-highest transition">
                     Cancel
                 </button>
                 <button type="submit" class="px-5 py-2 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition flex items-center gap-1.5">

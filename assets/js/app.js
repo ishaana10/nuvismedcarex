@@ -187,13 +187,19 @@
       return isOverlay(m) && !m.classList.contains('hidden') && getComputedStyle(m).display !== 'none';
     });
   }
+  function syncScrollLock() {
+    document.body.classList.toggle('nx-scroll-locked', visibleModals().length > 0);
+  }
   NX.openModal = function (id) {
     var m = document.getElementById(id);
     if (!m) return;
+    // A dialog opened on top of another one is raised above it
+    if (visibleModals().length) m.classList.add('nx-stacked');
     m.classList.remove('hidden');
     m.classList.add('flex');
     m.dataset.nxReturnFocus = '1';
     NX._lastFocus = document.activeElement;
+    syncScrollLock();
     setTimeout(function () {
       var f = m.querySelector('[autofocus], input:not([type=hidden]):not([disabled]), select, textarea, button:not([aria-label="Close"])');
       if (f) try { f.focus({ preventScroll: true }); } catch (e) {}
@@ -203,9 +209,19 @@
     var m = typeof id === 'string' ? document.getElementById(id) : id;
     if (!m) return;
     m.classList.add('hidden');
+    m.classList.remove('nx-stacked');
     if (m.id === 'modal-document-viewer') { var f = $('#doc-viewer-frame'); if (f) f.src = 'about:blank'; }
+    syncScrollLock();
     if (NX._lastFocus && NX._lastFocus.focus) try { NX._lastFocus.focus({ preventScroll: true }); } catch (e) {}
   };
+  // A dialog rendered open by the server (an edit form reached by link) still
+  // needs the page behind it to stop scrolling
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', syncScrollLock);
+  } else {
+    syncScrollLock();
+  }
+
   // Close on backdrop click
   document.addEventListener('mousedown', function (e) {
     if (isOverlay(e.target) && !e.target.classList.contains('hidden') && !e.target.hasAttribute('data-nx-static')) {

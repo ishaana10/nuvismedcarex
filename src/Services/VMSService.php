@@ -441,7 +441,23 @@ class VMSService
             ],
             'total_sales' => 0.0,
             'total_refunds' => 0.0,
-            'total_vat' => 0.0
+            'total_vat' => 0.0,
+            // Added for the Z-Report screen and printed summary
+            'from' => $fromDate,
+            'to' => $toDate,
+            'is_range' => $fromDate !== null && $toDate !== null,
+            'sales_count' => 0,
+            'refund_count' => 0,
+            'fiscalised_count' => 0,
+            'unfiscalised_count' => 0,
+            'insurance_covered' => 0.0,
+            'patient_share' => 0.0,
+            'net_sales' => 0.0,          // turnover excluding VAT
+            'first_invoice' => '',
+            'last_invoice' => '',
+            'by_tax' => [],              // tax label => net, tax, gross
+            'payments_total' => 0.0,
+            'reconciliation' => 0.0,     // payments recorded less net turnover
         ];
 
         foreach ($invoices as $inv) {
@@ -459,32 +475,117 @@ class VMSService
 
             if ($inv['transaction_type'] === 'Sale') {
                 $summary['total_sales'] += $amt;
+                $summary['sales_count']++;
             } else {
                 $summary['total_refunds'] += $amt;
+                $summary['refund_count']++;
             }
             $summary['total_vat'] += $tax;
+
+            if (!empty($inv['is_fiscalized'])) {
+                $summary['fiscalised_count']++;
+            } else {
+                $summary['unfiscalised_count']++;
+            }
+
+            // A refund takes money back out, so its lines count against turnover
+            $sign = ($inv['transaction_type'] ?? 'Sale') === 'Refund' ? -1 : 1;
+
+            // What a third party covered, so the payment lines add up to turnover
+            $covered = max(0.0, (float) ($inv['insurance_covered'] ?? 0));
+            $covered = min($covered, max(0.0, $amt));
+            $patientShare = max(0.0, $amt - $covered);
+            $summary['insurance_covered'] += $sign * $covered;
+            $summary['patient_share'] += $sign * $patientShare;
+
+            if (($inv['invoice_number'] ?? '') !== '') {
+                if ($summary['first_invoice'] === '') {
+                    $summary['first_invoice'] = (string) $inv['invoice_number'];
+                }
+                $summary['last_invoice'] = (string) $inv['invoice_number'];
+            }
 
             $payments = json_decode($inv['payment_methods'] ?? '[]', true);
             if (is_array($payments) && !empty($payments)) {
                 foreach ($payments as $p) {
                     $pType = $p['type'] ?? 'Cash';
-                    $pAmt = (float)($p['amount'] ?? 0);
+                    $pAmt = $sign * (float)($p['amount'] ?? 0);
                     if (isset($summary['by_payment'][$pType])) {
                         $summary['by_payment'][$pType] += $pAmt;
                     } else {
                         $summary['by_payment'][$pType] = $pAmt;
                     }
                 }
-            } else {
-                // Fallback to primary payment method or status
+            } elseif ($patientShare > 0) {
+                // No payment lines recorded: credit the patient's share only, so
+                // an insured invoice is no longer counted as cash in the drawer.
                 $pType = $inv['payment_type'] ?? 'Cash';
                 if (!isset($summary['by_payment'][$pType])) {
                     $summary['by_payment'][$pType] = 0.0;
                 }
-                $summary['by_payment'][$pType] += $amt;
+                $summary['by_payment'][$pType] += $sign * $patientShare;
+            }
+
+            if ($covered > 0) {
+                $summary['by_payment']['Insurance / third party'] =
+                    ($summary['by_payment']['Insurance / third party'] ?? 0.0) + $sign * $covered;
             }
         }
 
+        $summary['net_sales'] = $summary['total_sales'] - $summary['total_refunds'] - $summary['total_vat'];
+        $summary['payments_total'] = array_sum($summary['by_payment']);
+        $summary['reconciliation'] = round(
+            $summary['payments_total'] - ($summary['total_sales'] - $summary['total_refunds']),
+            2
+        );
+        $summary['by_tax'] = $this->taxBreakdown(array_column($invoices, 'id'));
+
         return $summary;
+    }
+
+    /**
+     * VAT split by FRCS tax label (A, E, F, P) for the invoices in a report.
+     * Falls back to the invoice-level tax total when line items were never
+     * written, so the figures are never silently zero.
+     *
+     * @param string[] $invoiceIds
+     */
+    private function taxBreakdown(array $invoiceIds): array
+    {
+        $invoiceIds = array_values(array_filter($invoiceIds, static fn($id) => (string) $id !== ''));
+        if ($invoiceIds === []) {
+            return [];
+        }
+        $out = [];
+        try {
+            $in = implode(',', array_fill(0, count($invoiceIds), '?'));
+            $stmt = $this->pdo->prepare("
+                SELECT tax_label,
+                       SUM(total_price) AS gross,
+                       SUM(tax_amount) AS tax,
+                       COUNT(*) AS lines
+                  FROM invoice_items
+                 WHERE invoice_id IN ($in)
+                 GROUP BY tax_label
+                 ORDER BY tax_label ASC
+            ");
+            $stmt->execute($invoiceIds);
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+                $label = (string) ($row['tax_label'] ?: 'A');
+                $gross = (float) $row['gross'];
+                $tax = (float) $row['tax'];
+                $out[$label] = [
+                    'label' => $label,
+                    'rate' => $this->taxRates[$label] ?? null,
+                    'lines' => (int) $row['lines'],
+                    'gross' => $gross,
+                    'tax' => $tax,
+                    'net' => $gross - $tax,
+                ];
+            }
+        } catch (\Throwable $e) {
+            error_log('[VMSService] tax breakdown: ' . $e->getMessage());
+        }
+        return $out;
     }
 }
