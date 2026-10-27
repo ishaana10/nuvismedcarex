@@ -55,7 +55,7 @@ include __DIR__ . '/includes/header.php';
 
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">Phone Number <span class="text-red-500">*</span></label>
-                    <input type="tel" name="phone" required placeholder="(555) 000-0000" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium text-on-surface focus:outline-none focus:border-primary focus:bg-white transition">
+                    <input type="tel" name="phone" required placeholder="+679 999 0000" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium text-on-surface focus:outline-none focus:border-primary focus:bg-white transition">
                 </div>
 
                 <div>
@@ -90,12 +90,12 @@ include __DIR__ . '/includes/header.php';
                 </div>
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">Emergency Phone</label>
-                    <input type="tel" name="emergency_contact_phone" placeholder="(555) 000-0000" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium text-on-surface focus:outline-none focus:border-primary focus:bg-white transition">
+                    <input type="tel" name="emergency_contact_phone" placeholder="+679 999 0000" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium text-on-surface focus:outline-none focus:border-primary focus:bg-white transition">
                 </div>
 
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">Insurance Provider</label>
-                    <input type="text" name="insurance_provider" placeholder="e.g. Blue Cross" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium text-on-surface focus:outline-none focus:border-primary focus:bg-white transition">
+                    <?php $ipValue = ''; $ipId = 'reg-insurance-provider'; include __DIR__ . '/includes/insurance_provider_field.php'; ?>
                 </div>
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">Policy Number</label>

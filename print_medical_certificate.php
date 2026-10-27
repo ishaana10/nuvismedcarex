@@ -19,7 +19,7 @@ $settings = [];
 $clinicProfile = nxClinic();
 $clinicName = $clinicProfile['name'];
 $clinicAddress = $clinicProfile['address'];
-$clinicPhone = $settings['clinic_phone'] ?? '(555) 019-2831';
+$clinicPhone = $settings['clinic_phone'] ?? '+679 331 2233';
 $clinicEmail = $settings['clinic_email'] ?? 'medico@nuvistechnologies.com.fj';
 
 $certHeaderTitle = $settings['cert_header_title'] ?? 'OFFICIAL MEDICAL CERTIFICATE';

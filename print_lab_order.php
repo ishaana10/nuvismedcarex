@@ -43,7 +43,7 @@ $clinicProfile = nxClinic();
 $clinicName = $clinicProfile['name'];
 $clinicSubtitle = $clinicProfile['subtitle'];
 $clinicAddress = $clinicProfile['address'];
-$clinicPhone = $settings['clinic_phone'] ?? '(555) 019-2831';
+$clinicPhone = $settings['clinic_phone'] ?? '+679 331 2233';
 
 // Fetch patient info
 $stmt = $pdo->prepare("SELECT * FROM patients WHERE id = ? AND tenant_id = ?");
