@@ -20,7 +20,7 @@ $vmsSettings = array_filter(
 );
 
 // Fetch all patients for dropdown selection (Tenant Scoped)
-$patientsStmt = $pdo->prepare("SELECT id, first_name, last_name, mrn, phone FROM patients WHERE tenant_id = ? ORDER BY first_name ASC");
+$patientsStmt = $pdo->prepare("SELECT id, first_name, last_name, mrn, phone, insurance_provider, insurance_policy_number FROM patients WHERE tenant_id = ? ORDER BY first_name ASC");
 $patientsStmt->execute([$currentTenantId]);
 $patientsList = $patientsStmt->fetchAll();
 
@@ -52,6 +52,36 @@ $paginatedInvoices = array_slice($invoices, $paginationInvoices['offset'], $pagi
 // version and the CSV export)
 require_once __DIR__ . '/includes/zreport_query.php';
 $cur = nxCurrencySymbol();
+
+// Insurers this clinic has configured, for the claim form
+$providerSvc = new \ClinicFlow\Services\InsuranceProviders($pdo, $currentTenantId);
+$claimProviders = $providerSvc->active();
+
+// What the claim form needs to know about each invoice, so picking an invoice
+// fills in its patient, their insurer and a suggested amount.
+$patientInsurance = [];
+foreach ($patientsList as $p) {
+    $patientInsurance[$p['id']] = [
+        'name'     => trim($p['first_name'] . ' ' . $p['last_name']),
+        'mrn'      => (string) ($p['mrn'] ?? ''),
+        'provider' => (string) ($p['insurance_provider'] ?? ''),
+        'policy'   => (string) ($p['insurance_policy_number'] ?? ''),
+    ];
+}
+$claimInvoices = [];
+foreach ($invoices as $inv) {
+    $pat = $patientInsurance[$inv['patient_id']] ?? null;
+    $claimInvoices[] = [
+        'id'        => (string) $inv['id'],
+        'number'    => (string) ($inv['invoice_number'] ?? ''),
+        'amount'    => (float) ($inv['amount'] ?? 0),
+        'covered'   => (float) ($inv['insurance_covered'] ?? 0),
+        'patient'   => $pat['name'] ?? (string) ($inv['patient_name'] ?? ''),
+        'mrn'       => $pat['mrn'] ?? (string) ($inv['patient_mrn'] ?? ''),
+        'provider'  => $pat['provider'] ?? '',
+        'policy'    => $pat['policy'] ?? '',
+    ];
+}
 ?>
 
 <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -314,8 +344,21 @@ if (($_GET['action'] ?? '') === 'edit_claim' && !empty($editClaimId)) {
             <input type="hidden" name="claim_id" value="<?= htmlspecialchars($editClaim['id']) ?>">
 
             <div>
-                <label class="block font-bold text-outline mb-1">Insurance Provider Name *</label>
-                <input type="text" name="provider_name" required value="<?= htmlspecialchars($editClaim['provider_name']) ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium">
+                <label class="block font-bold text-outline mb-1" for="edit-claim-provider">Insurance provider *</label>
+                <select id="edit-claim-provider" name="provider_name" required class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium">
+                    <?php
+                    $editProviderKnown = false;
+                    foreach ($claimProviders as $prov):
+                        $sel = strcasecmp($prov['name'], (string) $editClaim['provider_name']) === 0;
+                        $editProviderKnown = $editProviderKnown || $sel; ?>
+                        <option value="<?= htmlspecialchars($prov['name']) ?>" <?= $sel ? 'selected' : '' ?>><?= htmlspecialchars($prov['name']) ?></option>
+                    <?php endforeach; ?>
+                    <?php if (!$editProviderKnown && ($editClaim['provider_name'] ?? '') !== ''): ?>
+                        <option value="<?= htmlspecialchars($editClaim['provider_name']) ?>" selected>
+                            <?= htmlspecialchars($editClaim['provider_name']) ?> (not on the clinic's list)
+                        </option>
+                    <?php endif; ?>
+                </select>
             </div>
 
             <div>
@@ -360,48 +403,175 @@ if (($_GET['action'] ?? '') === 'edit_claim' && !empty($editClaimId)) {
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
-        <form action="actions/insurance_claim_save.php" method="POST" class="p-6 space-y-4 text-xs">
+        <form action="actions/insurance_claim_save.php" method="POST" class="p-6 space-y-4 text-xs" id="create-claim-form">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getCsrfToken()) ?>">
             <input type="hidden" name="action" value="create_claim">
 
             <div>
-                <label class="block font-bold text-outline mb-1">Select Invoice *</label>
-                <select name="invoice_id" required class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium">
-                    <?php foreach ($invoices as $inv): ?>
+                <label class="block font-bold text-outline mb-1" for="claim-invoice">Invoice *</label>
+                <select id="claim-invoice" name="invoice_id" required class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium">
+                    <option value="">-- Choose the invoice to claim against --</option>
+                    <?php foreach ($claimInvoices as $inv): ?>
                         <option value="<?= htmlspecialchars($inv['id']) ?>">
-                            <?= htmlspecialchars($inv['invoice_number']) ?> - <?= htmlspecialchars($inv['patient_name']) ?> ($<?= number_format((float)$inv['amount'], 2) ?>)
+                            <?= htmlspecialchars($inv['number']) ?> &middot; <?= htmlspecialchars($inv['patient']) ?> &middot; <?= $cur . number_format($inv['amount'], 2) ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
+                <p class="mt-1 text-[11px] text-outline" id="claim-patient-line">The patient and their policy are taken from the invoice.</p>
             </div>
 
             <div>
-                <label class="block font-bold text-outline mb-1">Patient ID *</label>
-                <input type="text" name="patient_id" required value="<?= htmlspecialchars($invoices[0]['patient_id'] ?? 'pat-1') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium">
+                <label class="block font-bold text-outline mb-1" for="claim-provider">Insurance provider *</label>
+                <select id="claim-provider" name="provider_name" required class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium">
+                    <option value="">-- Choose a provider --</option>
+                    <?php foreach ($claimProviders as $prov): ?>
+                        <option value="<?= htmlspecialchars($prov['name']) ?>"
+                                data-coverage="<?= htmlspecialchars((string) $prov['default_coverage']) ?>"
+                                data-label="<?= htmlspecialchars($prov['policy_label']) ?>"
+                                data-notes="<?= htmlspecialchars($prov['notes']) ?>">
+                            <?= htmlspecialchars($prov['name']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                    <option value="__other__">Another provider…</option>
+                </select>
+                <?php if (!$claimProviders): ?>
+                    <p class="mt-1 text-[11px] text-amber-700">
+                        No providers configured yet.
+                        <?php if (nxCan('settings', 'edit')): ?>
+                            <a href="insurance_providers.php" class="underline">Set them up in Administration &rarr; Insurance</a>
+                            so they can be picked here.
+                        <?php else: ?>
+                            Ask an administrator to add them in Administration &rarr; Insurance.
+                        <?php endif; ?>
+                    </p>
+                <?php endif; ?>
+                <p class="mt-1 text-[11px] text-outline hidden" id="claim-provider-notes"></p>
+            </div>
+
+            <div class="hidden" id="claim-other-wrap">
+                <label class="block font-bold text-outline mb-1" for="claim-other">Provider name *</label>
+                <input id="claim-other" type="text" name="provider_other" maxlength="80" placeholder="Name of the insurer" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium">
+                <?php if (nxCan('settings', 'edit')): ?>
+                    <label class="mt-2 inline-flex items-center gap-2 text-[11px] text-outline cursor-pointer">
+                        <input type="checkbox" name="remember_provider" value="1" checked class="w-3.5 h-3.5 rounded border-outline-variant">
+                        <span>Add this one to the clinic's provider list</span>
+                    </label>
+                <?php endif; ?>
             </div>
 
             <div>
-                <label class="block font-bold text-outline mb-1">Insurance Provider Name</label>
-                <input type="text" name="provider_name" value="Fiji National Health Insurance" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium">
+                <label class="block font-bold text-outline mb-1" for="claim-policy"><span id="claim-policy-label">Policy / member number</span></label>
+                <input id="claim-policy" type="text" name="policy_number" placeholder="e.g. POL-882019" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium">
             </div>
 
             <div>
-                <label class="block font-bold text-outline mb-1">Policy / Member Number</label>
-                <input type="text" name="policy_number" placeholder="e.g. POL-882019" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium">
+                <label class="block font-bold text-outline mb-1" for="claim-amount">Claim amount (<?= htmlspecialchars($cur) ?>) *</label>
+                <input id="claim-amount" type="number" step="0.01" min="0.01" name="claim_amount" required placeholder="100.00" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium font-mono">
+                <p class="mt-1 text-[11px] text-outline hidden" id="claim-amount-hint"></p>
             </div>
 
             <div>
-                <label class="block font-bold text-outline mb-1">Claim Amount ($) *</label>
-                <input type="number" step="0.01" name="claim_amount" required placeholder="100.00" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium">
+                <label class="block font-bold text-outline mb-1" for="claim-notes">Notes</label>
+                <textarea id="claim-notes" name="notes" rows="2" maxlength="500" placeholder="Pre-authorisation reference, anything the insurer asked for" class="w-full bg-surface-container-low p-2.5 rounded-xl border border-outline-variant/40 font-medium"></textarea>
             </div>
 
             <div class="flex items-center justify-end gap-2 pt-3 border-t border-outline-variant/20">
                 <button type="button" onclick="NX.closeModal('createClaimModal')" class="px-4 py-2 bg-surface-container rounded-xl font-semibold">Cancel</button>
-                <button type="submit" class="px-5 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90">Submit Claim</button>
+                <button type="submit" class="px-5 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90">Submit claim</button>
             </div>
         </form>
     </div>
 </div>
+
+<script>
+// Picking the invoice decides the patient, so the claim can no longer be filed
+// against whoever happened to be first in the list.
+(function () {
+    const invoices = <?= json_encode($claimInvoices, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+    const byId = {};
+    invoices.forEach(function (inv) { byId[inv.id] = inv; });
+    const currency = <?= json_encode($cur) ?>;
+
+    const invoiceSel = document.getElementById('claim-invoice');
+    const providerSel = document.getElementById('claim-provider');
+    const otherWrap = document.getElementById('claim-other-wrap');
+    const otherInput = document.getElementById('claim-other');
+    const policyInput = document.getElementById('claim-policy');
+    const policyLabel = document.getElementById('claim-policy-label');
+    const amount = document.getElementById('claim-amount');
+    const amountHint = document.getElementById('claim-amount-hint');
+    const patientLine = document.getElementById('claim-patient-line');
+    const providerNotes = document.getElementById('claim-provider-notes');
+    if (!invoiceSel || !providerSel) return;
+
+    function money(n) { return currency + Number(n || 0).toFixed(2); }
+    function show(el, text) {
+        if (!el) return;
+        el.textContent = text || '';
+        el.classList.toggle('hidden', !text);
+    }
+
+    function syncProvider() {
+        const opt = providerSel.selectedOptions[0];
+        const isOther = providerSel.value === '__other__';
+        otherWrap.classList.toggle('hidden', !isOther);
+        otherInput.required = isOther;
+        if (isOther) otherInput.focus();
+        policyLabel.textContent = (opt && opt.dataset.label) || 'Policy / member number';
+        show(providerNotes, opt ? opt.dataset.notes : '');
+        suggestAmount();
+    }
+
+    function suggestAmount() {
+        const inv = byId[invoiceSel.value];
+        if (!inv) { show(amountHint, ''); return; }
+        const opt = providerSel.selectedOptions[0];
+        const coverage = opt ? parseFloat(opt.dataset.coverage || '0') : 0;
+        let suggested = inv.covered > 0 ? inv.covered : (coverage > 0 ? inv.amount * coverage / 100 : 0);
+        suggested = Math.round(suggested * 100) / 100;
+        if (suggested > 0) {
+            // Only fill a box the user has not typed into
+            if (!amount.value || amount.dataset.auto === '1') {
+                amount.value = suggested.toFixed(2);
+                amount.dataset.auto = '1';
+            }
+            show(amountHint, inv.covered > 0
+                ? 'The invoice already records ' + money(inv.covered) + ' as the insurer’s share.'
+                : 'Suggested from this provider’s usual ' + coverage + '% share of ' + money(inv.amount) + '.');
+        } else {
+            show(amountHint, 'Invoice total ' + money(inv.amount) + '.');
+        }
+        amount.max = inv.amount;
+    }
+
+    invoiceSel.addEventListener('change', function () {
+        const inv = byId[invoiceSel.value];
+        if (!inv) {
+            patientLine.textContent = 'The patient and their policy are taken from the invoice.';
+            return;
+        }
+        patientLine.textContent = 'Claim for ' + inv.patient + (inv.mrn ? ' (' + inv.mrn + ')' : '') + '.';
+        if (inv.policy && !policyInput.value) policyInput.value = inv.policy;
+        if (inv.provider) {
+            const match = Array.from(providerSel.options).find(function (o) {
+                return o.value.toLowerCase() === inv.provider.toLowerCase();
+            });
+            if (match) {
+                providerSel.value = match.value;
+            } else if (!providerSel.value) {
+                providerSel.value = '__other__';
+                otherInput.value = inv.provider;
+            }
+            syncProvider();
+        }
+        suggestAmount();
+    });
+
+    providerSel.addEventListener('change', syncProvider);
+    amount.addEventListener('input', function () { amount.dataset.auto = ''; });
+    syncProvider();
+})();
+</script>
 
 <?php elseif ($activeTab === 'zreport'): ?>
 <?php

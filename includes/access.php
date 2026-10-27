@@ -81,9 +81,11 @@ if (!function_exists('nxAccess')) {
         // Clinic settings
         'actions/admin_save_settings.php' => ['settings', 'edit'],
         'actions/receipt_settings_save.php' => ['settings', 'edit'],
+        'actions/insurance_providers_save.php' => ['settings', 'edit'],
         'actions/vms_save_settings.php'   => ['settings', 'edit'],
         'actions/vms_actions.php'         => ['settings', 'edit'],
-        'actions/cloud_storage_settings.php' => ['settings', 'edit'],
+        // Drive credentials moved to Developer → Document storage
+        'actions/cloud_storage_settings.php' => ['developer', 'edit'],
         'actions/email_actions.php'       => ['settings', 'view', ['resend_email' => 'edit']],
         'actions/test_email.php'          => ['settings', 'edit'],
         // Staff & access

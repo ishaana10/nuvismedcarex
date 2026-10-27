@@ -602,7 +602,14 @@ $tones = [
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-on-surface mb-1">Unit Type</label>
-                    <input type="text" name="unit" value="<?= htmlspecialchars($units[0] ?? 'Box') ?>" list="nx-units" placeholder="e.g. Box, Bottle, Vial" class="w-full bg-surface-container-low px-3 py-2 rounded-xl text-xs border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none">
+                    <select name="unit" class="w-full bg-surface-container-low px-3 py-2 rounded-xl text-xs border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none">
+                        <?php foreach ($units as $u): ?>
+                            <option value="<?= htmlspecialchars($u) ?>"><?= htmlspecialchars($u) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <?php if ($isAdminOrDev): ?>
+                        <p class="text-[10px] text-outline mt-1">Set the list in <a href="admin.php?tab=inventory" class="underline hover:text-primary">Administration &rarr; Inventory</a></p>
+                    <?php endif; ?>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-on-surface mb-1">VMS Tax Label</label>
@@ -695,7 +702,11 @@ $tones = [
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-on-surface mb-1">Unit Type</label>
-                    <input type="text" name="unit" id="edit-unit" list="nx-units" class="w-full bg-surface-container-low px-3 py-2 rounded-xl text-xs border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none">
+                    <select name="unit" id="edit-unit" class="w-full bg-surface-container-low px-3 py-2 rounded-xl text-xs border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none">
+                        <?php foreach ($units as $u): ?>
+                            <option value="<?= htmlspecialchars($u) ?>"><?= htmlspecialchars($u) ?></option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-on-surface mb-1">VMS Tax Label</label>
@@ -884,13 +895,26 @@ function closeModal(id) {
     document.getElementById(id).classList.add('hidden');
 }
 
+// A dropdown can only select a value it offers. An item saved before the
+// clinic edited its categories or units would otherwise quietly come back as
+// the first option, and be saved that way.
+function selectValue(id, value) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    value = (value === null || value === undefined) ? '' : String(value);
+    if (el.tagName === 'SELECT' && value !== '' && !Array.from(el.options).some(o => o.value === value)) {
+        el.add(new Option(value + ' (no longer in the list)', value));
+    }
+    el.value = value;
+}
+
 function openEditModal(item) {
     document.getElementById('edit-item-id').value = item.id;
     document.getElementById('edit-name').value = item.name;
     document.getElementById('edit-sku').value = item.sku;
-    document.getElementById('edit-category').value = item.category;
-    document.getElementById('edit-unit').value = item.unit;
-    document.getElementById('edit-vms-tax-code').value = item.vms_tax_code || 'A';
+    selectValue('edit-category', item.category);
+    selectValue('edit-unit', item.unit);
+    selectValue('edit-vms-tax-code', item.vms_tax_code || 'A');
     document.getElementById('edit-min-threshold').value = item.min_threshold;
     document.getElementById('edit-cost-price').value = item.cost_price || 0.00;
     document.getElementById('edit-unit-price').value = item.unit_price || 0.00;

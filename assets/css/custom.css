@@ -248,6 +248,11 @@ html.dark .bg-\[\#f8f9ff\],
 html.dark .bg-\[\#f8fafc\] { background-color: rgb(var(--nx-card) / var(--tw-bg-opacity, 1)); }
 html.dark [class*="bg-white/"] { background-color: rgb(var(--nx-card) / .85); }
 html.dark .hover\:bg-white:hover { background-color: rgb(var(--c-slate-100)); }
+/* Forms across the app turn white on focus. In dark mode that left pale text
+   on a white field — unreadable exactly while it was being typed into. */
+html.dark .focus\:bg-white:focus,
+html.dark .focus\:bg-white:focus-visible { background-color: rgb(var(--nx-card)); color: rgb(var(--c-slate-900)); }
+html.dark .focus\:bg-white:focus::placeholder { color: rgb(var(--c-slate-400)); }
 html.dark .bg-black { background-color: rgb(0 0 0 / var(--tw-bg-opacity, 1)); }
 html.dark .text-black { color: rgb(var(--c-slate-900)); }
 html.dark .border-white { border-color: rgb(var(--nx-card)); }

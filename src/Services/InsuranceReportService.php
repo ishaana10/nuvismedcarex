@@ -34,6 +34,15 @@ final class InsuranceReportService
     public function providers(): array
     {
         $names = [];
+        // The clinic's configured insurers come first, so one that has not been
+        // claimed from yet can still be picked.
+        try {
+            foreach ((new InsuranceProviders($this->db, $this->tenantId))->names() as $name) {
+                $names[mb_strtolower($name)] = $name;
+            }
+        } catch (\Throwable $e) {
+            error_log('[InsuranceReport] configured providers: ' . $e->getMessage());
+        }
         foreach ([
             "SELECT DISTINCT provider_name FROM insurance_claims WHERE tenant_id = ? AND provider_name <> ''",
             "SELECT DISTINCT insurance_provider FROM patients WHERE tenant_id = ? AND insurance_provider IS NOT NULL AND insurance_provider <> ''",
