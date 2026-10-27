@@ -276,13 +276,14 @@ if (($_GET['action'] ?? '') === 'edit_claim' && !empty($editClaimId)) {
                     <th class="py-3 px-4">Policy No</th>
                     <th class="py-3 px-4">Claim Amount</th>
                     <th class="py-3 px-4">Status</th>
+                    <th class="py-3 px-4">Signed</th>
                     <th class="py-3 px-4 text-right">Actions</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-outline-variant/20 font-medium">
                 <?php if (empty($paginatedClaims)): ?>
                     <tr>
-                        <td colspan="7" class="py-6 text-center text-outline italic">No insurance claims submitted yet.</td>
+                        <td colspan="8" class="py-6 text-center text-outline italic">No insurance claims submitted yet.</td>
                     </tr>
                 <?php else: ?>
                     <?php foreach ($paginatedClaims as $claim): ?>
@@ -296,6 +297,16 @@ if (($_GET['action'] ?? '') === 'edit_claim' && !empty($editClaimId)) {
                                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold <?= $claim['status'] === 'Approved' ? 'bg-emerald-100 text-emerald-800' : ($claim['status'] === 'Rejected' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800') ?>">
                                     <?= htmlspecialchars($claim['status']) ?>
                                 </span>
+                            </td>
+                            <td class="py-3 px-4">
+                                <?php if (!empty($claim['patient_signature'])): ?>
+                                    <span class="inline-flex items-center gap-1 text-emerald-700" title="Signed<?= !empty($claim['signed_by_name']) ? ' by ' . htmlspecialchars($claim['signed_by_name']) : '' ?><?= !empty($claim['signed_at']) ? ' on ' . htmlspecialchars(nxDate((string) $claim['signed_at'])) : '' ?>">
+                                        <span class="material-symbols-outlined text-base">draw</span>
+                                        <img src="<?= htmlspecialchars($claim['patient_signature']) ?>" alt="Signature" class="h-6 bg-white rounded border border-emerald-200">
+                                    </span>
+                                <?php else: ?>
+                                    <span class="text-[11px] text-amber-700">Not signed</span>
+                                <?php endif; ?>
                             </td>
                             <td class="py-3 px-4 text-right">
                                 <div class="inline-flex items-center gap-1 justify-end">
@@ -385,6 +396,33 @@ if (($_GET['action'] ?? '') === 'edit_claim' && !empty($editClaimId)) {
                 <textarea name="notes" rows="2" class="w-full bg-surface-container-low p-2.5 rounded-xl border border-outline-variant/40 font-medium"><?= htmlspecialchars($editClaim['notes'] ?? '') ?></textarea>
             </div>
 
+            <div class="pt-3 border-t border-outline-variant/20">
+                <?php
+                $spName = 'claim_signature';
+                $spId = 'edit-claim-signature';
+                $spLabel = "Patient's signature";
+                $spHint = 'Sign here to add or replace the signature';
+                $spValue = (string) ($editClaim['patient_signature'] ?? '');
+                include __DIR__ . '/includes/signature_pad.php';
+                ?>
+                <div class="mt-2 grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-outline mb-1" for="edit-claim-signed-by">Signed by</label>
+                        <input type="text" id="edit-claim-signed-by" name="claim_signed_by" maxlength="120"
+                               value="<?= htmlspecialchars((string) ($editClaim['signed_by_name'] ?? '')) ?>"
+                               class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium">
+                    </div>
+                    <div class="flex items-end">
+                        <?php if (!empty($editClaim['patient_signature'])): ?>
+                            <label class="flex items-center gap-2 text-[11px] text-slate-600 cursor-pointer pb-2.5">
+                                <input type="checkbox" name="remove_signature" value="1" class="w-3.5 h-3.5 rounded border-outline-variant">
+                                <span>Remove the signature on file<?= !empty($editClaim['signed_at']) ? ' (' . htmlspecialchars(nxDate((string) $editClaim['signed_at'])) . ')' : '' ?></span>
+                            </label>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+
             <div class="flex justify-end gap-2 pt-3">
                 <a href="billing.php?tab=insurance" class="px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200">Cancel</a>
                 <button type="submit" class="px-5 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary-hover shadow-xs">Save Changes</button>
@@ -468,6 +506,22 @@ if (($_GET['action'] ?? '') === 'edit_claim' && !empty($editClaimId)) {
                 <label class="block font-bold text-outline mb-1" for="claim-amount">Claim amount (<?= htmlspecialchars($cur) ?>) *</label>
                 <input id="claim-amount" type="number" step="0.01" min="0.01" name="claim_amount" required placeholder="100.00" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium font-mono">
                 <p class="mt-1 text-[11px] text-outline hidden" id="claim-amount-hint"></p>
+            </div>
+
+            <div class="pt-3 border-t border-outline-variant/20">
+                <?php
+                $spName = 'claim_signature';
+                $spId = 'create-claim-signature';
+                $spLabel = "Patient's signature";
+                $spHint = 'Sign here with a finger or the mouse';
+                $spValue = '';
+                include __DIR__ . '/includes/signature_pad.php';
+                ?>
+                <div class="mt-2">
+                    <label class="block font-bold text-outline mb-1" for="claim-signed-by">Signed by</label>
+                    <input type="text" id="claim-signed-by" name="claim_signed_by" maxlength="120" placeholder="The patient, or the guardian signing for them"
+                           class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium">
+                </div>
             </div>
 
             <div>

@@ -866,8 +866,65 @@ include __DIR__ . '/includes/header.php';
                             </select>
                         </div>
                         <div>
-                            <label class="block font-bold text-outline mb-1">Insurance Portion ($)</label>
-                            <input type="number" step="0.01" min="0" name="insurance_covered" id="finalize_insurance_covered" value="0.00" oninput="recalculateFinalizeInvoiceTotals()" class="w-full px-2.5 py-1.5 border border-outline-variant/40 rounded-xl font-mono font-bold bg-white">
+                            <label class="block font-bold text-outline mb-1" for="finalize_insurance_covered">Insurance Portion (<?= htmlspecialchars(nxCurrencySymbol()) ?>)</label>
+                            <input type="number" step="0.01" min="0" name="insurance_covered" id="finalize_insurance_covered" value="0.00" oninput="onFinalizeInsuranceChange()" class="w-full px-2.5 py-1.5 border border-outline-variant/40 rounded-xl font-mono font-bold bg-white">
+                            <p class="mt-1 text-[11px] text-outline">Leave at 0 if the patient is paying the whole bill.</p>
+                        </div>
+                    </div>
+
+                    <!-- The claim, raised from here rather than typed again later -->
+                    <div id="finalize_claim_block" class="hidden mt-3 p-3 rounded-xl border border-blue-200 bg-blue-50/50 space-y-3">
+                        <div class="flex items-start gap-2">
+                            <span class="material-symbols-outlined text-base text-blue-700">verified</span>
+                            <p class="text-[11px] text-blue-900 leading-relaxed">
+                                An insurance claim for <span class="font-bold font-mono" id="finalize_claim_amount"><?= htmlspecialchars(nxCurrencySymbol()) ?>0.00</span>
+                                will be raised against this invoice for
+                                <span class="font-bold"><?= htmlspecialchars(trim($patient['first_name'] . ' ' . $patient['last_name'])) ?></span>.
+                            </p>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block font-bold text-outline mb-1" for="finalize_insurance_provider">Insurance provider</label>
+                                <?php
+                                $ipValue = (string) ($patient['insurance_provider'] ?? '');
+                                $ipId = 'finalize_insurance_provider';
+                                $ipClass = 'w-full px-2.5 py-1.5 border border-outline-variant/40 rounded-xl font-bold bg-white text-xs';
+                                include __DIR__ . '/includes/insurance_provider_field.php';
+                                ?>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-outline mb-1" for="finalize_policy_number">Policy / member number</label>
+                                <input type="text" id="finalize_policy_number" name="insurance_policy_number" maxlength="100"
+                                       value="<?= htmlspecialchars((string) ($patient['insurance_policy_number'] ?? '')) ?>"
+                                       placeholder="e.g. FC-9842109"
+                                       class="w-full px-2.5 py-1.5 border border-outline-variant/40 rounded-xl font-mono bg-white text-xs">
+                            </div>
+                        </div>
+
+                        <?php if (trim((string) ($patient['insurance_provider'] ?? '')) === ''): ?>
+                            <label class="flex items-center gap-2 text-[11px] text-blue-900 cursor-pointer">
+                                <input type="checkbox" name="save_insurance_to_patient" value="1" checked class="w-3.5 h-3.5 rounded border-blue-300">
+                                <span>This patient has no insurer on file — save these details to their record</span>
+                            </label>
+                        <?php endif; ?>
+
+                        <div class="pt-2 border-t border-blue-200/70">
+                            <?php
+                            $spName = 'claim_signature';
+                            $spId = 'finalize-claim-signature';
+                            $spLabel = "Patient's signature for the claim";
+                            $spHint = 'Sign here with a finger or the mouse';
+                            $spValue = '';
+                            include __DIR__ . '/includes/signature_pad.php';
+                            ?>
+                            <div class="mt-2">
+                                <label class="block font-bold text-outline mb-1 text-xs" for="finalize_signed_by">Signed by</label>
+                                <input type="text" id="finalize_signed_by" name="claim_signed_by" maxlength="120"
+                                       value="<?= htmlspecialchars(trim($patient['first_name'] . ' ' . $patient['last_name'])) ?>"
+                                       class="w-full px-2.5 py-1.5 border border-outline-variant/40 rounded-xl bg-white text-xs">
+                                <p class="mt-1 text-[11px] text-outline">Change this if a parent or guardian signs on the patient's behalf.</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -917,6 +974,27 @@ function recalculateFinalizeInvoiceTotals() {
     if (document.getElementById('finalize_total_display')) {
         document.getElementById('finalize_total_display').innerText = '$' + totalGross.toFixed(2);
     }
+
+    // An insurer cannot be owed more than the bill
+    const ins = document.getElementById('finalize_insurance_covered');
+    if (ins) {
+        ins.max = totalGross.toFixed(2);
+        if (parseFloat(ins.value) > totalGross) ins.value = totalGross.toFixed(2);
+    }
+    onFinalizeInsuranceChange();
+}
+
+// Show the claim details only once there is an insurance portion to claim.
+function onFinalizeInsuranceChange() {
+    const ins = document.getElementById('finalize_insurance_covered');
+    const block = document.getElementById('finalize_claim_block');
+    if (!ins || !block) return;
+    const amount = parseFloat(ins.value) || 0;
+    const show = amount > 0;
+    block.classList.toggle('hidden', !show);
+    const label = document.getElementById('finalize_claim_amount');
+    if (label) label.textContent = <?= json_encode(nxCurrencySymbol()) ?> + amount.toFixed(2);
+    if (show && window.nxSetupSignaturePads) window.nxSetupSignaturePads();
 }
 
 function onFinalizeInventorySelect(select) {

@@ -39,6 +39,7 @@ final class InsuranceReportSettings
         'insurance_covered' => ['Covered on invoice', 'money'],
         'patient_share'     => ["Patient's share", 'money'],
         'age_days'          => ['Days outstanding', 'number'],
+        'signed'            => ['Signed by member', 'text'],
         'notes'             => ['Notes', 'text'],
     ];
 

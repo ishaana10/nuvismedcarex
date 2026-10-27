@@ -120,6 +120,7 @@ final class InsuranceReportService
 
         $sql = "SELECT c.id, c.invoice_id, c.patient_id, c.provider_name, c.policy_number,
                        c.claim_amount, c.status, c.notes, c.created_at, c.updated_at,
+                       c.patient_signature, c.signed_by_name, c.signed_at,
                        i.invoice_number, i.service_date, i.amount AS invoice_total,
                        i.total_tax AS invoice_tax, i.insurance_covered, i.patient_owed,
                        i.status AS invoice_status,
@@ -194,6 +195,12 @@ final class InsuranceReportService
             'insurance_covered' => $covered,
             'patient_share'     => max(0.0, $total - $covered),
             'age_days'          => $ageDays,
+            'signature'         => (string) ($r['patient_signature'] ?? ''),
+            'signed_by'         => (string) ($r['signed_by_name'] ?? ''),
+            'signed_at'         => substr((string) ($r['signed_at'] ?? ''), 0, 10),
+            'signed'            => ($r['patient_signature'] ?? '') !== ''
+                ? (trim((string) ($r['signed_by_name'] ?? '')) !== '' ? (string) $r['signed_by_name'] : 'Signed')
+                : 'Not signed',
             'notes'             => (string) ($r['notes'] ?? ''),
         ];
     }

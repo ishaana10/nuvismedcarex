@@ -53,7 +53,7 @@ if ($action === 'create_claim') {
         );
     } else {
         try {
-            $insuranceService->createClaim(
+            $claim = $insuranceService->createClaim(
                 (string) $invoice['id'],
                 (string) $invoice['patient_id'],
                 $providerName,
@@ -70,6 +70,9 @@ if ($action === 'create_claim') {
                     $logger->error('Could not add insurance provider: ' . $e->getMessage());
                 }
             }
+
+            // The signature, if one was drawn on the form
+            nxApplyClaimSignature($insuranceService, (string) ($claim['id'] ?? ''), $logger);
 
             setToast(
                 'Claim submitted',
@@ -110,7 +113,11 @@ if ($action === 'edit_claim') {
     if (!empty($claimId) && $claimAmount > 0) {
         try {
             $insuranceService->editClaim($claimId, $providerName, $policyNumber, $claimAmount, $status, $notes);
-            setToast('Claim Updated', "Insurance claim updated successfully.");
+            if (!empty($_POST['remove_signature'])) {
+                $insuranceService->clearSignature($claimId);
+            }
+            nxApplyClaimSignature($insuranceService, $claimId, $logger);
+            setToast('Claim updated', 'The claim was saved.');
         } catch (\Throwable $e) {
             $logger->error("Error editing insurance claim: " . $e->getMessage());
             setToast('Error', 'Could not edit insurance claim.', 'error');
@@ -136,3 +143,24 @@ if ($action === 'delete_claim') {
 
 header("Location: ../billing.php?tab=insurance");
 exit;
+
+/**
+ * Store the signature drawn on the form, if there is one. A bad drawing is
+ * reported rather than quietly dropped, since a claim without the member's
+ * signature is one the insurer will send back.
+ */
+function nxApplyClaimSignature(\ClinicFlow\Services\InsuranceService $service, string $claimId, $logger): void
+{
+    $signature = trim((string) ($_POST['claim_signature'] ?? ''));
+    if ($claimId === '' || $signature === '') {
+        return;
+    }
+    try {
+        $service->recordSignature($claimId, $signature, (string) ($_POST['claim_signed_by'] ?? '') ?: null);
+    } catch (\InvalidArgumentException $e) {
+        setToast('Signature not saved', $e->getMessage(), 'error');
+    } catch (\Throwable $e) {
+        $logger->error('Could not store claim signature: ' . $e->getMessage());
+        setToast('Signature not saved', 'The claim was saved but the signature could not be stored.', 'error');
+    }
+}
