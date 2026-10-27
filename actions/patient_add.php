@@ -1,6 +1,6 @@
 <?php
 /**
- * Patient Registration Form POST Handler
+ * Patient Registration Action Handler (Thin Bootstrap)
  */
 require_once __DIR__ . '/../includes/security.php';
 require_once __DIR__ . '/../config/database.php';
@@ -83,3 +83,5 @@ $actStmt->execute([
 setToast("Patient Registered", "$firstName $lastName ($mrn) was registered successfully.");
 header("Location: ../patient_detail.php?id=$patientId");
 exit;
+$controller = new \ClinicFlow\Http\Controllers\PatientController();
+$controller->register();
