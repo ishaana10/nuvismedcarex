@@ -66,8 +66,8 @@ if (empty($items)) {
 // Fetch Patient Info if available
 $patient = null;
 if (!empty($invoice['patient_id'])) {
-    $pStmt = $pdo->prepare("SELECT * FROM patients WHERE id = ?");
-    $pStmt->execute([$invoice['patient_id']]);
+    $pStmt = $pdo->prepare("SELECT * FROM patients WHERE id = ? AND tenant_id = ?");
+    $pStmt->execute([$invoice['patient_id'], $currentTenantId]);
     $patient = $pStmt->fetch();
 }
 

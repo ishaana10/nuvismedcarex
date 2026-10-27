@@ -5,8 +5,9 @@ require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/includes/pagination.php';
 $pdo = getDB();
 
-$stmt = $pdo->prepare("SELECT * FROM patients WHERE id = ?");
-$stmt->execute([$patientId]);
+// Only a patient of the clinic being worked in
+$stmt = $pdo->prepare("SELECT * FROM patients WHERE id = ? AND tenant_id = ?");
+$stmt->execute([$patientId, \ClinicFlow\Shared\TenantContext::getTenantId()]);
 $patient = $stmt->fetch();
 
 if (!$patient) {

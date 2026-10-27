@@ -121,6 +121,14 @@ Run the automated PHPUnit test suite covering Domain Entities, Repositories, Ser
 
 ## 📜 Version History & Release Notes
 
+### **Cross-clinic leak, insurance on receipts, inventory alerts and reports** - *October 2026*
+- **Fixed: the booking form listed patients from every clinic.** `appointment.php` fetched patients with no clinic filter. The picker is now scoped, and `AppointmentService` refuses a booking whose patient does not belong to the active clinic instead of quietly using the name posted with the form. The same leak was closed on the Documents upload picker and on the patient, prescription, certificate, lab-order, invoice and patient-update lookups, which read a record by id without checking which clinic it belonged to.
+- **Fixed: `print_prescription.php` fell back to the first patient in the database** when the requested one was not found, so a bad link could print someone else's prescription. It now stops with "Patient file not found".
+- **Fixed: receipts overstated what the patient paid.** With no itemised payments recorded the receipt used the full invoice total, ignoring the insurer's share. Receipts now show the total, the insurer's contribution as a deduction, the patient's share, and what the patient actually paid — and fall back to the patient's share, never the full amount. The insurer is named from the patient's record, and the line can be turned off in the receipt designer.
+- **Inventory alerts**: a "Needs attention" view grouping expired stock, items at or below their reorder level, and items expiring inside the clinic's warning window, each with days remaining and a restock action. The count sits on the tab, and the dashboard and stock-list cards link straight to it.
+- **Inventory reports**: value of stock at cost and at selling price, units received and used with the amount spent, a by-category breakdown, the items that moved most, and stock sitting unused over a chosen period — with a CSV download for a spreadsheet or an accountant.
+- **Linked to the inventory set-up**: the extra fields a clinic defines in Administration → Inventory now show against each item in the stock list, and the reorder level and expiry window configured there drive the alerts, the reports and the dashboard figures.
+
 ### **Settings becomes personal preferences** - *October 2026*
 - **Removed the duplicates.** Settings had its own copies of clinic branding, the SMTP set-up and the email log, all of which now live in Administration. Those tabs are gone; Settings links across instead, so each thing is configured in exactly one place.
 - **Settings is now about the person signed in**, not the clinic, and the preferences are stored per account (`doctors.preferences`, added by migration) so they follow someone to any device and never affect a colleague.

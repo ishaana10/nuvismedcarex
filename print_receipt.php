@@ -70,7 +70,10 @@ body{margin:0;padding:20px 12px;background:#e9edf2;font-family:system-ui,sans-se
 
 // ----------------------------------------------------------------- real receipt
 $invoiceId = (string) ($_GET['id'] ?? '');
-$stmt = $pdo->prepare("SELECT i.*, p.email AS patient_email FROM invoices i LEFT JOIN patients p ON p.id = i.patient_id WHERE (i.id = ? OR i.invoice_number = ?) AND i.tenant_id = ?");
+$stmt = $pdo->prepare("SELECT i.*, p.email AS patient_email, p.insurance_provider AS patient_insurer
+                         FROM invoices i
+                         LEFT JOIN patients p ON p.id = i.patient_id AND p.tenant_id = i.tenant_id
+                        WHERE (i.id = ? OR i.invoice_number = ?) AND i.tenant_id = ?");
 $stmt->execute([$invoiceId, $invoiceId, $currentTenantId]);
 $invoice = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -93,12 +96,22 @@ if (!$items) {
     }
 }
 
+// What an insurer covers is not money the patient handed over, so the receipt
+// separates the two: the insurer's share is shown as a deduction and "paid"
+// means what the patient actually paid.
+$insuranceCovered = max(0.0, (float) ($invoice['insurance_covered'] ?? 0));
+$patientShare = $insuranceCovered > 0
+    ? max(0.0, (float) $invoice['amount'] - $insuranceCovered)
+    : (float) $invoice['amount'];
+
 $payments = json_decode($invoice['payment_methods'] ?? '[]', true);
 if (!is_array($payments) || !$payments) {
-    $payments = [['type' => $invoice['payment_type'] ?? 'Cash', 'amount' => (float) $invoice['amount']]];
+    // No itemised payments recorded: fall back to the patient's share, never
+    // the full invoice total, which would overstate what they paid.
+    $payments = [['type' => $invoice['payment_type'] ?? 'Cash', 'amount' => $patientShare]];
 }
 $payments = array_map(fn($p) => ['type' => (string) ($p['type'] ?? $p['method'] ?? 'Cash'), 'amount' => (float) ($p['amount'] ?? 0)], $payments);
-$totalPaid = array_sum(array_column($payments, 'amount')) ?: (float) $invoice['amount'];
+$totalPaid = array_sum(array_column($payments, 'amount')) ?: $patientShare;
 $taxTotal = array_sum(array_map(fn($i) => (float) ($i['tax_amount'] ?? 0), $items)) ?: (float) ($invoice['total_tax'] ?? 0);
 $balance = ($invoice['status'] ?? '') === 'Paid' ? 0.0 : max(0.0, (float) ($invoice['patient_owed'] ?? 0));
 
@@ -133,6 +146,9 @@ $data = [
     'payments' => $payments,
     'total'    => (float) $invoice['amount'],
     'tax_total' => $taxTotal,
+    'insurance_covered' => $insuranceCovered,
+    'insurer'  => trim((string) ($invoice['patient_insurer'] ?? '')),
+    'patient_share' => $patientShare,
     'total_paid' => $totalPaid,
     'balance'  => $balance,
     'signer'   => [

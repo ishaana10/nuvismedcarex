@@ -73,6 +73,136 @@ class InventoryService {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Items that need attention: below their reorder level, out of stock, or
+     * close to expiry. One query so the dashboard, the stock list and the
+     * alerts view all agree.
+     *
+     * @return array{reorder: array, expiring: array, expired: array, window_days: int}
+     */
+    public function getAlerts(?string $tenantId = null): array {
+        $tenantId = $tenantId ?? TenantContext::getTenantId();
+        $settings = $this->getInventorySettings($tenantId);
+        $windowDays = max(0, (int) $settings['expiry_warning_days']);
+        $today = date('Y-m-d');
+        $cutoff = date('Y-m-d', strtotime("+{$windowDays} days"));
+
+        $out = ['reorder' => [], 'expiring' => [], 'expired' => [], 'window_days' => $windowDays];
+        try {
+            $stmt = $this->db->prepare(
+                "SELECT * FROM inventory
+                  WHERE tenant_id = :tid AND is_active = 1
+                    AND (current_stock <= min_threshold
+                         OR (expiry_date IS NOT NULL AND expiry_date <> '' AND expiry_date <= :cutoff))
+                  ORDER BY current_stock ASC, expiry_date ASC"
+            );
+            $stmt->execute(['tid' => $tenantId, 'cutoff' => $cutoff]);
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $item) {
+                $expiry = trim((string) ($item['expiry_date'] ?? ''));
+                if ($expiry !== '' && $expiry < $today) {
+                    $out['expired'][] = $item;
+                } elseif ($expiry !== '' && $expiry <= $cutoff) {
+                    $out['expiring'][] = $item;
+                }
+                if ((int) $item['current_stock'] <= (int) $item['min_threshold']) {
+                    $out['reorder'][] = $item;
+                }
+            }
+        } catch (\Throwable $e) {
+            error_log('[InventoryService] alerts: ' . $e->getMessage());
+        }
+        return $out;
+    }
+
+    /**
+     * Figures for the reports view: what stock is worth, where it sits, and
+     * what moved over a period.
+     */
+    public function getReport(string $from, string $to, ?string $tenantId = null): array {
+        $tenantId = $tenantId ?? TenantContext::getTenantId();
+        $report = [
+            'by_category' => [], 'totals' => ['items' => 0, 'units' => 0, 'cost_value' => 0.0, 'retail_value' => 0.0],
+            'movements' => ['in' => 0, 'out' => 0, 'spend' => 0.0, 'by_type' => []],
+            'top_moving' => [], 'never_moved' => [], 'from' => $from, 'to' => $to,
+        ];
+
+        try {
+            $stmt = $this->db->prepare("SELECT * FROM inventory WHERE tenant_id = ? AND is_active = 1");
+            $stmt->execute([$tenantId]);
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $item) {
+                $cat = trim((string) ($item['category'] ?? '')) ?: 'Uncategorised';
+                $units = (int) $item['current_stock'];
+                $cost = $units * (float) ($item['cost_price'] ?? 0);
+                $retail = $units * (float) ($item['unit_price'] ?? 0);
+
+                if (!isset($report['by_category'][$cat])) {
+                    $report['by_category'][$cat] = ['category' => $cat, 'items' => 0, 'units' => 0, 'cost_value' => 0.0, 'retail_value' => 0.0, 'low' => 0];
+                }
+                $report['by_category'][$cat]['items']++;
+                $report['by_category'][$cat]['units'] += $units;
+                $report['by_category'][$cat]['cost_value'] += $cost;
+                $report['by_category'][$cat]['retail_value'] += $retail;
+                if ($units <= (int) $item['min_threshold']) {
+                    $report['by_category'][$cat]['low']++;
+                }
+
+                $report['totals']['items']++;
+                $report['totals']['units'] += $units;
+                $report['totals']['cost_value'] += $cost;
+                $report['totals']['retail_value'] += $retail;
+            }
+            usort($report['by_category'], fn($a, $b) => $b['retail_value'] <=> $a['retail_value']);
+        } catch (\Throwable $e) {
+            error_log('[InventoryService] report stock: ' . $e->getMessage());
+        }
+
+        try {
+            $stmt = $this->db->prepare(
+                "SELECT l.*, i.name AS item_name, i.unit AS item_unit
+                   FROM inventory_logs l
+                   LEFT JOIN inventory i ON i.id = l.inventory_id AND i.tenant_id = l.tenant_id
+                  WHERE l.tenant_id = :tid AND DATE(l.created_at) BETWEEN :from AND :to
+                  ORDER BY l.created_at DESC"
+            );
+            $stmt->execute(['tid' => $tenantId, 'from' => $from, 'to' => $to]);
+            $moved = [];
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $log) {
+                $change = (int) ($log['change_amount'] ?? 0);
+                $type = trim((string) ($log['type'] ?? 'adjustment')) ?: 'adjustment';
+                $report['movements']['by_type'][$type] = ($report['movements']['by_type'][$type] ?? 0) + abs($change);
+                if ($change >= 0) {
+                    $report['movements']['in'] += $change;
+                    $report['movements']['spend'] += $change * (float) ($log['unit_cost'] ?? 0);
+                } else {
+                    $report['movements']['out'] += abs($change);
+                }
+                $key = (string) ($log['inventory_id'] ?? '');
+                if ($key !== '') {
+                    if (!isset($moved[$key])) {
+                        $moved[$key] = ['id' => $key, 'name' => $log['item_name'] ?? 'Removed item', 'unit' => $log['item_unit'] ?? '', 'in' => 0, 'out' => 0];
+                    }
+                    if ($change >= 0) $moved[$key]['in'] += $change; else $moved[$key]['out'] += abs($change);
+                }
+            }
+            usort($moved, fn($a, $b) => ($b['in'] + $b['out']) <=> ($a['in'] + $a['out']));
+            $report['top_moving'] = array_slice(array_values($moved), 0, 10);
+
+            // Stock sitting untouched for the whole period is money on a shelf
+            $stmt = $this->db->prepare(
+                "SELECT * FROM inventory
+                  WHERE tenant_id = :tid AND is_active = 1 AND current_stock > 0
+                    AND id NOT IN (SELECT inventory_id FROM inventory_logs WHERE tenant_id = :tid2 AND DATE(created_at) BETWEEN :from AND :to)
+                  ORDER BY (current_stock * unit_price) DESC LIMIT 10"
+            );
+            $stmt->execute(['tid' => $tenantId, 'tid2' => $tenantId, 'from' => $from, 'to' => $to]);
+            $report['never_moved'] = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (\Throwable $e) {
+            error_log('[InventoryService] report movements: ' . $e->getMessage());
+        }
+
+        return $report;
+    }
+
     public function getInventoryLogs(int $limit = 100, ?string $tenantId = null): array {
         $tenantId = $tenantId ?? TenantContext::getTenantId();
         $sql = "SELECT l.*, i.name as item_name, i.sku as item_sku

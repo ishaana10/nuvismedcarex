@@ -163,7 +163,17 @@ CSS;
                 $out .= '<div><span class="muted">VAT included</span><span class="num">' . $money($d['tax_total']) . '</span></div>';
             }
             $out .= '<div class="grand"><span>Total</span><span class="num">' . $money($d['total']) . '</span></div>';
-            $out .= '<div><span class="muted">Paid</span><span class="num">' . $money($d['total_paid']) . '</span></div>';
+
+            // When an insurer covers part of the bill, show their share as a
+            // deduction so the patient can see what they were charged and why.
+            $insurance = (float) ($d['insurance_covered'] ?? 0);
+            if ($cfg['show_insurance'] && $insurance > 0) {
+                $label = ($d['insurer'] ?? '') !== '' ? 'Less ' . $d['insurer'] : 'Less insurance';
+                $out .= '<div><span class="muted">' . $e($label) . '</span><span class="num">-' . $money($insurance) . '</span></div>';
+                $out .= '<div><span class="muted">Patient&rsquo;s share</span><span class="num rc-strong">' . $money($d['patient_share'] ?? ($d['total'] - $insurance)) . '</span></div>';
+            }
+
+            $out .= '<div><span class="muted">Paid' . ($insurance > 0 ? ' by patient' : '') . '</span><span class="num">' . $money($d['total_paid']) . '</span></div>';
             if ($cfg['show_balance']) $out .= '<div><span class="muted">Balance remaining</span><span class="num rc-strong">' . $money($d['balance']) . '</span></div>';
             $out .= '</div>';
 
@@ -218,7 +228,8 @@ CSS;
                 ['name' => 'Blood glucose test', 'quantity' => 1, 'unit_price' => 15.00, 'total_price' => 15.00],
             ],
             'payments' => [['type' => 'EFTPOS', 'amount' => 72.60]],
-            'total' => 72.60, 'tax_total' => 9.47, 'total_paid' => 72.60, 'balance' => 0.00,
+            'total' => 72.60, 'tax_total' => 9.47, 'total_paid' => 52.60, 'balance' => 0.00,
+            'insurance_covered' => 20.00, 'insurer' => 'BlueCare', 'patient_share' => 52.60,
             'signer' => $signer,
         ];
     }

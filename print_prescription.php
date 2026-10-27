@@ -14,6 +14,7 @@ if (empty($_SESSION['authenticated'])) {
 $patientId = $_GET['patient_id'] ?? 'pat-1';
 $csrfToken = generateCsrfToken();
 $pdo = getDB();
+$currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 
 // Fetch Clinic Settings
 // Settings for the active clinic (its own values over the shared defaults)
@@ -34,15 +35,11 @@ $rxDisclaimer = $settings['rx_disclaimer'] ?? 'Notice: This prescription is vali
 $rxFooterNote = $settings['rx_footer_note'] ?? 'Substitution Permitted unless DAW (Dispense As Written) is indicated.';
 
 // Fetch patient info
-$stmt = $pdo->prepare("SELECT * FROM patients WHERE id = ? OR mrn = ?");
-$stmt->execute([$patientId, $patientId]);
+$stmt = $pdo->prepare("SELECT * FROM patients WHERE (id = ? OR mrn = ?) AND tenant_id = ?");
+$stmt->execute([$patientId, $patientId, $currentTenantId]);
 $patient = $stmt->fetch();
 
-if (!$patient) {
-    $stmt = $pdo->query("SELECT * FROM patients LIMIT 1");
-    $patient = $stmt->fetch();
-}
-
+// No silent fallback: printing someone else's prescription would be unsafe
 if (!$patient) {
     die("Patient file not found.");
 }

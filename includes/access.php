@@ -69,6 +69,7 @@ if (!function_exists('nxAccess')) {
         'actions/inventory_edit.php'      => ['inventory', 'edit'],
         'actions/inventory_restock.php'   => ['inventory', 'edit'],
         'actions/inventory_delete.php'    => ['inventory', 'full'],
+        'actions/inventory_report_export.php' => ['inventory', 'view'],
         // Documents
         'actions/upload_file.php'         => ['documents', 'edit'],
         'actions/view_file.php'           => ['documents', 'view'],

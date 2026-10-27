@@ -9,6 +9,7 @@ $certId = $_GET['id'] ?? '';
 
 require_once __DIR__ . '/config/database.php';
 $pdo = getDB();
+$currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 
 // Fetch Clinic Settings
 // Settings for the active clinic (its own values over the shared defaults)
@@ -44,8 +45,8 @@ if (!$cert) {
 }
 
 // Fetch Patient details
-$stmt = $pdo->prepare("SELECT * FROM patients WHERE id = ?");
-$stmt->execute([$cert['patient_id']]);
+$stmt = $pdo->prepare("SELECT * FROM patients WHERE id = ? AND tenant_id = ?");
+$stmt->execute([$cert['patient_id'], $currentTenantId]);
 $patient = $stmt->fetch();
 
 if (!$patient) {
