@@ -177,6 +177,17 @@ html.dark {
   --nx-radius: 14px;
   --nx-header-h: 60px;
 
+  /* Stacking order, lowest first. Anything that floats above the page takes
+     its z-index from here rather than inventing a number, so a dialog can
+     never end up behind the header or a toast behind a dialog. */
+  --nx-z-sticky:   30;   /* sticky table headers, toolbars inside a page */
+  --nx-z-header:   40;   /* app header */
+  --nx-z-menu:     45;   /* popovers anchored in the header */
+  --nx-z-overlay:  50;   /* dialog backdrops and dialogs */
+  --nx-z-drawer:   70;   /* the mobile navigation drawer, above a dialog */
+  --nx-z-palette:  90;   /* command palette */
+  --nx-z-toast:   100;   /* toasts, always last */
+
   /* legacy aliases kept for older inline styles */
   --primary-color: rgb(var(--c-blue-700));
   --primary-hover: rgb(var(--c-blue-800));
@@ -237,6 +248,11 @@ html.dark .bg-\[\#f8f9ff\],
 html.dark .bg-\[\#f8fafc\] { background-color: rgb(var(--nx-card) / var(--tw-bg-opacity, 1)); }
 html.dark [class*="bg-white/"] { background-color: rgb(var(--nx-card) / .85); }
 html.dark .hover\:bg-white:hover { background-color: rgb(var(--c-slate-100)); }
+/* Forms across the app turn white on focus. In dark mode that left pale text
+   on a white field — unreadable exactly while it was being typed into. */
+html.dark .focus\:bg-white:focus,
+html.dark .focus\:bg-white:focus-visible { background-color: rgb(var(--nx-card)); color: rgb(var(--c-slate-900)); }
+html.dark .focus\:bg-white:focus::placeholder { color: rgb(var(--c-slate-400)); }
 html.dark .bg-black { background-color: rgb(0 0 0 / var(--tw-bg-opacity, 1)); }
 html.dark .text-black { color: rgb(var(--c-slate-900)); }
 html.dark .border-white { border-color: rgb(var(--nx-card)); }
@@ -430,7 +446,7 @@ kbd, .nx-kbd {
   border: 1px solid rgb(var(--c-slate-200));
   border-radius: 14px;
   box-shadow: 0 16px 40px -12px rgb(10 29 63 / .3), 0 2px 6px rgb(10 29 63 / .06);
-  z-index: 60;
+  z-index: var(--nx-z-menu);
   transform-origin: top right;
   animation: nx-pop .14s ease-out;
 }
@@ -575,9 +591,25 @@ main table thead th[aria-sort="descending"]::after { content: " ↓"; }
 .nx-empty .material-symbols-outlined { font-size: 2rem; color: rgb(var(--c-slate-300)); }
 
 /* 6. Global UI ------------------------------------------------------------- */
+/* Dialog backdrops. Use .nx-overlay instead of a hand-written z-index so every
+   dialog sits on the same layer; .nx-stacked raises the one opened last. */
+.nx-overlay {
+  position: fixed; inset: 0; z-index: var(--nx-z-overlay);
+  display: flex;
+  background: rgb(var(--c-slate-950) / .45);
+  backdrop-filter: blur(3px);
+  overscroll-behavior: contain;
+}
+html.dark .nx-overlay { background: rgb(0 0 0 / .6); }
+.nx-overlay.hidden { display: none; }
+.nx-overlay.nx-stacked { z-index: calc(var(--nx-z-overlay) + 5); }
+
+/* While a dialog is open the page behind it must not scroll away under it */
+body.nx-scroll-locked { overflow: hidden; }
+
 /* Command palette */
 .nx-palette-backdrop {
-  position: fixed; inset: 0; z-index: 90;
+  position: fixed; inset: 0; z-index: var(--nx-z-palette);
   background: rgb(var(--c-slate-950) / .45);
   backdrop-filter: blur(3px);
   display: flex; align-items: flex-start; justify-content: center;
@@ -616,7 +648,7 @@ html.dark .nx-palette-backdrop { background: rgb(0 0 0 / .6); }
 .nx-palette-foot { display: flex; gap: 1rem; padding: .55rem .9rem; border-top: 1px solid rgb(var(--c-slate-200)); font-size: .75rem; color: rgb(var(--c-slate-500)); background: rgb(var(--c-slate-50)); }
 
 /* Toasts */
-.nx-toasts { position: fixed; bottom: 16px; right: 16px; flex-direction: column-reverse; z-index: 100; display: flex; gap: .5rem; width: min(380px, calc(100vw - 32px)); pointer-events: none; }
+.nx-toasts { position: fixed; bottom: 16px; right: 16px; flex-direction: column-reverse; z-index: var(--nx-z-toast); display: flex; gap: .5rem; width: min(380px, calc(100vw - 32px)); pointer-events: none; }
 .nx-toast {
   pointer-events: auto;
   display: flex; gap: .75rem; align-items: flex-start;

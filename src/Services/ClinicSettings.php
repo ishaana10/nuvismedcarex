@@ -30,7 +30,7 @@ final class ClinicSettings
         'clinic_name', 'clinic_subtitle', 'clinic_address', 'clinic_phone', 'clinic_email',
         'clinic_dea', 'clinic_npi', 'clinic_logo', 'clinic_website', 'clinic_accent',
         'doc_prc_no', 'doc_ptr_no',
-        'rx_*', 'invoice_*', 'receipt_*', 'cert_*', 'lab_catalog',
+        'rx_*', 'invoice_*', 'receipt_*', 'cert_*', 'lab_catalog', 'insurance_*',
         'vms_*', 'inventory_*', 'access_*', 'sse_notifications_enabled',
         // Each clinic sends patient email from its own mailbox
         'smtp_*', 'email_*',

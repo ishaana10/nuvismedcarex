@@ -473,28 +473,6 @@ $cloudSettings = $uploadService->getCloudSettings();
                 </div>
             </div>
 
-            <!-- Google Drive Diagnostic Connection Console Card -->
-            <div class="p-4 rounded-xl bg-surface-container-low border border-outline-variant/30 space-y-3">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                        <h4 class="font-bold text-on-surface text-xs flex items-center gap-1.5">
-                            <span class="material-symbols-outlined text-base text-amber-600">published_with_changes</span>
-                            <span>Google Drive API Connection & Diagnostic Log Output</span>
-                        </h4>
-                        <p class="text-[11px] text-slate-500 mt-0.5">Test OAuth / API Key reachability and record real-time connection diagnostic logs.</p>
-                    </div>
-
-                    <button type="button" onclick="testGoogleDriveConnection()" class="px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs rounded-xl transition shadow-xs flex items-center gap-1.5 shrink-0">
-                        <span class="material-symbols-outlined text-sm">network_check</span>
-                        <span>Test Google Drive API Connection</span>
-                    </button>
-                </div>
-
-                <div id="gdrive-test-console" class="font-mono text-xs bg-slate-950 text-amber-300 p-4 rounded-xl border border-slate-800 min-h-[80px] max-h-48 overflow-y-auto leading-relaxed space-y-1 shadow-inner hidden">
-                    <p class="text-slate-400 italic">Click button above to execute Google Drive API connection diagnostic test...</p>
-                </div>
-            </div>
-
             <div class="flex justify-end pt-3 border-t border-outline-variant/20">
                 <button type="submit" class="px-6 py-2.5 bg-primary text-white text-xs font-semibold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-2">
                     <span class="material-symbols-outlined text-base">save</span>
@@ -669,69 +647,155 @@ $cloudSettings = $uploadService->getCloudSettings();
     </div> <!-- End dev-panel-rbac -->
 
     <!-- Cloud Storage & Drive Integration Panel -->
-    <div id="dev-panel-cloud" class="hidden space-y-6">
-        <form action="actions/cloud_storage_settings.php" method="POST" class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-5">
-            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getCsrfToken()) ?>">
-            <input type="hidden" name="redirect_to" value="../developer.php?dev_tab=cloud">
-            <div class="flex items-center justify-between border-b border-outline-variant/20 pb-3">
-                <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
-                    <span class="material-symbols-outlined text-base">cloud</span>
-                    <span>Cloud Storage Integration & Drive API Credentials</span>
-                </h2>
-                <span class="text-xs text-outline font-medium">Configure Microsoft OneDrive and Google Drive OAuth credentials & options</span>
-            </div>
+    <div id="dev-panel-cloud" class="hidden space-y-4">
+        <?php
+        // How many documents each drive is holding, so the list says something
+        // about what is actually in use rather than only what is configured.
+        $driveCounts = ['server' => 0, 'onedrive' => 0, 'googledrive' => 0];
+        try {
+            $dcStmt = $pdo->prepare("SELECT storage_provider, COUNT(*) AS n FROM uploaded_files WHERE tenant_id = ? GROUP BY storage_provider");
+            $dcStmt->execute([\ClinicFlow\Shared\TenantContext::getTenantId()]);
+            foreach ($dcStmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $dcRow) {
+                $driveCounts[(string) $dcRow['storage_provider']] = (int) $dcRow['n'];
+            }
+        } catch (\Throwable $e) {
+            error_log('[developer] drive counts: ' . $e->getMessage());
+        }
+        $serverUsage = $uploadService->getStorageUsage();
+        ?>
 
-            <!-- Microsoft OneDrive Configuration -->
-            <div class="p-4 rounded-xl bg-surface-container-low border border-outline-variant/30 space-y-3">
-                <h3 class="font-bold text-on-surface text-xs flex items-center gap-1.5">
-                    <span class="material-symbols-outlined text-base text-blue-600">cloud_queue</span>
-                    <span>Microsoft OneDrive Integration (Azure App Credentials)</span>
-                </h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">OneDrive Client Application ID</label>
-                        <input type="text" name="cloud_onedrive_client_id" value="<?= htmlspecialchars($cloudSettings['cloud_onedrive_client_id'] ?? '') ?>" placeholder="e.g. 00000000-0000-0000-0000-000000000000" class="w-full bg-white px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+                <h2 class="text-sm font-semibold text-on-surface">Document storage</h2>
+                <p class="text-xs text-outline mt-0.5">
+                    Where uploaded documents are kept. Each drive is configured and tested on its own.
+                </p>
+            </div>
+            <a href="uploads.php" class="text-xs font-medium text-primary hover:underline">Open the document centre</a>
+        </div>
+
+        <!-- Local server: always present, nothing to configure -->
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 shadow-xs p-4 flex flex-wrap items-center gap-3">
+            <span class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined">dns</span>
+            </span>
+            <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h3 class="text-xs font-bold text-on-surface">This server</h3>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Always on</span>
+                </div>
+                <p class="text-[11px] text-outline mt-0.5">
+                    <?= number_format($driveCounts['server']) ?> document<?= $driveCounts['server'] === 1 ? '' : 's' ?> ·
+                    <?= htmlspecialchars($serverUsage['formatted_used'] ?? '0 B') ?> of
+                    <?= htmlspecialchars($serverUsage['formatted_limit'] ?? '') ?> used
+                </p>
+            </div>
+            <span class="text-[11px] text-outline">No credentials needed</span>
+        </div>
+
+        <?php foreach (\ClinicFlow\Services\CloudDrives::DRIVES as $driveKey => $drive):
+            $status = \ClinicFlow\Services\CloudDrives::status($driveKey, $cloudSettings);
+            $count = $driveCounts[$driveKey] ?? 0;
+            $tone = $drive['tone']; ?>
+            <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 shadow-xs overflow-hidden" data-drive="<?= $driveKey ?>">
+                <div class="p-4 flex flex-wrap items-center gap-3">
+                    <span class="w-10 h-10 rounded-xl bg-<?= $tone ?>-50 text-<?= $tone ?>-700 flex items-center justify-center shrink-0">
+                        <span class="material-symbols-outlined"><?= $drive['icon'] ?></span>
+                    </span>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h3 class="text-xs font-bold text-on-surface"><?= htmlspecialchars($drive['label']) ?></h3>
+                            <?php if ($status['configured']): ?>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Configured</span>
+                            <?php elseif ($status['filled'] > 0): ?>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">Incomplete</span>
+                            <?php else: ?>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">Not set up</span>
+                            <?php endif; ?>
+                        </div>
+                        <p class="text-[11px] text-outline mt-0.5">
+                            <?= number_format($count) ?> document<?= $count === 1 ? '' : 's' ?> ·
+                            <?= $status['filled'] ?> of <?= $status['total'] ?> settings filled in
+                            <?php if ($status['missing']): ?>
+                                · <span class="text-amber-700">still needs <?= htmlspecialchars(implode(', ', $status['missing'])) ?></span>
+                            <?php endif; ?>
+                        </p>
                     </div>
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">OneDrive Client Secret</label>
-                        <input type="password" name="cloud_onedrive_client_secret" value="<?= htmlspecialchars($cloudSettings['cloud_onedrive_client_secret'] ?? '') ?>" placeholder="••••••••••••••••" class="w-full bg-white px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
-                    </div>
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">Azure Tenant ID</label>
-                        <input type="text" name="cloud_onedrive_tenant_id" value="<?= htmlspecialchars($cloudSettings['cloud_onedrive_tenant_id'] ?? '') ?>" placeholder="common or tenant-id" class="w-full bg-white px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="testDrive('<?= $driveKey ?>')"
+                                class="px-3 py-1.5 bg-surface-container border border-outline-variant/40 text-on-surface rounded-xl text-xs font-semibold hover:bg-surface-container-high transition flex items-center gap-1.5"
+                                id="drive-test-btn-<?= $driveKey ?>" <?= $status['filled'] === 0 ? 'disabled' : '' ?>>
+                            <span class="material-symbols-outlined text-base">network_check</span>
+                            <span>Test</span>
+                        </button>
+                        <button type="button" onclick="toggleDrive('<?= $driveKey ?>')"
+                                class="px-3 py-1.5 bg-primary text-white rounded-xl text-xs font-semibold hover:bg-primary/90 transition flex items-center gap-1.5"
+                                aria-expanded="false" aria-controls="drive-body-<?= $driveKey ?>" id="drive-toggle-<?= $driveKey ?>">
+                            <span class="material-symbols-outlined text-base">tune</span>
+                            <span>Configure</span>
+                        </button>
                     </div>
                 </div>
-            </div>
 
-            <!-- Google Drive Configuration -->
-            <div class="p-4 rounded-xl bg-surface-container-low border border-outline-variant/30 space-y-3">
-                <h3 class="font-bold text-on-surface text-xs flex items-center gap-1.5">
-                    <span class="material-symbols-outlined text-base text-emerald-600">add_to_drive</span>
-                    <span>Google Drive Integration (OAuth Client ID & Picker API Key)</span>
-                </h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">Google Drive OAuth Client ID</label>
-                        <input type="text" name="cloud_googledrive_client_id" value="<?= htmlspecialchars($cloudSettings['cloud_googledrive_client_id'] ?? '') ?>" placeholder="e.g. 1234567890-abc.apps.googleusercontent.com" class="w-full bg-white px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
-                    </div>
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">Google Drive API Key</label>
-                        <input type="password" name="cloud_googledrive_api_key" value="<?= htmlspecialchars($cloudSettings['cloud_googledrive_api_key'] ?? '') ?>" placeholder="••••••••••••••••" class="w-full bg-white px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
-                    </div>
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">Shared Target Folder ID (Optional)</label>
-                        <input type="text" name="cloud_googledrive_folder_id" value="<?= htmlspecialchars($cloudSettings['cloud_googledrive_folder_id'] ?? '') ?>" placeholder="Target Google Drive Folder ID" class="w-full bg-white px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
-                    </div>
+                <!-- Test output -->
+                <pre id="drive-test-out-<?= $driveKey ?>" class="hidden mx-4 mb-4 p-3 bg-slate-900 text-slate-100 rounded-xl text-[11px] leading-relaxed overflow-x-auto max-h-56"></pre>
+
+                <!-- Configuration -->
+                <div id="drive-body-<?= $driveKey ?>" class="hidden border-t border-outline-variant/20 bg-surface-container-low/50 p-4">
+                    <p class="text-[11px] text-outline mb-3">
+                        <?= htmlspecialchars($drive['blurb']) ?>
+                        <a href="<?= htmlspecialchars($drive['docs']) ?>" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">Set-up guide</a>
+                    </p>
+                    <form action="actions/cloud_storage_settings.php" method="POST" class="space-y-3">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getCsrfToken()) ?>">
+                        <input type="hidden" name="drive" value="<?= $driveKey ?>">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                            <?php foreach ($drive['fields'] as $fieldKey => $meta):
+                                $stored = trim((string) ($cloudSettings[$fieldKey] ?? ''));
+                                $isSecret = $meta['type'] !== 'text'; ?>
+                                <div class="<?= $meta['type'] === 'textarea' ? 'md:col-span-3' : '' ?>">
+                                    <label class="block font-bold text-on-surface mb-1" for="f-<?= $fieldKey ?>">
+                                        <?= htmlspecialchars($meta['label']) ?>
+                                        <?php if (empty($meta['required'])): ?><span class="font-normal text-outline">(optional)</span><?php endif; ?>
+                                    </label>
+                                    <?php if ($meta['type'] === 'textarea'): ?>
+                                        <textarea id="f-<?= $fieldKey ?>" name="<?= $fieldKey ?>" rows="3"
+                                                  placeholder="<?= $stored !== '' ? 'Stored — paste a new one to replace it' : htmlspecialchars($meta['placeholder']) ?>"
+                                                  class="w-full bg-surface-container-low p-2.5 rounded-xl border border-outline-variant/40 font-mono text-[11px]"></textarea>
+                                    <?php else: ?>
+                                        <input id="f-<?= $fieldKey ?>" type="<?= $isSecret ? 'password' : 'text' ?>" name="<?= $fieldKey ?>"
+                                               autocomplete="off" spellcheck="false"
+                                               value="<?= $isSecret ? '' : htmlspecialchars($stored) ?>"
+                                               placeholder="<?= $isSecret && $stored !== '' ? htmlspecialchars(\ClinicFlow\Services\CloudDrives::mask($stored)) : htmlspecialchars($meta['placeholder']) ?>"
+                                               class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
+                                    <?php endif; ?>
+                                    <p class="text-[10px] text-outline mt-1">
+                                        <?= htmlspecialchars($meta['hint']) ?>
+                                        <?php if ($isSecret && $stored !== ''): ?>
+                                            <span class="text-emerald-700">Stored — leave blank to keep it.</span>
+                                        <?php endif; ?>
+                                    </p>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <div class="flex flex-wrap items-center justify-end gap-2 pt-3 border-t border-outline-variant/20">
+                            <?php if ($status['filled'] > 0): ?>
+                                <button type="submit" name="action" value="clear"
+                                        class="mr-auto text-xs font-medium text-red-700 hover:underline"
+                                        data-nx-confirm="Clear every <?= htmlspecialchars($drive['label']) ?> credential? Documents already stored there stay where they are.">
+                                    Clear these credentials
+                                </button>
+                            <?php endif; ?>
+                            <button type="button" onclick="toggleDrive('<?= $driveKey ?>')" class="px-4 py-2 bg-surface-container rounded-xl text-xs font-semibold text-on-surface">Close</button>
+                            <button type="submit" name="action" value="save" class="px-5 py-2 bg-primary text-white text-xs font-semibold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-base">save</span>
+                                <span>Save <?= htmlspecialchars($drive['label']) ?></span>
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
-
-            <div class="flex justify-end pt-3 border-t border-outline-variant/20">
-                <button type="submit" class="px-6 py-2.5 bg-primary text-white text-xs font-semibold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-2">
-                    <span class="material-symbols-outlined text-base">save</span>
-                    <span>Save Cloud Storage Configuration</span>
-                </button>
-            </div>
-        </form>
+        <?php endforeach; ?>
     </div> <!-- End dev-panel-cloud -->
 
     <!-- Redis Cache & Sessions Diagnostics Panel -->
@@ -1472,34 +1536,52 @@ function flushRedisCache() {
     });
 }
 
-function testGoogleDriveConnection() {
-    const consoleBox = document.getElementById('gdrive-test-console');
-    if (consoleBox) {
-        consoleBox.classList.remove('hidden');
-        consoleBox.innerHTML = '<p class="text-amber-300 animate-pulse">Connecting to Google Drive API... Please wait...</p>';
+function toggleDrive(key) {
+    const body = document.getElementById('drive-body-' + key);
+    const btn = document.getElementById('drive-toggle-' + key);
+    if (!body) return;
+    const open = body.classList.toggle('hidden') === false;
+    if (btn) {
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        const label = btn.querySelector('span:last-child');
+        if (label) label.textContent = open ? 'Close' : 'Configure';
     }
+    if (open) {
+        const first = body.querySelector('input, textarea');
+        if (first) first.focus();
+        body.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+}
 
-    fetch('actions/cloud_storage_settings.php?action=test_gdrive_connection')
-    .then(r => r.json())
-    .then(d => {
-        if (consoleBox) {
-            let logHtml = '';
-            if (d.logs && d.logs.length > 0) {
-                logHtml = d.logs.map(l => `<div class="p-0.5 border-b border-slate-900">${escapeHtml(l)}</div>`).join('');
-            }
-            if (d.success) {
-                logHtml += `<div class="p-1 text-emerald-400 font-bold mt-1">✔ ${escapeHtml(d.message)}</div>`;
-            } else {
-                logHtml += `<div class="p-1 text-rose-400 font-bold mt-1">❌ ${escapeHtml(d.error || 'Test Failed')}</div>`;
-            }
-            consoleBox.innerHTML = logHtml;
-        }
+// Each drive is tested on its own, so a broken OneDrive setup says nothing
+// about Google Drive and the other way round.
+function testDrive(key) {
+    const out = document.getElementById('drive-test-out-' + key);
+    const btn = document.getElementById('drive-test-btn-' + key);
+    if (!out) return;
+    out.classList.remove('hidden');
+    out.textContent = 'Testing the connection…';
+    if (btn) { btn.disabled = true; btn.classList.add('is-loading'); }
+
+    fetch('actions/cloud_storage_settings.php?action=test_connection&drive=' + encodeURIComponent(key), {
+        headers: { 'Accept': 'application/json' }
     })
-    .catch(err => {
-        if (consoleBox) {
-            consoleBox.innerHTML = `<p class="text-rose-400 font-bold">❌ Connection Error: ${escapeHtml(String(err))}</p>`;
-        }
-    });
+        .then(r => r.json())
+        .then(d => {
+            const lines = (d.logs || []).slice();
+            lines.push('');
+            lines.push((d.success ? '\u2714 ' : '\u2716 ') + (d.success ? (d.message || 'Connected.') : (d.error || 'The test failed.')));
+            out.textContent = lines.join('\n');
+            out.classList.toggle('text-emerald-200', !!d.success);
+            out.classList.toggle('text-rose-200', !d.success);
+        })
+        .catch(err => {
+            out.textContent = 'The test could not run: ' + String(err);
+            out.classList.add('text-rose-200');
+        })
+        .finally(() => {
+            if (btn) { btn.disabled = false; btn.classList.remove('is-loading'); }
+        });
 }
 
 function escapeHtml(text) {

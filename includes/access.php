@@ -60,6 +60,10 @@ if (!function_exists('nxAccess')) {
         'actions/vms_create_invoice.php'  => ['billing', 'edit'],
         'actions/vms_cancel_invoice.php'  => ['billing', 'full'],
         'actions/insurance_claim_save.php' => ['billing', 'edit', ['delete_claim' => 'full']],
+        'actions/insurance_report_save.php'   => ['billing', 'edit'],
+        'actions/insurance_report_export.php' => ['billing', 'view'],
+        'actions/zreport_export.php'      => ['billing', 'view'],
+        'print_insurance_report.php'      => ['billing', 'view'],
         'actions/send_receipt_email.php'  => ['billing', 'view'],
         'print_invoice.php'               => ['billing', 'view'],
         'print_receipt.php'               => ['billing', 'view'],
@@ -77,9 +81,11 @@ if (!function_exists('nxAccess')) {
         // Clinic settings
         'actions/admin_save_settings.php' => ['settings', 'edit'],
         'actions/receipt_settings_save.php' => ['settings', 'edit'],
+        'actions/insurance_providers_save.php' => ['settings', 'edit'],
         'actions/vms_save_settings.php'   => ['settings', 'edit'],
         'actions/vms_actions.php'         => ['settings', 'edit'],
-        'actions/cloud_storage_settings.php' => ['settings', 'edit'],
+        // Drive credentials moved to Developer → Document storage
+        'actions/cloud_storage_settings.php' => ['developer', 'edit'],
         'actions/email_actions.php'       => ['settings', 'view', ['resend_email' => 'edit']],
         'actions/test_email.php'          => ['settings', 'edit'],
         // Staff & access

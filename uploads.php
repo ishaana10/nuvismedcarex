@@ -67,10 +67,12 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
     </div>
 
     <div class="flex items-center gap-3">
-        <button type="button" onclick="openModal('modal-cloud-settings')" class="px-4 py-2.5 bg-slate-800 text-white font-semibold text-xs rounded-xl hover:bg-slate-900 transition shadow-xs flex items-center gap-2">
-            <span class="material-symbols-outlined text-base">settings_suggest</span>
-            <span>Cloud API Setup</span>
-        </button>
+        <?php if (nxCan('developer', 'edit')): ?>
+            <a href="developer.php?dev_tab=cloud" class="px-4 py-2.5 bg-surface-container border border-outline-variant/40 text-on-surface font-semibold text-xs rounded-xl hover:bg-surface-container-high transition flex items-center gap-2">
+                <span class="material-symbols-outlined text-base">settings_suggest</span>
+                <span>Storage settings</span>
+            </a>
+        <?php endif; ?>
 
         <button type="button" onclick="openModal('modal-upload-document')" class="px-5 py-2.5 bg-primary text-white font-bold text-xs rounded-xl hover:bg-primary/90 transition shadow-md shadow-primary/20 flex items-center gap-2">
             <span class="material-symbols-outlined text-base">add</span>
@@ -465,84 +467,6 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
 </div>
 
 <!-- Modal: Cloud API Settings -->
-<div id="modal-cloud-settings" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center hidden p-4">
-    <div class="bg-surface-container-lowest rounded-3xl border border-outline-variant/30 shadow-2xl max-w-lg w-full overflow-hidden">
-        <div class="p-5 bg-slate-900 text-white flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary text-xl">settings_suggest</span>
-                <h3 class="font-bold text-sm">Cloud Storage Credentials Setup</h3>
-            </div>
-            <button type="button" onclick="closeModal('modal-cloud-settings')" class="text-slate-400 hover:text-white">
-                <span class="material-symbols-outlined">close</span>
-            </button>
-        </div>
-
-        <form action="actions/cloud_storage_settings.php" method="POST" class="p-6 space-y-4 text-xs">
-            <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
-
-            <!-- OneDrive Credentials -->
-            <div class="space-y-2 p-3.5 bg-sky-50/50 rounded-2xl border border-sky-200">
-                <h4 class="font-bold text-sky-900 flex items-center gap-1">
-                    <span class="material-symbols-outlined text-base text-sky-700">cloud</span>
-                    <span>Microsoft OneDrive (Azure Graph API) Credentials</span>
-                </h4>
-                <div>
-                    <label class="block font-semibold text-slate-700 mb-0.5">Azure Client Application ID</label>
-                    <input type="text" name="cloud_onedrive_client_id" value="<?= htmlspecialchars($cloudSettings['cloud_onedrive_client_id'] ?? '') ?>" placeholder="e.g. 00000000-0000-0000-0000-000000000000" class="w-full bg-white px-3 py-1.5 rounded-lg border border-sky-300 font-mono text-xs">
-                </div>
-                <div>
-                    <label class="block font-semibold text-slate-700 mb-0.5">Azure Client Secret</label>
-                    <input type="password" name="cloud_onedrive_client_secret" value="<?= htmlspecialchars($cloudSettings['cloud_onedrive_client_secret'] ?? '') ?>" placeholder="Client Secret Key" class="w-full bg-white px-3 py-1.5 rounded-lg border border-sky-300 font-mono text-xs">
-                </div>
-                <div>
-                    <label class="block font-semibold text-slate-700 mb-0.5">Azure Tenant ID</label>
-                    <input type="text" name="cloud_onedrive_tenant_id" value="<?= htmlspecialchars($cloudSettings['cloud_onedrive_tenant_id'] ?? '') ?>" placeholder="common or tenant-id" class="w-full bg-white px-3 py-1.5 rounded-lg border border-sky-300 font-mono text-xs">
-                </div>
-            </div>
-
-            <!-- Google Drive Credentials -->
-            <div class="space-y-2 p-3.5 bg-amber-50/50 rounded-2xl border border-amber-200">
-                <h4 class="font-bold text-amber-900 flex items-center gap-1">
-                    <span class="material-symbols-outlined text-base text-amber-700">add_to_drive</span>
-                    <span>Google Drive API Credentials</span>
-                </h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    <div>
-                        <label class="block font-semibold text-slate-700 mb-0.5">Google Cloud Client ID</label>
-                        <input type="text" name="cloud_googledrive_client_id" value="<?= htmlspecialchars($cloudSettings['cloud_googledrive_client_id'] ?? '') ?>" placeholder="e.g. xxxxx.apps.googleusercontent.com" class="w-full bg-white px-3 py-1.5 rounded-lg border border-amber-300 font-mono text-xs">
-                    </div>
-                    <div>
-                        <label class="block font-semibold text-slate-700 mb-0.5">Google OAuth Client Secret</label>
-                        <input type="password" name="cloud_googledrive_client_secret" value="<?= htmlspecialchars($cloudSettings['cloud_googledrive_client_secret'] ?? '') ?>" placeholder="Client Secret Key" class="w-full bg-white px-3 py-1.5 rounded-lg border border-amber-300 font-mono text-xs">
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    <div>
-                        <label class="block font-semibold text-slate-700 mb-0.5">OAuth Refresh Token (Server Auto-Upload)</label>
-                        <input type="password" name="cloud_googledrive_refresh_token" value="<?= htmlspecialchars($cloudSettings['cloud_googledrive_refresh_token'] ?? '') ?>" placeholder="Refresh Token for offline server uploads" class="w-full bg-white px-3 py-1.5 rounded-lg border border-amber-300 font-mono text-xs">
-                    </div>
-                    <div>
-                        <label class="block font-semibold text-slate-700 mb-0.5">Shared Target Folder ID (Optional)</label>
-                        <input type="text" name="cloud_googledrive_folder_id" value="<?= htmlspecialchars($cloudSettings['cloud_googledrive_folder_id'] ?? '') ?>" placeholder="Target Google Drive Folder ID" class="w-full bg-white px-3 py-1.5 rounded-lg border border-amber-300 font-mono text-xs">
-                    </div>
-                </div>
-                <div>
-                    <label class="block font-semibold text-slate-700 mb-0.5">Google Service Account JSON / API Key</label>
-                    <textarea name="cloud_googledrive_service_account_json" rows="2" placeholder='{"type": "service_account", "private_key": "..."}' class="w-full bg-white p-2 rounded-lg border border-amber-300 font-mono text-[11px] text-slate-800"><?= htmlspecialchars($cloudSettings['cloud_googledrive_service_account_json'] ?? $cloudSettings['cloud_googledrive_api_key'] ?? '') ?></textarea>
-                </div>
-            </div>
-
-            <div class="flex items-center justify-end gap-2 pt-3 border-t border-outline-variant/20">
-                <button type="button" onclick="closeModal('modal-cloud-settings')" class="px-4 py-2 bg-surface-container hover:bg-surface-container-high rounded-xl font-semibold text-on-surface">Cancel</button>
-                <button type="submit" class="px-5 py-2 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 shadow-xs flex items-center gap-1.5">
-                    <span class="material-symbols-outlined text-base">save</span>
-                    <span>Save API Settings</span>
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
 <!-- Google API Loader and GIS Client SDKs -->
 <script src="https://accounts.google.com/gsi/client" id="gsi-client-script"></script>
 <script src="https://apis.google.com/js/api.js" id="gapi-client-script"></script>

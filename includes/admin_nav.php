@@ -1,7 +1,7 @@
 <?php
 /**
  * Administration sub-navigation shared by admin.php, access.php and receipt_settings.php.
- * $adminSection: users | access | clinic | receipts | email | inventory | audit
+ * $adminSection: users | access | clinic | receipts | email | inventory | insurance | audit
  */
 $adminSection = $adminSection ?? 'users';
 $adminTabs = [
@@ -11,6 +11,7 @@ $adminTabs = [
     'receipts'  => ['Receipts',        'receipt',         'receipt_settings.php',    ['settings', 'view']],
     'email'     => ['Email',           'mail',            'admin.php?tab=email',     ['settings', 'view']],
     'inventory' => ['Inventory setup', 'inventory_2',     'admin.php?tab=inventory', ['settings', 'view']],
+    'insurance' => ['Insurance',       'health_and_safety', 'insurance_providers.php', ['settings', 'view']],
     'audit'     => ['Audit log',       'history',         'admin.php?tab=audit',     ['users', 'view']],
 ];
 ?>
