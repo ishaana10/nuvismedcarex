@@ -46,8 +46,9 @@ function formatFileSize($bytes) {
     return 'N/A';
 }
 
-// Fetch patients list for upload dropdown
-$patientsStmt = $pdo->query("SELECT id, first_name, last_name, mrn FROM patients ORDER BY first_name ASC, last_name ASC");
+// Patients of this clinic only, for the upload picker
+$patientsStmt = $pdo->prepare("SELECT id, first_name, last_name, mrn FROM patients WHERE tenant_id = ? ORDER BY first_name ASC, last_name ASC");
+$patientsStmt->execute([\ClinicFlow\Shared\TenantContext::getTenantId()]);
 $patients = $patientsStmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Pagination

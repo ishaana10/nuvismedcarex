@@ -57,6 +57,21 @@ $paginatedItems = array_slice($items, $pagination['offset'], $pagination['limit'
 // Fetch Inventory Logs via InventoryService
 $inventoryLogs = $inventoryService->getInventoryLogs(100);
 
+// Views: the stock list, what needs attention, and the reports
+$invTab = (string) ($_GET['view'] ?? 'stock');
+if (!in_array($invTab, ['stock', 'alerts', 'reports'], true)) {
+    $invTab = 'stock';
+}
+$invAlerts = $inventoryService->getAlerts();
+$alertCount = count($invAlerts['reorder']) + count($invAlerts['expiring']) + count($invAlerts['expired']);
+
+$reportFrom = $_GET['from'] ?? date('Y-m-01');
+$reportTo   = $_GET['to'] ?? date('Y-m-d');
+if (!strtotime($reportFrom)) $reportFrom = date('Y-m-01');
+if (!strtotime($reportTo)) $reportTo = date('Y-m-d');
+$invReport = $invTab === 'reports' ? $inventoryService->getReport($reportFrom, $reportTo) : null;
+$cur = nxCurrencySymbol();
+
 $csrfToken = getCsrfToken();
 ?>
 
@@ -85,12 +100,13 @@ $csrfToken = getCsrfToken();
     <?php
     $invStats = [
         ['label' => 'Items in the catalogue', 'value' => number_format($totalItemsCount), 'icon' => 'inventory_2', 'tone' => 'bg-blue-50 text-blue-700', 'note' => count($categories) . ' categories'],
-        ['label' => 'Need reordering', 'value' => number_format($lowStockCount + $outOfStockCount), 'icon' => 'warning', 'tone' => ($lowStockCount + $outOfStockCount) ? 'bg-red-50 text-red-700' : 'bg-slate-100 text-slate-600', 'note' => $outOfStockCount ? $outOfStockCount . ' out of stock' : 'None out of stock', 'warn' => ($lowStockCount + $outOfStockCount) > 0],
-        ['label' => 'Expiring within ' . $expiryWarningDays . ' days', 'value' => number_format($expiringSoonCount), 'icon' => 'event_busy', 'tone' => $expiringSoonCount ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600', 'note' => $expiringSoonCount ? 'Use first or return' : 'Nothing close to expiry', 'warn' => $expiringSoonCount > 0],
+        ['label' => 'Need reordering', 'url' => 'inventory.php?view=alerts', 'value' => number_format($lowStockCount + $outOfStockCount), 'icon' => 'warning', 'tone' => ($lowStockCount + $outOfStockCount) ? 'bg-red-50 text-red-700' : 'bg-slate-100 text-slate-600', 'note' => $outOfStockCount ? $outOfStockCount . ' out of stock' : 'None out of stock', 'warn' => ($lowStockCount + $outOfStockCount) > 0],
+        ['label' => 'Expiring within ' . $expiryWarningDays . ' days', 'url' => 'inventory.php?view=alerts', 'value' => number_format($expiringSoonCount), 'icon' => 'event_busy', 'tone' => $expiringSoonCount ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600', 'note' => $expiringSoonCount ? 'Use first or return' : 'Nothing close to expiry', 'warn' => $expiringSoonCount > 0],
         ['label' => 'Stock on hand', 'value' => nxCurrencySymbol() . number_format($totalValuation, 2), 'icon' => 'payments', 'tone' => 'bg-emerald-50 text-emerald-700', 'note' => 'At selling price'],
     ];
     foreach ($invStats as $st): ?>
-        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+        <?php $tag = !empty($st['url']) ? 'a' : 'div'; ?>
+        <<?= $tag ?> <?= !empty($st['url']) ? 'href="' . $st['url'] . '"' : '' ?> class="block bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs <?= !empty($st['url']) ? 'hover:border-slate-300 transition' : '' ?>">
             <div class="flex items-start justify-between gap-2">
                 <span class="text-[13px] text-slate-600"><?= htmlspecialchars($st['label']) ?></span>
                 <span class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 <?= $st['tone'] ?>">
@@ -99,10 +115,33 @@ $csrfToken = getCsrfToken();
             </div>
             <div class="text-2xl font-semibold text-slate-900 mt-2 tabular"><?= htmlspecialchars($st['value']) ?></div>
             <div class="text-[11px] mt-0.5 <?= !empty($st['warn']) ? 'text-amber-700 font-medium' : 'text-slate-500' ?>"><?= htmlspecialchars($st['note']) ?></div>
-        </div>
+        </<?= $tag ?>>
     <?php endforeach; ?>
 </div>
 
+<nav class="mb-6 -mx-1 overflow-x-auto" aria-label="Inventory views">
+    <ul class="flex gap-1 px-1 border-b border-slate-200 min-w-max">
+        <?php foreach ([
+            'stock'   => ['Stock', 'inventory_2', null],
+            'alerts'  => ['Needs attention', 'warning', $alertCount],
+            'reports' => ['Reports', 'monitoring', null],
+        ] as $key => [$label, $icon, $badge]):
+            $on = $invTab === $key; ?>
+            <li>
+                <a href="inventory.php?view=<?= $key ?>" <?= $on ? 'aria-current="page"' : '' ?>
+                   class="relative inline-flex items-center gap-2 px-3 py-2.5 text-[13px] font-medium transition <?= $on ? 'text-blue-800' : 'text-slate-500 hover:text-slate-900' ?>">
+                    <span class="material-symbols-outlined text-[18px]"><?= $icon ?></span><?= $label ?>
+                    <?php if ($badge): ?>
+                        <span class="ml-0.5 min-w-[20px] px-1.5 rounded-full bg-amber-100 text-amber-800 text-[11px] font-semibold text-center"><?= $badge ?></span>
+                    <?php endif; ?>
+                    <?php if ($on): ?><span class="absolute left-2 right-2 -bottom-px h-0.5 rounded-full bg-blue-700"></span><?php endif; ?>
+                </a>
+            </li>
+        <?php endforeach; ?>
+    </ul>
+</nav>
+
+<?php if ($invTab === 'stock'): ?>
 <!-- Filter Bar -->
 <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-4 mb-6 shadow-xs">
     <form method="GET" action="inventory.php" class="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -178,6 +217,16 @@ $csrfToken = getCsrfToken();
                                         <span class="block text-[10px] font-mono text-outline font-normal">
                                             SKU: <?= htmlspecialchars($item['sku']) ?> | VMS Tax: <span class="font-bold text-primary"><?= htmlspecialchars($item['vms_tax_code'] ?? 'A') ?></span>
                                         </span>
+                                        <?php
+                                        // The extra fields this clinic chose to record (Administration → Inventory)
+                                        $shown = [];
+                                        foreach ($customFieldsDef as $cf) {
+                                            $v = trim((string) ($customData[$cf['name']] ?? ''));
+                                            if ($v !== '') $shown[] = $cf['label'] . ': ' . $v;
+                                        }
+                                        if ($shown): ?>
+                                            <span class="block text-[10px] text-outline font-normal mt-0.5"><?= htmlspecialchars(implode(' · ', array_slice($shown, 0, 3))) ?></span>
+                                        <?php endif; ?>
                                         <?php if (!empty($customData)): ?>
                                             <div class="mt-1 flex flex-wrap gap-1">
                                                 <?php foreach ($customData as $ckey => $cval): ?>
@@ -277,8 +326,243 @@ $csrfToken = getCsrfToken();
     </div>
 
     <!-- Pagination Controls -->
-    <?= renderPagination($totalItemsCount, $pagination['page'], $pagination['limit'], 'inventory.php', array_filter(['q' => $searchQuery, 'category' => $categoryFilter, 'status' => $statusFilter])) ?>
+    <?= renderPagination($totalItemsCount, $pagination['page'], $pagination['limit'], 'inventory.php', array_filter(['view' => 'stock', 'q' => $searchQuery, 'category' => $categoryFilter, 'status' => $statusFilter])) ?>
 </div>
+<?php endif; // stock view ?>
+
+<?php if ($invTab === 'alerts'): ?>
+<?php
+$alertGroups = [
+    ['key' => 'expired',  'title' => 'Expired',            'note' => 'Remove from the shelf and record the write-off.',           'tone' => 'red',   'items' => $invAlerts['expired']],
+    ['key' => 'reorder',  'title' => 'Low or out of stock', 'note' => 'At or below the reorder level set for the item.',          'tone' => 'amber', 'items' => $invAlerts['reorder']],
+    ['key' => 'expiring', 'title' => 'Expiring soon',       'note' => 'Within ' . $invAlerts['window_days'] . ' days. Use these first.', 'tone' => 'amber', 'items' => $invAlerts['expiring']],
+];
+$tones = [
+    'red'   => ['bg-red-50 text-red-700 ring-red-200', 'bg-red-500'],
+    'amber' => ['bg-amber-50 text-amber-800 ring-amber-200', 'bg-amber-500'],
+];
+?>
+<?php if ($alertCount === 0): ?>
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs">
+        <div class="nx-empty !py-12">
+            <span class="material-symbols-outlined !text-emerald-500">task_alt</span>
+            <p class="text-[15px] text-slate-700">Nothing needs attention.</p>
+            <p>Every item is above its reorder level and nothing expires within <?= (int) $invAlerts['window_days'] ?> days.</p>
+            <a href="admin.php?tab=inventory" class="text-[13px] text-blue-700 hover:underline mt-1">Change these levels</a>
+        </div>
+    </div>
+<?php else: ?>
+    <div class="space-y-6">
+    <?php foreach ($alertGroups as $group): if (!$group['items']) continue;
+        [$badge, $dot] = $tones[$group['tone']]; ?>
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+            <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+                <div>
+                    <h2 class="text-base font-semibold text-slate-900 flex items-center gap-2">
+                        <span class="nx-dot <?= $dot ?>"></span><?= htmlspecialchars($group['title']) ?>
+                        <span class="text-slate-400 font-normal">(<?= count($group['items']) ?>)</span>
+                    </h2>
+                    <p class="text-[13px] text-slate-500 mt-0.5"><?= htmlspecialchars($group['note']) ?></p>
+                </div>
+                <a href="inventory.php?view=stock&status=<?= $group['key'] === 'reorder' ? 'Low+Stock' : '' ?>" class="text-[13px] font-medium text-blue-700 hover:underline whitespace-nowrap">Open in stock list</a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="border-y border-slate-200 bg-slate-50 text-[12px] font-semibold text-slate-500">
+                            <th class="py-2.5 px-5">Item</th>
+                            <th class="py-2.5 px-3">Category</th>
+                            <th class="py-2.5 px-3">In stock</th>
+                            <th class="py-2.5 px-3 hidden sm:table-cell">Reorder at</th>
+                            <th class="py-2.5 px-3">Expiry</th>
+                            <th class="py-2.5 px-5 text-right"><span class="sr-only">Actions</span></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        <?php foreach ($group['items'] as $item):
+                            $stock = (int) $item['current_stock'];
+                            $expiry = trim((string) ($item['expiry_date'] ?? ''));
+                            $daysLeft = $expiry !== '' ? (int) floor((strtotime($expiry) - strtotime(date('Y-m-d'))) / 86400) : null; ?>
+                            <tr class="hover:bg-slate-50 transition">
+                                <td class="py-3 px-5">
+                                    <div class="text-[13px] font-semibold text-slate-900"><?= htmlspecialchars($item['name']) ?></div>
+                                    <div class="text-[11px] font-mono text-slate-500"><?= htmlspecialchars($item['sku']) ?></div>
+                                </td>
+                                <td class="py-3 px-3 text-[13px] text-slate-600"><?= htmlspecialchars($item['category']) ?></td>
+                                <td class="py-3 px-3">
+                                    <span class="text-[13px] font-semibold tabular <?= $stock <= 0 ? 'text-red-700' : 'text-slate-900' ?>"><?= number_format($stock) ?></span>
+                                    <span class="text-[12px] text-slate-500"><?= htmlspecialchars($item['unit']) ?></span>
+                                    <?php if ($stock <= 0): ?><span class="block text-[11px] font-medium text-red-700">Out of stock</span><?php endif; ?>
+                                </td>
+                                <td class="py-3 px-3 text-[13px] text-slate-600 tabular hidden sm:table-cell"><?= number_format((int) $item['min_threshold']) ?></td>
+                                <td class="py-3 px-3">
+                                    <?php if ($expiry === ''): ?>
+                                        <span class="text-[13px] text-slate-400">—</span>
+                                    <?php else: ?>
+                                        <span class="text-[13px] text-slate-700"><?= htmlspecialchars(nxDate($expiry)) ?></span>
+                                        <span class="block text-[11px] <?= $daysLeft < 0 ? 'text-red-700 font-medium' : 'text-amber-700' ?>">
+                                            <?= $daysLeft < 0 ? abs($daysLeft) . ' days ago' : 'in ' . $daysLeft . ' days' ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="py-3 px-5 text-right whitespace-nowrap">
+                                    <?php if ($isAdminOrDev): ?>
+                                        <button type="button" onclick='openDetailedRestockModal(<?= htmlspecialchars(json_encode($item), ENT_QUOTES) ?>)' class="btn-secondary !py-1.5 !px-3 !text-[12px]">Restock</button>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    <?php endforeach; ?>
+    </div>
+<?php endif; ?>
+<?php endif; // alerts view ?>
+
+<?php if ($invTab === 'reports' && $invReport): ?>
+<?php $r = $invReport; ?>
+<form method="GET" action="inventory.php" class="mb-6 flex flex-wrap items-end gap-3">
+    <input type="hidden" name="view" value="reports">
+    <div>
+        <label class="form-label" for="rep-from">From</label>
+        <input id="rep-from" type="date" name="from" value="<?= htmlspecialchars($reportFrom) ?>" class="form-input !py-2">
+    </div>
+    <div>
+        <label class="form-label" for="rep-to">To</label>
+        <input id="rep-to" type="date" name="to" value="<?= htmlspecialchars($reportTo) ?>" class="form-input !py-2">
+    </div>
+    <button type="submit" class="btn-secondary">Update</button>
+    <a href="actions/inventory_report_export.php?from=<?= urlencode($reportFrom) ?>&to=<?= urlencode($reportTo) ?>" class="btn-secondary ml-auto">
+        <span class="material-symbols-outlined text-[18px]">download</span> Download CSV
+    </a>
+</form>
+
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <?php foreach ([
+        ['Stock on hand', $cur . number_format($r['totals']['retail_value'], 2), 'At selling price'],
+        ['What it cost', $cur . number_format($r['totals']['cost_value'], 2), 'At purchase price'],
+        ['Units received', number_format($r['movements']['in']), $cur . number_format($r['movements']['spend'], 2) . ' spent'],
+        ['Units used', number_format($r['movements']['out']), 'Dispensed or written off'],
+    ] as [$label, $value, $note]): ?>
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+            <div class="text-[13px] text-slate-600"><?= htmlspecialchars($label) ?></div>
+            <div class="text-2xl font-semibold text-slate-900 mt-1 tabular"><?= htmlspecialchars($value) ?></div>
+            <div class="text-[11px] text-slate-500 mt-0.5"><?= htmlspecialchars($note) ?></div>
+        </div>
+    <?php endforeach; ?>
+</div>
+
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+    <section class="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+        <div class="px-5 pt-5 pb-3">
+            <h2 class="text-base font-semibold text-slate-900">Stock by category</h2>
+            <p class="text-[13px] text-slate-500 mt-0.5">Where the value sits today, using your categories.</p>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="border-y border-slate-200 bg-slate-50 text-[12px] font-semibold text-slate-500">
+                        <th class="py-2.5 px-5">Category</th>
+                        <th class="py-2.5 px-3 text-right">Items</th>
+                        <th class="py-2.5 px-3 text-right">Units</th>
+                        <th class="py-2.5 px-5 text-right">Value</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <?php if (!$r['by_category']): ?>
+                        <tr><td colspan="4" class="px-5"><div class="nx-empty">No stock recorded yet.</div></td></tr>
+                    <?php endif; ?>
+                    <?php $maxVal = $r['by_category'] ? max(array_column($r['by_category'], 'retail_value')) : 0; ?>
+                    <?php foreach ($r['by_category'] as $row): ?>
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="py-3 px-5">
+                                <div class="text-[13px] text-slate-900"><?= htmlspecialchars($row['category']) ?></div>
+                                <?php if ($row['low'] > 0): ?><div class="text-[11px] text-amber-700"><?= $row['low'] ?> need reordering</div><?php endif; ?>
+                                <div class="mt-1.5 h-1.5 w-full max-w-[200px] rounded-full bg-slate-100 overflow-hidden">
+                                    <div class="h-full rounded-full bg-blue-600" style="width: <?= $maxVal > 0 ? round($row['retail_value'] / $maxVal * 100) : 0 ?>%"></div>
+                                </div>
+                            </td>
+                            <td class="py-3 px-3 text-right text-[13px] text-slate-700 tabular"><?= number_format($row['items']) ?></td>
+                            <td class="py-3 px-3 text-right text-[13px] text-slate-700 tabular"><?= number_format($row['units']) ?></td>
+                            <td class="py-3 px-5 text-right text-[13px] font-semibold text-slate-900 tabular"><?= $cur . number_format($row['retail_value'], 2) ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+        <div class="px-5 pt-5 pb-3">
+            <h2 class="text-base font-semibold text-slate-900">Most movement</h2>
+            <p class="text-[13px] text-slate-500 mt-0.5"><?= htmlspecialchars(nxDate($reportFrom)) ?> to <?= htmlspecialchars(nxDate($reportTo)) ?></p>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="border-y border-slate-200 bg-slate-50 text-[12px] font-semibold text-slate-500">
+                        <th class="py-2.5 px-5">Item</th>
+                        <th class="py-2.5 px-3 text-right">Received</th>
+                        <th class="py-2.5 px-5 text-right">Used</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <?php if (!$r['top_moving']): ?>
+                        <tr><td colspan="3" class="px-5"><div class="nx-empty">Nothing moved in this period.</div></td></tr>
+                    <?php endif; ?>
+                    <?php foreach ($r['top_moving'] as $row): ?>
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="py-3 px-5 text-[13px] text-slate-900"><?= htmlspecialchars($row['name']) ?></td>
+                            <td class="py-3 px-3 text-right text-[13px] text-emerald-700 tabular">+<?= number_format($row['in']) ?></td>
+                            <td class="py-3 px-5 text-right text-[13px] text-slate-700 tabular">-<?= number_format($row['out']) ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden xl:col-span-2">
+        <div class="px-5 pt-5 pb-3">
+            <h2 class="text-base font-semibold text-slate-900">Sitting unused</h2>
+            <p class="text-[13px] text-slate-500 mt-0.5">In stock but not touched in this period — money on a shelf.</p>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="border-y border-slate-200 bg-slate-50 text-[12px] font-semibold text-slate-500">
+                        <th class="py-2.5 px-5">Item</th>
+                        <th class="py-2.5 px-3">Category</th>
+                        <th class="py-2.5 px-3 text-right">Units</th>
+                        <th class="py-2.5 px-3">Expiry</th>
+                        <th class="py-2.5 px-5 text-right">Value</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <?php if (!$r['never_moved']): ?>
+                        <tr><td colspan="5" class="px-5"><div class="nx-empty">Everything in stock moved at least once.</div></td></tr>
+                    <?php endif; ?>
+                    <?php foreach ($r['never_moved'] as $item): ?>
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="py-3 px-5">
+                                <div class="text-[13px] text-slate-900"><?= htmlspecialchars($item['name']) ?></div>
+                                <div class="text-[11px] font-mono text-slate-500"><?= htmlspecialchars($item['sku']) ?></div>
+                            </td>
+                            <td class="py-3 px-3 text-[13px] text-slate-600"><?= htmlspecialchars($item['category']) ?></td>
+                            <td class="py-3 px-3 text-right text-[13px] text-slate-700 tabular"><?= number_format((int) $item['current_stock']) ?></td>
+                            <td class="py-3 px-3 text-[13px] text-slate-600"><?= !empty($item['expiry_date']) ? htmlspecialchars(nxDate($item['expiry_date'])) : '—' ?></td>
+                            <td class="py-3 px-5 text-right text-[13px] font-semibold text-slate-900 tabular"><?= $cur . number_format((int) $item['current_stock'] * (float) $item['unit_price'], 2) ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+<?php endif; // reports view ?>
+
 
 <!-- MODAL 1: ADD NEW INVENTORY ITEM -->
 <?php if ($isAdminOrDev): ?>

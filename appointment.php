@@ -68,10 +68,10 @@ try {
 }
 
 try {
-    $patientsStmt = $pdo->query("SELECT * FROM patients ORDER BY last_name ASC");
-    if ($patientsStmt) {
-        $patients = $patientsStmt->fetchAll() ?: [];
-    }
+    // Only this clinic's patients may be booked here
+    $patientsStmt = $pdo->prepare("SELECT * FROM patients WHERE tenant_id = ? AND is_active = 1 ORDER BY last_name ASC, first_name ASC");
+    $patientsStmt->execute([$tenantId]);
+    $patients = $patientsStmt->fetchAll() ?: [];
 } catch (\Throwable $e) {
     error_log("Calendar patients query error: " . $e->getMessage());
 }

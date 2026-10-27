@@ -64,15 +64,17 @@ class AppointmentService {
         }
         $notes = trim($data['notes'] ?? '');
 
-        // Fetch patient
+        // The patient must belong to this clinic. Without this check a booking
+        // could be made against another clinic's patient id.
         $pStmt = $this->db->prepare("SELECT * FROM patients WHERE id = ? AND tenant_id = ?");
         $pStmt->execute([$patientId, $tenantId]);
         $patient = $pStmt->fetch(PDO::FETCH_ASSOC);
-
-        $patientName = $data['patient_name'] ?? (($patient['first_name'] ?? '') . ' ' . ($patient['last_name'] ?? ''));
-        if (empty(trim($patientName)) && $patient) {
-            $patientName = ($patient['first_name'] ?? '') . ' ' . ($patient['last_name'] ?? '');
+        if (!$patient) {
+            throw new \InvalidArgumentException('Choose a patient registered at this clinic.');
         }
+
+        // Always name the patient from their record, never from the form
+        $patientName = trim(($patient['first_name'] ?? '') . ' ' . ($patient['last_name'] ?? ''));
 
         // Fetch doctor
         $dStmt = $this->db->prepare("SELECT * FROM doctors WHERE id = ? AND tenant_id = ?");

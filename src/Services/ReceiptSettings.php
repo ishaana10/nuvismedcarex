@@ -56,6 +56,7 @@ final class ReceiptSettings
             'show_qty'        => ['Quantity column', true],
             'show_unit_price' => ['Unit price column', false],
             'show_tax'        => ['VAT breakdown', true],
+            'show_insurance'  => ['Insurance contribution', true],
             'show_payments'   => ['Payment methods', true],
             'show_balance'    => ['Balance remaining', true],
         ],

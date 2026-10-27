@@ -12,6 +12,7 @@ $orderId = $_GET['id'] ?? $_GET['order_id'] ?? '';
 $patientId = $_GET['patient_id'] ?? '';
 $csrfToken = generateCsrfToken();
 $pdo = getDB();
+$currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 
 $labOrderService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\LabOrderService::class);
 $order = null;
@@ -45,8 +46,8 @@ $clinicAddress = $clinicProfile['address'];
 $clinicPhone = $settings['clinic_phone'] ?? '(555) 019-2831';
 
 // Fetch patient info
-$stmt = $pdo->prepare("SELECT * FROM patients WHERE id = ?");
-$stmt->execute([$patientId]);
+$stmt = $pdo->prepare("SELECT * FROM patients WHERE id = ? AND tenant_id = ?");
+$stmt->execute([$patientId, $currentTenantId]);
 $patient = $stmt->fetch();
 
 if (!$patient) {

@@ -60,8 +60,8 @@ if (empty($firstName) || empty($lastName) || empty($dob)) {
 $age = date_diff(date_create($dob), date_create('today'))->y;
 
 // Check existing record
-$stmt = $pdo->prepare("SELECT * FROM patients WHERE id = ?");
-$stmt->execute([$patientId]);
+$stmt = $pdo->prepare("SELECT * FROM patients WHERE id = ? AND tenant_id = ?");
+$stmt->execute([$patientId, \ClinicFlow\Shared\TenantContext::getTenantId()]);
 $existing = $stmt->fetch();
 
 if (!$existing) {

@@ -435,14 +435,14 @@ $canEncounter = nxCan('encounters', 'view');
                         'warn' => $overdueInvoicesCount > 0,
                     ],
                     [
-                        'module' => 'inventory', 'icon' => 'inventory_2', 'tone' => $lowStockCount ? 'bg-red-50 text-red-700' : 'bg-slate-100 text-slate-600', 'url' => 'inventory.php',
+                        'module' => 'inventory', 'icon' => 'inventory_2', 'tone' => $lowStockCount ? 'bg-red-50 text-red-700' : 'bg-slate-100 text-slate-600', 'url' => 'inventory.php?view=alerts',
                         'label' => 'Stock to reorder',
                         'value' => (string) $lowStockCount,
                         'note' => $lowStockCount ? implode(', ', array_map(fn($i) => $i['name'], array_slice($lowStockItems, 0, 2))) . ($lowStockCount > 2 ? ' and ' . ($lowStockCount - 2) . ' more' : '') : 'Stock levels are fine',
                         'warn' => $lowStockCount > 0,
                     ],
                     [
-                        'module' => 'inventory', 'icon' => 'event_busy', 'tone' => $expiringCount ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600', 'url' => 'inventory.php',
+                        'module' => 'inventory', 'icon' => 'event_busy', 'tone' => $expiringCount ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600', 'url' => 'inventory.php?view=alerts',
                         'label' => 'Expiring within ' . $expiryWindowDays . ' days',
                         'value' => (string) $expiringCount,
                         'note' => $expiringCount ? 'Use first or return to supplier' : 'Nothing close to expiry',
