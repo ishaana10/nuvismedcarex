@@ -11,22 +11,40 @@
  */
 require_once __DIR__ . '/../config/version.php';
 $nxAssetVersion = urlencode((string) AppVersion::get('commit'));
+
+// The signed-in person's saved look, so it applies on any device they use.
+// Auth pages have no user yet and fall back to the device setting.
+$nxUserPrefs = function_exists('nxPrefs') && !empty($_SESSION['authenticated']) ? nxPrefs() : null;
 ?>
     <meta name="color-scheme" content="light dark"/>
     <meta name="theme-color" content="#0F2B5C"/>
     <link rel="icon" type="image/png" href="assets/images/nuvis_mark.png"/>
 
-    <!-- Apply the saved theme before first paint (no light flash in dark mode) -->
+    <!-- Apply the chosen theme before first paint (no light flash in dark mode) -->
     <script>
       (function () {
+        var saved = <?= $nxUserPrefs ? json_encode([
+            'theme' => $nxUserPrefs['theme'],
+            'density' => $nxUserPrefs['density'],
+            'sidebar' => !empty($nxUserPrefs['sidebar_collapsed']),
+            'hints' => !empty($nxUserPrefs['show_help_hints']),
+        ]) : 'null' ?>;
+        var root = document.documentElement;
         try {
-          var t = localStorage.getItem('nx-theme');
-          if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
+          var theme = saved ? saved.theme : (localStorage.getItem('nx-theme') || 'system');
+          if (theme === 'system' || !theme) {
+            theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
           }
-          if (localStorage.getItem('nx-sidebar') === 'collapsed') {
-            document.documentElement.classList.add('nx-sidebar-collapsed');
-          }
+          root.classList.toggle('dark', theme === 'dark');
+
+          var collapsed = saved ? saved.sidebar : localStorage.getItem('nx-sidebar') === 'collapsed';
+          // A choice made with [ during this visit wins over the saved default
+          var session = sessionStorage.getItem('nx-sidebar');
+          if (session !== null) collapsed = session === 'collapsed';
+          root.classList.toggle('nx-sidebar-collapsed', !!collapsed);
+
+          if (saved && saved.density === 'compact') root.classList.add('nx-compact');
+          if (saved && saved.hints === false) root.classList.add('nx-no-hints');
         } catch (e) {}
       })();
     </script>

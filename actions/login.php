@@ -92,9 +92,19 @@ if ($valid && $user) {
         // Suppress if audit table not ready
     }
 
-    setToast("Welcome Back!", "Logged in successfully as " . $user['name'] . ".");
+    setToast('Welcome back', 'Signed in as ' . $user['name'] . '.');
 
-    header("Location: ../index.php");
+    // Open the page this person chose in Settings → Appearance
+    $landing = 'index.php';
+    try {
+        $own = (new \ClinicFlow\Services\UserPreferences($pdo))->load($user['id'])['landing_page'] ?? 'index.php';
+        if (isset(\ClinicFlow\Services\UserPreferences::LANDING[$own])) {
+            $landing = $own;
+        }
+    } catch (\Throwable $e) {
+        error_log('[login] landing page: ' . $e->getMessage());
+    }
+    header('Location: ../' . $landing);
     exit;
 } else {
     recordLoginAttempt($clientIp, $email);

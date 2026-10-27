@@ -97,6 +97,7 @@ $nxCsrf = htmlspecialchars(getCsrfToken());
           'nav' => array_map(fn($n) => ['label' => $n['label'], 'url' => $n['url'], 'icon' => $n['icon'], 'keywords' => $n['keywords'] ?? ''], $nxNav),
           'toast' => $toast ?: null,
           'can' => array_map(fn($m) => nxAccess()->level($nxUserRole, $m), array_combine(array_keys(\ClinicFlow\Services\AccessControl::MODULES), array_keys(\ClinicFlow\Services\AccessControl::MODULES))),
+          'alerts' => array_intersect_key(nxPrefs(), array_flip(array_keys(\ClinicFlow\Services\UserPreferences::ALERTS))),
       ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
     </script>
     <script src="assets/js/app.js?v=<?= $nxAssetVersion ?>" defer></script>
