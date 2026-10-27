@@ -53,6 +53,27 @@ if (!function_exists('nxClinicSettings')) {
         return nxClinic()['name'];
     }
 
+    /** Preferences of the signed-in person (see UserPreferences). */
+    function nxPrefs(): array
+    {
+        static $prefs = null, $forUser = null;
+        $uid = $_SESSION['user_id'] ?? null;
+        if ($prefs === null || $forUser !== $uid) {
+            $prefs = (new \ClinicFlow\Services\UserPreferences(getDB()))->load($uid);
+            $forUser = $uid;
+        }
+        return $prefs;
+    }
+
+    /** Format a date the way this person chose. */
+    function nxDate($when, bool $withTime = false): string
+    {
+        $ts = is_numeric($when) ? (int) $when : strtotime((string) $when);
+        if (!$ts) return '';
+        $p = nxPrefs();
+        return date($p['date_format'] . ($withTime ? ' ' . $p['time_format'] : ''), $ts);
+    }
+
     /** Currency symbol for the active clinic. */
     function nxCurrencySymbol(?string $override = null): string
     {

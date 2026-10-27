@@ -239,6 +239,13 @@
     $all('[data-nx-theme-icon]').forEach(function (i) { i.textContent = dark ? 'light_mode' : 'dark_mode'; });
     $all('[data-nx-theme-toggle]').forEach(function (b) { b.setAttribute('aria-label', dark ? 'Switch to light theme' : 'Switch to dark theme'); });
   }
+  // 'system' follows the device; 'light'/'dark' are explicit
+  NX.applyTheme = function (theme) {
+    var dark = theme === 'dark' ||
+      (theme === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.classList.toggle('dark', dark);
+    applyThemeIcon();
+  };
   NX.toggleTheme = function () {
     var dark = !document.documentElement.classList.contains('dark');
     document.documentElement.classList.toggle('dark', dark);
@@ -249,6 +256,8 @@
     var c = !document.documentElement.classList.contains('nx-sidebar-collapsed');
     document.documentElement.classList.toggle('nx-sidebar-collapsed', c);
     store.set('nx-sidebar', c ? 'collapsed' : 'open');
+    // Remember for this visit only; the saved preference is the starting point
+    try { sessionStorage.setItem('nx-sidebar', c ? 'collapsed' : 'open'); } catch (e) {}
   };
 
   /* -------------------------------------------------------- Notifications */
@@ -282,12 +291,37 @@
     var bell = $('#notif-bell-btn');
     if (bell) bell.setAttribute('aria-label', unread ? 'Notifications, ' + unread + ' unread' : 'Notifications');
   }
+  // Which alerts this person asked for (Settings → Alerts)
+  function wantsAlert(data) {
+    var p = ctx.alerts || {};
+    if (data.type === 'patient_registered' && p.alert_patient_registered === false) return false;
+    if (data.type === 'appointment_booked' && p.alert_appointment_booked === false) return false;
+    return true;
+  }
+
+  function beep() {
+    if (!(ctx.alerts || {}).alert_sound) return;
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      var c = new AC(), o = c.createOscillator(), g = c.createGain();
+      o.type = 'sine'; o.frequency.value = 880;
+      g.gain.setValueAtTime(0.0001, c.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.08, c.currentTime + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + 0.25);
+      o.connect(g); g.connect(c.destination);
+      o.start(); o.stop(c.currentTime + 0.26);
+      setTimeout(function () { c.close(); }, 500);
+    } catch (e) {}
+  }
+
   function addNotif(data) {
     var key = [data.title, data.patient_id, data.timestamp].join('|');
     if (notifs.some(function (n) { return n.key === key; })) return;
     notifs.unshift({ key: key, title: data.title, message: data.message, patient_id: data.patient_id || '', receivedAt: Date.now(), read: false });
     saveNotifs();
     renderNotifs();
+    beep();
     NX.toast(data.title, data.message, 'info', data.patient_id ? { action: { label: 'Open chart', run: function () { location.href = 'patient_detail.php?id=' + encodeURIComponent(data.patient_id); } } } : {});
   }
   window.addNotificationItem = addNotif; // legacy name
@@ -324,7 +358,7 @@
             : 'Sign in again to receive updates';
           return;
         }
-        if (data.title && data.message) addNotif(data);
+        if (data.title && data.message && wantsAlert(data)) addNotif(data);
       };
 
       es.onerror = function () {

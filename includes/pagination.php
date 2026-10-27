@@ -21,16 +21,28 @@ if (!function_exists('getPaginationParams')) {
         string $pageParam = 'page',
         string $limitParam = 'limit'
     ): array {
-        if ($pdo !== null && !isset($_GET[$limitParam])) {
-            try {
-                $stmt = $pdo->prepare("SELECT setting_value FROM clinic_settings WHERE setting_key = 'default_pagination_limit'");
-                $stmt->execute();
-                $dbVal = $stmt->fetchColumn();
-                if ($dbVal && in_array((int)$dbVal, $allowedLimits, true)) {
-                    $defaultLimit = (int)$dbVal;
+        if (!isset($_GET[$limitParam])) {
+            // The clinic's default, unless this person chose their own in Settings
+            if ($pdo !== null) {
+                try {
+                    $stmt = $pdo->prepare("SELECT setting_value FROM clinic_settings WHERE setting_key = 'default_pagination_limit'");
+                    $stmt->execute();
+                    $dbVal = $stmt->fetchColumn();
+                    if ($dbVal && in_array((int) $dbVal, $allowedLimits, true)) {
+                        $defaultLimit = (int) $dbVal;
+                    }
+                } catch (\Throwable $e) {
+                    // fall back to the value passed in
                 }
-            } catch (\Throwable $e) {
-                // fallback to passed default
+            }
+            if (function_exists('nxPrefs')) {
+                try {
+                    $own = (int) (nxPrefs()['page_size'] ?? 0);
+                    if ($own > 0 && in_array($own, $allowedLimits, true)) {
+                        $defaultLimit = $own;
+                    }
+                } catch (\Throwable $e) {
+                }
             }
         }
 

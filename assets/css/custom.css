@@ -673,3 +673,17 @@ html.dark [class*="bg-amber-8"].text-white, html.dark [class*="bg-amber-9"].text
 
 /* Broken avatar/photo links collapse to their placeholder instead of alt text */
 img.nx-img-failed { visibility: hidden; }
+
+/* Compact spacing (Settings → Appearance) — fits more rows on screen */
+html.nx-compact main table td { padding-top: .45rem; padding-bottom: .45rem; }
+html.nx-compact main table thead th { padding-top: .4rem; padding-bottom: .4rem; }
+html.nx-compact .clinic-card,
+html.nx-compact .card-container,
+html.nx-compact main section.rounded-2xl > .p-5 { padding: 1rem; }
+html.nx-compact .nx-page-title { font-size: 1.3rem; }
+html.nx-compact main .space-y-6 > * + * { margin-top: 1rem; }
+
+/* Hint text under fields can be turned off per person */
+html.nx-no-hints main .form-input + p.text-xs,
+html.nx-no-hints main .form-select + p.text-xs,
+html.nx-no-hints main label + p.text-xs.text-slate-500 { display: none; }

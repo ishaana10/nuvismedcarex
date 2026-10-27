@@ -121,6 +121,17 @@ Run the automated PHPUnit test suite covering Domain Entities, Repositories, Ser
 
 ## 📜 Version History & Release Notes
 
+### **Settings becomes personal preferences** - *October 2026*
+- **Removed the duplicates.** Settings had its own copies of clinic branding, the SMTP set-up and the email log, all of which now live in Administration. Those tabs are gone; Settings links across instead, so each thing is configured in exactly one place.
+- **Settings is now about the person signed in**, not the clinic, and the preferences are stored per account (`doctors.preferences`, added by migration) so they follow someone to any device and never affect a colleague.
+  - **Your profile**: name, job title, email, photo — and your own signature and stamp, which previously only an administrator could set even though they print on the documents you sign.
+  - **Appearance**: theme (follow device / light / dark), comfortable or compact spacing, rows per page, date and time format, which page opens after signing in, whether the sidebar starts collapsed, and whether hint text shows under fields.
+  - **Alerts**: choose which live alerts you want and whether they make a sound.
+  - **Sign-in & security**: change password, see the current session, and links to staff and roles for those who manage them.
+  - **Clinic plan**: the read-only subscription summary, kept as the one thing here that is clinic-level.
+- Preferences actually take effect: the theme and spacing are applied before first paint from the saved value rather than browser storage, rows per page feeds the pagination used by every list, the chosen page opens after sign-in, and the alert choices filter the live notifications.
+- **Fix:** "Reset to defaults" was the first submit button in the preferences form, so pressing Enter in any field reset everything instead of saving. It now submits its own form.
+
 ### **Per-clinic email, live notifications and clinic switching** - *October 2026*
 - **Each clinic sends from its own mailbox.** Administration → Email now has one-click set-up for Gmail/Google Workspace, Outlook/Microsoft 365, Yahoo and Zoho (server, port and encryption filled in, with the app-password guidance each provider requires), plus any other provider. Settings are stored per clinic, so receipts, invoices and prescriptions reach patients from the clinic's own address wherever the system is hosted. A "send yourself a test" button reports the real reason when something is wrong — wrong app password, blocked port, server refusing the sender.
 - **Mail sending rewritten** (`src/Services/EmailService.php`): STARTTLS is negotiated whenever the server advertises it rather than only on port 587, AUTH PLAIN is tried when AUTH LOGIN is unavailable, headers are UTF-8 encoded, Reply-To and Message-ID are set, the From name is the clinic, and message bodies are dot-stuffed — a body line consisting of "." used to truncate the email. The silent fall back to PHP `mail()` is gone: a clinic with no mail server set up now gets a clear failure instead of a message that never arrives.

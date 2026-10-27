@@ -26,7 +26,7 @@ if (!function_exists('nxAccess')) {
         'billing'          => ['billing', 'view'],
         'inventory'        => ['inventory', 'view'],
         'uploads'          => ['documents', 'view'],
-        'settings'         => ['settings', 'view'],
+        'settings'         => null,  // everyone may open their own settings
         'admin'            => ['users', 'view'],
         'access'           => ['users', 'view'],
         'receipts'         => ['settings', 'view'],
@@ -83,6 +83,7 @@ if (!function_exists('nxAccess')) {
         'actions/test_email.php'          => ['settings', 'edit'],
         // Staff & access
         'actions/doctor_actions.php'      => ['users', 'edit', ['delete' => 'full']],
+        // Your own profile and preferences need no special access
         'actions/admin_save_doctor.php'   => ['users', 'edit'],
         'actions/access_save.php'         => ['users', 'full'],
         // Developer
