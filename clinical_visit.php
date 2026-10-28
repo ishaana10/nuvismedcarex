@@ -726,6 +726,125 @@ include __DIR__ . '/includes/header.php';
                 </div>
             <?php endif; ?>
         </div>
+
+        <!-- Consent forms signed during this encounter -->
+        <?php if (\ClinicFlow\Services\ConsentForms::isAvailable($pdo)): ?>
+        <?php
+        $consentFormsSvc = new \ClinicFlow\Services\ConsentForms($pdo, $currentTenantId);
+        $consentRecordsSvc = new \ClinicFlow\Services\ConsentRecords($pdo, $currentTenantId);
+        $consentActive = $consentFormsSvc->all(true);
+        $consentSigned = $consentRecordsSvc->forVisit($patient['id'], $visitId);
+        $consentOutstanding = $consentRecordsSvc->outstandingForVisit($consentActive, $patient['id'], $visitId);
+        $consentEarlier = array_values(array_filter(
+            $consentRecordsSvc->forPatient($patient['id'], 40),
+            static fn($r) => (string) $r['visit_id'] !== (string) $visitId
+        ));
+        ?>
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-5 shadow-xs">
+            <h2 class="text-xs font-bold text-outline uppercase tracking-wider mb-3 flex items-center gap-2">
+                <span class="material-symbols-outlined text-blue-600 text-base">assignment_turned_in</span>
+                <span>Consent</span>
+                <?php if ($consentOutstanding): ?>
+                    <span class="ml-auto px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold"><?= count($consentOutstanding) ?> to sign</span>
+                <?php endif; ?>
+            </h2>
+
+            <?php if (!$consentActive): ?>
+                <p class="text-xs text-outline italic">
+                    No consent forms are set up yet.
+                    <?php if (nxCan('settings', 'edit')): ?>
+                        <a href="consent_forms.php" class="text-primary hover:underline">Create one in Administration</a>.
+                    <?php endif; ?>
+                </p>
+            <?php else: ?>
+
+                <?php if ($consentSigned): ?>
+                    <div class="space-y-2 mb-3">
+                        <?php foreach ($consentSigned as $record): ?>
+                            <div class="p-3 rounded-xl border <?= $record['is_withdrawn'] ? 'border-slate-200 bg-slate-50' : 'border-emerald-200 bg-emerald-50/50' ?> text-xs">
+                                <div class="flex items-start justify-between gap-2">
+                                    <div class="min-w-0">
+                                        <div class="font-bold text-on-surface flex items-center gap-1.5">
+                                            <span class="material-symbols-outlined text-sm <?= $record['is_withdrawn'] ? 'text-slate-400' : 'text-emerald-600' ?>"><?= $record['is_withdrawn'] ? 'cancel' : 'check_circle' ?></span>
+                                            <span class="truncate"><?= htmlspecialchars($record['form_name']) ?></span>
+                                        </div>
+                                        <p class="text-[11px] text-outline mt-0.5">
+                                            <?= $record['is_withdrawn'] ? 'Withdrawn' : 'Signed' ?>
+                                            by <?= htmlspecialchars((string) $record['signed_by_name']) ?>
+                                            <?php if (($record['signed_relationship'] ?? 'Patient') !== 'Patient'): ?>
+                                                (<?= htmlspecialchars((string) $record['signed_relationship']) ?>)
+                                            <?php endif; ?>
+                                            &middot; <?= htmlspecialchars(nxDate((string) ($record['signed_at'] ?: $record['created_at']), true)) ?>
+                                        </p>
+                                        <?php if ($record['is_withdrawn'] && ($record['withdrawn_reason'] ?? '') !== ''): ?>
+                                            <p class="text-[11px] text-slate-500 italic mt-0.5"><?= htmlspecialchars((string) $record['withdrawn_reason']) ?></p>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="flex items-center gap-1 shrink-0">
+                                        <?php if (!empty($record['patient_signature'])): ?>
+                                            <img src="<?= htmlspecialchars((string) $record['patient_signature']) ?>" alt="Signature" class="h-7 bg-white rounded border border-emerald-200">
+                                        <?php endif; ?>
+                                        <a href="print_consent.php?id=<?= urlencode((string) $record['id']) ?>" target="_blank" rel="noopener" class="nx-icon-btn" title="View and print">
+                                            <span class="material-symbols-outlined text-[20px]">description</span>
+                                        </a>
+                                    </div>
+                                </div>
+                                <?php if (!$record['is_withdrawn'] && nxCan('encounters', 'full')): ?>
+                                    <form action="actions/consent_record_save.php" method="POST" class="mt-2 pt-2 border-t border-emerald-200/60"
+                                          data-nx-confirm="Withdraw this consent? The record is kept and marked as withdrawn.">
+                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getCsrfToken()) ?>">
+                                        <input type="hidden" name="action" value="withdraw">
+                                        <input type="hidden" name="record_id" value="<?= htmlspecialchars((string) $record['id']) ?>">
+                                        <input type="hidden" name="patient_id" value="<?= htmlspecialchars($patient['id']) ?>">
+                                        <input type="hidden" name="visit_id" value="<?= htmlspecialchars($visitId) ?>">
+                                        <input type="text" name="reason" maxlength="400" placeholder="Reason for withdrawing" class="w-full bg-white px-2 py-1 rounded-lg border border-outline-variant/40 text-[11px] mb-1.5">
+                                        <button type="submit" class="text-[11px] font-medium text-red-700 hover:underline">Withdraw consent</button>
+                                    </form>
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+
+                <?php if ($consentOutstanding): ?>
+                    <div class="space-y-1.5">
+                        <?php foreach ($consentOutstanding as $form): ?>
+                            <button type="button" onclick="openConsentForm('<?= htmlspecialchars((string) $form['id'], ENT_QUOTES) ?>')"
+                                    class="w-full text-left p-3 rounded-xl border border-dashed border-outline-variant/60 hover:border-primary hover:bg-primary/5 transition text-xs flex items-center gap-2">
+                                <span class="material-symbols-outlined text-base text-outline">draw</span>
+                                <span class="min-w-0 flex-1">
+                                    <span class="block font-bold text-on-surface truncate"><?= htmlspecialchars($form['name']) ?></span>
+                                    <?php if (($form['description'] ?? '') !== ''): ?>
+                                        <span class="block text-[11px] text-outline truncate"><?= htmlspecialchars($form['description']) ?></span>
+                                    <?php endif; ?>
+                                </span>
+                                <span class="text-[11px] font-semibold text-primary shrink-0">Sign</span>
+                            </button>
+                        <?php endforeach; ?>
+                    </div>
+                <?php elseif ($consentSigned): ?>
+                    <p class="text-[11px] text-emerald-700">Every consent form has been signed for this visit.</p>
+                <?php endif; ?>
+
+                <?php if ($consentEarlier): ?>
+                    <details class="mt-3 pt-3 border-t border-outline-variant/20">
+                        <summary class="text-[11px] font-semibold text-outline cursor-pointer">Signed at earlier visits (<?= count($consentEarlier) ?>)</summary>
+                        <ul class="mt-2 space-y-1">
+                            <?php foreach (array_slice($consentEarlier, 0, 12) as $old): ?>
+                                <li class="flex items-center justify-between gap-2 text-[11px]">
+                                    <span class="truncate <?= $old['is_withdrawn'] ? 'text-slate-400 line-through' : 'text-on-surface' ?>"><?= htmlspecialchars($old['form_name']) ?></span>
+                                    <span class="flex items-center gap-1.5 shrink-0">
+                                        <span class="text-outline font-mono"><?= htmlspecialchars(nxDate((string) ($old['signed_at'] ?: $old['created_at']))) ?></span>
+                                        <a href="print_consent.php?id=<?= urlencode((string) $old['id']) ?>" target="_blank" rel="noopener" class="text-primary hover:underline">View</a>
+                                    </span>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </details>
+                <?php endif; ?>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
     </div>
 </form>
 
@@ -1356,6 +1475,104 @@ $clinicSettings = $settings;
         </form>
     </div>
 </div>
+
+
+<!-- One dialog per consent form, so the patient signs the exact wording -->
+<?php if (!empty($consentOutstanding)): ?>
+    <?php require_once __DIR__ . '/includes/consent_form_render.php'; ?>
+    <?php foreach ($consentOutstanding as $cForm): ?>
+        <div id="consent-modal-<?= htmlspecialchars((string) $cForm['id'], ENT_QUOTES) ?>" class="nx-overlay hidden items-start justify-center p-4 overflow-y-auto" data-nx-modal>
+            <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 shadow-2xl w-full max-w-2xl my-8">
+                <div class="px-5 py-4 border-b border-outline-variant/30 flex items-start justify-between gap-3">
+                    <div>
+                        <h3 class="text-[15px] font-semibold text-on-surface"><?= htmlspecialchars($cForm['name']) ?></h3>
+                        <p class="text-[12px] text-outline mt-0.5">
+                            <?= htmlspecialchars(trim($patient['first_name'] . ' ' . $patient['last_name'])) ?>
+                            &middot; <?= htmlspecialchars((string) $patient['mrn']) ?>
+                            &middot; <?= htmlspecialchars(nxDate(date('Y-m-d'))) ?>
+                        </p>
+                    </div>
+                    <button type="button" onclick="NX.closeModal('consent-modal-<?= htmlspecialchars((string) $cForm['id'], ENT_QUOTES) ?>')" class="nx-icon-btn" aria-label="Close">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+
+                <form action="actions/consent_record_save.php" method="POST" class="p-5 space-y-4">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getCsrfToken()) ?>">
+                    <input type="hidden" name="action" value="sign">
+                    <input type="hidden" name="form_id" value="<?= htmlspecialchars((string) $cForm['id']) ?>">
+                    <input type="hidden" name="patient_id" value="<?= htmlspecialchars($patient['id']) ?>">
+                    <input type="hidden" name="visit_id" value="<?= htmlspecialchars($visitId) ?>">
+
+                    <div class="space-y-3 max-h-[46vh] overflow-y-auto pr-1">
+                        <?= nxConsentBody($cForm, [], false, 'answers') ?>
+                    </div>
+
+                    <div class="pt-3 border-t border-outline-variant/30 space-y-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="form-label" for="cs-by-<?= htmlspecialchars((string) $cForm['id'], ENT_QUOTES) ?>">Name of the person signing</label>
+                                <input id="cs-by-<?= htmlspecialchars((string) $cForm['id'], ENT_QUOTES) ?>" type="text" name="signed_by_name" maxlength="160" required
+                                       value="<?= htmlspecialchars(trim($patient['first_name'] . ' ' . $patient['last_name'])) ?>" class="form-input w-full">
+                            </div>
+                            <div>
+                                <label class="form-label" for="cs-rel-<?= htmlspecialchars((string) $cForm['id'], ENT_QUOTES) ?>">Signing as</label>
+                                <select id="cs-rel-<?= htmlspecialchars((string) $cForm['id'], ENT_QUOTES) ?>" name="signed_relationship" class="form-select w-full">
+                                    <?php foreach (\ClinicFlow\Services\ConsentRecords::RELATIONSHIPS as $rel): ?>
+                                        <option value="<?= $rel ?>"><?= $rel ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+
+                        <?php
+                        $spName = 'patient_signature';
+                        $spId = 'consent-sig-' . $cForm['id'];
+                        $spLabel = 'Signature';
+                        $spHint = 'Sign here with a finger or the mouse';
+                        $spValue = '';
+                        include __DIR__ . '/includes/signature_pad.php';
+                        ?>
+
+                        <?php if (!empty($cForm['require_witness'])): ?>
+                            <div class="pt-3 border-t border-dashed border-outline-variant/40 space-y-2">
+                                <p class="text-[11px] font-semibold text-amber-800">This form needs a witness.</p>
+                                <div>
+                                    <label class="form-label" for="cs-wit-<?= htmlspecialchars((string) $cForm['id'], ENT_QUOTES) ?>">Witness name</label>
+                                    <input id="cs-wit-<?= htmlspecialchars((string) $cForm['id'], ENT_QUOTES) ?>" type="text" name="witness_name" maxlength="160" class="form-input w-full"
+                                           value="<?= htmlspecialchars((string) ($_SESSION['user_name'] ?? '')) ?>">
+                                </div>
+                                <?php
+                                $spName = 'witness_signature';
+                                $spId = 'consent-wsig-' . $cForm['id'];
+                                $spLabel = 'Witness signature';
+                                $spHint = 'The witness signs here';
+                                $spValue = '';
+                                include __DIR__ . '/includes/signature_pad.php';
+                                ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-2 pt-3 border-t border-outline-variant/20">
+                        <button type="button" onclick="NX.closeModal('consent-modal-<?= htmlspecialchars((string) $cForm['id'], ENT_QUOTES) ?>')" class="btn-secondary">Cancel</button>
+                        <button type="submit" class="btn-primary">
+                            <span class="material-symbols-outlined text-[18px]">draw</span>
+                            <span>Save consent</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    <?php endforeach; ?>
+
+    <script>
+    function openConsentForm(id) {
+        NX.openModal('consent-modal-' + id);
+        if (window.nxSetupSignaturePads) window.nxSetupSignaturePads();
+    }
+    </script>
+<?php endif; ?>
 
 <?php require_once __DIR__ . '/includes/lab_order_modal.php'; ?>
 <?php include __DIR__ . '/includes/footer.php'; ?>

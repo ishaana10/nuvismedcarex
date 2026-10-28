@@ -82,6 +82,9 @@ if (!function_exists('nxAccess')) {
         'actions/admin_save_settings.php' => ['settings', 'edit'],
         'actions/receipt_settings_save.php' => ['settings', 'edit'],
         'actions/insurance_providers_save.php' => ['settings', 'edit'],
+        'actions/consent_form_save.php'   => ['settings', 'edit'],
+        'actions/consent_record_save.php' => ['encounters', 'edit', ['withdraw' => 'full']],
+        'print_consent.php'               => ['encounters', 'view'],
         'actions/vms_save_settings.php'   => ['settings', 'edit'],
         'actions/vms_actions.php'         => ['settings', 'edit'],
         // Drive credentials moved to Developer → Document storage
