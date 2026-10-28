@@ -341,7 +341,13 @@ $clinicDefaultPageSize = (int) nxSetting('default_pagination_limit', 10);
                 <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
                     <dt class="text-[13px] text-slate-500">Document storage</dt>
                     <dd class="text-lg font-semibold text-slate-900 mt-1"><?= $storageMb >= 1024 ? round($storageMb / 1024, 1) . ' GB' : $storageMb . ' MB' ?></dd>
-                    <dd class="text-xs text-slate-500 mt-1">Stored on <?= htmlspecialchars((string) ($activeTenant['storage_provider'] ?? 'server')) ?></dd>
+                    <?php
+                        $nxDocDrive = (string) (\ClinicFlow\Services\Cloud\CloudConfig::get()['provider'] ?? 'local');
+                        $nxDocDriveLabel = $nxDocDrive === 'local'
+                            ? 'this server'
+                            : (\ClinicFlow\Services\Cloud\Cloud::labels()[$nxDocDrive] ?? $nxDocDrive);
+                    ?>
+                    <dd class="text-xs text-slate-500 mt-1">Kept on <?= htmlspecialchars($nxDocDriveLabel) ?></dd>
                 </div>
             </dl>
             <p class="text-[13px] text-slate-500 mt-4">To change the plan, contact Nuvis Technologies.</p>

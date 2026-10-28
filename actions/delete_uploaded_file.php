@@ -10,10 +10,23 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-verifyCsrfToken($_POST['csrf_token'] ?? '');
+// The result of this check was being thrown away, so CSRF was not enforced
+if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) {
+    setToast('Not deleted', 'That request expired. Reload the page and try again.', 'error');
+    header('Location: ../uploads.php');
+    exit;
+}
+requireAccess('documents', 'full');
 
 $fileId = trim($_POST['file_id'] ?? '');
-$redirectTo = trim($_POST['redirect_to'] ?? '../uploads.php');
+
+// Only ever return to a page of this application: the posted address used to
+// be followed as given, which would send someone anywhere.
+$redirectTo = '../uploads.php';
+$wanted = trim((string) ($_POST['redirect_to'] ?? ''));
+if ($wanted !== '' && preg_match('#^\.\./[A-Za-z0-9_\-/]+\.php(\?[A-Za-z0-9_\-=&%.]*)?$#', $wanted)) {
+    $redirectTo = $wanted;
+}
 
 if (empty($fileId)) {
     setToast('Error', 'Missing file ID.', 'error');
@@ -31,11 +44,14 @@ if (!$file) {
     exit;
 }
 
-$deleted = $service->deleteFile($fileId);
-if ($deleted) {
-    setToast('File Deleted', "Document '{$file['original_name']}' has been deleted.", 'success');
+$warning = '';
+$deleted = $service->deleteFile($fileId, $warning);
+if ($deleted && $warning !== '') {
+    setToast('Deleted here, not on the drive', "'{$file['original_name']}' was removed from Nuvis Medcare X, but the copy on the drive could not be deleted: {$warning}", 'error');
+} elseif ($deleted) {
+    setToast('File deleted', "'{$file['original_name']}' has been deleted.");
 } else {
-    setToast('Error', 'Failed to delete file.', 'error');
+    setToast('Not deleted', 'The file could not be deleted.', 'error');
 }
 
 header("Location: $redirectTo");

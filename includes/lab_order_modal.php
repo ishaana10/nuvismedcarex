@@ -6,7 +6,12 @@
 $labContainer = \ClinicFlow\Shared\Container::getInstance();
 $labUploadService = $labContainer->get(\ClinicFlow\Services\FileUploadService::class);
 $labStorageUsage = $labUploadService->getStorageUsage();
-$tenantConfiguredProvider = $labStorageUsage['storage_provider'] ?? 'server';
+// Where a lab result will be kept is an installation-wide setting
+$labCloudCfg = \ClinicFlow\Services\Cloud\CloudConfig::get();
+$labDrive = (string) ($labCloudCfg['provider'] ?? 'local');
+$labDriveLabel = $labDrive === 'local'
+    ? 'This server'
+    : (\ClinicFlow\Services\Cloud\Cloud::labels()[$labDrive] ?? $labDrive);
 
 $labCategories = [
     'Biochemistry' => [
@@ -219,22 +224,12 @@ $labCategories = [
                         <input type="file" name="result_file" class="block w-full text-xs text-slate-700 bg-white border border-amber-300 rounded-lg cursor-pointer file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-amber-100 file:text-amber-800 hover:file:bg-amber-200">
                     </div>
                     <div>
-                        <label class="block font-bold text-amber-900 text-[11px] mb-1">Storage Destination</label>
-                        <?php if ($tenantConfiguredProvider !== 'server'): ?>
-                            <input type="hidden" name="storage_provider" value="<?= htmlspecialchars($tenantConfiguredProvider) ?>">
-                            <div class="px-2.5 py-1.5 bg-amber-100 border border-amber-300 rounded-lg text-xs font-bold text-amber-900 flex items-center gap-1.5">
-                                <span class="material-symbols-outlined text-sm">
-                                    <?= $tenantConfiguredProvider === 'googledrive' ? 'add_to_drive' : 'cloud' ?>
-                                </span>
-                                <span><?= $tenantConfiguredProvider === 'googledrive' ? 'Google Drive (Enforced)' : 'Microsoft OneDrive (Enforced)' ?></span>
-                            </div>
-                        <?php else: ?>
-                            <select name="storage_provider" class="w-full bg-white px-2 py-1 rounded-lg border border-amber-300 text-xs text-amber-900 font-medium">
-                                <option value="server">Local Clinic Server (Default)</option>
-                                <option value="onedrive">Microsoft OneDrive</option>
-                                <option value="googledrive">Google Drive</option>
-                            </select>
-                        <?php endif; ?>
+                        <label class="block font-bold text-amber-900 text-[11px] mb-1">Where it will be kept</label>
+                        <div class="px-2.5 py-1.5 bg-amber-100 border border-amber-300 rounded-lg text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-sm"><?= $labDrive === 'local' ? 'dns' : 'cloud_done' ?></span>
+                            <span><?= htmlspecialchars($labDriveLabel) ?></span>
+                        </div>
+                        <p class="text-[10px] text-amber-800/80 mt-1">Set for the whole installation under Developer &rarr; Document storage.</p>
                     </div>
                 </div>
 

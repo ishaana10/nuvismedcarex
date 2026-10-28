@@ -28,6 +28,12 @@ $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 $labOrderService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\LabOrderService::class);
 $uploadService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\FileUploadService::class);
 $cloudSettings = $uploadService->getCloudSettings();
+
+// Where documents go, for the whole installation
+$cloudCfgProvider = (string) (\ClinicFlow\Services\Cloud\CloudConfig::get()['provider'] ?? 'local');
+$cloudCfgLabel = $cloudCfgProvider === 'local'
+    ? 'This server only'
+    : (\ClinicFlow\Services\Cloud\Cloud::labels()[$cloudCfgProvider] ?? $cloudCfgProvider);
 ?>
 
 <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -397,7 +403,6 @@ $cloudSettings = $uploadService->getCloudSettings();
                                 <div><span class="text-slate-400">Plan:</span> <span class="uppercase font-bold text-primary"><?= htmlspecialchars($tnt['plan']) ?></span></div>
                                 <div><span class="text-slate-400">Status:</span> <?= htmlspecialchars($tnt['status']) ?></div>
                                 <div><span class="text-slate-400">Drive Cap:</span> <span class="font-bold text-slate-800"><?= ((int)($tnt['storage_limit_mb'] ?? 500) >= 1024) ? round(($tnt['storage_limit_mb'] ?? 500) / 1024, 1) . ' GB' : ($tnt['storage_limit_mb'] ?? 500) . ' MB' ?></span></div>
-                                <div class="col-span-2"><span class="text-slate-400">Drive Storage Provider:</span> <span class="font-bold text-amber-700 uppercase"><?= htmlspecialchars($tnt['storage_provider'] ?? 'server') ?></span></div>
                                 <div class="col-span-2 font-bold text-emerald-800"><span class="text-slate-400 font-normal">Pricing:</span> <?= htmlspecialchars($tnt['currency'] ?? 'FJD') ?> $<?= number_format((float)($tnt['plan_price'] ?? 0), 2) ?> / <?= htmlspecialchars(ucfirst($tnt['billing_cycle'] ?? 'monthly')) ?></div>
                                 <?php if (!empty($tnt['nuvis_erp_client_id'])): ?>
                                     <div class="col-span-2 text-primary font-bold"><span class="text-slate-400 font-normal">Nuvis ERP ID:</span> <?= htmlspecialchars($tnt['nuvis_erp_client_id']) ?></div>
@@ -726,6 +731,15 @@ $cloudSettings = $uploadService->getCloudSettings();
                         <span class="text-amber-700">— claims cannot be signed until this is applied</span>
                     <?php endif; ?>
                 </li>
+                <?php $nxFilesReady = \ClinicFlow\Services\Cloud\FileStore::isReady($pdo); ?>
+                <li class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base <?= $nxFilesReady ? 'text-emerald-600' : 'text-amber-600' ?>"><?= $nxFilesReady ? 'check_circle' : 'error' ?></span>
+                    <span class="text-on-surface">Documents on a cloud drive</span>
+                    <span class="text-outline font-mono text-[11px]">uploaded_files.remote_status</span>
+                    <?php if (!$nxFilesReady): ?>
+                        <span class="text-amber-700">— uploads stay on this server until this is applied</span>
+                    <?php endif; ?>
+                </li>
                 <?php $nxConsentReady = \ClinicFlow\Services\ConsentForms::isAvailable($pdo); ?>
                 <li class="flex items-center gap-2">
                     <span class="material-symbols-outlined text-base <?= $nxConsentReady ? 'text-emerald-600' : 'text-amber-600' ?>"><?= $nxConsentReady ? 'check_circle' : 'error' ?></span>
@@ -750,147 +764,316 @@ $cloudSettings = $uploadService->getCloudSettings();
 
     <div id="dev-panel-cloud" class="hidden space-y-4">
         <?php
-        // How many documents each drive is holding, so the list says something
-        // about what is actually in use rather than only what is configured.
-        $driveCounts = ['server' => 0, 'onedrive' => 0, 'googledrive' => 0];
-        try {
-            $dcStmt = $pdo->prepare("SELECT storage_provider, COUNT(*) AS n FROM uploaded_files WHERE tenant_id = ? GROUP BY storage_provider");
-            $dcStmt->execute([\ClinicFlow\Shared\TenantContext::getTenantId()]);
-            foreach ($dcStmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $dcRow) {
-                $driveCounts[(string) $dcRow['storage_provider']] = (int) $dcRow['n'];
-            }
-        } catch (\Throwable $e) {
-            error_log('[developer] drive counts: ' . $e->getMessage());
-        }
-        $serverUsage = $uploadService->getStorageUsage();
+        $nxCloudCfg = \ClinicFlow\Services\Cloud\CloudConfig::get();
+        $nxCloudLabels = \ClinicFlow\Services\Cloud\Cloud::labels();
+        $nxStoreReady = \ClinicFlow\Services\Cloud\FileStore::isReady($pdo);
+        $nxCloudCounts = \ClinicFlow\Services\Cloud\FileStore::counts($pdo);
+        $nxCloudWritable = \ClinicFlow\Services\Cloud\CloudConfig::isWritable();
+        $nxRedirect = \ClinicFlow\Services\Cloud\CloudConfig::redirectUri($nxCloudCfg);
+        $nxCsrf = htmlspecialchars(getCsrfToken());
+        $nxCurlOk = function_exists('curl_init');
+
+        $nxDriveFields = [
+            'gdrive' => [
+                'icon' => 'add_to_drive', 'tone' => 'amber',
+                'blurb' => 'Create an OAuth client (type: Web application) in Google Cloud, enable the Drive API, and add the redirect address below.',
+                'docs' => 'https://console.cloud.google.com/apis/credentials',
+                'fields' => [
+                    'client_id' => ['OAuth client ID', 'text', '1234567890-abc.apps.googleusercontent.com'],
+                    'client_secret' => ['Client secret', 'secret', ''],
+                ],
+            ],
+            'onedrive' => [
+                'icon' => 'cloud_queue', 'tone' => 'sky',
+                'blurb' => 'Register an application in Entra ID with the delegated permissions Files.ReadWrite and offline_access, and add the redirect address below.',
+                'docs' => 'https://learn.microsoft.com/graph/auth-register-app-v2',
+                'fields' => [
+                    'client_id' => ['Application (client) ID', 'text', '00000000-0000-0000-0000-000000000000'],
+                    'client_secret' => ['Client secret', 'secret', ''],
+                    'tenant' => ['Directory (tenant) ID', 'text', 'common'],
+                ],
+            ],
+            'dropbox' => [
+                'icon' => 'inventory_2', 'tone' => 'blue',
+                'blurb' => 'Create an app in the Dropbox developer console with the files.content.write and files.content.read scopes.',
+                'docs' => 'https://www.dropbox.com/developers/apps',
+                'fields' => [
+                    'app_key' => ['App key', 'text', ''],
+                    'app_secret' => ['App secret', 'secret', ''],
+                ],
+            ],
+            'webdav' => [
+                'icon' => 'dns', 'tone' => 'emerald',
+                'blurb' => 'Nextcloud, ownCloud, Synology or any WebDAV server. Use an app password rather than the account password.',
+                'docs' => '',
+                'fields' => [
+                    'url' => ['WebDAV address', 'text', 'https://cloud.example.com/remote.php/dav/files/username'],
+                    'username' => ['Username', 'text', ''],
+                    'password' => ['App password', 'secret', ''],
+                ],
+            ],
+        ];
         ?>
 
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
                 <h2 class="text-sm font-semibold text-on-surface">Document storage</h2>
-                <p class="text-xs text-outline mt-0.5">
-                    Where uploaded documents are kept. Each drive is configured and tested on its own.
+                <p class="text-xs text-outline mt-0.5 max-w-3xl">
+                    Where uploaded documents are kept. The default drive set here is used by every upload in the
+                    application &mdash; the document centre, patient records and anywhere else a file is attached.
                 </p>
             </div>
             <a href="uploads.php" class="text-xs font-medium text-primary hover:underline">Open the document centre</a>
         </div>
 
-        <!-- Local server: always present, nothing to configure -->
+        <?php if (!$nxCurlOk): ?>
+            <p class="text-xs text-red-800 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+                PHP's curl extension is not installed, so this server cannot talk to any cloud drive. Documents will stay on this server.
+            </p>
+        <?php endif; ?>
+        <?php if (!$nxStoreReady): ?>
+            <p class="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                A pending database change is needed before files can be tracked to a drive.
+                <a href="developer.php?dev_tab=database" class="underline font-semibold">Apply it in Developer &rarr; Database</a>.
+            </p>
+        <?php endif; ?>
+        <?php if (!$nxCloudWritable): ?>
+            <p class="text-xs text-red-800 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+                <code class="font-mono">config/<?= htmlspecialchars(basename(\ClinicFlow\Services\Cloud\CloudConfig::file())) ?></code>
+                cannot be written. Make the <code class="font-mono">config</code> folder writable by the web server, or these settings will not save.
+            </p>
+        <?php endif; ?>
+
+        <!-- Where new uploads go ------------------------------------------ -->
+        <form action="actions/cloud_storage_settings.php" method="POST" class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 shadow-xs p-5 space-y-4">
+            <input type="hidden" name="csrf_token" value="<?= $nxCsrf ?>">
+            <input type="hidden" name="action" value="save">
+
+            <div class="flex items-center justify-between gap-2">
+                <h3 class="text-xs font-bold text-on-surface">Where new uploads go</h3>
+                <?php if ($nxCloudCfg['provider'] !== 'local' && \ClinicFlow\Services\Cloud\CloudConfig::isConnected($nxCloudCfg['provider'], $nxCloudCfg)): ?>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        Uploading to <?= htmlspecialchars($nxCloudLabels[$nxCloudCfg['provider']]) ?>
+                    </span>
+                <?php elseif ($nxCloudCfg['provider'] !== 'local'): ?>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">Chosen, not connected</span>
+                <?php else: ?>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">This server only</span>
+                <?php endif; ?>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-on-surface mb-1 text-xs" for="cl-provider">Default drive</label>
+                    <select id="cl-provider" name="provider" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 text-xs font-semibold">
+                        <?php foreach ($nxCloudLabels as $key => $label):
+                            $connected = $key === 'local' || \ClinicFlow\Services\Cloud\CloudConfig::isConnected($key, $nxCloudCfg); ?>
+                            <option value="<?= $key ?>" <?= $nxCloudCfg['provider'] === $key ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($label) ?><?= $connected || $key === 'local' ? '' : ' — not connected' ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <p class="text-[10px] text-outline mt-1">Every upload in the application goes here.</p>
+                </div>
+                <div>
+                    <label class="block font-bold text-on-surface mb-1 text-xs" for="cl-mode">Keep a copy on this server</label>
+                    <select id="cl-mode" name="mode" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 text-xs font-semibold">
+                        <option value="mirror" <?= $nxCloudCfg['mode'] === 'mirror' ? 'selected' : '' ?>>Yes — keep both copies</option>
+                        <option value="cloud_only" <?= $nxCloudCfg['mode'] === 'cloud_only' ? 'selected' : '' ?>>No — remove it once the drive has the file</option>
+                    </select>
+                    <p class="text-[10px] text-outline mt-1">Keeping both means a file still opens when the drive is unreachable.</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-on-surface mb-1 text-xs" for="cl-folder">Folder on the drive</label>
+                    <input id="cl-folder" type="text" name="folder" value="<?= htmlspecialchars($nxCloudCfg['folder']) ?>" maxlength="150"
+                           class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
+                    <p class="text-[10px] text-outline mt-1">
+                        Files land in <span class="font-mono"><?= htmlspecialchars(implode('/', \ClinicFlow\Services\Cloud\FileStore::remoteSegments($nxCloudCfg))) ?></span>
+                    </p>
+                </div>
+                <div class="flex flex-col justify-center gap-2 pt-4">
+                    <label class="inline-flex items-center gap-2 text-xs text-on-surface cursor-pointer">
+                        <input type="checkbox" name="by_clinic" <?= !empty($nxCloudCfg['by_clinic']) ? 'checked' : '' ?> class="w-4 h-4 rounded border-outline-variant">
+                        <span>A sub-folder for each clinic</span>
+                    </label>
+                    <label class="inline-flex items-center gap-2 text-xs text-on-surface cursor-pointer">
+                        <input type="checkbox" name="by_patient" <?= !empty($nxCloudCfg['by_patient']) ? 'checked' : '' ?> class="w-4 h-4 rounded border-outline-variant">
+                        <span>A sub-folder for each patient</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-outline-variant/20">
+                <div class="text-[11px] text-outline">
+                    <?= number_format($nxCloudCounts['synced'] ?? 0) ?> on the drive &middot;
+                    <span class="<?= ($nxCloudCounts['failed'] ?? 0) ? 'text-amber-700 font-semibold' : '' ?>"><?= number_format($nxCloudCounts['failed'] ?? 0) ?> failed</span> &middot;
+                    <?= number_format($nxCloudCounts['none'] ?? 0) ?> on this server only
+                </div>
+                <button type="submit" class="px-5 py-2 bg-primary text-white text-xs font-semibold rounded-xl hover:bg-primary/90 transition flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-base">save</span>
+                    <span>Save</span>
+                </button>
+            </div>
+        </form>
+
+        <!-- Catching up ---------------------------------------------------- -->
+        <?php if (\ClinicFlow\Services\Cloud\FileStore::cloudActive($nxCloudCfg) && (($nxCloudCounts['failed'] ?? 0) + ($nxCloudCounts['none'] ?? 0)) > 0): ?>
+            <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-wrap items-center gap-3">
+                <span class="material-symbols-outlined text-amber-700">cloud_sync</span>
+                <p class="text-xs text-amber-900 flex-1 min-w-[14rem]">
+                    <?= number_format(($nxCloudCounts['failed'] ?? 0) + ($nxCloudCounts['none'] ?? 0)) ?> file<?= (($nxCloudCounts['failed'] ?? 0) + ($nxCloudCounts['none'] ?? 0)) === 1 ? '' : 's' ?>
+                    are still only on this server. They are copied 25 at a time.
+                </p>
+                <?php if (($nxCloudCounts['failed'] ?? 0) > 0): ?>
+                    <form action="actions/cloud_storage_settings.php" method="POST" class="inline">
+                        <input type="hidden" name="csrf_token" value="<?= $nxCsrf ?>">
+                        <input type="hidden" name="action" value="retry">
+                        <button type="submit" class="px-3 py-1.5 bg-white border border-amber-300 text-amber-900 rounded-xl text-xs font-semibold hover:bg-amber-100">Retry the failures</button>
+                    </form>
+                <?php endif; ?>
+                <?php if (($nxCloudCounts['none'] ?? 0) > 0): ?>
+                    <form action="actions/cloud_storage_settings.php" method="POST" class="inline">
+                        <input type="hidden" name="csrf_token" value="<?= $nxCsrf ?>">
+                        <input type="hidden" name="action" value="backfill">
+                        <button type="submit" class="px-3 py-1.5 bg-amber-600 text-white rounded-xl text-xs font-semibold hover:bg-amber-700">Copy the older files</button>
+                    </form>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
+
+        <!-- The drives ------------------------------------------------------ -->
         <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 shadow-xs p-4 flex flex-wrap items-center gap-3">
             <span class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
                 <span class="material-symbols-outlined">dns</span>
             </span>
             <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-2 flex-wrap">
-                    <h3 class="text-xs font-bold text-on-surface">This server</h3>
-                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Always on</span>
-                </div>
+                <h3 class="text-xs font-bold text-on-surface">This server</h3>
                 <p class="text-[11px] text-outline mt-0.5">
-                    <?= number_format($driveCounts['server']) ?> document<?= $driveCounts['server'] === 1 ? '' : 's' ?> ·
-                    <?= htmlspecialchars($serverUsage['formatted_used'] ?? '0 B') ?> of
-                    <?= htmlspecialchars($serverUsage['formatted_limit'] ?? '') ?> used
+                    <?= htmlspecialchars($uploadService->getStorageUsage()['formatted_used'] ?? '0 B') ?>
+                    of <?= htmlspecialchars($uploadService->getStorageUsage()['formatted_limit'] ?? '') ?> used
                 </p>
             </div>
-            <span class="text-[11px] text-outline">No credentials needed</span>
+            <span class="text-[11px] text-outline">Always available &middot; no credentials needed</span>
         </div>
 
-        <?php foreach (\ClinicFlow\Services\CloudDrives::DRIVES as $driveKey => $drive):
-            $status = \ClinicFlow\Services\CloudDrives::status($driveKey, $cloudSettings);
-            $count = $driveCounts[$driveKey] ?? 0;
-            $tone = $drive['tone']; ?>
-            <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 shadow-xs overflow-hidden" data-drive="<?= $driveKey ?>">
+        <?php foreach ($nxDriveFields as $driveKey => $drive):
+            $section = $nxCloudCfg[$driveKey] ?? [];
+            $connected = \ClinicFlow\Services\Cloud\CloudConfig::isConnected($driveKey, $nxCloudCfg);
+            $isDefault = $nxCloudCfg['provider'] === $driveKey;
+            $hasCreds = false;
+            foreach ($drive['fields'] as $fieldKey => [$lbl, $type, $ph]) {
+                if (trim((string) ($section[$fieldKey] ?? '')) !== '') { $hasCreds = true; break; }
+            } ?>
+            <div class="bg-surface-container-lowest rounded-2xl border <?= $isDefault ? 'border-primary/40' : 'border-outline-variant/30' ?> shadow-xs overflow-hidden" data-drive="<?= $driveKey ?>">
                 <div class="p-4 flex flex-wrap items-center gap-3">
-                    <span class="w-10 h-10 rounded-xl bg-<?= $tone ?>-50 text-<?= $tone ?>-700 flex items-center justify-center shrink-0">
+                    <span class="w-10 h-10 rounded-xl bg-<?= $drive['tone'] ?>-50 text-<?= $drive['tone'] ?>-700 flex items-center justify-center shrink-0">
                         <span class="material-symbols-outlined"><?= $drive['icon'] ?></span>
                     </span>
                     <div class="min-w-0 flex-1">
                         <div class="flex items-center gap-2 flex-wrap">
-                            <h3 class="text-xs font-bold text-on-surface"><?= htmlspecialchars($drive['label']) ?></h3>
-                            <?php if ($status['configured']): ?>
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Configured</span>
-                            <?php elseif ($status['filled'] > 0): ?>
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">Incomplete</span>
+                            <h3 class="text-xs font-bold text-on-surface"><?= htmlspecialchars($nxCloudLabels[$driveKey]) ?></h3>
+                            <?php if ($connected): ?>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Connected</span>
+                            <?php elseif ($hasCreds): ?>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">Needs sign-in</span>
                             <?php else: ?>
                                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">Not set up</span>
                             <?php endif; ?>
+                            <?php if ($isDefault): ?>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/30">Default drive</span>
+                            <?php endif; ?>
                         </div>
                         <p class="text-[11px] text-outline mt-0.5">
-                            <?= number_format($count) ?> document<?= $count === 1 ? '' : 's' ?> ·
-                            <?= $status['filled'] ?> of <?= $status['total'] ?> settings filled in
-                            <?php if ($status['missing']): ?>
-                                · <span class="text-amber-700">still needs <?= htmlspecialchars(implode(', ', $status['missing'])) ?></span>
+                            <?php if ($connected && ($section['account'] ?? '') !== ''): ?>
+                                <?= htmlspecialchars((string) $section['account']) ?>
+                                <?php if (($section['connected_at'] ?? '') !== ''): ?>
+                                    &middot; connected <?= htmlspecialchars(nxDate((string) $section['connected_at'])) ?>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <?= htmlspecialchars($drive['blurb']) ?>
                             <?php endif; ?>
                         </p>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button type="button" onclick="testDrive('<?= $driveKey ?>')"
+                        <button type="button" onclick="testDrive('<?= $driveKey ?>')" id="drive-test-btn-<?= $driveKey ?>"
                                 class="px-3 py-1.5 bg-surface-container border border-outline-variant/40 text-on-surface rounded-xl text-xs font-semibold hover:bg-surface-container-high transition flex items-center gap-1.5"
-                                id="drive-test-btn-<?= $driveKey ?>" <?= $status['filled'] === 0 ? 'disabled' : '' ?>>
+                                <?= $hasCreds ? '' : 'disabled' ?>>
                             <span class="material-symbols-outlined text-base">network_check</span>
                             <span>Test</span>
                         </button>
-                        <button type="button" onclick="toggleDrive('<?= $driveKey ?>')"
-                                class="px-3 py-1.5 bg-primary text-white rounded-xl text-xs font-semibold hover:bg-primary/90 transition flex items-center gap-1.5"
-                                aria-expanded="false" aria-controls="drive-body-<?= $driveKey ?>" id="drive-toggle-<?= $driveKey ?>">
-                            <span class="material-symbols-outlined text-base">tune</span>
-                            <span>Configure</span>
+                        <?php if ($driveKey !== 'webdav'): ?>
+                            <form action="actions/cloud_storage_settings.php" method="POST" class="inline">
+                                <input type="hidden" name="csrf_token" value="<?= $nxCsrf ?>">
+                                <input type="hidden" name="action" value="connect">
+                                <input type="hidden" name="drive" value="<?= $driveKey ?>">
+                                <button type="submit" class="px-3 py-1.5 <?= $connected ? 'bg-surface-container border border-outline-variant/40 text-on-surface' : 'bg-primary text-white' ?> rounded-xl text-xs font-semibold transition flex items-center gap-1.5" <?= $hasCreds ? '' : 'disabled' ?>>
+                                    <span class="material-symbols-outlined text-base">link</span>
+                                    <span><?= $connected ? 'Reconnect' : 'Connect' ?></span>
+                                </button>
+                            </form>
+                        <?php endif; ?>
+                        <?php if ($connected): ?>
+                            <form action="actions/cloud_storage_settings.php" method="POST" class="inline"
+                                  data-nx-confirm="Disconnect <?= htmlspecialchars($nxCloudLabels[$driveKey], ENT_QUOTES) ?>? New uploads will stay on this server until another drive is connected. Documents already there are untouched.">
+                                <input type="hidden" name="csrf_token" value="<?= $nxCsrf ?>">
+                                <input type="hidden" name="action" value="disconnect">
+                                <input type="hidden" name="drive" value="<?= $driveKey ?>">
+                                <button type="submit" class="nx-icon-btn hover:text-red-600" title="Disconnect">
+                                    <span class="material-symbols-outlined text-[20px]">link_off</span>
+                                </button>
+                            </form>
+                        <?php endif; ?>
+                        <button type="button" onclick="toggleDrive('<?= $driveKey ?>')" id="drive-toggle-<?= $driveKey ?>"
+                                class="nx-icon-btn" aria-expanded="false" aria-controls="drive-body-<?= $driveKey ?>" title="Credentials">
+                            <span class="material-symbols-outlined text-[20px]">tune</span>
                         </button>
                     </div>
                 </div>
 
-                <!-- Test output -->
                 <pre id="drive-test-out-<?= $driveKey ?>" class="hidden mx-4 mb-4 p-3 bg-slate-900 text-slate-100 rounded-xl text-[11px] leading-relaxed overflow-x-auto max-h-56"></pre>
 
-                <!-- Configuration -->
                 <div id="drive-body-<?= $driveKey ?>" class="hidden border-t border-outline-variant/20 bg-surface-container-low/50 p-4">
                     <p class="text-[11px] text-outline mb-3">
                         <?= htmlspecialchars($drive['blurb']) ?>
-                        <a href="<?= htmlspecialchars($drive['docs']) ?>" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">Set-up guide</a>
+                        <?php if ($drive['docs'] !== ''): ?>
+                            <a href="<?= htmlspecialchars($drive['docs']) ?>" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">Open the console</a>
+                        <?php endif; ?>
                     </p>
+                    <?php if ($driveKey !== 'webdav'): ?>
+                        <div class="mb-3 p-2.5 rounded-xl bg-surface-container border border-outline-variant/30">
+                            <div class="text-[10px] uppercase tracking-wide text-outline mb-1">Redirect address to register</div>
+                            <code class="text-[11px] font-mono text-on-surface break-all"><?= htmlspecialchars($nxRedirect) ?></code>
+                        </div>
+                    <?php endif; ?>
                     <form action="actions/cloud_storage_settings.php" method="POST" class="space-y-3">
-                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getCsrfToken()) ?>">
+                        <input type="hidden" name="csrf_token" value="<?= $nxCsrf ?>">
+                        <input type="hidden" name="action" value="credentials">
                         <input type="hidden" name="drive" value="<?= $driveKey ?>">
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                            <?php foreach ($drive['fields'] as $fieldKey => $meta):
-                                $stored = trim((string) ($cloudSettings[$fieldKey] ?? ''));
-                                $isSecret = $meta['type'] !== 'text'; ?>
-                                <div class="<?= $meta['type'] === 'textarea' ? 'md:col-span-3' : '' ?>">
-                                    <label class="block font-bold text-on-surface mb-1" for="f-<?= $fieldKey ?>">
-                                        <?= htmlspecialchars($meta['label']) ?>
-                                        <?php if (empty($meta['required'])): ?><span class="font-normal text-outline">(optional)</span><?php endif; ?>
-                                    </label>
-                                    <?php if ($meta['type'] === 'textarea'): ?>
-                                        <textarea id="f-<?= $fieldKey ?>" name="<?= $fieldKey ?>" rows="3"
-                                                  placeholder="<?= $stored !== '' ? 'Stored — paste a new one to replace it' : htmlspecialchars($meta['placeholder']) ?>"
-                                                  class="w-full bg-surface-container-low p-2.5 rounded-xl border border-outline-variant/40 font-mono text-[11px]"></textarea>
-                                    <?php else: ?>
-                                        <input id="f-<?= $fieldKey ?>" type="<?= $isSecret ? 'password' : 'text' ?>" name="<?= $fieldKey ?>"
-                                               autocomplete="off" spellcheck="false"
-                                               value="<?= $isSecret ? '' : htmlspecialchars($stored) ?>"
-                                               placeholder="<?= $isSecret && $stored !== '' ? htmlspecialchars(\ClinicFlow\Services\CloudDrives::mask($stored)) : htmlspecialchars($meta['placeholder']) ?>"
-                                               class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
+                            <?php foreach ($drive['fields'] as $fieldKey => [$label, $type, $placeholder]):
+                                $stored = trim((string) ($section[$fieldKey] ?? ''));
+                                $isSecret = $type === 'secret'; ?>
+                                <div>
+                                    <label class="block font-bold text-on-surface mb-1" for="cl-<?= $driveKey ?>-<?= $fieldKey ?>"><?= htmlspecialchars($label) ?></label>
+                                    <input id="cl-<?= $driveKey ?>-<?= $fieldKey ?>" type="<?= $isSecret ? 'password' : 'text' ?>"
+                                           name="<?= $fieldKey ?>" autocomplete="off" spellcheck="false"
+                                           value="<?= $isSecret ? '' : htmlspecialchars($stored) ?>"
+                                           placeholder="<?= $isSecret && $stored !== '' ? '••••••••' : htmlspecialchars($placeholder) ?>"
+                                           class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-mono text-xs">
+                                    <?php if ($isSecret && $stored !== ''): ?>
+                                        <p class="text-[10px] text-emerald-700 mt-1">Stored — leave blank to keep it.</p>
                                     <?php endif; ?>
-                                    <p class="text-[10px] text-outline mt-1">
-                                        <?= htmlspecialchars($meta['hint']) ?>
-                                        <?php if ($isSecret && $stored !== ''): ?>
-                                            <span class="text-emerald-700">Stored — leave blank to keep it.</span>
-                                        <?php endif; ?>
-                                    </p>
                                 </div>
                             <?php endforeach; ?>
                         </div>
-                        <div class="flex flex-wrap items-center justify-end gap-2 pt-3 border-t border-outline-variant/20">
-                            <?php if ($status['filled'] > 0): ?>
-                                <button type="submit" name="action" value="clear"
-                                        class="mr-auto text-xs font-medium text-red-700 hover:underline"
-                                        data-nx-confirm="Clear every <?= htmlspecialchars($drive['label']) ?> credential? Documents already stored there stay where they are.">
-                                    Clear these credentials
-                                </button>
-                            <?php endif; ?>
+                        <div class="flex items-center justify-end gap-2 pt-3 border-t border-outline-variant/20">
                             <button type="button" onclick="toggleDrive('<?= $driveKey ?>')" class="px-4 py-2 bg-surface-container rounded-xl text-xs font-semibold text-on-surface">Close</button>
-                            <button type="submit" name="action" value="save" class="px-5 py-2 bg-primary text-white text-xs font-semibold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-1.5">
+                            <button type="submit" class="px-5 py-2 bg-primary text-white text-xs font-semibold rounded-xl hover:bg-primary/90 transition flex items-center gap-1.5">
                                 <span class="material-symbols-outlined text-base">save</span>
-                                <span>Save <?= htmlspecialchars($drive['label']) ?></span>
+                                <span>Save credentials</span>
                             </button>
                         </div>
                     </form>
@@ -1385,12 +1568,15 @@ $cloudSettings = $uploadService->getCloudSettings();
                 </div>
 
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Dedicated Drive Storage Destination</label>
-                    <select name="storage_provider" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-bold text-amber-800">
-                        <option value="server" selected>Local Server Storage</option>
-                        <option value="googledrive">Google Drive (Dedicated Folder)</option>
-                        <option value="onedrive">Microsoft OneDrive</option>
-                    </select>
+                    <label class="block font-bold text-slate-700 mb-1">Where documents are kept</label>
+                    <div class="px-3 py-2 bg-slate-100 rounded-xl border border-slate-300 font-bold text-slate-700 flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-base"><?= $cloudCfgProvider === 'local' ? 'dns' : 'cloud_done' ?></span>
+                        <span><?= htmlspecialchars($cloudCfgLabel) ?></span>
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-1">
+                        One setting for the whole installation &mdash; change it under
+                        <a href="?dev_tab=cloud" class="text-primary font-semibold hover:underline">Document storage</a>.
+                    </p>
                 </div>
 
                 <div class="md:col-span-2 pt-2 border-t border-slate-200">
