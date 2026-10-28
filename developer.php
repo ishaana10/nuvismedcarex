@@ -726,6 +726,15 @@ $cloudSettings = $uploadService->getCloudSettings();
                         <span class="text-amber-700">— claims cannot be signed until this is applied</span>
                     <?php endif; ?>
                 </li>
+                <?php $nxConsentReady = \ClinicFlow\Services\ConsentForms::isAvailable($pdo); ?>
+                <li class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base <?= $nxConsentReady ? 'text-emerald-600' : 'text-amber-600' ?>"><?= $nxConsentReady ? 'check_circle' : 'error' ?></span>
+                    <span class="text-on-surface">Patient consent forms</span>
+                    <span class="text-outline font-mono text-[11px]">consent_forms, consent_records</span>
+                    <?php if (!$nxConsentReady): ?>
+                        <span class="text-amber-700">— consent forms cannot be used until this is applied</span>
+                    <?php endif; ?>
+                </li>
             </ul>
         </div>
 
