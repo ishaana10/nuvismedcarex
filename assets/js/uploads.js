@@ -315,6 +315,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const xhr = new XMLHttpRequest();
         xhr.open('POST', uploadForm.action, true);
+        // Ask for the answer rather than a redirect the XHR would follow,
+        // which used to swallow the message before the page reloaded.
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
 
         xhr.upload.onprogress = function(evt) {
             if (evt.lengthComputable) {
@@ -334,13 +337,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
         xhr.onload = function() {
             if (xhr.status >= 200 && xhr.status < 400) {
-                logLines.push(`[${new Date().toLocaleTimeString()}] ✔ Upload complete! Redirecting...`);
+                let answer = null;
+                try { answer = JSON.parse(xhr.responseText); } catch (e) {}
+                const line = answer && answer.message ? answer.message : 'Upload complete.';
+                logLines.push(`[${new Date().toLocaleTimeString()}] ${answer && answer.success === false ? '✖' : '✔'} ${line}`);
                 if (consoleBox) consoleBox.innerText = logLines.join('\n');
                 if (progressBar) progressBar.style.width = '100%';
                 if (progressPercentage) progressPercentage.innerText = '100%';
-                setTimeout(() => {
-                    window.location.reload();
-                }, 800);
+                // The message itself is shown by the reload below
+                if (!answer || answer.success !== false) {
+                    setTimeout(() => { window.location.reload(); }, 900);
+                } else if (submitBtn) {
+                    submitBtn.disabled = false;
+                    if (statusText) statusText.innerHTML = `<span class="material-symbols-outlined text-base text-rose-400">error</span> ${line}`;
+                }
             } else {
                 logLines.push(`[${new Date().toLocaleTimeString()}] ❌ Upload failed with HTTP ${xhr.status}`);
                 if (consoleBox) consoleBox.innerText = logLines.join('\n');

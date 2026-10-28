@@ -54,10 +54,13 @@ class FileUploadService
 
         $limitBytes = $limitMb * 1024 * 1024;
 
-        // Sum server storage usage
+        // What actually occupies this server: every file with a local copy.
+        // Copying a file to a drive changes its storage_provider but, unless
+        // the drive is set to keep the only copy, leaves file_path in place —
+        // so counting by provider under-reported the disk in use.
         $usedBytes = 0;
         try {
-            $stmt = $this->db->prepare("SELECT COALESCE(SUM(file_size), 0) FROM uploaded_files WHERE tenant_id = ? AND storage_provider = 'server'");
+            $stmt = $this->db->prepare("SELECT COALESCE(SUM(file_size), 0) FROM uploaded_files WHERE tenant_id = ? AND file_path IS NOT NULL AND file_path <> ''");
             $stmt->execute([$tenantId]);
             $usedBytes = (int)$stmt->fetchColumn();
         } catch (\Throwable $e) {
@@ -236,7 +239,33 @@ class FileUploadService
             $category
         ]);
 
+        // Every upload, from wherever in the application, goes on to the drive
+        // the installation is set to use. A failure here never loses the file:
+        // it stays on this server and is marked so it can be retried.
+        $this->pushToCloud($id);
+
         return $this->getFileById($id);
+    }
+
+    /** The folder uploads are written to on this server. */
+    public function uploadBasePath(): string
+    {
+        return $this->uploadBasePath;
+    }
+
+    /**
+     * Copy a stored file to the configured drive, if one is configured.
+     *
+     * @return array{status:string, provider:string, error:string, url:string}
+     */
+    public function pushToCloud(string $fileId): array
+    {
+        try {
+            return \ClinicFlow\Services\Cloud\FileStore::push($this->db, $fileId, dirname($this->uploadBasePath));
+        } catch (\Throwable $e) {
+            error_log('[FileUploadService] cloud copy: ' . $e->getMessage());
+            return ['status' => 'failed', 'provider' => 'server', 'error' => $e->getMessage(), 'url' => ''];
+        }
     }
 
     /**
@@ -588,7 +617,7 @@ class FileUploadService
             $params[] = $patientId;
         }
 
-        if ($provider && in_array($provider, ['server', 'onedrive', 'googledrive'], true)) {
+        if ($provider && in_array($provider, ['server', 'onedrive', 'googledrive', 'gdrive', 'dropbox', 'webdav'], true)) {
             $sql .= " AND f.storage_provider = ?";
             $params[] = $provider;
         }
@@ -614,21 +643,28 @@ class FileUploadService
     /**
      * Delete file (removes local file from disk if server stored)
      */
-    public function deleteFile(string $id): bool
+    /**
+     * Delete a file: the copy on this server and the one on the drive.
+     * A drive that refuses is reported, but the record still goes.
+     *
+     * @param string|null $warning set to the reason the remote copy survived
+     */
+    public function deleteFile(string $id, ?string &$warning = null): bool
     {
         $file = $this->getFileById($id);
         if (!$file) {
             return false;
         }
 
-        if ($file['storage_provider'] === 'server' && !empty($file['file_path'])) {
-            $fullPath = dirname(__DIR__, 2) . '/' . ltrim($file['file_path'], '/');
-            if (file_exists($fullPath)) {
-                @unlink($fullPath);
-            }
-        }
+        $warning = \ClinicFlow\Services\Cloud\FileStore::remove($file, dirname($this->uploadBasePath));
 
         $stmt = $this->db->prepare("DELETE FROM uploaded_files WHERE id = ? AND tenant_id = ?");
         return $stmt->execute([$id, $this->getTenantId()]);
+    }
+
+    /** Where the files of this installation currently live, for the storage panel. */
+    public function cloudCounts(): array
+    {
+        return \ClinicFlow\Services\Cloud\FileStore::counts($this->db);
     }
 }

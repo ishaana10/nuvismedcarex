@@ -88,7 +88,8 @@ if (!function_exists('nxAccess')) {
         'actions/vms_save_settings.php'   => ['settings', 'edit'],
         'actions/vms_actions.php'         => ['settings', 'edit'],
         // Drive credentials moved to Developer → Document storage
-        'actions/cloud_storage_settings.php' => ['developer', 'edit'],
+        'actions/cloud_storage_settings.php' => ['developer', 'full'],
+        'actions/cloud_oauth.php'         => ['developer', 'full'],
         'actions/email_actions.php'       => ['settings', 'view', ['resend_email' => 'edit']],
         'actions/test_email.php'          => ['settings', 'edit'],
         // Staff & access

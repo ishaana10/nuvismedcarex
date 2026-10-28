@@ -5,3 +5,4 @@ config/config.php
 uploads/
 .env
 logs/
+config/config.cloud.php

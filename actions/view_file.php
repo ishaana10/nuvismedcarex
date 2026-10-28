@@ -78,23 +78,11 @@ if ($file['storage_provider'] === 'onedrive') {
     }
 }
 
-// Default/Local file streaming
-$filePath = $file['file_path'] ?? '';
-$fullPath = dirname(__DIR__) . '/' . ltrim($filePath, '/');
-
-if (empty($filePath) || !file_exists($fullPath)) {
-    http_response_code(404);
-    echo "File source content unavailable on server.";
-    exit;
-}
-
-$mimeType = $file['file_type'] ?? mime_content_type($fullPath) ?: 'application/octet-stream';
-$fileName = $file['original_name'] ?? basename($fullPath);
-
-header('Content-Type: ' . $mimeType);
-header('Content-Disposition: inline; filename="' . addslashes($fileName) . '"');
-header('Content-Length: ' . filesize($fullPath));
-header('Cache-Control: private, max-age=86400, must-revalidate');
-
-readfile($fullPath);
+// Anything stored by this installation's own file store: served from disk
+// when the copy is still here, and streamed from the drive when it is not.
+\ClinicFlow\Services\Cloud\FileStore::stream(
+    $file,
+    dirname(__DIR__),
+    !empty($_GET['download'])
+);
 exit;

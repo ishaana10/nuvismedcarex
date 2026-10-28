@@ -154,53 +154,31 @@ if ($action === 'edit_lab_order' || $action === 'update_lab_order') {
     $resultFilePath = null;
     if (isset($_FILES['result_file']) && $_FILES['result_file']['error'] === UPLOAD_ERR_OK) {
         try {
-            $usageInfo = $fileUploadService->getStorageUsage();
-            $tenantConfiguredProvider = $usageInfo['storage_provider'] ?? 'server';
-
-            $storageProvider = ($tenantConfiguredProvider !== 'server')
-                ? $tenantConfiguredProvider
-                : trim($_POST['storage_provider'] ?? 'server');
             $uploadedBy = $_SESSION['user_name'] ?? 'Doctor';
 
-            if ($storageProvider === 'onedrive') {
-                if (!empty($_POST['onedrive_url'])) {
-                    $fileRecord = $fileUploadService->linkOneDriveFile(
-                        $_FILES['result_file']['name'],
-                        trim($_POST['onedrive_url']),
-                        null,
-                        $patientId ?: null,
-                        'Lab Results',
-                        (int)$_FILES['result_file']['size'],
-                        $uploadedBy
-                    );
-                } else {
-                    $fileRecord = $fileUploadService->uploadToOneDrive(
-                        $_FILES['result_file'],
-                        $patientId ?: null,
-                        'Lab Results',
-                        $uploadedBy
-                    );
-                }
-            } elseif ($storageProvider === 'googledrive') {
-                if (!empty($_POST['googledrive_url'])) {
-                    $fileRecord = $fileUploadService->linkGoogleDriveFile(
-                        $_FILES['result_file']['name'],
-                        trim($_POST['googledrive_url']),
-                        null,
-                        $patientId ?: null,
-                        'Lab Results',
-                        (int)$_FILES['result_file']['size'],
-                        $uploadedBy
-                    );
-                } else {
-                    $fileRecord = $fileUploadService->uploadToGoogleDrive(
-                        $_FILES['result_file'],
-                        $patientId ?: null,
-                        'Lab Results',
-                        $uploadedBy,
-                        trim($_POST['gdrive_access_token'] ?? '') ?: null
-                    );
-                }
+            // A pasted link records someone's own drive file; anything really
+            // uploaded goes to this server and is then copied to whichever
+            // drive the installation uses (Developer -> Document storage).
+            if (!empty($_POST['onedrive_url'])) {
+                $fileRecord = $fileUploadService->linkOneDriveFile(
+                    $_FILES['result_file']['name'],
+                    trim((string) $_POST['onedrive_url']),
+                    null,
+                    $patientId ?: null,
+                    'Lab Results',
+                    (int) $_FILES['result_file']['size'],
+                    $uploadedBy
+                );
+            } elseif (!empty($_POST['googledrive_url'])) {
+                $fileRecord = $fileUploadService->linkGoogleDriveFile(
+                    $_FILES['result_file']['name'],
+                    trim((string) $_POST['googledrive_url']),
+                    null,
+                    $patientId ?: null,
+                    'Lab Results',
+                    (int) $_FILES['result_file']['size'],
+                    $uploadedBy
+                );
             } else {
                 $fileRecord = $fileUploadService->uploadToServer(
                     $_FILES['result_file'],
