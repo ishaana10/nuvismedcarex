@@ -112,6 +112,12 @@ final class InsuranceProviders
         return trim((string) $name) !== '' && $this->find($name) === null;
     }
 
+    /** Tidy a provider name: collapse whitespace, trim, cap the length. */
+    public static function cleanProviderName(string $name): string
+    {
+        return InsuranceReportSettings::cleanProviderName($name);
+    }
+
     public static function sanitise(array $in): array
     {
         $out = self::blank();
