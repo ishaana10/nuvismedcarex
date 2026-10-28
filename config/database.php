@@ -128,8 +128,13 @@ function runDatabaseMigrations(PDO $pdo): void {
     try {
         $runner = new \ClinicFlow\Services\MigrationRunner($pdo);
         $runner->run();
+        // A migration that cannot be applied has to be visible somewhere, or
+        // the code simply runs against a database missing what it expects.
+        foreach ($runner->failures() as $version => $message) {
+            error_log("[migrations] {$version} could not be applied: {$message}");
+        }
     } catch (Throwable $e) {
-        // Migration logging or suppression if tables are being initialized
+        error_log('[migrations] run failed: ' . $e->getMessage());
     }
 }
 

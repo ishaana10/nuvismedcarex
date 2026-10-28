@@ -72,13 +72,15 @@ if ($action === 'create_claim') {
             }
 
             // The signature, if one was drawn on the form
-            nxApplyClaimSignature($insuranceService, (string) ($claim['id'] ?? ''), $logger);
+            $signatureError = nxApplyClaimSignature($insuranceService, (string) ($claim['id'] ?? ''), $logger);
 
-            setToast(
-                'Claim submitted',
-                nxCurrencySymbol() . number_format($claimAmount, 2) . ' claimed from ' . $providerName
-                . ' against ' . ($invoice['invoice_number'] ?: 'the invoice') . '.'
-            );
+            $line = nxCurrencySymbol() . number_format($claimAmount, 2) . ' claimed from ' . $providerName
+                . ' against ' . ($invoice['invoice_number'] ?: 'the invoice') . '.';
+            if ($signatureError !== null) {
+                setToast('Claim submitted, but not signed', $line . ' ' . $signatureError, 'error');
+            } else {
+                setToast('Claim submitted', $line);
+            }
         } catch (\Throwable $e) {
             $logger->error("Error creating insurance claim: " . $e->getMessage());
             setToast('Error', 'Could not create insurance claim.', 'error');
@@ -116,8 +118,12 @@ if ($action === 'edit_claim') {
             if (!empty($_POST['remove_signature'])) {
                 $insuranceService->clearSignature($claimId);
             }
-            nxApplyClaimSignature($insuranceService, $claimId, $logger);
-            setToast('Claim updated', 'The claim was saved.');
+            $signatureError = nxApplyClaimSignature($insuranceService, $claimId, $logger);
+            if ($signatureError !== null) {
+                setToast('Saved, but not signed', 'The claim was saved. ' . $signatureError, 'error');
+            } else {
+                setToast('Claim updated', 'The claim was saved.');
+            }
         } catch (\Throwable $e) {
             $logger->error("Error editing insurance claim: " . $e->getMessage());
             setToast('Error', 'Could not edit insurance claim.', 'error');
@@ -149,18 +155,20 @@ exit;
  * reported rather than quietly dropped, since a claim without the member's
  * signature is one the insurer will send back.
  */
-function nxApplyClaimSignature(\ClinicFlow\Services\InsuranceService $service, string $claimId, $logger): void
+function nxApplyClaimSignature(\ClinicFlow\Services\InsuranceService $service, string $claimId, $logger): ?string
 {
     $signature = trim((string) ($_POST['claim_signature'] ?? ''));
     if ($claimId === '' || $signature === '') {
-        return;
+        return null;
     }
     try {
         $service->recordSignature($claimId, $signature, (string) ($_POST['claim_signed_by'] ?? '') ?: null);
-    } catch (\InvalidArgumentException $e) {
-        setToast('Signature not saved', $e->getMessage(), 'error');
+        return null;
+    } catch (\InvalidArgumentException | \RuntimeException $e) {
+        // Both carry a message written for the person reading it
+        return $e->getMessage();
     } catch (\Throwable $e) {
         $logger->error('Could not store claim signature: ' . $e->getMessage());
-        setToast('Signature not saved', 'The claim was saved but the signature could not be stored.', 'error');
+        return 'The signature could not be stored.';
     }
 }

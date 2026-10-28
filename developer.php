@@ -89,6 +89,20 @@ $cloudSettings = $uploadService->getCloudSettings();
         <span class="material-symbols-outlined text-base">api</span>
         <span>API Integration & Webhooks</span>
     </button>
+    <button type="button" onclick="switchDevTab('database')" id="dev-tab-btn-database" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+        <span class="material-symbols-outlined text-base">database</span>
+        <span>Database &amp; Migrations</span>
+        <?php
+        $nxPendingCount = 0;
+        try {
+            $nxPendingCount = count((new \ClinicFlow\Services\MigrationRunner($pdo))->pending());
+        } catch (\Throwable $e) {
+            error_log('[developer] pending migrations: ' . $e->getMessage());
+        }
+        if ($nxPendingCount > 0): ?>
+            <span class="px-1.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-bold"><?= $nxPendingCount ?></span>
+        <?php endif; ?>
+    </button>
     <button type="button" onclick="switchDevTab('vsdc')" id="dev-tab-btn-vsdc" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">verified</span>
         <span>FRCS VSDC & EFD Accreditation</span>
@@ -647,6 +661,84 @@ $cloudSettings = $uploadService->getCloudSettings();
     </div> <!-- End dev-panel-rbac -->
 
     <!-- Cloud Storage & Drive Integration Panel -->
+    <!-- Database schema and migrations -->
+    <div id="dev-panel-database" class="hidden space-y-4">
+        <?php
+        $nxRunner = null;
+        $nxApplied = [];
+        $nxPending = [];
+        try {
+            $nxRunner = new \ClinicFlow\Services\MigrationRunner($pdo);
+            $nxApplied = $nxRunner->getAppliedMigrations();
+            $nxPending = $nxRunner->pending();
+        } catch (\Throwable $e) {
+            error_log('[developer] migrations: ' . $e->getMessage());
+        }
+        $nxSigReady = \ClinicFlow\Services\InsuranceService::hasSignatureSupport($pdo);
+        ?>
+
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+                <h2 class="text-sm font-semibold text-on-surface">Database schema</h2>
+                <p class="text-xs text-outline mt-0.5">
+                    Schema changes ship with the code and are applied automatically. One that cannot be applied is listed here
+                    rather than leaving the application running against a database missing what it expects.
+                </p>
+            </div>
+            <?php if ($nxPending): ?>
+                <form action="actions/run_migrations.php" method="POST">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(getCsrfToken()) ?>">
+                    <button type="submit" class="px-4 py-2 bg-primary text-white rounded-xl text-xs font-semibold hover:bg-primary/90 transition flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-base">play_arrow</span>
+                        <span>Apply <?= count($nxPending) ?> pending change<?= count($nxPending) === 1 ? '' : 's' ?></span>
+                    </button>
+                </form>
+            <?php endif; ?>
+        </div>
+
+        <?php if ($nxPending): ?>
+            <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+                <h3 class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-base">pending_actions</span>
+                    <span>Not applied yet</span>
+                </h3>
+                <ul class="mt-2 space-y-1 font-mono text-[11px] text-amber-900">
+                    <?php foreach ($nxPending as $version): ?>
+                        <li>&bull; <?= htmlspecialchars($version) ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        <?php else: ?>
+            <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-xs text-emerald-900 flex items-center gap-2">
+                <span class="material-symbols-outlined text-base">check_circle</span>
+                <span>Every schema change has been applied.</span>
+            </div>
+        <?php endif; ?>
+
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 shadow-xs p-4">
+            <h3 class="text-xs font-bold text-on-surface mb-2">What the features need</h3>
+            <ul class="space-y-1.5 text-xs">
+                <li class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base <?= $nxSigReady ? 'text-emerald-600' : 'text-amber-600' ?>"><?= $nxSigReady ? 'check_circle' : 'error' ?></span>
+                    <span class="text-on-surface">Insurance claim signatures</span>
+                    <span class="text-outline font-mono text-[11px]">insurance_claims.patient_signature</span>
+                    <?php if (!$nxSigReady): ?>
+                        <span class="text-amber-700">— claims cannot be signed until this is applied</span>
+                    <?php endif; ?>
+                </li>
+            </ul>
+        </div>
+
+        <details class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 shadow-xs p-4">
+            <summary class="text-xs font-bold text-on-surface cursor-pointer">Applied changes (<?= count($nxApplied) ?>)</summary>
+            <ul class="mt-3 space-y-1 font-mono text-[11px] text-outline max-h-64 overflow-y-auto">
+                <?php foreach (array_reverse($nxApplied) as $version): ?>
+                    <li><?= htmlspecialchars((string) $version) ?></li>
+                <?php endforeach; ?>
+            </ul>
+        </details>
+    </div>
+
     <div id="dev-panel-cloud" class="hidden space-y-4">
         <?php
         // How many documents each drive is holding, so the list says something
@@ -1405,7 +1497,7 @@ function closeTenantModal() {
 }
 
 function switchDevTab(tab) {
-    const panels = ['git', 'tenants', 'vms', 'cloud', 'lab', 'pagination', 'rbac', 'redis', 'logs', 'integrations', 'vsdc'];
+    const panels = ['git', 'tenants', 'vms', 'cloud', 'database', 'lab', 'pagination', 'rbac', 'redis', 'logs', 'integrations', 'vsdc'];
     panels.forEach(p => {
         const el = document.getElementById('dev-panel-' + p);
         if (el) el.classList.add('hidden');

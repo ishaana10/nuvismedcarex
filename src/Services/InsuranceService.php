@@ -142,10 +142,8 @@ class InsuranceService {
                 $existing['notes'] ?? null,
                 $tenantId
             );
-            if ($signature !== null && $signature !== '') {
-                $claim = $this->recordSignature((string) $existing['id'], $signature, $signedBy, $tenantId) ?? $claim;
-            }
-            return ['claim' => $claim, 'action' => 'updated'];
+            $this->trySignature((string) $existing['id'], $signature, $signedBy, $tenantId);
+            return ['claim' => $this->getClaimById((string) $existing['id'], $tenantId) ?? $claim, 'action' => 'updated'];
         }
 
         $claim = $this->createClaim(
@@ -157,10 +155,24 @@ class InsuranceService {
             'Raised automatically from the invoice.',
             $tenantId
         );
-        if ($signature !== null && $signature !== '') {
-            $claim = $this->recordSignature((string) $claim['id'], $signature, $signedBy, $tenantId) ?? $claim;
+        $this->trySignature((string) $claim['id'], $signature, $signedBy, $tenantId);
+        return ['claim' => $this->getClaimById((string) $claim['id'], $tenantId) ?? $claim, 'action' => 'created'];
+    }
+
+    /**
+     * Attach a signature if there is one, without letting a signature problem
+     * undo the claim itself — an unsigned claim is still a claim.
+     */
+    private function trySignature(string $claimId, ?string $signature, ?string $signedBy, ?string $tenantId): void
+    {
+        if ($signature === null || $signature === '') {
+            return;
         }
-        return ['claim' => $claim, 'action' => 'created'];
+        try {
+            $this->recordSignature($claimId, $signature, $signedBy, $tenantId);
+        } catch (\Throwable $e) {
+            error_log('[InsuranceService] signature on claim ' . $claimId . ': ' . $e->getMessage());
+        }
     }
 
     /**
@@ -171,6 +183,12 @@ class InsuranceService {
     public function recordSignature(string $claimId, string $dataUri, ?string $signedBy = null, ?string $tenantId = null): ?array
     {
         $tenantId = $tenantId ?? TenantContext::getTenantId();
+        if (!self::hasSignatureSupport($this->db)) {
+            throw new \RuntimeException(
+                'This database has not been updated for signatures yet. '
+                . 'A developer can apply the pending database changes from Developer → Database.'
+            );
+        }
         $clean = self::cleanSignature($dataUri);
         if ($clean === null) {
             throw new \InvalidArgumentException('That signature could not be read. Sign again, or upload a PNG or JPEG.');
@@ -193,6 +211,9 @@ class InsuranceService {
     public function clearSignature(string $claimId, ?string $tenantId = null): void
     {
         $tenantId = $tenantId ?? TenantContext::getTenantId();
+        if (!self::hasSignatureSupport($this->db)) {
+            return;
+        }
         $stmt = $this->db->prepare("
             UPDATE insurance_claims
                SET patient_signature = NULL, signed_by_name = NULL, signed_at = NULL, updated_at = CURRENT_TIMESTAMP
@@ -203,6 +224,43 @@ class InsuranceService {
     }
 
     public const MAX_SIGNATURE_BYTES = 400 * 1024;
+
+    /** Columns the signature feature needs, added by migration. */
+    public const SIGNATURE_COLUMNS = ['patient_signature', 'signed_by_name', 'signed_at'];
+
+    /**
+     * Whether this database has the signature columns yet.
+     *
+     * An installation whose migrations have not run must still be able to see
+     * its claims and run its reports, so everything that touches these columns
+     * asks first rather than letting the query fail and take the page with it.
+     */
+    public static function hasSignatureSupport(PDO $db): bool
+    {
+        static $cache = null;
+        if ($cache !== null) {
+            return $cache;
+        }
+        try {
+            $driver = $db->getAttribute(PDO::ATTR_DRIVER_NAME);
+            $rows = $driver === 'sqlite'
+                ? $db->query("PRAGMA table_info(insurance_claims)")->fetchAll(PDO::FETCH_ASSOC)
+                : $db->query("SHOW COLUMNS FROM insurance_claims")->fetchAll(PDO::FETCH_ASSOC);
+            $names = [];
+            foreach ($rows as $row) {
+                $names[] = strtolower((string) ($row['name'] ?? $row['Field'] ?? ''));
+            }
+            foreach (self::SIGNATURE_COLUMNS as $needed) {
+                if (!in_array($needed, $names, true)) {
+                    return $cache = false;
+                }
+            }
+            return $cache = true;
+        } catch (\Throwable $e) {
+            error_log('[InsuranceService] signature columns: ' . $e->getMessage());
+            return $cache = false;
+        }
+    }
 
     /** Validate a signature data URI; null when it is not usable. */
     public static function cleanSignature(string $dataUri): ?string

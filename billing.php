@@ -254,7 +254,38 @@ if (($_GET['action'] ?? '') === 'edit_claim' && !empty($editClaimId)) {
     $editClaimStmt->execute([$editClaimId, $currentTenantId]);
     $editClaim = $editClaimStmt->fetch();
 }
+
+// The whole claim on one screen: who, what it is against, and the signature
+$viewClaim = null;
+if (($_GET['action'] ?? '') === 'view_claim' && !empty($editClaimId)) {
+    $viewStmt = $pdo->prepare("
+        SELECT c.*, i.invoice_number, i.amount AS invoice_total, i.service_date, i.status AS invoice_status,
+               p.first_name, p.last_name, p.mrn, p.phone, p.dob
+          FROM insurance_claims c
+          LEFT JOIN invoices i ON i.id = c.invoice_id AND i.tenant_id = c.tenant_id
+          LEFT JOIN patients p ON p.id = c.patient_id AND p.tenant_id = c.tenant_id
+         WHERE c.id = ? AND c.tenant_id = ?
+         LIMIT 1
+    ");
+    $viewStmt->execute([$editClaimId, $currentTenantId]);
+    $viewClaim = $viewStmt->fetch();
+}
+
+$nxSignaturesReady = \ClinicFlow\Services\InsuranceService::hasSignatureSupport($pdo);
 ?>
+<?php if (!$nxSignaturesReady): ?>
+    <p class="mb-4 text-[12px] text-amber-900 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-start gap-2">
+        <span class="material-symbols-outlined text-[18px]">database</span>
+        <span>
+            Claim signatures are not available on this database yet &mdash; a pending update has not been applied.
+            <?php if (nxCan('developer', 'view')): ?>
+                <a href="developer.php?dev_tab=database" class="underline font-semibold">Apply it in Developer &rarr; Database</a>.
+            <?php else: ?>
+                Ask your developer to apply the pending database updates.
+            <?php endif; ?>
+        </span>
+    </p>
+<?php endif; ?>
 <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 overflow-hidden shadow-xs">
     <div class="p-4 bg-surface-container-low border-b border-outline-variant/30 flex items-center justify-between">
         <h3 class="font-bold text-sm text-on-surface flex items-center gap-2">
@@ -299,13 +330,13 @@ if (($_GET['action'] ?? '') === 'edit_claim' && !empty($editClaimId)) {
                                 </span>
                             </td>
                             <td class="py-3 px-4">
-                                <?php if (!empty($claim['patient_signature'])): ?>
+                                <?php if ($nxSignaturesReady && !empty($claim['patient_signature'])): ?>
                                     <span class="inline-flex items-center gap-1 text-emerald-700" title="Signed<?= !empty($claim['signed_by_name']) ? ' by ' . htmlspecialchars($claim['signed_by_name']) : '' ?><?= !empty($claim['signed_at']) ? ' on ' . htmlspecialchars(nxDate((string) $claim['signed_at'])) : '' ?>">
                                         <span class="material-symbols-outlined text-base">draw</span>
                                         <img src="<?= htmlspecialchars($claim['patient_signature']) ?>" alt="Signature" class="h-6 bg-white rounded border border-emerald-200">
                                     </span>
                                 <?php else: ?>
-                                    <span class="text-[11px] text-amber-700">Not signed</span>
+                                    <span class="text-[11px] <?= $nxSignaturesReady ? 'text-amber-700' : 'text-slate-400' ?>"><?= $nxSignaturesReady ? 'Not signed' : '&mdash;' ?></span>
                                 <?php endif; ?>
                             </td>
                             <td class="py-3 px-4 text-right">
@@ -317,6 +348,9 @@ if (($_GET['action'] ?? '') === 'edit_claim' && !empty($editClaimId)) {
                                         <button type="submit" name="status" value="Approved" class="px-2 py-0.5 bg-emerald-600 text-white rounded text-[10px] font-bold hover:bg-emerald-700">Approve</button>
                                         <button type="submit" name="status" value="Rejected" class="px-2 py-0.5 bg-red-600 text-white rounded text-[10px] font-bold hover:bg-red-700">Reject</button>
                                     </form>
+                                    <a href="billing.php?tab=insurance&action=view_claim&claim_id=<?= htmlspecialchars($claim['id']) ?>" class="p-1 text-slate-500 hover:text-emerald-700 rounded-lg hover:bg-slate-100 transition" title="View claim">
+                                        <span class="material-symbols-outlined text-base">visibility</span>
+                                    </a>
                                     <a href="billing.php?tab=insurance&action=edit_claim&claim_id=<?= htmlspecialchars($claim['id']) ?>" class="p-1 text-slate-500 hover:text-blue-600 rounded-lg hover:bg-slate-100 transition" title="Edit Claim">
                                         <span class="material-symbols-outlined text-base">edit</span>
                                     </a>
@@ -338,6 +372,116 @@ if (($_GET['action'] ?? '') === 'edit_claim' && !empty($editClaimId)) {
     </div>
     <?= renderPagination($totalClaimsCount, $paginationClaims['page'], $paginationClaims['limit'], 'billing.php', ['tab' => 'insurance']) ?>
 </div>
+
+<!-- Modal: the whole claim on one screen -->
+<?php if ($viewClaim): ?>
+<?php
+$vcPatient = trim(($viewClaim['first_name'] ?? '') . ' ' . ($viewClaim['last_name'] ?? '')) ?: '(patient removed)';
+$vcRef = \ClinicFlow\Services\InsuranceReportService::claimReference((string) $viewClaim['id'], (string) ($viewClaim['created_at'] ?? ''));
+$vcTone = [
+    'Approved' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    'Paid'     => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    'Rejected' => 'bg-red-50 text-red-700 border-red-200',
+    'Pending'  => 'bg-amber-50 text-amber-700 border-amber-200',
+][$viewClaim['status']] ?? 'bg-blue-50 text-blue-700 border-blue-200';
+?>
+<div class="nx-overlay items-start justify-center p-4 overflow-y-auto" data-nx-modal data-nx-static>
+    <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 shadow-2xl max-w-2xl w-full my-8 overflow-hidden">
+        <div class="px-5 py-4 border-b border-outline-variant/30 flex items-start justify-between gap-3">
+            <div>
+                <h3 class="text-[15px] font-semibold text-on-surface">Claim <?= htmlspecialchars($vcRef) ?></h3>
+                <p class="text-[12px] text-outline mt-0.5">
+                    <?= htmlspecialchars((string) $viewClaim['provider_name']) ?>
+                    &middot; raised <?= htmlspecialchars(nxDate((string) $viewClaim['created_at'])) ?>
+                </p>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="px-2.5 py-1 rounded-full border text-[11px] font-semibold <?= $vcTone ?>">
+                    <?= htmlspecialchars((string) $viewClaim['status']) ?>
+                </span>
+                <a href="billing.php?tab=insurance" class="nx-icon-btn" aria-label="Close">
+                    <span class="material-symbols-outlined">close</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="p-5 space-y-5 text-[13px]">
+            <div class="flex items-baseline justify-between gap-3 p-3 rounded-xl bg-surface-container-low border border-outline-variant/30">
+                <span class="text-outline">Amount claimed</span>
+                <span class="text-xl font-semibold text-on-surface tabular"><?= $cur . number_format((float) $viewClaim['claim_amount'], 2) ?></span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+                <?php
+                $vcRows = [
+                    ['Patient', $vcPatient . (($viewClaim['mrn'] ?? '') !== '' ? ' · ' . $viewClaim['mrn'] : '')],
+                    ['Date of birth', ($viewClaim['dob'] ?? '') !== '' ? nxDate((string) $viewClaim['dob']) : '—'],
+                    ['Phone', (string) ($viewClaim['phone'] ?? '') ?: '—'],
+                    ['Policy / member number', (string) ($viewClaim['policy_number'] ?? '') ?: '—'],
+                    ['Invoice', (string) ($viewClaim['invoice_number'] ?? '') ?: '(invoice removed)'],
+                    ['Invoice total', $viewClaim['invoice_total'] !== null ? $cur . number_format((float) $viewClaim['invoice_total'], 2) : '—'],
+                    ['Date of service', ($viewClaim['service_date'] ?? '') !== '' ? nxDate((string) $viewClaim['service_date']) : '—'],
+                    ['Last updated', ($viewClaim['updated_at'] ?? '') !== '' ? nxDate((string) $viewClaim['updated_at'], true) : '—'],
+                ];
+                foreach ($vcRows as [$label, $value]): ?>
+                    <div>
+                        <div class="text-[11px] uppercase tracking-wide text-outline"><?= htmlspecialchars($label) ?></div>
+                        <div class="text-on-surface font-medium mt-0.5"><?= htmlspecialchars((string) $value) ?></div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+
+            <?php if (trim((string) ($viewClaim['notes'] ?? '')) !== ''): ?>
+                <div>
+                    <div class="text-[11px] uppercase tracking-wide text-outline mb-1">Notes</div>
+                    <p class="text-on-surface bg-surface-container-low border border-outline-variant/30 rounded-xl p-3 whitespace-pre-line"><?= htmlspecialchars((string) $viewClaim['notes']) ?></p>
+                </div>
+            <?php endif; ?>
+
+            <div>
+                <div class="text-[11px] uppercase tracking-wide text-outline mb-1">Member's signature</div>
+                <?php if ($nxSignaturesReady && !empty($viewClaim['patient_signature'])): ?>
+                    <div class="rounded-xl border border-emerald-200 bg-white p-3">
+                        <img src="<?= htmlspecialchars((string) $viewClaim['patient_signature']) ?>" alt="Signature" class="max-h-28">
+                    </div>
+                    <p class="text-[11px] text-outline mt-1">
+                        Signed by <strong><?= htmlspecialchars((string) ($viewClaim['signed_by_name'] ?? $vcPatient)) ?></strong>
+                        <?= !empty($viewClaim['signed_at']) ? ' on ' . htmlspecialchars(nxDate((string) $viewClaim['signed_at'], true)) : '' ?>
+                    </p>
+                <?php elseif (!$nxSignaturesReady): ?>
+                    <p class="text-[12px] text-outline">Signatures are not available until the pending database update is applied.</p>
+                <?php else: ?>
+                    <p class="text-[12px] text-amber-700">Not signed yet. Open the claim for editing to capture the signature.</p>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <div class="px-5 py-4 border-t border-outline-variant/30 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+                <?php if (!empty($viewClaim['invoice_id'])): ?>
+                    <a href="print_invoice.php?id=<?= urlencode((string) $viewClaim['invoice_id']) ?>" target="_blank" rel="noopener" class="btn-secondary">
+                        <span class="material-symbols-outlined text-[18px]">receipt_long</span>
+                        <span>Invoice</span>
+                    </a>
+                <?php endif; ?>
+                <?php if (!empty($viewClaim['patient_id'])): ?>
+                    <a href="patient_detail.php?id=<?= urlencode((string) $viewClaim['patient_id']) ?>" class="btn-secondary">
+                        <span class="material-symbols-outlined text-[18px]">person</span>
+                        <span>Patient record</span>
+                    </a>
+                <?php endif; ?>
+            </div>
+            <div class="flex items-center gap-2">
+                <a href="billing.php?tab=insurance" class="btn-secondary">Close</a>
+                <a href="billing.php?tab=insurance&action=edit_claim&claim_id=<?= urlencode((string) $viewClaim['id']) ?>" class="btn-primary">
+                    <span class="material-symbols-outlined text-[18px]">edit</span>
+                    <span>Edit claim</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <!-- Modal Edit Insurance Claim -->
 <?php if ($editClaim): ?>

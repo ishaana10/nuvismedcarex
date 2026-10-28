@@ -118,9 +118,15 @@ final class InsuranceReportService
             $params['q'] = '%' . $search . '%';
         }
 
+        // Only ask for the signature columns when the database has them, so a
+        // pending migration cannot empty the whole report.
+        $signatureCols = InsuranceService::hasSignatureSupport($this->db)
+            ? 'c.patient_signature, c.signed_by_name, c.signed_at,'
+            : '';
+
         $sql = "SELECT c.id, c.invoice_id, c.patient_id, c.provider_name, c.policy_number,
                        c.claim_amount, c.status, c.notes, c.created_at, c.updated_at,
-                       c.patient_signature, c.signed_by_name, c.signed_at,
+                       {$signatureCols}
                        i.invoice_number, i.service_date, i.amount AS invoice_total,
                        i.total_tax AS invoice_tax, i.insurance_covered, i.patient_owed,
                        i.status AS invoice_status,

@@ -96,6 +96,7 @@ if (!function_exists('nxAccess')) {
         // Developer
         'actions/git_actions.php'         => ['developer', 'full'],
         'actions/redis_actions.php'       => ['developer', 'full'],
+        'actions/run_migrations.php'      => ['developer', 'full'],
         'actions/integration_actions.php' => ['developer', 'full'],
     ]);
 
