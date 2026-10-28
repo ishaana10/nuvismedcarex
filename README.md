@@ -121,6 +121,12 @@ Run the automated PHPUnit test suite covering Domain Entities, Repositories, Ser
 
 ## 📜 Version History & Release Notes
 
+### **One pending migration was breaking two features silently** - *October 2026*
+- **Fixed: the insurance report showed no claims, and signatures would not save.** Both read columns added by the signature migration. On a database where that migration had not been applied the report's query failed, was logged, and returned nothing — an empty report rather than an error — while the signature update failed and the claim came back "Not signed" with the success message still shown. Neither feature now depends on the columns being there: the report asks for them only when they exist, and signing explains exactly what is missing and where to fix it instead of reporting success.
+- **Fixed the reason they were missing.** `MigrationRunner` threw on the first migration that failed and the caller swallowed the exception, so one old failure stopped every later schema change from ever being applied, with nothing written anywhere. Failures are now recorded and logged, the remaining changes still run, and `commit`/`rollBack` are guarded because MySQL commits DDL implicitly and leaves no transaction to close.
+- **Developer → Database** is new: what has been applied, what is still pending (with a count on the tab), which features are waiting on a schema change, and a button to apply them after a failure has been dealt with.
+- **A View button on each insurance claim**, opening the claim on one screen — amount, patient and date of birth, policy number, invoice and total, date of service, notes and the signature with who signed and when — with links through to the invoice and the patient record.
+
 ### **Claims raised from the visit, with the member's signature** - *October 2026*
 - **The insurance portion on "Finalize Encounter" now raises the claim.** Entering an amount reveals the provider, the policy number and a signature pad; finalising the visit writes the invoice and the matching claim together, and the confirmation says what was paid at the desk, what went to the insurer, and that the claim was raised. Previously that amount only ever reached the invoice, which is why the report could list insurance billed with no claim behind it.
 - **The provider can be filled in at the desk.** If the patient has no insurer on file, the finalize screen offers the clinic's list and, with a tick, saves the choice back to the patient's record so it is not asked for again.
