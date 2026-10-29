@@ -4,6 +4,9 @@ $activePage = "patients";
 require_once __DIR__ . '/includes/pagination.php';
 include __DIR__ . '/includes/header.php';
 
+// Starting a visit belongs to clinical staff, not the front desk
+$nxCanStartVisit = nxCan('encounters', 'edit') && nxIsClinician();
+
 $search = trim($_GET['q'] ?? '');
 $sort = $_GET['sort'] ?? 'name';
 $filter = $_GET['filter'] ?? 'all';
@@ -187,7 +190,9 @@ $hasAllergy = static function (?string $a): bool {
                         </td>
                         <td class="py-3 px-4 text-right whitespace-nowrap">
                             <a href="<?= $detailUrl ?>" class="hidden sm:inline-flex items-center px-3 py-1.5 rounded-lg border border-slate-200 text-[12px] font-semibold text-slate-700 hover:bg-white hover:border-slate-300">Chart</a>
-                            <a href="clinical_visit.php?patient_id=<?= urlencode($p['id'] ?? '') ?>" class="inline-flex items-center px-3 py-1.5 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-[12px] font-semibold ml-1">Start visit</a>
+                            <?php if ($nxCanStartVisit): ?>
+                                <a href="clinical_visit.php?patient_id=<?= urlencode($p['id'] ?? '') ?>" class="inline-flex items-center px-3 py-1.5 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-[12px] font-semibold ml-1">Start visit</a>
+                            <?php endif; ?>
                         </td>
                     </tr>
                 <?php endforeach; ?>

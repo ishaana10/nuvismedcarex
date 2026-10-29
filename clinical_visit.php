@@ -7,6 +7,16 @@ $visitId = $_GET['visit_id'] ?? null;
 $appointmentId = $_GET['appointment_id'] ?? $_POST['appointment_id'] ?? null;
 $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 
+// Opening a patient's chart is clinical work, so the check comes before
+// anything is read or written. The directory listing below (no patient) is
+// only a list of encounters and stays on the page's own view permission.
+if ($patientId || $visitId) {
+    require_once __DIR__ . '/includes/security.php';
+    requireAuth();
+    nxRequireClinician('open a patient\'s chart');
+    requireAccess('encounters', 'edit');
+}
+
 // If appointment_id is passed when launching visit, mark appointment as "In Progress"
 if ($patientId && $appointmentId) {
     try {

@@ -107,14 +107,19 @@ $clinicSettings = $settings;
                 <span class="material-symbols-outlined text-base">edit</span>
                 <span>Edit Patient Info</span>
             </button>
-            <button onclick="document.getElementById('issueMedCertModal').classList.remove('hidden')" class="px-4 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-xl hover:bg-emerald-700 transition shadow-xs flex items-center gap-2">
-                <span class="material-symbols-outlined text-base">workspace_premium</span>
-                <span>Issue Certificate</span>
-            </button>
-            <a href="clinical_visit.php?patient_id=<?= htmlspecialchars($patient['id']) ?>" class="px-4 py-2 bg-primary text-white text-xs font-semibold rounded-xl hover:bg-primary/90 transition shadow-xs flex items-center gap-2">
-                <span class="material-symbols-outlined text-base">clinical_notes</span>
-                <span>Start Encounter</span>
-            </a>
+            <?php // A medical certificate is a clinician's statement ?>
+            <?php if (nxCan('encounters', 'edit') && nxIsClinician()): ?>
+                <button onclick="document.getElementById('issueMedCertModal').classList.remove('hidden')" class="px-4 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-xl hover:bg-emerald-700 transition shadow-xs flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base">workspace_premium</span>
+                    <span>Issue Certificate</span>
+                </button>
+            <?php endif; ?>
+            <?php if (nxCan('encounters', 'edit') && nxIsClinician()): ?>
+                <a href="clinical_visit.php?patient_id=<?= htmlspecialchars($patient['id']) ?>" class="px-4 py-2 bg-primary text-white text-xs font-semibold rounded-xl hover:bg-primary/90 transition shadow-xs flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base">clinical_notes</span>
+                    <span>Start Encounter</span>
+                </a>
+            <?php endif; ?>
             <a href="appointment.php?action=book&patient_id=<?= htmlspecialchars($patient['id']) ?>" class="px-4 py-2 bg-primary-container text-white text-xs font-semibold rounded-xl hover:bg-primary-container/90 transition shadow-xs flex items-center gap-2">
                 <span class="material-symbols-outlined text-base">calendar_add_on</span>
                 <span>Schedule Visit</span>

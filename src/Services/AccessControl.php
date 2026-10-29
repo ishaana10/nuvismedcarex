@@ -173,6 +173,36 @@ final class AccessControl
         return $this->level($role, $module) >= $needed;
     }
 
+    /**
+     * Is this a clinical role — someone who may see patients?
+     *
+     * Clinical work means starting and writing an encounter, so the answer is
+     * read from this clinic's own access matrix rather than from a role name:
+     * a role that can edit clinical encounters sees patients, one that cannot
+     * does not. Out of the box that means doctors and nurses, and not the front
+     * desk. A clinic that wants only doctors takes the encounters column away
+     * from Nurse in Administration → Access & roles, and this follows.
+     */
+    public function isClinical(string $role): bool
+    {
+        return $this->can($role, 'encounters', self::EDIT);
+    }
+
+    /**
+     * The clinical staff of this clinic, out of a list of staff rows.
+     *
+     * A Developer account has access to everything so that it can support the
+     * installation, but it is a maintenance login rather than a person who
+     * sees patients, so it is never offered as an attending clinician.
+     */
+    public function clinicalStaff(array $staff, string $roleKey = 'role'): array
+    {
+        return array_values(array_filter($staff, function (array $person) use ($roleKey): bool {
+            $role = self::normaliseRole((string) ($person[$roleKey] ?? ''));
+            return $role !== 'Developer' && $this->isClinical($role);
+        }));
+    }
+
     /** Full matrix for display: role => module => level. */
     public function matrix(array $roles): array
     {

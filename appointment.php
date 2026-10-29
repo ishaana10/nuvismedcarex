@@ -76,11 +76,12 @@ try {
     error_log("Calendar patients query error: " . $e->getMessage());
 }
 
+$nxCanLaunchVisit = nxCan('encounters', 'edit') && nxIsClinician();
+
 try {
-    $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
-    $doctorsStmt = $pdo->prepare("SELECT * FROM doctors WHERE tenant_id = ? OR tenant_id IS NULL ORDER BY name ASC");
-    $doctorsStmt->execute([$tenantId]);
-    $doctorsList = $doctorsStmt->fetchAll() ?: [];
+    // Only clinical staff can be the attending physician: the `doctors` table
+    // holds the whole clinic, front desk included.
+    $doctorsList = nxClinicians($pdo);
 } catch (\Throwable $e) {
     error_log("Calendar doctors query error: " . $e->getMessage());
 }
@@ -337,9 +338,12 @@ if ($action === 'edit' && !empty($editApptId)) {
                         </td>
                         <td class="py-3 px-3 text-right">
                             <div class="inline-flex items-center gap-1.5 justify-end">
-                                <a href="clinical_visit.php?patient_id=<?= htmlspecialchars($a['patient_id'] ?? '') ?>&appointment_id=<?= htmlspecialchars($a['id'] ?? '') ?>" class="px-2.5 py-1 bg-primary text-white rounded-lg text-[11px] font-semibold hover:bg-primary/90 transition">
-                                    Launch Visit
-                                </a>
+                                <?php // Launching a visit is clinical work, so the front desk is not offered it ?>
+                                <?php if ($nxCanLaunchVisit): ?>
+                                    <a href="clinical_visit.php?patient_id=<?= htmlspecialchars($a['patient_id'] ?? '') ?>&appointment_id=<?= htmlspecialchars($a['id'] ?? '') ?>" class="px-2.5 py-1 bg-primary text-white rounded-lg text-[11px] font-semibold hover:bg-primary/90 transition">
+                                        Launch Visit
+                                    </a>
+                                <?php endif; ?>
                                 <a href="appointment.php?action=edit&id=<?= htmlspecialchars($a['id'] ?? '') ?>&tab=<?= $tab ?>" class="p-1 text-slate-500 hover:text-blue-600 rounded-lg hover:bg-slate-100 transition" title="Edit Appointment">
                                     <span class="material-symbols-outlined text-base">edit</span>
                                 </a>

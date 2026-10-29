@@ -180,8 +180,9 @@ $statusStyle = static function (string $status): array {
     };
 };
 $csrf = htmlspecialchars(getCsrfToken());
-$canQueue = nxCan('appointments', 'edit');
-$canEncounter = nxCan('encounters', 'view');
+// Moving patients between the waiting room and a consulting room is clinical
+$canQueue = nxCan('appointments', 'edit') && nxIsClinician();
+$canChart = nxCan('encounters', 'edit') && nxIsClinician();
 ?>
 
 <!-- Greeting -->
@@ -279,8 +280,8 @@ $canEncounter = nxCan('encounters', 'view');
                                     </div>
                                     <span class="text-[11px] font-semibold text-blue-800 bg-white border border-blue-200 rounded-md px-1.5 py-0.5 whitespace-nowrap"><?= htmlspecialchars(($q['room'] ?? '') ?: 'In room') ?></span>
                                 </div>
-                                <div class="flex items-center gap-1.5 mt-2.5 <?= ($canQueue || $canEncounter) ? '' : 'hidden' ?>">
-                                    <?php if ($canEncounter): ?>
+                                <div class="flex items-center gap-1.5 mt-2.5 <?= ($canQueue || $canChart) ? '' : 'hidden' ?>">
+                                    <?php if ($canChart): ?>
                                     <a href="clinical_visit.php?patient_id=<?= urlencode($q['patient_id'] ?? '') ?>" class="h-8 flex-1 inline-flex items-center justify-center gap-1 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-xs font-semibold">
                                         <span class="material-symbols-outlined text-[16px]">stethoscope</span> Encounter
                                     </a>
