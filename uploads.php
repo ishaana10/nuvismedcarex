@@ -34,6 +34,10 @@ $cloudLabels = \ClinicFlow\Services\Cloud\Cloud::labels() + [
 $defaultDrive = (string) ($cloudCfg['provider'] ?? 'local');
 $defaultDriveLabel = $defaultDrive === 'local' ? 'this server' : ($cloudLabels[$defaultDrive] ?? $defaultDrive);
 
+// Which drive the clinic's documents are kept on is a developer's concern.
+// Clinic staff see that a document is stored and nothing about where.
+$showStorage = nxCan('developer', 'view');
+
 /**
  * Label, icon and colour classes for a storage provider. The classes are
  * written out in full rather than built from a colour name, so they survive a
@@ -104,7 +108,9 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
             <span class="material-symbols-outlined text-primary text-3xl">cloud_upload</span>
             <span>Document & File Management Hub</span>
         </h1>
-        <p class="text-xs text-outline mt-1 font-medium">Upload and manage clinical documents. New uploads anywhere in the application are kept on <?= htmlspecialchars($defaultDriveLabel) ?>.</p>
+        <p class="text-xs text-outline mt-1 font-medium">
+            Upload, organise and find clinical documents<?php if ($showStorage): ?>. New uploads anywhere in the application are kept on <?= htmlspecialchars($defaultDriveLabel) ?><?php endif; ?>.
+        </p>
     </div>
 
     <div class="flex items-center gap-3">
@@ -123,7 +129,7 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
 </div>
 
 <!-- Storage Statistics Cards -->
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+<div class="grid grid-cols-1 sm:grid-cols-2 <?= $showStorage ? 'lg:grid-cols-4' : '' ?> gap-4 mb-6">
     <div class="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/30 shadow-2xs flex items-center gap-4">
         <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
             <span class="material-symbols-outlined text-2xl">folder</span>
@@ -155,6 +161,7 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
         </div>
     </div>
 
+    <?php if ($showStorage): ?>
     <div class="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/30 shadow-2xs flex items-center gap-4">
         <div class="w-12 h-12 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center font-bold">
             <span class="material-symbols-outlined text-2xl">cloud_done</span>
@@ -186,6 +193,7 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
             </div>
         </div>
     </div>
+    <?php endif; ?>
 </div>
 
 <!-- Filters and Search Bar -->
@@ -196,6 +204,7 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
             <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="Search document name, category, or MRN..." class="w-full bg-surface-container-low pl-9 pr-3 py-2 rounded-xl border border-outline-variant/40 font-medium text-on-surface focus:outline-none focus:border-primary">
         </div>
 
+        <?php if ($showStorage): ?>
         <div class="md:col-span-3">
             <select name="provider" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-semibold text-on-surface">
                 <option value="">All storage locations</option>
@@ -206,8 +215,9 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
                 <?php endforeach; ?>
             </select>
         </div>
+        <?php endif; ?>
 
-        <div class="md:col-span-3">
+        <div class="<?= $showStorage ? 'md:col-span-3' : 'md:col-span-6' ?>">
             <select name="category" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-semibold text-on-surface">
                 <option value="">All Document Categories</option>
                 <option value="General" <?= $categoryFilter === 'General' ? 'selected' : '' ?>>General</option>
@@ -257,7 +267,7 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
                     <tr>
                         <th class="p-3.5">Document / File Name</th>
                         <th class="p-3.5">Patient / Link</th>
-                        <th class="p-3.5">Storage Provider</th>
+                        <?php if ($showStorage): ?><th class="p-3.5">Storage Provider</th><?php endif; ?>
                         <th class="p-3.5">Category</th>
                         <th class="p-3.5">Size / Type</th>
                         <th class="p-3.5">Uploaded By & Date</th>
@@ -270,8 +280,8 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
                             <td class="p-3.5 font-bold text-on-surface">
                                 <div class="flex items-center gap-2.5">
                                     <?php $drive = nxDriveMeta((string) ($file['storage_provider'] ?? 'server'), $cloudLabels); ?>
-                                    <div class="w-8 h-8 rounded-lg <?= $drive['tile'] ?> flex items-center justify-center shrink-0 font-bold">
-                                        <span class="material-symbols-outlined text-lg"><?= $drive['icon'] ?></span>
+                                    <div class="w-8 h-8 rounded-lg <?= $showStorage ? $drive['tile'] : 'bg-slate-100 text-slate-600' ?> flex items-center justify-center shrink-0 font-bold">
+                                        <span class="material-symbols-outlined text-lg"><?= $showStorage ? $drive['icon'] : 'description' ?></span>
                                     </div>
                                     <div>
                                         <span class="block truncate max-w-xs text-slate-900 font-bold"><?= htmlspecialchars($file['original_name']) ?></span>
@@ -291,6 +301,7 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
                                 <?php endif; ?>
                             </td>
 
+                            <?php if ($showStorage): ?>
                             <td class="p-3.5">
                                 <span class="px-2.5 py-1 rounded-full text-[10px] font-bold border <?= $drive['pill'] ?> inline-flex items-center gap-1">
                                     <span class="material-symbols-outlined text-xs"><?= $drive['icon'] ?></span> <?= htmlspecialchars($drive['label']) ?>
@@ -303,6 +314,7 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
                                     <span class="mt-1 block text-[10px] font-semibold text-slate-500">Waiting to be copied</span>
                                 <?php endif; ?>
                             </td>
+                            <?php endif; ?>
 
                             <td class="p-3.5">
                                 <span class="px-2.5 py-0.5 rounded bg-surface-container-high text-on-surface font-semibold text-[11px]">
@@ -343,7 +355,7 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
     <?php endif; ?>
 </div>
 
-<!-- Modal: Upload Document (Server, OneDrive, Google Drive) -->
+<!-- Modal: Upload a document, or link one from the user's own drive -->
 <div id="modal-upload-document" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center hidden p-4">
     <div class="bg-surface-container-lowest rounded-3xl border border-outline-variant/30 shadow-2xl max-w-xl w-full overflow-hidden">
         <div class="p-5 bg-slate-900 text-white flex items-center justify-between">
@@ -368,13 +380,16 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
             ?>
             <input type="hidden" name="storage_provider" value="server">
 
-            <!-- Where this will be stored, which is set once in Developer -->
+            <!-- Where this will be stored, which is set once in Developer.
+                 Clinic staff are told the document is kept safely; which drive
+                 it goes to is only shown to a developer. -->
             <div class="p-3.5 rounded-2xl border text-xs flex items-start justify-between gap-3 <?= $nxCloudOn ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-slate-50 border-slate-200 text-slate-700' ?>">
                 <div class="flex items-start gap-2 min-w-0">
                     <span class="material-symbols-outlined text-xl <?= $nxCloudOn ? 'text-emerald-700' : 'text-slate-500' ?>">
-                        <?= $nxCloudOn ? 'cloud_done' : 'dns' ?>
+                        <?= $nxCloudOn ? 'verified_user' : 'dns' ?>
                     </span>
                     <div class="min-w-0">
+                    <?php if ($showStorage): ?>
                         <span class="font-bold block">
                             <?= $nxCloudOn ? 'Stored on ' . htmlspecialchars($nxDriveName) : 'Stored on this server' ?>
                         </span>
@@ -388,6 +403,12 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
                                 No cloud drive is set up for this installation.
                             <?php endif; ?>
                         </span>
+                    <?php else: ?>
+                        <span class="font-bold block">Stored with this clinic's records</span>
+                        <span class="text-[11px] block mt-0.5">
+                            The document is kept securely and stays available from the patient's record.
+                        </span>
+                    <?php endif; ?>
                     </div>
                 </div>
                 <?php if (nxCan('developer', 'full')): ?>
@@ -434,7 +455,7 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
             <!-- Linking a file that already lives in someone's own drive is a
                  different thing from uploading one, so it is kept apart. -->
             <details class="rounded-2xl border border-outline-variant/30 bg-surface-container-low/50 p-3">
-                <summary class="text-[11px] font-semibold text-slate-700 cursor-pointer">Or link a file that is already in OneDrive or Google Drive</summary>
+                <summary class="text-[11px] font-semibold text-slate-700 cursor-pointer">Or link a file from your own OneDrive or Google Drive</summary>
                 <p class="text-[10px] text-slate-500 mt-1 mb-3">
                     This records a link to a file in your own drive. Nothing is copied, and the link only works for people who can open it.
                 </p>
