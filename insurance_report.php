@@ -320,8 +320,29 @@ $statusTone = [
                                 $type = $table['types'][$i];
                                 $key = $table['keys'][$i]; ?>
                                 <td class="px-3 py-2 <?= in_array($type, ['money', 'number'], true) ? 'text-right tabular' : '' ?> <?= $key === 'notes' ? 'max-w-[18rem] truncate' : 'whitespace-nowrap' ?>"
-                                    <?= $key === 'notes' && $cell !== '' ? 'title="' . htmlspecialchars((string) $cell) . '"' : '' ?>>
-                                    <?php if ($key === 'status'): ?>
+                                    <?= $key === 'notes' && !is_array($cell) && $cell !== '' ? 'title="' . htmlspecialchars((string) $cell) . '"' : '' ?>>
+                                    <?php if ($type === 'signature'): ?>
+                                        <?php
+                                        $sigImage = is_array($cell) ? (string) ($cell['image'] ?? '') : '';
+                                        $sigBy = is_array($cell) ? trim((string) ($cell['by'] ?? '')) : '';
+                                        $sigAt = is_array($cell) ? (string) ($cell['at'] ?? '') : '';
+                                        $sigOk = $sigImage !== '' && preg_match('#^data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$#', $sigImage);
+                                        ?>
+                                        <?php if ($sigOk): ?>
+                                            <?php // A signature is dark ink on a transparent background, so the
+                                                  // tile behind it is white whatever the theme, or it disappears ?>
+                                            <img src="<?= htmlspecialchars($sigImage) ?>" alt="Signature of <?= htmlspecialchars($sigBy ?: 'the member') ?>"
+                                                 class="h-8 max-w-[140px] object-contain object-left rounded border border-slate-300 px-1"
+                                                 style="background:#ffffff">
+                                            <?php if ($sigBy !== '' || $sigAt !== ''): ?>
+                                                <span class="block text-[10px] text-slate-500 mt-0.5">
+                                                    <?= htmlspecialchars(implode(' · ', array_filter([$sigBy, $sigAt !== '' ? nxDate($sigAt) : '']))) ?>
+                                                </span>
+                                            <?php endif; ?>
+                                        <?php else: ?>
+                                            <span class="text-slate-400 italic text-[11px]">Not signed</span>
+                                        <?php endif; ?>
+                                    <?php elseif ($key === 'status'): ?>
                                         <span class="inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-medium <?= $statusTone[$cell] ?? 'bg-slate-100 text-slate-700 border-slate-200' ?>">
                                             <?= htmlspecialchars((string) $cell) ?>
                                         </span>
@@ -501,6 +522,31 @@ $statusTone = [
                     <?php endforeach; ?>
                 </div>
             </fieldset>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="form-label" for="lay-scope">What a printed or downloaded copy contains</label>
+                    <select id="lay-scope" name="export_scope" class="form-select w-full">
+                        <?php foreach (InsuranceReportSettings::EXPORT_SCOPES as $value => $label): ?>
+                            <option value="<?= $value ?>" <?= ($insLayout['export_scope'] ?? 'full') === $value ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($label) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <p class="text-[11px] text-slate-500 mt-1">Choose the claim list on its own to send a provider nothing but its own claims.</p>
+                </div>
+                <div>
+                    <label class="form-label" for="lay-orientation">Page shape when printed or saved as PDF</label>
+                    <select id="lay-orientation" name="orientation" class="form-select w-full">
+                        <?php foreach (InsuranceReportSettings::ORIENTATIONS as $value => $label): ?>
+                            <option value="<?= $value ?>" <?= ($insLayout['orientation'] ?? 'portrait') === $value ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($label) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <p class="text-[11px] text-slate-500 mt-1">Landscape fits more columns across the page.</p>
+                </div>
+            </div>
 
             <fieldset>
                 <legend class="form-label">Include on the printed report</legend>

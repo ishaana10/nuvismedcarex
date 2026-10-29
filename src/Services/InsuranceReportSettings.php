@@ -39,7 +39,11 @@ final class InsuranceReportSettings
         'insurance_covered' => ['Covered on invoice', 'money'],
         'patient_share'     => ["Patient's share", 'money'],
         'age_days'          => ['Days outstanding', 'number'],
-        'signed'            => ['Signed by member', 'text'],
+        // 'signed' draws the member's actual signature; the name alone is a
+        // separate column for reports that only need to record who signed.
+        'signed'            => ['Member signature', 'signature'],
+        'signed_by_name'    => ['Signed by (name)', 'text'],
+        'signed_at'         => ['Date signed', 'date'],
         'notes'             => ['Notes', 'text'],
     ];
 
@@ -51,6 +55,14 @@ final class InsuranceReportSettings
     ];
 
     public const STATUSES = ['Submitted', 'Pending', 'Approved', 'Rejected', 'Paid'];
+
+    /** What a printed or downloaded copy contains. */
+    public const EXPORT_SCOPES = [
+        'full'  => 'The full report — summary, ageing and the claim list',
+        'table' => 'Only the claim list, in this layout',
+    ];
+
+    public const ORIENTATIONS = ['portrait' => 'Portrait', 'landscape' => 'Landscape'];
 
     /** Columns a brand-new layout starts with. */
     public const DEFAULT_COLUMNS = [
@@ -85,6 +97,12 @@ final class InsuranceReportSettings
             'show_aging'      => true,
             'show_logo'       => true,
             'show_signature'  => true,
+            // 'full' prints the summary, the ageing table and anything billed
+            // without a claim; 'table' prints the claim list and nothing else.
+            'export_scope'    => 'full',
+            // Page shape for the printed/PDF copy. Landscape suits a layout
+            // with many columns; portrait is the usual A4 sheet.
+            'orientation'     => 'portrait',
             'footer_note'     => '',
         ];
     }
@@ -167,6 +185,12 @@ final class InsuranceReportSettings
         }
         if (isset(self::GROUPINGS[$in['group_by'] ?? ''])) {
             $out['group_by'] = (string) $in['group_by'];
+        }
+        if (in_array($in['export_scope'] ?? '', ['full', 'table'], true)) {
+            $out['export_scope'] = (string) $in['export_scope'];
+        }
+        if (in_array($in['orientation'] ?? '', ['portrait', 'landscape'], true)) {
+            $out['orientation'] = (string) $in['orientation'];
         }
         foreach (['show_summary', 'show_aging', 'show_logo', 'show_signature'] as $flag) {
             if (array_key_exists('_toggles_present', $in) || array_key_exists($flag, $in)) {

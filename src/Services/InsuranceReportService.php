@@ -203,6 +203,9 @@ final class InsuranceReportService
             'age_days'          => $ageDays,
             'signature'         => (string) ($r['patient_signature'] ?? ''),
             'signed_by'         => (string) ($r['signed_by_name'] ?? ''),
+            'signed_by_name'    => trim((string) ($r['signed_by_name'] ?? '')) !== ''
+                ? (string) $r['signed_by_name']
+                : (($r['patient_signature'] ?? '') !== '' ? 'Signed' : ''),
             'signed_at'         => substr((string) ($r['signed_at'] ?? ''), 0, 10),
             'signed'            => ($r['patient_signature'] ?? '') !== ''
                 ? (trim((string) ($r['signed_by_name'] ?? '')) !== '' ? (string) $r['signed_by_name'] : 'Signed')
@@ -427,10 +430,20 @@ final class InsuranceReportService
         $groups = [];
         foreach ($report['claims'] as $claim) {
             $cells = [];
-            foreach ($keys as $key) {
+            foreach ($keys as $i => $key) {
                 $value = $claim[$key] ?? '';
                 if ($key === 'claim_ref' && ($layout['claim_prefix'] ?? '') !== '') {
                     $value = $layout['claim_prefix'] . $value;
+                }
+                // A signature cell carries the drawing itself along with who
+                // signed and when, so each renderer can show what it can: the
+                // image on screen and on paper, words in a spreadsheet.
+                if (($types[$i] ?? '') === 'signature') {
+                    $value = [
+                        'image' => (string) ($claim['signature'] ?? ''),
+                        'by'    => (string) ($claim['signed_by'] ?? ''),
+                        'at'    => (string) ($claim['signed_at'] ?? ''),
+                    ];
                 }
                 $cells[] = $value;
             }
