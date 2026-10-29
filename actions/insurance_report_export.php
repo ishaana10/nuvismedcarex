@@ -21,6 +21,9 @@ $cur = nxCurrencySymbol();
 $table = InsuranceReportService::tabulate($insReport, $insLayout);
 $totals = $insReport['totals'];
 
+// 'table' means the provider wants the claim list on its own
+$insFull = ($insLayout['export_scope'] ?? 'full') !== 'table';
+
 $slug = preg_replace('/[^a-z0-9]+/i', '-', strtolower(
     ($insProvider !== '' ? $insProvider : $clinic['name']) . '-insurance'
 )) ?: 'insurance';
@@ -37,24 +40,28 @@ $row = static fn(array $cells) => fputcsv($out, $cells);
 $money = static fn($v) => number_format((float) $v, 2, '.', '');
 $claims = static fn(int $n) => $n . ($n === 1 ? ' claim' : ' claims');
 
+// Enough of a heading that the file identifies itself; the full report adds
+// the rest of the filters it was run with.
 $row([$clinic['name'] . ' — ' . $insLayout['title']]);
-if (($clinic['tin'] ?? '') !== '') {
+if ($insFull && ($clinic['tin'] ?? '') !== '') {
     $row(['TIN', $clinic['tin']]);
 }
 $row(['Provider', $insProvider !== '' ? $insProvider : 'All providers']);
 $row(['Period', $insFilters['from'], 'to', $insFilters['to']]);
-$row(['Dates mean', $insFilters['date_basis'] === 'service' ? 'Date of service' : 'Date claim submitted']);
-if ($insFilters['statuses'] !== []) {
-    $row(['Statuses', implode(', ', $insFilters['statuses'])]);
+if ($insFull) {
+    $row(['Dates mean', $insFilters['date_basis'] === 'service' ? 'Date of service' : 'Date claim submitted']);
+    if ($insFilters['statuses'] !== []) {
+        $row(['Statuses', implode(', ', $insFilters['statuses'])]);
+    }
+    if ($insFilters['search'] !== '') {
+        $row(['Search', $insFilters['search']]);
+    }
+    $row(['Currency', $cur]);
 }
-if ($insFilters['search'] !== '') {
-    $row(['Search', $insFilters['search']]);
-}
-$row(['Currency', $cur]);
 $row(['Generated', date('Y-m-d H:i')]);
 $row([]);
 
-if (!empty($insLayout['show_summary'])) {
+if ($insFull && !empty($insLayout['show_summary'])) {
     $row(['Summary']);
     $row(['Claims in the period', $totals['count']]);
     $row(['Total claimed', $money($totals['claimed'])]);
@@ -67,7 +74,7 @@ if (!empty($insLayout['show_summary'])) {
     $row([]);
 }
 
-if (count($insReport['by_provider']) > 1) {
+if ($insFull && count($insReport['by_provider']) > 1) {
     $row(['By provider']);
     $row(['Provider', 'Claims', 'Claimed', 'Approved', 'Rejected', 'Outstanding', 'Open claims', 'Oldest open (days)']);
     foreach ($insReport['by_provider'] as $p) {
@@ -79,7 +86,7 @@ if (count($insReport['by_provider']) > 1) {
     $row([]);
 }
 
-if (!empty($insLayout['show_aging']) && $totals['open_count'] > 0) {
+if ($insFull && !empty($insLayout['show_aging']) && $totals['open_count'] > 0) {
     $row(['How long open claims have been waiting']);
     $row(['Age', 'Claims', 'Amount']);
     foreach ($insReport['aging'] as $bucket) {
@@ -104,7 +111,7 @@ if ($table['groups'] !== []) {
     }
 }
 
-if (!empty($insReport['unclaimed'])) {
+if ($insFull && !empty($insReport['unclaimed'])) {
     $row([]);
     $row(['Insurance billed on invoices with no claim submitted']);
     $row(['Invoice', 'Patient', 'MRN', 'Provider on file', 'Date of service', 'Invoice total', 'Insurance portion']);
@@ -124,12 +131,22 @@ if (!empty($insLayout['footer_note'])) {
 fclose($out);
 exit;
 
-/** Money columns go out as plain numbers so spreadsheets can total them. */
+/**
+ * Money columns go out as plain numbers so spreadsheets can total them, and a
+ * signature — which a CSV cannot carry — goes out as who signed and when.
+ */
 function formatCells(array $cells, array $types): array
 {
     foreach ($cells as $i => $cell) {
-        if (($types[$i] ?? 'text') === 'money') {
+        $type = $types[$i] ?? 'text';
+        if ($type === 'money') {
             $cells[$i] = number_format((float) $cell, 2, '.', '');
+        } elseif ($type === 'signature') {
+            $by = is_array($cell) ? trim((string) ($cell['by'] ?? '')) : '';
+            $at = is_array($cell) ? (string) ($cell['at'] ?? '') : '';
+            $cells[$i] = (is_array($cell) && ($cell['image'] ?? '') !== '')
+                ? trim('Signed' . ($by !== '' ? ' by ' . $by : '') . ($at !== '' ? ' on ' . $at : ''))
+                : 'Not signed';
         }
     }
     return $cells;

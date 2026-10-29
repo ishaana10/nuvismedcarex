@@ -70,6 +70,8 @@ $layout = [
     'claim_prefix'    => $_POST['claim_prefix'] ?? '',
     'footer_note'     => $_POST['footer_note'] ?? '',
     'group_by'        => $_POST['group_by'] ?? 'none',
+    'export_scope'    => $_POST['export_scope'] ?? 'full',
+    'orientation'     => $_POST['orientation'] ?? 'portrait',
     'columns'         => $_POST['columns'] ?? [],
     'statuses'        => $_POST['statuses'] ?? [],
     // Unticked checkboxes are simply absent, so flag that the form carried them

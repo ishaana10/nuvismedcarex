@@ -34,6 +34,31 @@ $cell = static function ($value, string $type) use ($cur): string {
     if ($type === 'date') return $value === '' || $value === null ? '—' : nxDate((string) $value);
     return $value === '' || $value === null ? '—' : (string) $value;
 };
+
+/** A signature cell: the drawing itself, with who signed and when beneath it. */
+$signatureCell = static function ($value): string {
+    $image = is_array($value) ? (string) ($value['image'] ?? '') : '';
+    $by = is_array($value) ? trim((string) ($value['by'] ?? '')) : '';
+    $at = is_array($value) ? (string) ($value['at'] ?? '') : '';
+    if ($image === '') {
+        return '<span class="unsigned">Not signed</span>';
+    }
+    // Only ever an inline image written by the signature pad
+    $safe = preg_match('#^data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$#', $image) ? $image : '';
+    $out = $safe !== ''
+        ? '<img class="sigimg" src="' . htmlspecialchars($safe) . '" alt="Signature">'
+        : '<span class="unsigned">Signature unavailable</span>';
+    $caption = array_filter([$by, $at !== '' ? nxDate($at) : '']);
+    if ($caption !== []) {
+        $out .= '<span class="sigby">' . htmlspecialchars(implode(' · ', $caption)) . '</span>';
+    }
+    return $out;
+};
+
+// The provider's layout decides what a printed copy carries and its shape
+$insScope = ($insLayout['export_scope'] ?? 'full') === 'table' ? 'table' : 'full';
+$insFull = $insScope === 'full';
+$insLandscape = ($insLayout['orientation'] ?? 'portrait') === 'landscape';
 $groups = $table['groups'] !== [] ? $table['groups'] : [['label' => '', 'rows' => $table['rows'], 'claimed' => $totals['claimed']]];
 $periodLabel = nxDate($insFilters['from']) . ' – ' . nxDate($insFilters['to']);
 $basisLabel = $insFilters['date_basis'] === 'service' ? 'by date of service' : 'by date submitted';
@@ -91,7 +116,19 @@ $basisLabel = $insFilters['date_basis'] === 'service' ? 'by date of service' : '
     .sign div { flex: 1; border-top: 1px solid var(--ink); padding-top: .3rem; font-size: 10px; color: var(--muted); }
     .foot { margin-top: 1.6rem; border-top: 1px solid var(--line); padding-top: .5rem; font-size: 9.5px; color: var(--muted); display: flex; justify-content: space-between; }
     .empty { padding: 2rem; text-align: center; color: var(--muted); font-size: 11px; }
-    @page { size: A4; margin: 12mm; }
+    td .sigimg {
+        display: block; max-height: 34px; max-width: 150px;
+        object-fit: contain; object-position: left center;
+        /* signatures are dark ink on a transparent background */
+        background: #fff;
+    }
+    td .sigby { display: block; font-size: 9px; color: var(--muted); margin-top: .1rem; white-space: nowrap; }
+    td .unsigned { color: var(--muted); font-style: italic; }
+    @page { size: A4 <?= $insLandscape ? 'landscape' : 'portrait' ?>; margin: 12mm; }
+    <?php if ($insLandscape): ?>
+    .sheet { width: 297mm; min-height: 210mm; }
+    .cards { grid-template-columns: repeat(4, 1fr); }
+    <?php endif; ?>
     @media print {
         body { background: #fff; }
         .toolbar { display: none !important; }
@@ -137,7 +174,7 @@ $basisLabel = $insFilters['date_basis'] === 'service' ? 'by date of service' : '
         </div>
     </div>
 
-    <?php if (!empty($insLayout['show_summary'])): ?>
+    <?php if ($insFull && !empty($insLayout['show_summary'])): ?>
         <h2>Summary</h2>
         <div class="cards">
             <div class="card">
@@ -163,7 +200,7 @@ $basisLabel = $insFilters['date_basis'] === 'service' ? 'by date of service' : '
         </div>
     <?php endif; ?>
 
-    <?php if (count($insReport['by_provider']) > 1): ?>
+    <?php if ($insFull && count($insReport['by_provider']) > 1): ?>
         <h2>By provider</h2>
         <table>
             <thead>
@@ -201,7 +238,7 @@ $basisLabel = $insFilters['date_basis'] === 'service' ? 'by date of service' : '
         </table>
     <?php endif; ?>
 
-    <?php if (!empty($insLayout['show_aging']) && $totals['open_count'] > 0): ?>
+    <?php if ($insFull && !empty($insLayout['show_aging']) && $totals['open_count'] > 0): ?>
         <h2>How long open claims have been waiting</h2>
         <table>
             <thead><tr><th>Age</th><th class="num">Claims</th><th class="num">Amount</th></tr></thead>
@@ -242,7 +279,11 @@ $basisLabel = $insFilters['date_basis'] === 'service' ? 'by date of service' : '
                         <tr>
                             <?php foreach ($row as $i => $value): ?>
                                 <td class="<?= in_array($table['types'][$i], ['money', 'number'], true) ? 'num' : ($table['keys'][$i] === 'notes' ? 'wrap' : '') ?>">
-                                    <?= htmlspecialchars($cell($value, $table['types'][$i])) ?>
+                                    <?php if ($table['types'][$i] === 'signature'): ?>
+                                        <?= $signatureCell($value) ?>
+                                    <?php else: ?>
+                                        <?= htmlspecialchars($cell($value, $table['types'][$i])) ?>
+                                    <?php endif; ?>
                                 </td>
                             <?php endforeach; ?>
                         </tr>
