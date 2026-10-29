@@ -19,9 +19,8 @@ $toast = getToast();
 
 // Get doctors for current tenant context selector
 $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
-$doctorsStmt = $pdo->prepare("SELECT * FROM doctors WHERE tenant_id = ? OR tenant_id IS NULL ORDER BY name ASC");
-$doctorsStmt->execute([$currentTenantId]);
-$doctors = $doctorsStmt->fetchAll(PDO::FETCH_ASSOC);
+// "Acting clinician" is a clinical role, so the front desk is not offered
+$doctors = nxClinicians($pdo);
 if (empty($doctors)) {
     $allDocsStmt = $pdo->query("SELECT * FROM doctors ORDER BY name ASC");
     $doctors = $allDocsStmt ? $allDocsStmt->fetchAll(PDO::FETCH_ASSOC) : [];

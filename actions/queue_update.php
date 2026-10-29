@@ -19,6 +19,17 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST' || !verifyCsrfToken($_POST[
 
 $queueId  = trim((string) ($_POST['queue_id'] ?? ''));
 $action   = (string) ($_POST['action'] ?? '');
+
+// Calling a patient through to a room, sending them back, and closing a visit
+// are all clinical decisions. Booking and checking people in at the desk are
+// not, and stay on the appointments permission this script already carries.
+if (in_array($action, ['check_in', 'send_back', 'complete'], true)) {
+    nxRequireClinician(match ($action) {
+        'check_in'  => 'call a patient through to a room',
+        'send_back' => 'send a patient back to the waiting room',
+        default     => 'close a visit',
+    });
+}
 $room     = trim((string) ($_POST['room'] ?? ''));
 $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 $pdo = getDB();

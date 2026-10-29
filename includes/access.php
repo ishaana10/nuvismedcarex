@@ -133,6 +133,87 @@ if (!function_exists('nxAccess')) {
         }
     }
 
+    /**
+     * The clinic's clinical staff, for anywhere a patient is assigned to
+     * someone: the attending physician on an appointment, the acting clinician
+     * in the header. The `doctors` table holds every member of staff, so
+     * without this the front desk appears in the list of physicians.
+     *
+     * If a clinic has nobody clinical configured yet, every member of staff is
+     * returned rather than an empty picker that cannot be submitted.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    function nxClinicians(PDO $pdo): array
+    {
+        static $cache = [];
+        $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+        if (isset($cache[$tenantId])) {
+            return $cache[$tenantId];
+        }
+        try {
+            $stmt = $pdo->prepare(
+                "SELECT * FROM doctors
+                  WHERE (tenant_id = ? OR tenant_id IS NULL) AND COALESCE(is_active, 1) = 1
+               ORDER BY name ASC"
+            );
+            $stmt->execute([$tenantId]);
+            $staff = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (\Throwable $e) {
+            error_log('[access] clinicians: ' . $e->getMessage());
+            return $cache[$tenantId] = [];
+        }
+        $clinical = nxAccess()->clinicalStaff($staff);
+        return $cache[$tenantId] = ($clinical !== [] ? $clinical : $staff);
+    }
+
+    /**
+     * May the signed-in user do clinical work — call a patient into a room,
+     * start a visit, chart an encounter? Front-desk roles may not.
+     */
+    function nxIsClinician(): bool
+    {
+        if (empty($_SESSION['authenticated'])) return false;
+        try {
+            return nxAccess()->isClinical(nxCurrentRole());
+        } catch (\Throwable $e) {
+            error_log('[access] clinician: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Stop the request unless the user may do clinical work. Worded for the
+     * thing being attempted, e.g. nxRequireClinician('start a visit').
+     */
+    function nxRequireClinician(string $what = 'do this'): void
+    {
+        if (nxIsClinician()) return;
+
+        $role = nxCurrentRole();
+        $message = "Only clinical staff can {$what}. Your role ({$role}) covers the front desk, not the consulting room.";
+
+        $wantsJson = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
+            || str_contains((string) ($_SERVER['HTTP_ACCEPT'] ?? ''), 'application/json');
+        if ($wantsJson) {
+            http_response_code(403);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => $message, 'message' => $message]);
+            exit;
+        }
+
+        setToast('Not your role', $message, 'error');
+        $ref = (string) ($_SERVER['HTTP_REFERER'] ?? '');
+        $self = (string) ($_SERVER['REQUEST_URI'] ?? '');
+        $back = nxAppBasePath() . 'index.php';
+        if ($ref !== '' && parse_url($ref, PHP_URL_HOST) === parse_url('//' . ($_SERVER['HTTP_HOST'] ?? ''), PHP_URL_HOST)
+            && parse_url($ref, PHP_URL_PATH) !== parse_url($self, PHP_URL_PATH)) {
+            $back = $ref;
+        }
+        header('Location: ' . $back);
+        exit;
+    }
+
     /** Stop the request with a clear message when the user lacks access. */
     function requireAccess(string $module, string $level = 'view'): void
     {
