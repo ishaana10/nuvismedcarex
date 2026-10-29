@@ -219,18 +219,21 @@ $labCategories = [
                 <textarea name="results" id="edit-lab-results" rows="3" placeholder="Enter test results, numerical values, findings, or radiologist report..." class="w-full bg-white p-2.5 rounded-xl border border-amber-300 font-mono text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
 
                 <div class="pt-2 border-t border-amber-200/60 grid grid-cols-1 md:grid-cols-2 gap-2">
-                    <div>
+                    <div class="<?= nxCan('developer', 'view') ? '' : 'md:col-span-2' ?>">
                         <label class="block font-bold text-amber-900 text-[11px] mb-1">Attach Lab Result Document / Scan (PDF/Img)</label>
                         <input type="file" name="result_file" class="block w-full text-xs text-slate-700 bg-white border border-amber-300 rounded-lg cursor-pointer file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-amber-100 file:text-amber-800 hover:file:bg-amber-200">
                     </div>
-                    <div>
-                        <label class="block font-bold text-amber-900 text-[11px] mb-1">Where it will be kept</label>
-                        <div class="px-2.5 py-1.5 bg-amber-100 border border-amber-300 rounded-lg text-xs font-bold text-amber-900 flex items-center gap-1.5">
-                            <span class="material-symbols-outlined text-sm"><?= $labDrive === 'local' ? 'dns' : 'cloud_done' ?></span>
-                            <span><?= htmlspecialchars($labDriveLabel) ?></span>
+                    <?php if (nxCan('developer', 'view')): ?>
+                        <?php // Which drive the clinic uses is a developer's concern, not the doctor's ?>
+                        <div>
+                            <label class="block font-bold text-amber-900 text-[11px] mb-1">Where it will be kept</label>
+                            <div class="px-2.5 py-1.5 bg-amber-100 border border-amber-300 rounded-lg text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-sm"><?= $labDrive === 'local' ? 'dns' : 'cloud_done' ?></span>
+                                <span><?= htmlspecialchars($labDriveLabel) ?></span>
+                            </div>
+                            <p class="text-[10px] text-amber-800/80 mt-1">Set for the whole installation under Developer &rarr; Document storage.</p>
                         </div>
-                        <p class="text-[10px] text-amber-800/80 mt-1">Set for the whole installation under Developer &rarr; Document storage.</p>
-                    </div>
+                    <?php endif; ?>
                 </div>
 
                 <!-- Lab File Upload Live Progress Bar & Console -->

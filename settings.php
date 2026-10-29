@@ -347,7 +347,9 @@ $clinicDefaultPageSize = (int) nxSetting('default_pagination_limit', 10);
                             ? 'this server'
                             : (\ClinicFlow\Services\Cloud\Cloud::labels()[$nxDocDrive] ?? $nxDocDrive);
                     ?>
-                    <dd class="text-xs text-slate-500 mt-1">Kept on <?= htmlspecialchars($nxDocDriveLabel) ?></dd>
+                    <?php if (nxCan('developer', 'view')): ?>
+                        <dd class="text-xs text-slate-500 mt-1">Kept on <?= htmlspecialchars($nxDocDriveLabel) ?></dd>
+                    <?php endif; ?>
                 </div>
             </dl>
             <p class="text-[13px] text-slate-500 mt-4">To change the plan, contact Nuvis Technologies.</p>
