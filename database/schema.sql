@@ -515,3 +515,110 @@ CREATE TABLE IF NOT EXISTS email_logs (
 
 CREATE INDEX idx_email_logs_tenant ON email_logs(tenant_id);
 CREATE INDEX idx_email_logs_status ON email_logs(status);
+
+-- ============================================================================
+-- Multi-location, subscription billing history, feature wish board, and
+-- developer broadcast alerts (added 2026-11-01).
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS clinic_locations (
+    id VARCHAR(50) PRIMARY KEY,
+    tenant_id VARCHAR(50) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    code VARCHAR(50) NOT NULL,
+    address TEXT,
+    phone VARCHAR(50),
+    email VARCHAR(255),
+    timezone VARCHAR(50) DEFAULT 'Pacific/Fiji',
+    is_primary TINYINT(1) NOT NULL DEFAULT 0,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+    CONSTRAINT uk_location_tenant_code UNIQUE (tenant_id, code)
+);
+CREATE INDEX idx_locations_tenant ON clinic_locations(tenant_id);
+
+CREATE TABLE IF NOT EXISTS subscription_payments (
+    id VARCHAR(50) PRIMARY KEY,
+    tenant_id VARCHAR(50) NOT NULL,
+    amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    currency VARCHAR(10) NOT NULL DEFAULT 'FJD',
+    plan VARCHAR(50),
+    billing_cycle VARCHAR(50) DEFAULT 'monthly',
+    period_start DATE,
+    period_end DATE,
+    status VARCHAR(30) NOT NULL DEFAULT 'paid',
+    method VARCHAR(50),
+    reference VARCHAR(191),
+    invoice_no VARCHAR(100),
+    paid_at DATETIME NULL,
+    notes TEXT,
+    recorded_by VARCHAR(50),
+    recorded_by_name VARCHAR(191),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_subpay_tenant ON subscription_payments(tenant_id);
+CREATE INDEX idx_subpay_status ON subscription_payments(tenant_id, status);
+
+CREATE TABLE IF NOT EXISTS feature_wishes (
+    id VARCHAR(50) PRIMARY KEY,
+    tenant_id VARCHAR(50) NOT NULL,
+    created_by VARCHAR(50),
+    created_by_name VARCHAR(191),
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    category VARCHAR(50) DEFAULT 'general',
+    clinic_priority VARCHAR(20) DEFAULT 'medium',
+    status VARCHAR(30) NOT NULL DEFAULT 'submitted',
+    dev_notes TEXT,
+    target_date DATE NULL,
+    started_at DATETIME NULL,
+    shipped_at DATETIME NULL,
+    vote_count INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_wishes_tenant ON feature_wishes(tenant_id);
+CREATE INDEX idx_wishes_status ON feature_wishes(status);
+
+CREATE TABLE IF NOT EXISTS feature_wish_comments (
+    id VARCHAR(50) PRIMARY KEY,
+    wish_id VARCHAR(50) NOT NULL,
+    author_id VARCHAR(50),
+    author_name VARCHAR(191),
+    author_role VARCHAR(50),
+    is_developer TINYINT(1) NOT NULL DEFAULT 0,
+    body TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (wish_id) REFERENCES feature_wishes(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_wishcomments_wish ON feature_wish_comments(wish_id);
+
+CREATE TABLE IF NOT EXISTS developer_alerts (
+    id VARCHAR(50) PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    body TEXT,
+    severity VARCHAR(20) NOT NULL DEFAULT 'info',
+    audience VARCHAR(20) NOT NULL DEFAULT 'all',
+    target_tenant_id VARCHAR(50) NULL,
+    target_role VARCHAR(50) NULL,
+    link_url VARCHAR(255) NULL,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_by VARCHAR(50),
+    created_by_name VARCHAR(191),
+    published_at DATETIME NULL,
+    expires_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_alerts_active ON developer_alerts(is_active);
+
+CREATE TABLE IF NOT EXISTS developer_alert_reads (
+    id VARCHAR(50) PRIMARY KEY,
+    alert_id VARCHAR(50) NOT NULL,
+    user_id VARCHAR(50) NOT NULL,
+    read_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uk_alert_user UNIQUE (alert_id, user_id)
+);

@@ -24,9 +24,18 @@ $currentSessionUserRole = $_SESSION['user_role'] ?? $_SESSION['role'] ?? 'Doctor
 $isDeveloper = ($currentSessionUserRole === 'Developer');
 
 $activeTab = $_GET['tab'] ?? 'users';
-if (!in_array($activeTab, ['users', 'clinic', 'email', 'inventory', 'audit'])) {
+if (!in_array($activeTab, ['users', 'clinic', 'locations', 'subscription', 'email', 'inventory', 'audit'])) {
     $activeTab = 'users';
 }
+
+// Services for the Locations and Subscription tabs
+$locationService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\LocationService::class);
+$subscriptionService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\SubscriptionService::class);
+$clinicLocations = $locationService->getLocations($currentTenantId);
+$currentLocationId = $locationService->getCurrentLocationId($currentTenantId);
+$subPayments = $subscriptionService->getPayments($currentTenantId);
+$subSummary = $subscriptionService->getSummary($currentTenantId);
+$tenantRow = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\TenantService::class)->getTenantById($currentTenantId) ?? [];
 
 $pagination = getPaginationParams(10, [5, 10, 25, 50, 100], $pdo);
 
@@ -469,6 +478,192 @@ $sv = fn(string $k, string $fallback = '') => htmlspecialchars((string) ($settin
         });
     })();
     </script>
+</div>
+
+<!-- ================= TAB: LOCATIONS ================= -->
+<div id="admin-tab-locations" class="<?= $activeTab === 'locations' ? '' : 'hidden' ?> space-y-6">
+    <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-outline-variant/20">
+            <div>
+                <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base">pin_drop</span><span>Clinic Locations &amp; Branches</span>
+                </h2>
+                <p class="text-xs text-outline font-medium mt-0.5">Run this clinic across multiple sites. The active location is remembered for your session and tagged onto new appointments.</p>
+            </div>
+            <button type="button" onclick="openLocationModal()" class="px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-base">add_location_alt</span><span>Add location</span>
+            </button>
+        </div>
+
+        <?php if (!empty($clinicLocations)): ?>
+        <form action="actions/location_actions.php" method="POST" class="flex flex-col sm:flex-row sm:items-end gap-3 p-4 rounded-xl bg-surface-container-low border border-outline-variant/30">
+            <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+            <input type="hidden" name="action" value="set_current_location">
+            <div class="flex-1">
+                <label class="form-label">Active location for this session</label>
+                <select name="location_id" class="form-select" onchange="this.form.submit()">
+                    <?php foreach ($clinicLocations as $loc): if (!$loc['is_active']) continue; ?>
+                        <option value="<?= htmlspecialchars($loc['id']) ?>" <?= $loc['id'] === $currentLocationId ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($loc['name']) ?><?= $loc['is_primary'] ? ' (primary)' : '' ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <noscript><button type="submit" class="btn-primary">Set</button></noscript>
+        </form>
+        <?php endif; ?>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <?php if (empty($clinicLocations)): ?>
+                <div class="col-span-full nx-empty py-10"><span class="material-symbols-outlined text-3xl text-slate-300">pin_drop</span><p class="mt-2">No locations yet. Add your first branch to get started.</p></div>
+            <?php endif; ?>
+            <?php foreach ($clinicLocations as $loc): ?>
+                <div class="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/30 flex flex-col gap-3 text-xs <?= $loc['id'] === $currentLocationId ? 'ring-2 ring-primary/50' : '' ?> <?= $loc['is_active'] ? '' : 'opacity-60' ?>">
+                    <div class="flex items-center justify-between gap-2">
+                        <h3 class="font-bold text-on-surface text-sm flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-base text-primary">store</span><span><?= htmlspecialchars($loc['name']) ?></span>
+                        </h3>
+                        <?php if ($loc['is_primary']): ?><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary">Primary</span><?php endif; ?>
+                        <?php if (!$loc['is_active']): ?><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-600">Inactive</span><?php endif; ?>
+                    </div>
+                    <div class="p-2.5 rounded-xl bg-surface-container-lowest border border-outline-variant/20 space-y-1 text-[11px] text-slate-600">
+                        <div><span class="text-slate-400">Code:</span> <span class="font-mono font-bold"><?= htmlspecialchars($loc['code']) ?></span></div>
+                        <?php if (!empty($loc['address'])): ?><div class="flex items-start gap-1"><span class="material-symbols-outlined text-[13px] text-slate-400">location_on</span><?= htmlspecialchars($loc['address']) ?></div><?php endif; ?>
+                        <?php if (!empty($loc['phone'])): ?><div class="flex items-center gap-1"><span class="material-symbols-outlined text-[13px] text-slate-400">call</span><?= htmlspecialchars($loc['phone']) ?></div><?php endif; ?>
+                        <?php if (!empty($loc['email'])): ?><div class="flex items-center gap-1"><span class="material-symbols-outlined text-[13px] text-slate-400">mail</span><?= htmlspecialchars($loc['email']) ?></div><?php endif; ?>
+                    </div>
+                    <div class="pt-2 border-t border-outline-variant/20 flex items-center gap-2">
+                        <button type="button" onclick='openLocationModal(<?= htmlspecialchars(json_encode($loc), ENT_QUOTES, "UTF-8") ?>)' class="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1">
+                            <span class="material-symbols-outlined text-sm">edit</span><span>Edit</span>
+                        </button>
+                        <?php if ($loc['is_active'] && !$loc['is_primary']): ?>
+                        <form action="actions/location_actions.php" method="POST" onsubmit="return confirm('Deactivate this location? Existing records are kept.');">
+                            <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+                            <input type="hidden" name="action" value="deactivate_location">
+                            <input type="hidden" name="location_id" value="<?= htmlspecialchars($loc['id']) ?>">
+                            <button type="submit" class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-xl transition flex items-center gap-1" title="Deactivate"><span class="material-symbols-outlined text-sm">block</span></button>
+                        </form>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</div>
+
+<!-- Location add/edit modal -->
+<div id="modal-location" class="fixed inset-0 z-[80] bg-slate-950/50 backdrop-blur-xs flex items-center justify-center hidden p-4" data-nx-modal>
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-pop max-w-lg w-full overflow-hidden" role="dialog" aria-modal="true">
+        <div class="px-6 pt-5 pb-4 flex items-start justify-between">
+            <h3 id="location-modal-title" class="font-semibold text-base text-slate-900">Add location</h3>
+            <button type="button" onclick="closeModal('modal-location')" class="nx-icon-btn -mr-2 -mt-1" aria-label="Close"><span class="material-symbols-outlined">close</span></button>
+        </div>
+        <form action="actions/location_actions.php" method="POST" class="px-6 pb-6 space-y-4">
+            <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+            <input type="hidden" name="action" value="save_location">
+            <input type="hidden" name="location_id" id="loc-id" value="">
+            <div class="grid grid-cols-2 gap-4">
+                <div><label class="form-label" for="loc-name">Name</label><input id="loc-name" type="text" name="name" required class="form-input"></div>
+                <div><label class="form-label" for="loc-code">Code</label><input id="loc-code" type="text" name="code" required placeholder="e.g. lami" class="form-input"></div>
+            </div>
+            <div><label class="form-label" for="loc-address">Address</label><input id="loc-address" type="text" name="address" class="form-input"></div>
+            <div class="grid grid-cols-2 gap-4">
+                <div><label class="form-label" for="loc-phone">Phone</label><input id="loc-phone" type="text" name="phone" class="form-input"></div>
+                <div><label class="form-label" for="loc-email">Email</label><input id="loc-email" type="email" name="email" class="form-input"></div>
+            </div>
+            <div class="flex items-center gap-5 pt-1">
+                <label class="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" name="is_primary" id="loc-primary" class="rounded"> Primary location</label>
+                <label class="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" name="is_active" id="loc-active" checked class="rounded"> Active</label>
+            </div>
+            <div class="flex items-center justify-end gap-2 pt-2">
+                <button type="button" onclick="closeModal('modal-location')" class="btn-secondary">Cancel</button>
+                <button type="submit" class="btn-primary">Save location</button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+function openLocationModal(data) {
+    data = data || {};
+    document.getElementById('location-modal-title').textContent = data.id ? 'Edit location' : 'Add location';
+    document.getElementById('loc-id').value = data.id || '';
+    document.getElementById('loc-name').value = data.name || '';
+    document.getElementById('loc-code').value = data.code || '';
+    document.getElementById('loc-address').value = data.address || '';
+    document.getElementById('loc-phone').value = data.phone || '';
+    document.getElementById('loc-email').value = data.email || '';
+    document.getElementById('loc-primary').checked = !!(data.is_primary && data.is_primary != '0');
+    document.getElementById('loc-active').checked = data.id ? !!(data.is_active && data.is_active != '0') : true;
+    openModal('modal-location');
+}
+</script>
+
+<!-- ================= TAB: SUBSCRIPTION ================= -->
+<div id="admin-tab-subscription" class="<?= $activeTab === 'subscription' ? '' : 'hidden' ?> space-y-6">
+    <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-6">
+        <div class="pb-4 border-b border-outline-variant/20">
+            <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                <span class="material-symbols-outlined text-base">credit_card</span><span>Subscription &amp; Billing</span>
+            </h2>
+            <p class="text-xs text-outline font-medium mt-0.5">Your Nuvis Medcare X plan and the history of subscription payments on this account.</p>
+        </div>
+
+        <?php
+            $subCurrency = $tenantRow['currency'] ?? ($subSummary['currency'] ?? 'FJD');
+            $cards = [
+                ['Current plan', strtoupper($tenantRow['plan'] ?? 'standard'), 'workspace_premium', 'text-primary'],
+                ['Price', $subCurrency . ' $' . number_format((float)($tenantRow['plan_price'] ?? 0), 2) . ' / ' . ucfirst($tenantRow['billing_cycle'] ?? 'monthly'), 'payments', 'text-emerald-700'],
+                ['Next renewal', !empty($tenantRow['next_renewal_date']) ? date('d M Y', strtotime($tenantRow['next_renewal_date'])) : 'Not set', 'event_repeat', 'text-amber-700'],
+                ['Status', ucfirst($tenantRow['subscription_status'] ?? 'active'), 'verified', 'text-indigo-700'],
+                ['Total paid', $subSummary['currency'] . ' $' . number_format($subSummary['total_paid'], 2), 'account_balance_wallet', 'text-emerald-700'],
+                ['Last payment', $subSummary['last_payment'] ? date('d M Y', strtotime($subSummary['last_payment'])) : '—', 'history', 'text-slate-700'],
+            ];
+        ?>
+        <div class="grid grid-cols-2 lg:grid-cols-3 gap-3">
+            <?php foreach ($cards as [$label, $value, $icon, $color]): ?>
+                <div class="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/30">
+                    <div class="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wider"><span class="material-symbols-outlined text-[16px] <?= $color ?>"><?= $icon ?></span><?= $label ?></div>
+                    <div class="text-lg font-bold text-on-surface mt-1"><?= htmlspecialchars($value) ?></div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
+        <div>
+            <h3 class="text-sm font-bold text-on-surface mb-3 flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px] text-slate-400">receipt_long</span>Payment history</h3>
+            <div class="overflow-x-auto rounded-xl border border-outline-variant/30">
+                <table class="w-full text-xs">
+                    <thead class="bg-surface-container-low text-slate-500 uppercase tracking-wider text-[10px]">
+                        <tr>
+                            <th class="text-left px-3 py-2.5 font-bold">Date</th>
+                            <th class="text-left px-3 py-2.5 font-bold">Period</th>
+                            <th class="text-right px-3 py-2.5 font-bold">Amount</th>
+                            <th class="text-left px-3 py-2.5 font-bold">Status</th>
+                            <th class="text-left px-3 py-2.5 font-bold">Method</th>
+                            <th class="text-left px-3 py-2.5 font-bold">Reference</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-outline-variant/20">
+                        <?php if (empty($subPayments)): ?>
+                            <tr><td colspan="6" class="px-3 py-8 text-center text-slate-400">No payments recorded yet.</td></tr>
+                        <?php endif; ?>
+                        <?php
+                        $subStatusChip = ['paid' => 'bg-emerald-100 text-emerald-800', 'pending' => 'bg-amber-100 text-amber-800', 'failed' => 'bg-rose-100 text-rose-800', 'refunded' => 'bg-slate-200 text-slate-700'];
+                        foreach ($subPayments as $p): ?>
+                            <tr class="hover:bg-surface-container-low/50">
+                                <td class="px-3 py-2.5 whitespace-nowrap font-medium text-slate-800"><?= htmlspecialchars(date('d M Y', strtotime($p['paid_at'] ?: $p['created_at']))) ?></td>
+                                <td class="px-3 py-2.5 whitespace-nowrap text-slate-500"><?= $p['period_start'] ? htmlspecialchars(date('d M', strtotime($p['period_start'])) . ' – ' . ($p['period_end'] ? date('d M Y', strtotime($p['period_end'])) : '')) : '—' ?></td>
+                                <td class="px-3 py-2.5 whitespace-nowrap text-right font-bold text-slate-900"><?= htmlspecialchars($p['currency']) ?> $<?= number_format((float)$p['amount'], 2) ?></td>
+                                <td class="px-3 py-2.5 whitespace-nowrap"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold <?= $subStatusChip[$p['status']] ?? 'bg-slate-100 text-slate-600' ?>"><?= htmlspecialchars(ucfirst($p['status'])) ?></span></td>
+                                <td class="px-3 py-2.5 whitespace-nowrap text-slate-600"><?= htmlspecialchars($p['method'] ?: '—') ?></td>
+                                <td class="px-3 py-2.5 whitespace-nowrap text-slate-500 font-mono text-[11px]"><?= htmlspecialchars($p['reference'] ?: $p['invoice_no'] ?: '—') ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-2">Payments are recorded by the Nuvis team. If something looks off, use the Wish board or contact support.</p>
+        </div>
+    </div>
 </div>
 
 <!-- ================= TAB: AUDIT LOG ================= -->

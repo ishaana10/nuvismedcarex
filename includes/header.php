@@ -285,3 +285,4 @@ window.onunhandledrejection = function (event) {
 </script>
 
 <main id="nx-main" class="flex-1 w-full max-w-[1680px] mx-auto px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
+<?php include __DIR__ . '/dev_alerts.php'; ?>

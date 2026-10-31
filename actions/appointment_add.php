@@ -20,6 +20,22 @@ try {
     $appointmentService = Container::getInstance()->get(AppointmentService::class);
     $result = $appointmentService->scheduleAppointment($_POST);
 
+    // Tag the new appointment with the active clinic location (best-effort; a
+    // missing column or no configured location must never block a booking).
+    try {
+        if (!empty($result['id'])) {
+            $tid = \ClinicFlow\Shared\TenantContext::getTenantId();
+            $locSvc = Container::getInstance()->get(\ClinicFlow\Services\LocationService::class);
+            $locId = $_POST['location_id'] ?? $locSvc->getCurrentLocationId($tid);
+            if (!empty($locId)) {
+                $upd = getDB()->prepare("UPDATE appointments SET location_id = ? WHERE id = ? AND tenant_id = ?");
+                $upd->execute([$locId, $result['id'], $tid]);
+            }
+        }
+    } catch (\Throwable $ignore) {
+        // location tagging is optional
+    }
+
     setToast("Appointment Scheduled", "Appointment for {$result['patient_name']} on {$result['appointment_date']} at {$result['time']} booked.");
     header("Location: ../appointment.php");
     exit;

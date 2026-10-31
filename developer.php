@@ -34,6 +34,19 @@ $cloudCfgProvider = (string) (\ClinicFlow\Services\Cloud\CloudConfig::get()['pro
 $cloudCfgLabel = $cloudCfgProvider === 'local'
     ? 'This server only'
     : (\ClinicFlow\Services\Cloud\Cloud::labels()[$cloudCfgProvider] ?? $cloudCfgProvider);
+
+// --- Subscriptions, wish board and broadcast alerts (developer view) --------
+$subscriptionService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\SubscriptionService::class);
+$alertService        = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\DeveloperAlertService::class);
+$wishService         = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\WishBoardService::class);
+
+$subTenantId = $_GET['subtenant'] ?? $currentTenantId;
+$devSubPayments = $subscriptionService->getPayments($subTenantId);
+$devSubSummary  = $subscriptionService->getSummary($subTenantId);
+$devSubTenant   = $tenantService->getTenantById($subTenantId) ?? [];
+$allDevAlerts   = $alertService->listAllAlerts();
+$wishStatusCounts = $wishService->statusCounts(null);
+$wishTotal = array_sum($wishStatusCounts);
 ?>
 
 <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -113,6 +126,18 @@ $cloudCfgLabel = $cloudCfgProvider === 'local'
         <span class="material-symbols-outlined text-base">verified</span>
         <span>FRCS VSDC & EFD Accreditation</span>
     </button>
+    <button type="button" onclick="switchDevTab('subscriptions')" id="dev-tab-btn-subscriptions" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+        <span class="material-symbols-outlined text-base">credit_card</span>
+        <span>Subscriptions &amp; Payments</span>
+    </button>
+    <button type="button" onclick="switchDevTab('alerts')" id="dev-tab-btn-alerts" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+        <span class="material-symbols-outlined text-base">campaign</span>
+        <span>Broadcast Alerts</span>
+    </button>
+    <a href="wishboard.php" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+        <span class="material-symbols-outlined text-base">lightbulb</span>
+        <span>Wish Board (<?= (int)$wishTotal ?>)</span>
+    </a>
 </div>
 
 <div class="space-y-6">
@@ -436,6 +461,151 @@ $cloudCfgLabel = $cloudCfgProvider === 'local'
             </div>
         </div>
     </div> <!-- End dev-panel-tenants -->
+
+    <!-- Subscriptions & Payments Panel -->
+    <div id="dev-panel-subscriptions" class="hidden space-y-6">
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-outline-variant/20">
+                <div>
+                    <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                        <span class="material-symbols-outlined text-base">credit_card</span><span>Subscription Payments by Tenant</span>
+                    </h2>
+                    <p class="text-xs text-outline font-medium mt-0.5">Record and review SaaS subscription payments for each clinic account.</p>
+                </div>
+                <form method="GET" action="developer.php" class="flex items-end gap-2">
+                    <div>
+                        <label class="form-label">Tenant</label>
+                        <select name="subtenant" class="form-select" onchange="this.form.submit()">
+                            <?php foreach ($tenantsList as $tnt): ?>
+                                <option value="<?= htmlspecialchars($tnt['id']) ?>" <?= $tnt['id'] === $subTenantId ? 'selected' : '' ?>><?= htmlspecialchars($tnt['name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <input type="hidden" name="focus" value="subscriptions">
+                </form>
+            </div>
+
+            <?php
+                $dsCur = $devSubTenant['currency'] ?? ($devSubSummary['currency'] ?? 'FJD');
+                $dsCards = [
+                    ['Plan', strtoupper($devSubTenant['plan'] ?? 'standard'), 'workspace_premium'],
+                    ['Price', $dsCur . ' $' . number_format((float)($devSubTenant['plan_price'] ?? 0), 2) . '/' . ($devSubTenant['billing_cycle'] ?? 'monthly'), 'payments'],
+                    ['Next renewal', !empty($devSubTenant['next_renewal_date']) ? date('d M Y', strtotime($devSubTenant['next_renewal_date'])) : '—', 'event_repeat'],
+                    ['Total collected', $devSubSummary['currency'] . ' $' . number_format($devSubSummary['total_paid'], 2), 'account_balance_wallet'],
+                ];
+            ?>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <?php foreach ($dsCards as [$l, $v, $ic]): ?>
+                    <div class="p-3 rounded-xl bg-surface-container-low border border-outline-variant/30">
+                        <div class="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider"><span class="material-symbols-outlined text-[15px] text-primary"><?= $ic ?></span><?= $l ?></div>
+                        <div class="text-base font-bold text-on-surface mt-1"><?= htmlspecialchars($v) ?></div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+
+            <!-- Record a payment -->
+            <form action="actions/subscription_actions.php" method="POST" class="rounded-xl border border-outline-variant/30 bg-surface-container-low p-4 grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-end">
+                <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+                <input type="hidden" name="action" value="record_payment">
+                <input type="hidden" name="tenant_id" value="<?= htmlspecialchars($subTenantId) ?>">
+                <div><label class="form-label">Amount</label><input type="number" step="0.01" name="amount" required class="form-input" value="<?= htmlspecialchars(number_format((float)($devSubTenant['plan_price'] ?? 0), 2, '.', '')) ?>"></div>
+                <div><label class="form-label">Currency</label><input type="text" name="currency" value="<?= htmlspecialchars($dsCur) ?>" class="form-input"></div>
+                <div><label class="form-label">Status</label><select name="status" class="form-select"><?php foreach (\ClinicFlow\Services\SubscriptionService::STATUSES as $s): ?><option value="<?= $s ?>"><?= ucfirst($s) ?></option><?php endforeach; ?></select></div>
+                <div><label class="form-label">Method</label><input type="text" name="method" placeholder="Bank / card / M-PAiSA" class="form-input"></div>
+                <div><label class="form-label">Period start</label><input type="date" name="period_start" class="form-input"></div>
+                <div><label class="form-label">Period end</label><input type="date" name="period_end" class="form-input"></div>
+                <div><label class="form-label">Reference / invoice</label><input type="text" name="reference" class="form-input"></div>
+                <div class="flex justify-end"><button type="submit" class="btn-primary w-full justify-center"><span class="material-symbols-outlined text-[18px]">add</span>Record payment</button></div>
+                <div class="sm:col-span-3 lg:col-span-4"><label class="form-label">Notes</label><input type="text" name="notes" class="form-input"></div>
+            </form>
+
+            <!-- Ledger -->
+            <div class="overflow-x-auto rounded-xl border border-outline-variant/30">
+                <table class="w-full text-xs">
+                    <thead class="bg-surface-container-low text-slate-500 uppercase tracking-wider text-[10px]">
+                        <tr><th class="text-left px-3 py-2.5">Date</th><th class="text-left px-3 py-2.5">Period</th><th class="text-right px-3 py-2.5">Amount</th><th class="text-left px-3 py-2.5">Status</th><th class="text-left px-3 py-2.5">Method</th><th class="text-left px-3 py-2.5">Reference</th><th class="text-left px-3 py-2.5">By</th></tr>
+                    </thead>
+                    <tbody class="divide-y divide-outline-variant/20">
+                        <?php if (empty($devSubPayments)): ?><tr><td colspan="7" class="px-3 py-8 text-center text-slate-400">No payments recorded for this tenant.</td></tr><?php endif; ?>
+                        <?php $chip = ['paid'=>'bg-emerald-100 text-emerald-800','pending'=>'bg-amber-100 text-amber-800','failed'=>'bg-rose-100 text-rose-800','refunded'=>'bg-slate-200 text-slate-700'];
+                        foreach ($devSubPayments as $p): ?>
+                            <tr class="hover:bg-surface-container-low/50">
+                                <td class="px-3 py-2.5 whitespace-nowrap font-medium"><?= htmlspecialchars(date('d M Y', strtotime($p['paid_at'] ?: $p['created_at']))) ?></td>
+                                <td class="px-3 py-2.5 whitespace-nowrap text-slate-500"><?= $p['period_start'] ? htmlspecialchars(date('d M', strtotime($p['period_start'])).' – '.($p['period_end']?date('d M Y', strtotime($p['period_end'])):'')) : '—' ?></td>
+                                <td class="px-3 py-2.5 whitespace-nowrap text-right font-bold"><?= htmlspecialchars($p['currency']) ?> $<?= number_format((float)$p['amount'],2) ?></td>
+                                <td class="px-3 py-2.5 whitespace-nowrap"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold <?= $chip[$p['status']] ?? 'bg-slate-100 text-slate-600' ?>"><?= ucfirst($p['status']) ?></span></td>
+                                <td class="px-3 py-2.5 whitespace-nowrap text-slate-600"><?= htmlspecialchars($p['method'] ?: '—') ?></td>
+                                <td class="px-3 py-2.5 whitespace-nowrap font-mono text-[11px] text-slate-500"><?= htmlspecialchars($p['reference'] ?: $p['invoice_no'] ?: '—') ?></td>
+                                <td class="px-3 py-2.5 whitespace-nowrap text-slate-500"><?= htmlspecialchars($p['recorded_by_name'] ?: '—') ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div> <!-- End dev-panel-subscriptions -->
+
+    <!-- Broadcast Alerts Panel -->
+    <div id="dev-panel-alerts" class="hidden space-y-6">
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-6">
+            <div class="pb-4 border-b border-outline-variant/20">
+                <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base">campaign</span><span>Broadcast Alerts &amp; Messages</span>
+                </h2>
+                <p class="text-xs text-outline font-medium mt-0.5">Send a message across the board. Clinics see active alerts as a banner until they dismiss them.</p>
+            </div>
+
+            <form action="actions/developer_alert_actions.php" method="POST" class="rounded-xl border border-outline-variant/30 bg-surface-container-low p-4 space-y-3">
+                <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+                <input type="hidden" name="action" value="create_alert">
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    <div class="sm:col-span-2"><label class="form-label">Title</label><input type="text" name="title" required class="form-input" placeholder="e.g. Scheduled maintenance Sunday 2am"></div>
+                    <div><label class="form-label">Severity</label><select name="severity" class="form-select"><?php foreach (\ClinicFlow\Services\DeveloperAlertService::SEVERITIES as $sv): ?><option value="<?= $sv ?>"><?= ucfirst($sv) ?></option><?php endforeach; ?></select></div>
+                    <div><label class="form-label">Audience</label>
+                        <select name="audience" class="form-select" onchange="nxAlertAudience(this.value)">
+                            <option value="all">All clinics</option>
+                            <option value="tenant">A specific clinic</option>
+                            <option value="role">A specific role</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    <div class="sm:col-span-4"><label class="form-label">Message</label><textarea name="body" rows="2" class="form-textarea" placeholder="What do the clinics need to know?"></textarea></div>
+                    <div id="alert-target-tenant" class="hidden"><label class="form-label">Clinic</label><select name="target_tenant_id" class="form-select"><?php foreach ($tenantsList as $tnt): ?><option value="<?= htmlspecialchars($tnt['id']) ?>"><?= htmlspecialchars($tnt['name']) ?></option><?php endforeach; ?></select></div>
+                    <div id="alert-target-role" class="hidden"><label class="form-label">Role</label><select name="target_role" class="form-select"><option>Administrator</option><option>Doctor</option><option>Nurse</option><option>Receptionist</option></select></div>
+                    <div><label class="form-label">Link (optional)</label><input type="url" name="link_url" class="form-input" placeholder="https://"></div>
+                    <div><label class="form-label">Expires (optional)</label><input type="datetime-local" name="expires_at" class="form-input"></div>
+                    <div class="flex items-end justify-end"><button type="submit" class="btn-primary w-full justify-center"><span class="material-symbols-outlined text-[18px]">send</span>Publish</button></div>
+                </div>
+            </form>
+
+            <div class="space-y-2">
+                <h3 class="text-sm font-bold text-on-surface flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px] text-slate-400">history</span>Sent alerts</h3>
+                <?php if (empty($allDevAlerts)): ?><p class="text-xs text-slate-400 py-6 text-center">No alerts sent yet.</p><?php endif; ?>
+                <?php $sevChip = ['info'=>'bg-blue-100 text-blue-700','success'=>'bg-emerald-100 text-emerald-700','warning'=>'bg-amber-100 text-amber-800','critical'=>'bg-rose-100 text-rose-700'];
+                foreach ($allDevAlerts as $a): ?>
+                    <div class="flex items-start justify-between gap-3 p-3 rounded-xl border border-outline-variant/30 bg-surface-container-low <?= $a['is_active'] ? '' : 'opacity-60' ?>">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold <?= $sevChip[$a['severity']] ?? 'bg-slate-100 text-slate-600' ?>"><?= ucfirst($a['severity']) ?></span>
+                                <span class="font-bold text-sm text-on-surface"><?= htmlspecialchars($a['title']) ?></span>
+                                <span class="text-[11px] text-slate-400">· <?= $a['audience']==='all' ? 'All clinics' : ($a['audience']==='tenant' ? htmlspecialchars($a['target_tenant_name'] ?? 'Clinic') : 'Role: '.htmlspecialchars($a['target_role'] ?? '')) ?></span>
+                            </div>
+                            <?php if (!empty($a['body'])): ?><p class="text-[13px] text-slate-600 mt-0.5"><?= htmlspecialchars($a['body']) ?></p><?php endif; ?>
+                            <div class="text-[11px] text-slate-400 mt-1"><?= htmlspecialchars(date('d M Y H:i', strtotime($a['created_at']))) ?> · dismissed by <?= (int)$a['read_count'] ?> user(s)</div>
+                        </div>
+                        <form action="actions/developer_alert_actions.php" method="POST" class="shrink-0">
+                            <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+                            <input type="hidden" name="action" value="toggle_alert">
+                            <input type="hidden" name="alert_id" value="<?= htmlspecialchars($a['id']) ?>">
+                            <input type="hidden" name="active" value="<?= $a['is_active'] ? '0' : '1' ?>">
+                            <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-bold <?= $a['is_active'] ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700' ?>"><?= $a['is_active'] ? 'Retire' : 'Re-activate' ?></button>
+                        </form>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </div> <!-- End dev-panel-alerts -->
 
     <!-- Lab Catalog Customization Panel -->
     <div id="dev-panel-lab" class="hidden space-y-6">
@@ -1692,7 +1862,7 @@ function closeTenantModal() {
 }
 
 function switchDevTab(tab) {
-    const panels = ['git', 'tenants', 'vms', 'cloud', 'database', 'lab', 'pagination', 'rbac', 'redis', 'logs', 'integrations', 'vsdc'];
+    const panels = ['git', 'tenants', 'vms', 'cloud', 'database', 'lab', 'pagination', 'rbac', 'redis', 'logs', 'integrations', 'vsdc', 'subscriptions', 'alerts'];
     panels.forEach(p => {
         const el = document.getElementById('dev-panel-' + p);
         if (el) el.classList.add('hidden');
@@ -2263,6 +2433,24 @@ function testSdcPing(actionType = 'test_sdc_ping') {
         }
     });
 }
+
+// Broadcast-alert composer: reveal the right target field for the audience.
+function nxAlertAudience(val) {
+    var t = document.getElementById('alert-target-tenant');
+    var r = document.getElementById('alert-target-role');
+    if (t) t.classList.toggle('hidden', val !== 'tenant');
+    if (r) r.classList.toggle('hidden', val !== 'role');
+}
+
+// Reopen the Subscriptions tab after switching tenants in its selector.
+document.addEventListener('DOMContentLoaded', function () {
+    try {
+        var p = new URLSearchParams(window.location.search);
+        if (p.get('focus') === 'subscriptions' || p.has('subtenant')) {
+            if (typeof switchDevTab === 'function') switchDevTab('subscriptions');
+        }
+    } catch (e) {}
+});
 </script>
 
 <?php include __DIR__ . '/includes/footer.php'; ?>
