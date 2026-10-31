@@ -54,6 +54,22 @@ $erpInvoiceTenant = $_GET['erptenant'] ?? $currentTenantId;
 $erpInvoices = $erpService->listInvoices($erpInvoiceTenant);
 $erpLogs = $erpService->recentLogs(20);
 $erpWebhookUrl = $erpService->webhookUrl();
+
+// Monitoring dashboard data
+$monService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\MonitoringService::class);
+$monSettings = $monService->settings();
+$monApp = $monService->appMetrics();
+$monErrors = $monService->errorStats();
+$monDb = $monService->dbHealth();
+$monCache = $monService->cacheHealth();
+$monTenants = $monService->tenantHealth();
+$monIncidents = $monService->runHealthChecks();
+$monCronUrl = $monService->cronUrl($monSettings['monitor_cron_token']);
+$fmtBytes = function ($b) {
+    $b = (float) $b; if ($b <= 0) return '0 B';
+    $u = ['B','KB','MB','GB','TB']; $i = (int) floor(log($b, 1024));
+    return round($b / (1024 ** $i), 1) . ' ' . $u[min($i, 4)];
+};
 ?>
 
 <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -144,6 +160,10 @@ $erpWebhookUrl = $erpService->webhookUrl();
     <button type="button" onclick="switchDevTab('erp')" id="dev-tab-btn-erp" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">sync_alt</span>
         <span>NuvisERPX Billing</span>
+    </button>
+    <button type="button" onclick="switchDevTab('monitoring')" id="dev-tab-btn-monitoring" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+        <span class="material-symbols-outlined text-base">monitor_heart</span>
+        <span>Monitoring<?php if (!empty($monIncidents)): ?> <span class="px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-bold"><?= count($monIncidents) ?></span><?php endif; ?></span>
     </button>
     <a href="wishboard.php" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">lightbulb</span>
@@ -747,6 +767,206 @@ $erpWebhookUrl = $erpService->webhookUrl();
             <?php endif; ?>
         </div>
     </div> <!-- End dev-panel-erp -->
+
+    <!-- Monitoring Dashboard Panel -->
+    <div id="dev-panel-monitoring" class="hidden space-y-6">
+        <?php
+            $monCritical = array_filter($monIncidents, fn($i) => $i['severity'] === 'critical');
+            $monOverall = count($monCritical) ? 'critical' : (count($monIncidents) ? 'warning' : 'healthy');
+            $monBanner = [
+                'healthy'  => ['bg-emerald-50 border-emerald-200 text-emerald-900', 'check_circle', 'text-emerald-600', 'All systems healthy'],
+                'warning'  => ['bg-amber-50 border-amber-200 text-amber-900', 'warning', 'text-amber-600', count($monIncidents) . ' issue(s) need attention'],
+                'critical' => ['bg-rose-50 border-rose-200 text-rose-900', 'e911_emergency', 'text-rose-600', count($monCritical) . ' critical issue(s) detected'],
+            ][$monOverall];
+        ?>
+
+        <!-- Health banner -->
+        <div class="rounded-2xl border p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 <?= $monBanner[0] ?>">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-3xl <?= $monBanner[2] ?>"><?= $monBanner[1] ?></span>
+                <div>
+                    <div class="text-lg font-bold"><?= htmlspecialchars($monBanner[3]) ?></div>
+                    <div class="text-xs opacity-75">Last check: <?= $monSettings['monitor_last_check'] ? htmlspecialchars($monSettings['monitor_last_check']) : 'never' ?> · Email alerts <?= $monSettings['monitoring_enabled'] === '1' ? 'on' : 'off' ?></div>
+                </div>
+            </div>
+            <form action="actions/monitoring_actions.php" method="POST">
+                <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+                <input type="hidden" name="action" value="run_now">
+                <button type="submit" class="px-4 py-2 bg-white/70 hover:bg-white text-slate-800 text-xs font-bold rounded-xl transition flex items-center gap-1.5 border border-white/50"><span class="material-symbols-outlined text-base">play_circle</span>Run check &amp; notify now</button>
+            </form>
+        </div>
+
+        <!-- Active incidents -->
+        <?php if (!empty($monIncidents)): ?>
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-5 shadow-xs">
+            <h3 class="text-xs font-bold text-primary uppercase tracking-wider mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-base">report</span>Active issues</h3>
+            <div class="space-y-2">
+                <?php foreach ($monIncidents as $i): $crit = $i['severity'] === 'critical'; ?>
+                    <div class="flex items-start gap-3 p-3 rounded-xl border <?= $crit ? 'bg-rose-50 border-rose-200' : 'bg-amber-50 border-amber-200' ?>">
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase <?= $crit ? 'bg-rose-600 text-white' : 'bg-amber-500 text-white' ?>"><?= htmlspecialchars($i['severity']) ?></span>
+                        <div class="min-w-0">
+                            <div class="text-sm font-bold text-slate-900"><?= htmlspecialchars($i['title']) ?></div>
+                            <div class="text-xs text-slate-600"><?= htmlspecialchars($i['detail']) ?></div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- App + DB + Cache metrics -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <!-- Application -->
+            <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-5 shadow-xs space-y-3">
+                <h3 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2"><span class="material-symbols-outlined text-base">memory</span>Application</h3>
+                <dl class="text-xs space-y-1.5">
+                    <div class="flex justify-between"><dt class="text-slate-500">PHP</dt><dd class="font-bold text-slate-800"><?= htmlspecialchars($monApp['php_version']) ?></dd></div>
+                    <div class="flex justify-between"><dt class="text-slate-500">Server</dt><dd class="font-mono text-slate-700 truncate max-w-[160px]" title="<?= htmlspecialchars((string)$monApp['server_software']) ?>"><?= htmlspecialchars((string)$monApp['server_software']) ?></dd></div>
+                    <div class="flex justify-between"><dt class="text-slate-500">Memory</dt><dd class="font-bold text-slate-800"><?= $fmtBytes($monApp['memory_used']) ?> / peak <?= $fmtBytes($monApp['memory_peak']) ?></dd></div>
+                    <?php if ($monApp['load']): ?><div class="flex justify-between"><dt class="text-slate-500">Load (1/5/15m)</dt><dd class="font-mono text-slate-700"><?= implode(' ', array_map(fn($l) => number_format($l, 2), $monApp['load'])) ?></dd></div><?php endif; ?>
+                    <?php if ($monApp['disk_pct'] !== null): ?>
+                    <div>
+                        <div class="flex justify-between"><dt class="text-slate-500">Disk used</dt><dd class="font-bold <?= $monApp['disk_pct'] >= 90 ? 'text-rose-600' : 'text-slate-800' ?>"><?= $monApp['disk_pct'] ?>%</dd></div>
+                        <div class="h-1.5 rounded-full bg-slate-100 mt-1 overflow-hidden"><div class="h-full <?= $monApp['disk_pct'] >= 90 ? 'bg-rose-500' : 'bg-primary' ?>" style="width: <?= min(100, $monApp['disk_pct']) ?>%"></div></div>
+                        <div class="text-[10px] text-slate-400 mt-0.5"><?= $fmtBytes($monApp['disk_free']) ?> free of <?= $fmtBytes($monApp['disk_total']) ?></div>
+                    </div>
+                    <?php endif; ?>
+                    <?php if ($monApp['opcache_hit'] !== null): ?><div class="flex justify-between"><dt class="text-slate-500">OPcache hit rate</dt><dd class="font-bold text-slate-800"><?= $monApp['opcache_hit'] ?>%</dd></div><?php endif; ?>
+                </dl>
+            </div>
+
+            <!-- Database -->
+            <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-5 shadow-xs space-y-3">
+                <h3 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2"><span class="material-symbols-outlined text-base">database</span>Database
+                    <span class="ml-auto w-2 h-2 rounded-full <?= $monDb['connected'] ? 'bg-emerald-500' : 'bg-rose-500' ?>"></span>
+                </h3>
+                <dl class="text-xs space-y-1.5">
+                    <div class="flex justify-between"><dt class="text-slate-500">Status</dt><dd class="font-bold <?= $monDb['connected'] ? 'text-emerald-700' : 'text-rose-700' ?>"><?= $monDb['connected'] ? 'Connected' : 'Unreachable' ?></dd></div>
+                    <?php if ($monDb['version']): ?><div class="flex justify-between"><dt class="text-slate-500">Version</dt><dd class="font-mono text-slate-700 truncate max-w-[150px]"><?= htmlspecialchars($monDb['version']) ?></dd></div><?php endif; ?>
+                    <?php if ($monDb['size_mb'] !== null): ?><div class="flex justify-between"><dt class="text-slate-500">Size</dt><dd class="font-bold text-slate-800"><?= number_format($monDb['size_mb'], 1) ?> MB</dd></div><?php endif; ?>
+                    <?php if ($monDb['table_count'] !== null): ?><div class="flex justify-between"><dt class="text-slate-500">Tables</dt><dd class="font-bold text-slate-800"><?= (int)$monDb['table_count'] ?></dd></div><?php endif; ?>
+                    <?php if ($monDb['threads_connected'] !== null): ?><div class="flex justify-between"><dt class="text-slate-500">Connections</dt><dd class="font-bold text-slate-800"><?= (int)$monDb['threads_connected'] ?> / <?= (int)$monDb['threads_max'] ?></dd></div><?php endif; ?>
+                    <?php if ($monDb['uptime_days'] !== null): ?><div class="flex justify-between"><dt class="text-slate-500">Uptime</dt><dd class="font-bold text-slate-800"><?= $monDb['uptime_days'] ?> days</dd></div><?php endif; ?>
+                    <?php if ($monDb['slow_queries'] !== null): ?><div class="flex justify-between"><dt class="text-slate-500">Slow queries</dt><dd class="font-bold <?= $monDb['slow_queries'] > 100 ? 'text-amber-600' : 'text-slate-800' ?>"><?= (int)$monDb['slow_queries'] ?></dd></div><?php endif; ?>
+                </dl>
+                <?php if (!empty($monDb['top_tables'])): ?>
+                <details class="text-xs"><summary class="text-slate-500 cursor-pointer font-semibold">Largest tables</summary>
+                    <div class="mt-1.5 space-y-0.5">
+                        <?php foreach ($monDb['top_tables'] as $tt): ?>
+                            <div class="flex justify-between font-mono text-[11px]"><span class="text-slate-600 truncate max-w-[150px]"><?= htmlspecialchars($tt['name']) ?></span><span class="text-slate-400"><?= number_format((int)$tt['rows']) ?> rows · <?= $tt['size_mb'] ?> MB</span></div>
+                        <?php endforeach; ?>
+                    </div>
+                </details>
+                <?php endif; ?>
+            </div>
+
+            <!-- Errors / issues + cache -->
+            <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-5 shadow-xs space-y-3">
+                <h3 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2"><span class="material-symbols-outlined text-base">bug_report</span>Errors &amp; cache</h3>
+                <div class="grid grid-cols-3 gap-2 text-center">
+                    <div class="p-2 rounded-xl bg-surface-container-low"><div class="text-lg font-bold <?= $monErrors['count_1h'] > 0 ? 'text-rose-600' : 'text-slate-800' ?>"><?= $monErrors['count_1h'] ?></div><div class="text-[10px] text-slate-400 uppercase font-bold">1 hour</div></div>
+                    <div class="p-2 rounded-xl bg-surface-container-low"><div class="text-lg font-bold text-slate-800"><?= $monErrors['count_24h'] ?></div><div class="text-[10px] text-slate-400 uppercase font-bold">24 hours</div></div>
+                    <div class="p-2 rounded-xl bg-surface-container-low"><div class="text-lg font-bold text-slate-800"><?= $monErrors['count_7d'] ?></div><div class="text-[10px] text-slate-400 uppercase font-bold">7 days</div></div>
+                </div>
+                <div class="flex justify-between text-xs pt-1">
+                    <span class="text-slate-500">Redis cache</span>
+                    <span class="font-bold <?= !$monCache['enabled'] ? 'text-slate-400' : ($monCache['connected'] ? 'text-emerald-700' : 'text-rose-700') ?>"><?= !$monCache['enabled'] ? 'Disabled' : ($monCache['connected'] ? 'Connected' : 'Down') ?></span>
+                </div>
+                <?php if (!empty($monErrors['top'])): ?>
+                <details class="text-xs"><summary class="text-slate-500 cursor-pointer font-semibold">Top errors (7d)</summary>
+                    <div class="mt-1.5 space-y-1">
+                        <?php foreach ($monErrors['top'] as $te): ?>
+                            <div class="flex justify-between gap-2"><span class="text-slate-600 truncate" title="<?= htmlspecialchars($te['msg']) ?>"><?= htmlspecialchars($te['msg']) ?></span><span class="text-rose-600 font-bold shrink-0">×<?= (int)$te['n'] ?></span></div>
+                        <?php endforeach; ?>
+                    </div>
+                </details>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- Recent errors -->
+        <?php if (!empty($monErrors['recent'])): ?>
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-5 shadow-xs">
+            <h3 class="text-xs font-bold text-primary uppercase tracking-wider mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-base">list_alt</span>Recent errors</h3>
+            <div class="overflow-x-auto rounded-xl border border-outline-variant/30">
+                <table class="w-full text-xs">
+                    <thead class="bg-surface-container-low text-slate-500 uppercase text-[10px] tracking-wider"><tr><th class="text-left px-3 py-2">Time</th><th class="text-left px-3 py-2">Type</th><th class="text-left px-3 py-2">Level</th><th class="text-left px-3 py-2">Message</th></tr></thead>
+                    <tbody class="divide-y divide-outline-variant/20">
+                        <?php foreach ($monErrors['recent'] as $er): ?>
+                            <tr>
+                                <td class="px-3 py-2 whitespace-nowrap text-slate-500 font-mono text-[11px]"><?= htmlspecialchars(date('d M H:i', strtotime($er['created_at']))) ?></td>
+                                <td class="px-3 py-2 whitespace-nowrap"><span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-bold"><?= htmlspecialchars($er['type']) ?></span></td>
+                                <td class="px-3 py-2 whitespace-nowrap"><span class="px-1.5 py-0.5 rounded text-[10px] font-bold <?= strtoupper($er['level']) === 'ERROR' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700' ?>"><?= htmlspecialchars($er['level']) ?></span></td>
+                                <td class="px-3 py-2 text-slate-700 max-w-[480px] truncate" title="<?= htmlspecialchars($er['message']) ?>"><?= htmlspecialchars($er['message']) ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- Tenant performance -->
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-5 shadow-xs">
+            <h3 class="text-xs font-bold text-primary uppercase tracking-wider mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-base">apartment</span>Tenant performance &amp; health</h3>
+            <div class="overflow-x-auto rounded-xl border border-outline-variant/30">
+                <table class="w-full text-xs">
+                    <thead class="bg-surface-container-low text-slate-500 uppercase text-[10px] tracking-wider">
+                        <tr><th class="text-left px-3 py-2">Clinic</th><th class="text-left px-3 py-2">Health</th><th class="text-right px-3 py-2">Patients</th><th class="text-right px-3 py-2">Appts today</th><th class="text-right px-3 py-2">Errors 24h</th><th class="text-left px-3 py-2">Storage</th><th class="text-right px-3 py-2">Open inv.</th><th class="text-left px-3 py-2">Subscription</th><th class="text-left px-3 py-2">Last activity</th></tr>
+                    </thead>
+                    <tbody class="divide-y divide-outline-variant/20">
+                        <?php if (empty($monTenants)): ?><tr><td colspan="9" class="px-3 py-6 text-center text-slate-400">No tenants.</td></tr><?php endif; ?>
+                        <?php
+                        $hDot = ['healthy'=>'bg-emerald-500','warning'=>'bg-amber-500','critical'=>'bg-rose-500'];
+                        $subChip = ['active'=>'text-emerald-700','past_due'=>'text-amber-700','suspended'=>'text-rose-700'];
+                        foreach ($monTenants as $t): ?>
+                            <tr class="hover:bg-surface-container-low/50">
+                                <td class="px-3 py-2 whitespace-nowrap font-bold text-slate-800"><?= htmlspecialchars($t['name']) ?></td>
+                                <td class="px-3 py-2 whitespace-nowrap"><span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full <?= $hDot[$t['health']] ?>"></span><span class="capitalize text-slate-600"><?= $t['health'] ?></span></span></td>
+                                <td class="px-3 py-2 whitespace-nowrap text-right text-slate-700"><?= number_format($t['patients']) ?></td>
+                                <td class="px-3 py-2 whitespace-nowrap text-right text-slate-700"><?= (int)$t['appts_today'] ?></td>
+                                <td class="px-3 py-2 whitespace-nowrap text-right font-bold <?= $t['errors_24h'] > 0 ? 'text-rose-600' : 'text-slate-400' ?>"><?= (int)$t['errors_24h'] ?></td>
+                                <td class="px-3 py-2 whitespace-nowrap text-slate-600"><?= $t['storage_used_mb'] ?>/<?= $t['storage_limit_mb'] ?>MB <span class="<?= $t['storage_pct'] >= 85 ? 'text-amber-600 font-bold' : 'text-slate-400' ?>">(<?= $t['storage_pct'] ?>%)</span></td>
+                                <td class="px-3 py-2 whitespace-nowrap text-right <?= $t['outstanding_invoices'] > 0 ? 'text-amber-700 font-bold' : 'text-slate-400' ?>"><?= (int)$t['outstanding_invoices'] ?></td>
+                                <td class="px-3 py-2 whitespace-nowrap capitalize font-semibold <?= $subChip[$t['subscription_status']] ?? 'text-slate-600' ?>"><?= htmlspecialchars(str_replace('_',' ',$t['subscription_status'])) ?></td>
+                                <td class="px-3 py-2 whitespace-nowrap text-slate-500"><?= $t['last_activity'] ? htmlspecialchars(date('d M H:i', strtotime($t['last_activity']))) : '—' ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Notification settings -->
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-5 shadow-xs">
+            <h3 class="text-xs font-bold text-primary uppercase tracking-wider mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-base">notifications_active</span>Automatic email alerts</h3>
+            <form action="actions/monitoring_actions.php" method="POST" class="space-y-4">
+                <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+                <input type="hidden" name="action" value="save_settings">
+                <label class="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" name="monitoring_enabled" <?= $monSettings['monitoring_enabled'] === '1' ? 'checked' : '' ?> class="rounded"> Email developers automatically when issues are detected</label>
+                <div>
+                    <label class="form-label">Recipient emails (comma-separated)</label>
+                    <input type="text" name="monitor_recipients" value="<?= htmlspecialchars($monSettings['monitor_recipients']) ?>" class="form-input" placeholder="dev@nuvistechnologies.com.fj, ops@...">
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                    <div><label class="form-label">Errors / 24h</label><input type="number" name="th_errors_24h" value="<?= htmlspecialchars($monSettings['th_errors_24h']) ?>" class="form-input"></div>
+                    <div><label class="form-label">Errors / 1h</label><input type="number" name="th_errors_1h" value="<?= htmlspecialchars($monSettings['th_errors_1h']) ?>" class="form-input"></div>
+                    <div><label class="form-label">Storage %</label><input type="number" name="th_storage_pct" value="<?= htmlspecialchars($monSettings['th_storage_pct']) ?>" class="form-input"></div>
+                    <div><label class="form-label">DB conns</label><input type="number" name="th_db_conn" value="<?= htmlspecialchars($monSettings['th_db_conn']) ?>" class="form-input"></div>
+                    <div><label class="form-label">Cooldown (min)</label><input type="number" name="monitor_cooldown_min" value="<?= htmlspecialchars($monSettings['monitor_cooldown_min']) ?>" class="form-input"></div>
+                </div>
+                <div class="flex justify-end"><button type="submit" class="btn-primary"><span class="material-symbols-outlined text-[18px]">save</span>Save alert settings</button></div>
+            </form>
+            <div class="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-900 flex items-start gap-2">
+                <span class="material-symbols-outlined text-[18px] text-blue-600">schedule</span>
+                <div>
+                    <div class="font-bold">Automate the check with cron</div>
+                    <p class="opacity-80 mb-1">Add this to the server crontab to run checks every 5 minutes (alerts respect the cooldown above):</p>
+                    <code class="font-mono text-[11px] break-all block bg-white/60 rounded p-2">*/5 * * * * curl -s "<?= htmlspecialchars($monCronUrl) ?>" >/dev/null 2>&1</code>
+                </div>
+            </div>
+        </div>
+    </div> <!-- End dev-panel-monitoring -->
 
     <!-- Lab Catalog Customization Panel -->
     <div id="dev-panel-lab" class="hidden space-y-6">
@@ -2003,7 +2223,7 @@ function closeTenantModal() {
 }
 
 function switchDevTab(tab) {
-    const panels = ['git', 'tenants', 'vms', 'cloud', 'database', 'lab', 'pagination', 'rbac', 'redis', 'logs', 'integrations', 'vsdc', 'subscriptions', 'alerts', 'erp'];
+    const panels = ['git', 'tenants', 'vms', 'cloud', 'database', 'lab', 'pagination', 'rbac', 'redis', 'logs', 'integrations', 'vsdc', 'subscriptions', 'alerts', 'erp', 'monitoring'];
     panels.forEach(p => {
         const el = document.getElementById('dev-panel-' + p);
         if (el) el.classList.add('hidden');
