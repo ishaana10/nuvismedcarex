@@ -622,3 +622,43 @@ CREATE TABLE IF NOT EXISTS developer_alert_reads (
     read_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uk_alert_user UNIQUE (alert_id, user_id)
 );
+
+-- NuvisERPX subscription invoices + sync log (added 2026-11-01)
+CREATE TABLE IF NOT EXISTS tenant_invoices (
+    id VARCHAR(50) PRIMARY KEY,
+    tenant_id VARCHAR(50) NOT NULL,
+    erp_invoice_id VARCHAR(100),
+    invoice_number VARCHAR(100),
+    amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    paid_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    currency VARCHAR(10) NOT NULL DEFAULT 'FJD',
+    status VARCHAR(30) NOT NULL DEFAULT 'issued',
+    description VARCHAR(255),
+    period_start DATE NULL,
+    period_end DATE NULL,
+    issue_date DATE NULL,
+    due_date DATE NULL,
+    pdf_url VARCHAR(500) NULL,
+    erp_reference VARCHAR(191) NULL,
+    reconciled_at DATETIME NULL,
+    synced_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+    CONSTRAINT uk_tinv_erp UNIQUE (erp_invoice_id)
+);
+CREATE INDEX idx_tinv_tenant ON tenant_invoices(tenant_id);
+CREATE INDEX idx_tinv_status ON tenant_invoices(status);
+
+CREATE TABLE IF NOT EXISTS erp_sync_logs (
+    id VARCHAR(50) PRIMARY KEY,
+    direction VARCHAR(10) NOT NULL DEFAULT 'in',
+    event VARCHAR(100),
+    tenant_id VARCHAR(50) NULL,
+    erp_invoice_id VARCHAR(100) NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'ok',
+    message VARCHAR(500),
+    payload MEDIUMTEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_erplog_created ON erp_sync_logs(created_at);

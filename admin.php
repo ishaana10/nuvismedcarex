@@ -36,6 +36,9 @@ $currentLocationId = $locationService->getCurrentLocationId($currentTenantId);
 $subPayments = $subscriptionService->getPayments($currentTenantId);
 $subSummary = $subscriptionService->getSummary($currentTenantId);
 $tenantRow = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\TenantService::class)->getTenantById($currentTenantId) ?? [];
+$erpService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\NuvisErpService::class);
+$tenantInvoices = $erpService->listInvoices($currentTenantId);
+$tenantInvoiceSummary = $erpService->invoiceSummary($currentTenantId);
 
 $pagination = getPaginationParams(10, [5, 10, 25, 50, 100], $pdo);
 
@@ -128,7 +131,9 @@ $usersList = $usersStmt->fetchAll();
             <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="font-bold text-outline mr-1">Filter Role:</span>
                 <button type="button" onclick="filterUserRole('all')" class="user-role-filter-btn px-3 py-1.5 rounded-lg bg-primary text-white font-bold transition" data-role="all">All</button>
+                <?php if ($isDeveloper): ?>
                 <button type="button" onclick="filterUserRole('Developer')" class="user-role-filter-btn px-3 py-1.5 rounded-lg bg-surface-container-high text-on-surface font-semibold hover:bg-surface-variant transition" data-role="Developer">Developer</button>
+                <?php endif; ?>
                 <button type="button" onclick="filterUserRole('Administrator')" class="user-role-filter-btn px-3 py-1.5 rounded-lg bg-surface-container-high text-on-surface font-semibold hover:bg-surface-variant transition" data-role="Administrator">Administrator</button>
                 <button type="button" onclick="filterUserRole('Doctor')" class="user-role-filter-btn px-3 py-1.5 rounded-lg bg-surface-container-high text-on-surface font-semibold hover:bg-surface-variant transition" data-role="Doctor">Doctor</button>
                 <button type="button" onclick="filterUserRole('Nurse')" class="user-role-filter-btn px-3 py-1.5 rounded-lg bg-surface-container-high text-on-surface font-semibold hover:bg-surface-variant transition" data-role="Nurse">Nurse</button>
@@ -156,8 +161,10 @@ $usersList = $usersStmt->fetchAll();
                     </thead>
                     <tbody class="divide-y divide-outline-variant/20 font-medium">
                         <?php foreach ($usersList as $usr):
-                            $isActive = (isset($usr['is_active']) && (int)$usr['is_active'] === 0) ? false : true;
                             $userRole = $usr['role'] ?? 'Doctor';
+                            // Developer accounts are only visible to developers.
+                            if (!$isDeveloper && \ClinicFlow\Services\AccessControl::normaliseRole((string) $userRole) === 'Developer') continue;
+                            $isActive = (isset($usr['is_active']) && (int)$usr['is_active'] === 0) ? false : true;
                         ?>
                             <tr class="user-row hover:bg-surface-container-low/50 transition" data-role="<?= htmlspecialchars($userRole) ?>" data-search="<?= htmlspecialchars(strtolower($usr['name'] . ' ' . $usr['email'] . ' ' . $usr['role'] . ' ' . $usr['specialty'])) ?>">
                                 <td class="py-3 px-4">
@@ -626,6 +633,54 @@ function openLocationModal(data) {
                     <div class="text-lg font-bold text-on-surface mt-1"><?= htmlspecialchars($value) ?></div>
                 </div>
             <?php endforeach; ?>
+        </div>
+
+        <!-- Invoices from NuvisERPX -->
+        <div>
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-bold text-on-surface flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px] text-slate-400">request_quote</span>Invoices from NuvisERPX</h3>
+                <?php if ($tenantInvoiceSummary['open_count'] > 0): ?>
+                    <span class="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg">
+                        <?= htmlspecialchars($tenantInvoiceSummary['currency']) ?> $<?= number_format($tenantInvoiceSummary['outstanding'], 2) ?> outstanding · <?= (int)$tenantInvoiceSummary['open_count'] ?> open
+                    </span>
+                <?php endif; ?>
+            </div>
+            <div class="overflow-x-auto rounded-xl border border-outline-variant/30 mb-2">
+                <table class="w-full text-xs">
+                    <thead class="bg-surface-container-low text-slate-500 uppercase tracking-wider text-[10px]">
+                        <tr>
+                            <th class="text-left px-3 py-2.5 font-bold">Invoice</th>
+                            <th class="text-left px-3 py-2.5 font-bold">Issued</th>
+                            <th class="text-left px-3 py-2.5 font-bold">Due</th>
+                            <th class="text-right px-3 py-2.5 font-bold">Amount</th>
+                            <th class="text-left px-3 py-2.5 font-bold">Status</th>
+                            <th class="text-right px-3 py-2.5 font-bold"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-outline-variant/20">
+                        <?php if (empty($tenantInvoices)): ?>
+                            <tr><td colspan="6" class="px-3 py-8 text-center text-slate-400">No invoices yet. Invoices issued in NuvisERPX will appear here.</td></tr>
+                        <?php endif; ?>
+                        <?php
+                        $invChip = ['paid'=>'bg-emerald-100 text-emerald-800','issued'=>'bg-blue-100 text-blue-800','sent'=>'bg-indigo-100 text-indigo-800','partially_paid'=>'bg-amber-100 text-amber-800','overdue'=>'bg-rose-100 text-rose-800','void'=>'bg-slate-200 text-slate-600','draft'=>'bg-slate-100 text-slate-600'];
+                        foreach ($tenantInvoices as $inv): ?>
+                            <tr class="hover:bg-surface-container-low/50">
+                                <td class="px-3 py-2.5 whitespace-nowrap font-mono font-bold text-slate-800"><?= htmlspecialchars($inv['invoice_number'] ?: ('#'.substr($inv['id'],0,8))) ?></td>
+                                <td class="px-3 py-2.5 whitespace-nowrap text-slate-500"><?= $inv['issue_date'] ? htmlspecialchars(date('d M Y', strtotime($inv['issue_date']))) : '—' ?></td>
+                                <td class="px-3 py-2.5 whitespace-nowrap text-slate-500"><?= $inv['due_date'] ? htmlspecialchars(date('d M Y', strtotime($inv['due_date']))) : '—' ?></td>
+                                <td class="px-3 py-2.5 whitespace-nowrap text-right font-bold text-slate-900"><?= htmlspecialchars($inv['currency']) ?> $<?= number_format((float)$inv['amount'],2) ?></td>
+                                <td class="px-3 py-2.5 whitespace-nowrap"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold <?= $invChip[$inv['status']] ?? 'bg-slate-100 text-slate-600' ?>"><?= htmlspecialchars(ucfirst(str_replace('_',' ',$inv['status']))) ?></span></td>
+                                <td class="px-3 py-2.5 whitespace-nowrap text-right">
+                                    <?php if (!empty($inv['pdf_url'])): ?>
+                                        <a href="<?= htmlspecialchars($inv['pdf_url']) ?>" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-blue-700 font-semibold hover:underline"><span class="material-symbols-outlined text-[15px]">download</span>View</a>
+                                    <?php else: ?><span class="text-slate-300">—</span><?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <p class="text-[11px] text-slate-400 mb-6">Invoices are issued and reconciled in NuvisERPX; the status here updates automatically once a payment is reconciled.</p>
         </div>
 
         <div>

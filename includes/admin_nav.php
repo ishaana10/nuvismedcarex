@@ -15,6 +15,7 @@ $adminTabs = [
     'inventory' => ['Inventory setup', 'inventory_2',     'admin.php?tab=inventory', ['settings', 'view']],
     'insurance' => ['Insurance',       'health_and_safety', 'insurance_providers.php', ['settings', 'view']],
     'consent'   => ['Consent forms',   'assignment',      'consent_forms.php',       ['settings', 'view']],
+    'documents' => ['Documents',       'prescriptions',   'document_settings.php',   ['settings', 'view']],
     'audit'     => ['Audit log',       'history',         'admin.php?tab=audit',     ['users', 'view']],
 ];
 ?>

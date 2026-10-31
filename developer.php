@@ -47,6 +47,13 @@ $devSubTenant   = $tenantService->getTenantById($subTenantId) ?? [];
 $allDevAlerts   = $alertService->listAllAlerts();
 $wishStatusCounts = $wishService->statusCounts(null);
 $wishTotal = array_sum($wishStatusCounts);
+
+$erpService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\NuvisErpService::class);
+$erpConfig = $erpService->config();
+$erpInvoiceTenant = $_GET['erptenant'] ?? $currentTenantId;
+$erpInvoices = $erpService->listInvoices($erpInvoiceTenant);
+$erpLogs = $erpService->recentLogs(20);
+$erpWebhookUrl = $erpService->webhookUrl();
 ?>
 
 <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -133,6 +140,10 @@ $wishTotal = array_sum($wishStatusCounts);
     <button type="button" onclick="switchDevTab('alerts')" id="dev-tab-btn-alerts" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">campaign</span>
         <span>Broadcast Alerts</span>
+    </button>
+    <button type="button" onclick="switchDevTab('erp')" id="dev-tab-btn-erp" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+        <span class="material-symbols-outlined text-base">sync_alt</span>
+        <span>NuvisERPX Billing</span>
     </button>
     <a href="wishboard.php" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">lightbulb</span>
@@ -606,6 +617,136 @@ $wishTotal = array_sum($wishStatusCounts);
             </div>
         </div>
     </div> <!-- End dev-panel-alerts -->
+
+    <!-- NuvisERPX Billing Panel -->
+    <div id="dev-panel-erp" class="hidden space-y-6">
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-6">
+            <div class="flex items-center justify-between pb-4 border-b border-outline-variant/20">
+                <div>
+                    <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                        <span class="material-symbols-outlined text-base">sync_alt</span><span>NuvisERPX Billing Integration</span>
+                    </h2>
+                    <p class="text-xs text-outline font-medium mt-0.5">Invoices come from NuvisERPX. When a payment is reconciled there, the status here updates automatically via webhook.</p>
+                </div>
+                <span class="px-3 py-1 rounded-xl text-xs font-bold flex items-center gap-1.5 <?= $erpConfig['enabled'] && $erpService->isConfigured() ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-slate-100 text-slate-600 border border-slate-300' ?>">
+                    <span class="w-1.5 h-1.5 rounded-full <?= $erpConfig['enabled'] && $erpService->isConfigured() ? 'bg-emerald-500' : 'bg-slate-400' ?>"></span>
+                    <?= $erpConfig['enabled'] && $erpService->isConfigured() ? 'Connected' : 'Not configured' ?>
+                </span>
+            </div>
+
+            <!-- Connection settings -->
+            <form action="actions/erp_actions.php" method="POST" class="rounded-xl border border-outline-variant/30 bg-surface-container-low p-4 space-y-3">
+                <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+                <input type="hidden" name="action" value="save_config">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div><label class="form-label">NuvisERPX base URL</label><input type="url" name="base_url" value="<?= htmlspecialchars($erpConfig['base_url']) ?>" placeholder="https://erp.nuvistechnologies.com.fj" class="form-input"></div>
+                    <div><label class="form-label">API key</label><input type="text" name="api_key" value="<?= htmlspecialchars($erpConfig['api_key']) ?>" placeholder="Bearer token from NuvisERPX" class="form-input" autocomplete="off"></div>
+                    <div class="sm:col-span-2"><label class="form-label">Webhook signing secret</label><input type="text" name="webhook_secret" value="<?= htmlspecialchars($erpConfig['webhook_secret']) ?>" placeholder="Leave blank to auto-generate" class="form-input" autocomplete="off"><p class="text-[11px] text-slate-400 mt-1">NuvisERPX signs each webhook with HMAC-SHA256 of the body using this secret (header <code class="font-mono">X-Nuvis-Signature</code>).</p></div>
+                </div>
+                <div class="flex items-center gap-4 pt-1">
+                    <label class="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" name="enabled" <?= $erpConfig['enabled'] ? 'checked' : '' ?> class="rounded"> Integration enabled</label>
+                    <button type="submit" class="btn-primary ml-auto"><span class="material-symbols-outlined text-[18px]">save</span>Save connection</button>
+                </div>
+            </form>
+
+            <div class="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-900 flex items-start gap-2">
+                <span class="material-symbols-outlined text-[18px] text-blue-600">webhook</span>
+                <div>
+                    <div class="font-bold">Webhook endpoint for NuvisERPX</div>
+                    <code class="font-mono text-[12px] break-all"><?= htmlspecialchars($erpWebhookUrl) ?></code>
+                    <div class="mt-1 opacity-80">Point NuvisERPX invoice &amp; reconciliation events here. Last sync: <span class="font-semibold"><?= $erpConfig['last_sync'] ? htmlspecialchars($erpConfig['last_sync']) : 'never' ?></span></div>
+                </div>
+            </div>
+
+            <!-- Tenant selector + sync -->
+            <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+                <form method="GET" action="developer.php" class="flex items-end gap-2">
+                    <div>
+                        <label class="form-label">Tenant</label>
+                        <select name="erptenant" class="form-select" onchange="this.form.submit()">
+                            <?php foreach ($tenantsList as $tnt): ?>
+                                <option value="<?= htmlspecialchars($tnt['id']) ?>" <?= $tnt['id'] === $erpInvoiceTenant ? 'selected' : '' ?>><?= htmlspecialchars($tnt['name']) ?><?= empty($tnt['nuvis_erp_client_id']) ? ' (no ERP client id)' : '' ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </form>
+                <form action="actions/erp_actions.php" method="POST">
+                    <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+                    <input type="hidden" name="action" value="sync_now">
+                    <input type="hidden" name="tenant_id" value="<?= htmlspecialchars($erpInvoiceTenant) ?>">
+                    <button type="submit" class="btn-secondary"><span class="material-symbols-outlined text-[18px]">sync</span>Sync this tenant now</button>
+                </form>
+            </div>
+
+            <!-- Invoices -->
+            <div class="overflow-x-auto rounded-xl border border-outline-variant/30">
+                <table class="w-full text-xs">
+                    <thead class="bg-surface-container-low text-slate-500 uppercase tracking-wider text-[10px]">
+                        <tr><th class="text-left px-3 py-2.5">Invoice</th><th class="text-left px-3 py-2.5">ERP ID</th><th class="text-right px-3 py-2.5">Amount</th><th class="text-left px-3 py-2.5">Status</th><th class="text-left px-3 py-2.5">Reconciled</th><th class="text-right px-3 py-2.5">Action</th></tr>
+                    </thead>
+                    <tbody class="divide-y divide-outline-variant/20">
+                        <?php if (empty($erpInvoices)): ?><tr><td colspan="6" class="px-3 py-8 text-center text-slate-400">No invoices for this tenant. Record one below or sync from NuvisERPX.</td></tr><?php endif; ?>
+                        <?php $eChip = ['paid'=>'bg-emerald-100 text-emerald-800','issued'=>'bg-blue-100 text-blue-800','sent'=>'bg-indigo-100 text-indigo-800','partially_paid'=>'bg-amber-100 text-amber-800','overdue'=>'bg-rose-100 text-rose-800','void'=>'bg-slate-200 text-slate-600','draft'=>'bg-slate-100 text-slate-600'];
+                        foreach ($erpInvoices as $inv): ?>
+                            <tr class="hover:bg-surface-container-low/50">
+                                <td class="px-3 py-2.5 whitespace-nowrap font-mono font-bold"><?= htmlspecialchars($inv['invoice_number'] ?: ('#'.substr($inv['id'],0,8))) ?></td>
+                                <td class="px-3 py-2.5 whitespace-nowrap font-mono text-[11px] text-slate-500"><?= htmlspecialchars($inv['erp_invoice_id'] ?: '—') ?></td>
+                                <td class="px-3 py-2.5 whitespace-nowrap text-right font-bold"><?= htmlspecialchars($inv['currency']) ?> $<?= number_format((float)$inv['amount'],2) ?></td>
+                                <td class="px-3 py-2.5 whitespace-nowrap"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold <?= $eChip[$inv['status']] ?? 'bg-slate-100 text-slate-600' ?>"><?= htmlspecialchars(ucfirst(str_replace('_',' ',$inv['status']))) ?></span></td>
+                                <td class="px-3 py-2.5 whitespace-nowrap text-slate-500"><?= $inv['reconciled_at'] ? htmlspecialchars(date('d M Y', strtotime($inv['reconciled_at']))) : '—' ?></td>
+                                <td class="px-3 py-2.5 whitespace-nowrap text-right">
+                                    <?php if (!in_array($inv['status'], ['paid','void'], true)): ?>
+                                        <form action="actions/erp_actions.php" method="POST" class="inline" onsubmit="return confirm('Mark this invoice paid/reconciled? This records a payment and reactivates the subscription.');">
+                                            <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+                                            <input type="hidden" name="action" value="set_invoice_status">
+                                            <input type="hidden" name="invoice_id" value="<?= htmlspecialchars($inv['id']) ?>">
+                                            <input type="hidden" name="status" value="paid">
+                                            <button type="submit" class="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-[10px] font-bold">Mark reconciled</button>
+                                        </form>
+                                    <?php else: ?><span class="text-slate-300">—</span><?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Manual invoice entry (onboarding / testing) -->
+            <details class="rounded-xl border border-outline-variant/30 bg-surface-container-low p-4">
+                <summary class="text-sm font-bold text-on-surface cursor-pointer">Record an invoice manually</summary>
+                <form action="actions/erp_actions.php" method="POST" class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+                    <input type="hidden" name="action" value="record_invoice">
+                    <input type="hidden" name="tenant_id" value="<?= htmlspecialchars($erpInvoiceTenant) ?>">
+                    <div><label class="form-label">Invoice number</label><input type="text" name="invoice_number" class="form-input" placeholder="INV-2026-001"></div>
+                    <div><label class="form-label">ERP invoice id</label><input type="text" name="erp_invoice_id" class="form-input"></div>
+                    <div><label class="form-label">Amount</label><input type="number" step="0.01" name="amount" class="form-input"></div>
+                    <div><label class="form-label">Currency</label><input type="text" name="currency" value="FJD" class="form-input"></div>
+                    <div><label class="form-label">Status</label><select name="status" class="form-select"><?php foreach (\ClinicFlow\Services\NuvisErpService::STATUSES as $s): ?><option value="<?= $s ?>"><?= ucfirst(str_replace('_',' ',$s)) ?></option><?php endforeach; ?></select></div>
+                    <div><label class="form-label">Issue date</label><input type="date" name="issue_date" class="form-input"></div>
+                    <div><label class="form-label">Due date</label><input type="date" name="due_date" class="form-input"></div>
+                    <div class="sm:col-span-2"><label class="form-label">PDF URL (hosted in NuvisERPX)</label><input type="url" name="pdf_url" class="form-input"></div>
+                    <div class="sm:col-span-3 flex justify-end"><button type="submit" class="btn-primary"><span class="material-symbols-outlined text-[18px]">add</span>Save invoice</button></div>
+                </form>
+            </details>
+
+            <!-- Sync log -->
+            <?php if (!empty($erpLogs)): ?>
+            <div>
+                <h3 class="text-sm font-bold text-on-surface mb-2 flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px] text-slate-400">receipt_long</span>Recent sync activity</h3>
+                <div class="space-y-1 max-h-56 overflow-y-auto font-mono text-[11px]">
+                    <?php foreach ($erpLogs as $lg): ?>
+                        <div class="flex items-center gap-2 px-2 py-1 rounded <?= $lg['status']==='error' ? 'bg-rose-50 text-rose-700' : 'bg-slate-50 text-slate-600' ?>">
+                            <span class="text-slate-400"><?= htmlspecialchars(date('d M H:i', strtotime($lg['created_at']))) ?></span>
+                            <span class="font-bold"><?= htmlspecialchars($lg['direction']) ?>/<?= htmlspecialchars($lg['event']) ?></span>
+                            <span class="truncate"><?= htmlspecialchars($lg['message']) ?></span>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+        </div>
+    </div> <!-- End dev-panel-erp -->
 
     <!-- Lab Catalog Customization Panel -->
     <div id="dev-panel-lab" class="hidden space-y-6">
@@ -1862,7 +2003,7 @@ function closeTenantModal() {
 }
 
 function switchDevTab(tab) {
-    const panels = ['git', 'tenants', 'vms', 'cloud', 'database', 'lab', 'pagination', 'rbac', 'redis', 'logs', 'integrations', 'vsdc', 'subscriptions', 'alerts'];
+    const panels = ['git', 'tenants', 'vms', 'cloud', 'database', 'lab', 'pagination', 'rbac', 'redis', 'logs', 'integrations', 'vsdc', 'subscriptions', 'alerts', 'erp'];
     panels.forEach(p => {
         const el = document.getElementById('dev-panel-' + p);
         if (el) el.classList.add('hidden');
@@ -2448,6 +2589,8 @@ document.addEventListener('DOMContentLoaded', function () {
         var p = new URLSearchParams(window.location.search);
         if (p.get('focus') === 'subscriptions' || p.has('subtenant')) {
             if (typeof switchDevTab === 'function') switchDevTab('subscriptions');
+        } else if (p.has('erptenant')) {
+            if (typeof switchDevTab === 'function') switchDevTab('erp');
         }
     } catch (e) {}
 });
