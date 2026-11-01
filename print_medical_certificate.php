@@ -11,20 +11,28 @@ require_once __DIR__ . '/config/database.php';
 $pdo = getDB();
 $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 
-// Fetch Clinic Settings
 // Settings for the active clinic (its own values over the shared defaults)
 $settings = nxSettings();
-$settings = [];
 
 $clinicProfile = nxClinic();
 $clinicName = $clinicProfile['name'];
+$clinicSubtitle = $clinicProfile['subtitle'] ?? '';
 $clinicAddress = $clinicProfile['address'];
 $clinicPhone = $settings['clinic_phone'] ?? '+679 331 2233';
 $clinicEmail = $settings['clinic_email'] ?? 'medico@nuvistechnologies.com.fj';
+$clinicWebsite = $settings['clinic_website'] ?? '';
 
-$certHeaderTitle = $settings['cert_header_title'] ?? 'OFFICIAL MEDICAL CERTIFICATE';
-$certDisclaimer = $settings['cert_disclaimer'] ?? 'This medical certificate is issued upon request of the patient for whatever legal or administrative purpose it may serve.';
-$certFooterNote = $settings['cert_footer_note'] ?? 'Valid with official clinic digital stamp and physician e-signature.';
+// Per-clinic certificate template customisation
+$tenantIdForCert = \ClinicFlow\Shared\TenantContext::getTenantId();
+$certCfg = (new \ClinicFlow\Services\DocumentTemplateSettings($pdo, $tenantIdForCert))->load('certificate');
+$certAccent = $certCfg['accent'];
+$certFontStack = \ClinicFlow\Services\DocumentTemplateSettings::fontStack($certCfg['font']);
+$certLogo = !empty($certCfg['show_logo']) ? ($certCfg['logo'] ?: ($clinicProfile['logo'] ?? '')) : '';
+$certLogoW = \ClinicFlow\Services\DocumentTemplateSettings::logoWidth($certCfg['logo_size']);
+$certHeaderTitle = $certCfg['header_title'] ?: 'OFFICIAL MEDICAL CERTIFICATE';
+$certSubtitle = $certCfg['header_subtitle'] ?: $clinicSubtitle;
+$certDisclaimer = $certCfg['disclaimer'];
+$certFooterNote = $certCfg['footer_note'];
 
 // Fetch Certificate details
 $cert = null;
@@ -117,10 +125,19 @@ $digitalStamp = $doctor['digital_stamp'] ?? '';
     <div class="cert-box bg-white p-10 rounded-2xl shadow-xl border-2 border-slate-900 relative">
 
         <!-- Clinic Branding Header -->
-        <div class="text-center border-b-2 border-slate-900 pb-6 mb-8">
-            <h1 class="text-3xl font-extrabold text-slate-900 uppercase tracking-tight"><?= htmlspecialchars($clinicName) ?></h1>
-            <p class="text-sm font-semibold text-slate-700 mt-1"><?= htmlspecialchars($clinicSubtitle) ?></p>
-            <p class="text-xs text-slate-500 mt-1"><?= htmlspecialchars($clinicAddress) ?> • Tel: <?= htmlspecialchars($clinicPhone) ?> • <?= htmlspecialchars($clinicEmail) ?></p>
+        <div class="text-center pb-6 mb-8" style="border-bottom: 2px solid <?= htmlspecialchars($certAccent) ?>; font-family: <?= $certFontStack ?>;">
+            <?php if ($certLogo): ?>
+                <img src="<?= htmlspecialchars($certLogo) ?>" alt="Clinic logo" style="width: <?= $certLogoW + 20 ?>px" class="object-contain mx-auto mb-2">
+            <?php endif; ?>
+            <h1 class="text-3xl font-extrabold uppercase tracking-tight" style="color: <?= htmlspecialchars($certAccent) ?>"><?= htmlspecialchars($clinicName) ?></h1>
+            <?php if (!empty($certSubtitle)): ?><p class="text-sm font-semibold text-slate-700 mt-1"><?= htmlspecialchars($certSubtitle) ?></p><?php endif; ?>
+            <?php
+            $certContact = [];
+            if (!empty($certCfg['show_address']) && $clinicAddress) $certContact[] = htmlspecialchars($clinicAddress);
+            if (!empty($certCfg['show_phone']) && $clinicPhone) $certContact[] = 'Tel: ' . htmlspecialchars($clinicPhone);
+            if (!empty($certCfg['show_email']) && $clinicEmail) $certContact[] = htmlspecialchars($clinicEmail);
+            if (!empty($certCfg['show_website']) && $clinicWebsite) $certContact[] = htmlspecialchars($clinicWebsite);
+            if ($certContact): ?><p class="text-xs text-slate-500 mt-1"><?= implode(' • ', $certContact) ?></p><?php endif; ?>
         </div>
 
         <!-- Document Title & Control No -->
@@ -151,12 +168,15 @@ $digitalStamp = $doctor['digital_stamp'] ?? '';
             </p>
 
             <!-- Diagnosis Block -->
+            <?php if (!empty($certCfg['show_diagnosis'])): ?>
             <div class="bg-slate-50 p-4 rounded-xl border border-slate-300">
                 <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Clinical Impression / Diagnosis:</p>
                 <p class="text-base font-bold text-slate-900"><?= htmlspecialchars($cert['diagnosis']) ?></p>
             </div>
+            <?php endif; ?>
 
             <!-- Fitness Status & Assessment -->
+            <?php if (!empty($certCfg['show_fitness'])): ?>
             <div class="bg-slate-50 p-4 rounded-xl border border-slate-300 space-y-2">
                 <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Fitness Assessment & Classification:</p>
                 <div class="flex items-center gap-2">
@@ -164,12 +184,13 @@ $digitalStamp = $doctor['digital_stamp'] ?? '';
                         <?= htmlspecialchars($cert['fitness_status']) ?>
                     </span>
                 </div>
-                <?php if (!empty($cert['fit_status_details'])): ?>
+                <?php if (!empty($certCfg['show_rest_period']) && !empty($cert['fit_status_details'])): ?>
                     <p class="text-xs font-medium text-slate-700 pt-1">
                         <strong>Details / Duration:</strong> <?= htmlspecialchars($cert['fit_status_details']) ?>
                     </p>
                 <?php endif; ?>
             </div>
+            <?php endif; ?>
 
             <!-- Recommendations / Remarks -->
             <?php if (!empty($cert['recommendations'])): ?>
@@ -192,22 +213,23 @@ $digitalStamp = $doctor['digital_stamp'] ?? '';
         <!-- Physician Signature Block & Digital Stamp -->
         <div class="pt-8 border-t border-slate-300 flex justify-between items-end">
             <div>
-                <?php if (!empty($digitalStamp)): ?>
+                <?php if (!empty($certCfg['show_stamp']) && !empty($digitalStamp)): ?>
                     <img src="<?= htmlspecialchars($digitalStamp) ?>" class="max-h-36 max-w-[200px] object-contain opacity-95" alt="Official Digital Stamp">
                 <?php endif; ?>
             </div>
 
             <div class="text-center w-72 relative">
-                <?php if (!empty($esignature)): ?>
+                <?php if (!empty($certCfg['show_signature']) && !empty($esignature)): ?>
                     <img src="<?= htmlspecialchars($esignature) ?>" class="max-h-24 max-w-[220px] object-contain mx-auto -mb-4 relative z-10" alt="E-Signature">
                 <?php endif; ?>
 
-                <div class="border-b border-slate-900 pb-1 mb-2 font-serif text-lg font-bold text-slate-900 italic">
+                <div class="border-b border-slate-900 pb-1 mb-2 font-serif text-lg font-bold italic" style="color: <?= htmlspecialchars($certAccent) ?>">
                     <?= htmlspecialchars($cert['doctor_name']) ?>
                 </div>
                 <p class="font-bold text-slate-900 text-sm"><?= htmlspecialchars($cert['doctor_name']) ?>, M.D.</p>
                 <p class="text-xs text-slate-600 font-medium">Attending Physician</p>
-                <p class="text-xs text-slate-500 font-mono mt-1">Medical License No: <?= htmlspecialchars($prcNo) ?></p>
+                <?php if (!empty($certCfg['show_license'])): ?><p class="text-xs text-slate-500 font-mono mt-1">Medical License No: <?= htmlspecialchars($prcNo) ?></p><?php endif; ?>
+                <?php if (!empty($certCfg['show_ptr'])): ?><p class="text-xs text-slate-500 font-mono">PTR No: <?= htmlspecialchars($ptrNo) ?></p><?php endif; ?>
             </div>
         </div>
 

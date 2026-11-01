@@ -510,7 +510,7 @@ kbd, .nx-kbd {
   width: 100%;
   background-color: rgb(var(--c-slate-50));
   border: 1px solid rgb(var(--c-slate-200));
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 0.625rem 0.875rem;
   font-size: 0.8125rem;
   font-weight: 500;
@@ -735,3 +735,18 @@ html.nx-compact main .space-y-6 > * + * { margin-top: 1rem; }
 html.nx-no-hints main .form-input + p.text-xs,
 html.nx-no-hints main .form-select + p.text-xs,
 html.nx-no-hints main label + p.text-xs.text-slate-500 { display: none; }
+
+/* ----------------------------------------------------------------------------
+   Modern rounded form controls (2026-11). Element-level so an explicit Tailwind
+   `rounded-*` utility on a control still wins; this only sets the default for
+   controls that don't specify their own radius. Keeps the UI soft and current.
+---------------------------------------------------------------------------- */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="submit"]):not([type="button"]):not([type="reset"]),
+select,
+textarea {
+  border-radius: 12px;
+}
+input[type="checkbox"], input[type="radio"] { border-radius: 6px; }
+/* Pill-friendly search + segmented controls already round themselves; leave
+   buttons to their own utilities. Small, dense inputs stay slightly tighter. */
+.nx-input-sm, input.input-sm, select.input-sm { border-radius: 10px; }

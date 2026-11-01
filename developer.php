@@ -34,6 +34,42 @@ $cloudCfgProvider = (string) (\ClinicFlow\Services\Cloud\CloudConfig::get()['pro
 $cloudCfgLabel = $cloudCfgProvider === 'local'
     ? 'This server only'
     : (\ClinicFlow\Services\Cloud\Cloud::labels()[$cloudCfgProvider] ?? $cloudCfgProvider);
+
+// --- Subscriptions, wish board and broadcast alerts (developer view) --------
+$subscriptionService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\SubscriptionService::class);
+$alertService        = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\DeveloperAlertService::class);
+$wishService         = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\WishBoardService::class);
+
+$subTenantId = $_GET['subtenant'] ?? $currentTenantId;
+$devSubPayments = $subscriptionService->getPayments($subTenantId);
+$devSubSummary  = $subscriptionService->getSummary($subTenantId);
+$devSubTenant   = $tenantService->getTenantById($subTenantId) ?? [];
+$allDevAlerts   = $alertService->listAllAlerts();
+$wishStatusCounts = $wishService->statusCounts(null);
+$wishTotal = array_sum($wishStatusCounts);
+
+$erpService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\NuvisErpService::class);
+$erpConfig = $erpService->config();
+$erpInvoiceTenant = $_GET['erptenant'] ?? $currentTenantId;
+$erpInvoices = $erpService->listInvoices($erpInvoiceTenant);
+$erpLogs = $erpService->recentLogs(20);
+$erpWebhookUrl = $erpService->webhookUrl();
+
+// Monitoring dashboard data
+$monService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\Services\MonitoringService::class);
+$monSettings = $monService->settings();
+$monApp = $monService->appMetrics();
+$monErrors = $monService->errorStats();
+$monDb = $monService->dbHealth();
+$monCache = $monService->cacheHealth();
+$monTenants = $monService->tenantHealth();
+$monIncidents = $monService->runHealthChecks();
+$monCronUrl = $monService->cronUrl($monSettings['monitor_cron_token']);
+$fmtBytes = function ($b) {
+    $b = (float) $b; if ($b <= 0) return '0 B';
+    $u = ['B','KB','MB','GB','TB']; $i = (int) floor(log($b, 1024));
+    return round($b / (1024 ** $i), 1) . ' ' . $u[min($i, 4)];
+};
 ?>
 
 <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -113,6 +149,26 @@ $cloudCfgLabel = $cloudCfgProvider === 'local'
         <span class="material-symbols-outlined text-base">verified</span>
         <span>FRCS VSDC & EFD Accreditation</span>
     </button>
+    <button type="button" onclick="switchDevTab('subscriptions')" id="dev-tab-btn-subscriptions" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+        <span class="material-symbols-outlined text-base">credit_card</span>
+        <span>Subscriptions &amp; Payments</span>
+    </button>
+    <button type="button" onclick="switchDevTab('alerts')" id="dev-tab-btn-alerts" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+        <span class="material-symbols-outlined text-base">campaign</span>
+        <span>Broadcast Alerts</span>
+    </button>
+    <button type="button" onclick="switchDevTab('erp')" id="dev-tab-btn-erp" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+        <span class="material-symbols-outlined text-base">sync_alt</span>
+        <span>NuvisERPX Billing</span>
+    </button>
+    <button type="button" onclick="switchDevTab('monitoring')" id="dev-tab-btn-monitoring" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+        <span class="material-symbols-outlined text-base">monitor_heart</span>
+        <span>Monitoring<?php if (!empty($monIncidents)): ?> <span class="px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-bold"><?= count($monIncidents) ?></span><?php endif; ?></span>
+    </button>
+    <a href="wishboard.php" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+        <span class="material-symbols-outlined text-base">lightbulb</span>
+        <span>Wish Board (<?= (int)$wishTotal ?>)</span>
+    </a>
 </div>
 
 <div class="space-y-6">
@@ -436,6 +492,481 @@ $cloudCfgLabel = $cloudCfgProvider === 'local'
             </div>
         </div>
     </div> <!-- End dev-panel-tenants -->
+
+    <!-- Subscriptions & Payments Panel -->
+    <div id="dev-panel-subscriptions" class="hidden space-y-6">
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-outline-variant/20">
+                <div>
+                    <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                        <span class="material-symbols-outlined text-base">credit_card</span><span>Subscription Payments by Tenant</span>
+                    </h2>
+                    <p class="text-xs text-outline font-medium mt-0.5">Record and review SaaS subscription payments for each clinic account.</p>
+                </div>
+                <form method="GET" action="developer.php" class="flex items-end gap-2">
+                    <div>
+                        <label class="form-label">Tenant</label>
+                        <select name="subtenant" class="form-select" onchange="this.form.submit()">
+                            <?php foreach ($tenantsList as $tnt): ?>
+                                <option value="<?= htmlspecialchars($tnt['id']) ?>" <?= $tnt['id'] === $subTenantId ? 'selected' : '' ?>><?= htmlspecialchars($tnt['name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <input type="hidden" name="focus" value="subscriptions">
+                </form>
+            </div>
+
+            <?php
+                $dsCur = $devSubTenant['currency'] ?? ($devSubSummary['currency'] ?? 'FJD');
+                $dsCards = [
+                    ['Plan', strtoupper($devSubTenant['plan'] ?? 'standard'), 'workspace_premium'],
+                    ['Price', $dsCur . ' $' . number_format((float)($devSubTenant['plan_price'] ?? 0), 2) . '/' . ($devSubTenant['billing_cycle'] ?? 'monthly'), 'payments'],
+                    ['Next renewal', !empty($devSubTenant['next_renewal_date']) ? date('d M Y', strtotime($devSubTenant['next_renewal_date'])) : '—', 'event_repeat'],
+                    ['Total collected', $devSubSummary['currency'] . ' $' . number_format($devSubSummary['total_paid'], 2), 'account_balance_wallet'],
+                ];
+            ?>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <?php foreach ($dsCards as [$l, $v, $ic]): ?>
+                    <div class="p-3 rounded-xl bg-surface-container-low border border-outline-variant/30">
+                        <div class="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider"><span class="material-symbols-outlined text-[15px] text-primary"><?= $ic ?></span><?= $l ?></div>
+                        <div class="text-base font-bold text-on-surface mt-1"><?= htmlspecialchars($v) ?></div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+
+            <!-- Record a payment -->
+            <form action="actions/subscription_actions.php" method="POST" class="rounded-xl border border-outline-variant/30 bg-surface-container-low p-4 grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-end">
+                <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+                <input type="hidden" name="action" value="record_payment">
+                <input type="hidden" name="tenant_id" value="<?= htmlspecialchars($subTenantId) ?>">
+                <div><label class="form-label">Amount</label><input type="number" step="0.01" name="amount" required class="form-input" value="<?= htmlspecialchars(number_format((float)($devSubTenant['plan_price'] ?? 0), 2, '.', '')) ?>"></div>
+                <div><label class="form-label">Currency</label><input type="text" name="currency" value="<?= htmlspecialchars($dsCur) ?>" class="form-input"></div>
+                <div><label class="form-label">Status</label><select name="status" class="form-select"><?php foreach (\ClinicFlow\Services\SubscriptionService::STATUSES as $s): ?><option value="<?= $s ?>"><?= ucfirst($s) ?></option><?php endforeach; ?></select></div>
+                <div><label class="form-label">Method</label><input type="text" name="method" placeholder="Bank / card / M-PAiSA" class="form-input"></div>
+                <div><label class="form-label">Period start</label><input type="date" name="period_start" class="form-input"></div>
+                <div><label class="form-label">Period end</label><input type="date" name="period_end" class="form-input"></div>
+                <div><label class="form-label">Reference / invoice</label><input type="text" name="reference" class="form-input"></div>
+                <div class="flex justify-end"><button type="submit" class="btn-primary w-full justify-center"><span class="material-symbols-outlined text-[18px]">add</span>Record payment</button></div>
+                <div class="sm:col-span-3 lg:col-span-4"><label class="form-label">Notes</label><input type="text" name="notes" class="form-input"></div>
+            </form>
+
+            <!-- Ledger -->
+            <div class="overflow-x-auto rounded-xl border border-outline-variant/30">
+                <table class="w-full text-xs">
+                    <thead class="bg-surface-container-low text-slate-500 uppercase tracking-wider text-[10px]">
+                        <tr><th class="text-left px-3 py-2.5">Date</th><th class="text-left px-3 py-2.5">Period</th><th class="text-right px-3 py-2.5">Amount</th><th class="text-left px-3 py-2.5">Status</th><th class="text-left px-3 py-2.5">Method</th><th class="text-left px-3 py-2.5">Reference</th><th class="text-left px-3 py-2.5">By</th></tr>
+                    </thead>
+                    <tbody class="divide-y divide-outline-variant/20">
+                        <?php if (empty($devSubPayments)): ?><tr><td colspan="7" class="px-3 py-8 text-center text-slate-400">No payments recorded for this tenant.</td></tr><?php endif; ?>
+                        <?php $chip = ['paid'=>'bg-emerald-100 text-emerald-800','pending'=>'bg-amber-100 text-amber-800','failed'=>'bg-rose-100 text-rose-800','refunded'=>'bg-slate-200 text-slate-700'];
+                        foreach ($devSubPayments as $p): ?>
+                            <tr class="hover:bg-surface-container-low/50">
+                                <td class="px-3 py-2.5 whitespace-nowrap font-medium"><?= htmlspecialchars(date('d M Y', strtotime($p['paid_at'] ?: $p['created_at']))) ?></td>
+                                <td class="px-3 py-2.5 whitespace-nowrap text-slate-500"><?= $p['period_start'] ? htmlspecialchars(date('d M', strtotime($p['period_start'])).' – '.($p['period_end']?date('d M Y', strtotime($p['period_end'])):'')) : '—' ?></td>
+                                <td class="px-3 py-2.5 whitespace-nowrap text-right font-bold"><?= htmlspecialchars($p['currency']) ?> $<?= number_format((float)$p['amount'],2) ?></td>
+                                <td class="px-3 py-2.5 whitespace-nowrap"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold <?= $chip[$p['status']] ?? 'bg-slate-100 text-slate-600' ?>"><?= ucfirst($p['status']) ?></span></td>
+                                <td class="px-3 py-2.5 whitespace-nowrap text-slate-600"><?= htmlspecialchars($p['method'] ?: '—') ?></td>
+                                <td class="px-3 py-2.5 whitespace-nowrap font-mono text-[11px] text-slate-500"><?= htmlspecialchars($p['reference'] ?: $p['invoice_no'] ?: '—') ?></td>
+                                <td class="px-3 py-2.5 whitespace-nowrap text-slate-500"><?= htmlspecialchars($p['recorded_by_name'] ?: '—') ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div> <!-- End dev-panel-subscriptions -->
+
+    <!-- Broadcast Alerts Panel -->
+    <div id="dev-panel-alerts" class="hidden space-y-6">
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-6">
+            <div class="pb-4 border-b border-outline-variant/20">
+                <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base">campaign</span><span>Broadcast Alerts &amp; Messages</span>
+                </h2>
+                <p class="text-xs text-outline font-medium mt-0.5">Send a message across the board. Clinics see active alerts as a banner until they dismiss them.</p>
+            </div>
+
+            <form action="actions/developer_alert_actions.php" method="POST" class="rounded-xl border border-outline-variant/30 bg-surface-container-low p-4 space-y-3">
+                <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+                <input type="hidden" name="action" value="create_alert">
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    <div class="sm:col-span-2"><label class="form-label">Title</label><input type="text" name="title" required class="form-input" placeholder="e.g. Scheduled maintenance Sunday 2am"></div>
+                    <div><label class="form-label">Severity</label><select name="severity" class="form-select"><?php foreach (\ClinicFlow\Services\DeveloperAlertService::SEVERITIES as $sv): ?><option value="<?= $sv ?>"><?= ucfirst($sv) ?></option><?php endforeach; ?></select></div>
+                    <div><label class="form-label">Audience</label>
+                        <select name="audience" class="form-select" onchange="nxAlertAudience(this.value)">
+                            <option value="all">All clinics</option>
+                            <option value="tenant">A specific clinic</option>
+                            <option value="role">A specific role</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    <div class="sm:col-span-4"><label class="form-label">Message</label><textarea name="body" rows="2" class="form-textarea" placeholder="What do the clinics need to know?"></textarea></div>
+                    <div id="alert-target-tenant" class="hidden"><label class="form-label">Clinic</label><select name="target_tenant_id" class="form-select"><?php foreach ($tenantsList as $tnt): ?><option value="<?= htmlspecialchars($tnt['id']) ?>"><?= htmlspecialchars($tnt['name']) ?></option><?php endforeach; ?></select></div>
+                    <div id="alert-target-role" class="hidden"><label class="form-label">Role</label><select name="target_role" class="form-select"><option>Administrator</option><option>Doctor</option><option>Nurse</option><option>Receptionist</option></select></div>
+                    <div><label class="form-label">Link (optional)</label><input type="url" name="link_url" class="form-input" placeholder="https://"></div>
+                    <div><label class="form-label">Expires (optional)</label><input type="datetime-local" name="expires_at" class="form-input"></div>
+                    <div class="flex items-end justify-end"><button type="submit" class="btn-primary w-full justify-center"><span class="material-symbols-outlined text-[18px]">send</span>Publish</button></div>
+                </div>
+            </form>
+
+            <div class="space-y-2">
+                <h3 class="text-sm font-bold text-on-surface flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px] text-slate-400">history</span>Sent alerts</h3>
+                <?php if (empty($allDevAlerts)): ?><p class="text-xs text-slate-400 py-6 text-center">No alerts sent yet.</p><?php endif; ?>
+                <?php $sevChip = ['info'=>'bg-blue-100 text-blue-700','success'=>'bg-emerald-100 text-emerald-700','warning'=>'bg-amber-100 text-amber-800','critical'=>'bg-rose-100 text-rose-700'];
+                foreach ($allDevAlerts as $a): ?>
+                    <div class="flex items-start justify-between gap-3 p-3 rounded-xl border border-outline-variant/30 bg-surface-container-low <?= $a['is_active'] ? '' : 'opacity-60' ?>">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold <?= $sevChip[$a['severity']] ?? 'bg-slate-100 text-slate-600' ?>"><?= ucfirst($a['severity']) ?></span>
+                                <span class="font-bold text-sm text-on-surface"><?= htmlspecialchars($a['title']) ?></span>
+                                <span class="text-[11px] text-slate-400">· <?= $a['audience']==='all' ? 'All clinics' : ($a['audience']==='tenant' ? htmlspecialchars($a['target_tenant_name'] ?? 'Clinic') : 'Role: '.htmlspecialchars($a['target_role'] ?? '')) ?></span>
+                            </div>
+                            <?php if (!empty($a['body'])): ?><p class="text-[13px] text-slate-600 mt-0.5"><?= htmlspecialchars($a['body']) ?></p><?php endif; ?>
+                            <div class="text-[11px] text-slate-400 mt-1"><?= htmlspecialchars(date('d M Y H:i', strtotime($a['created_at']))) ?> · dismissed by <?= (int)$a['read_count'] ?> user(s)</div>
+                        </div>
+                        <form action="actions/developer_alert_actions.php" method="POST" class="shrink-0">
+                            <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+                            <input type="hidden" name="action" value="toggle_alert">
+                            <input type="hidden" name="alert_id" value="<?= htmlspecialchars($a['id']) ?>">
+                            <input type="hidden" name="active" value="<?= $a['is_active'] ? '0' : '1' ?>">
+                            <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-bold <?= $a['is_active'] ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700' ?>"><?= $a['is_active'] ? 'Retire' : 'Re-activate' ?></button>
+                        </form>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </div> <!-- End dev-panel-alerts -->
+
+    <!-- NuvisERPX Billing Panel -->
+    <div id="dev-panel-erp" class="hidden space-y-6">
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-6">
+            <div class="flex items-center justify-between pb-4 border-b border-outline-variant/20">
+                <div>
+                    <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                        <span class="material-symbols-outlined text-base">sync_alt</span><span>NuvisERPX Billing Integration</span>
+                    </h2>
+                    <p class="text-xs text-outline font-medium mt-0.5">Invoices come from NuvisERPX. When a payment is reconciled there, the status here updates automatically via webhook.</p>
+                </div>
+                <span class="px-3 py-1 rounded-xl text-xs font-bold flex items-center gap-1.5 <?= $erpConfig['enabled'] && $erpService->isConfigured() ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-slate-100 text-slate-600 border border-slate-300' ?>">
+                    <span class="w-1.5 h-1.5 rounded-full <?= $erpConfig['enabled'] && $erpService->isConfigured() ? 'bg-emerald-500' : 'bg-slate-400' ?>"></span>
+                    <?= $erpConfig['enabled'] && $erpService->isConfigured() ? 'Connected' : 'Not configured' ?>
+                </span>
+            </div>
+
+            <!-- Connection settings -->
+            <form action="actions/erp_actions.php" method="POST" class="rounded-xl border border-outline-variant/30 bg-surface-container-low p-4 space-y-3">
+                <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+                <input type="hidden" name="action" value="save_config">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div><label class="form-label">NuvisERPX base URL</label><input type="url" name="base_url" value="<?= htmlspecialchars($erpConfig['base_url']) ?>" placeholder="https://erp.nuvistechnologies.com.fj" class="form-input"></div>
+                    <div><label class="form-label">API key</label><input type="text" name="api_key" value="<?= htmlspecialchars($erpConfig['api_key']) ?>" placeholder="Bearer token from NuvisERPX" class="form-input" autocomplete="off"></div>
+                    <div class="sm:col-span-2"><label class="form-label">Webhook signing secret</label><input type="text" name="webhook_secret" value="<?= htmlspecialchars($erpConfig['webhook_secret']) ?>" placeholder="Leave blank to auto-generate" class="form-input" autocomplete="off"><p class="text-[11px] text-slate-400 mt-1">NuvisERPX signs each webhook with HMAC-SHA256 of the body using this secret (header <code class="font-mono">X-Nuvis-Signature</code>).</p></div>
+                </div>
+                <div class="flex items-center gap-4 pt-1">
+                    <label class="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" name="enabled" <?= $erpConfig['enabled'] ? 'checked' : '' ?> class="rounded"> Integration enabled</label>
+                    <button type="submit" class="btn-primary ml-auto"><span class="material-symbols-outlined text-[18px]">save</span>Save connection</button>
+                </div>
+            </form>
+
+            <div class="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-900 flex items-start gap-2">
+                <span class="material-symbols-outlined text-[18px] text-blue-600">webhook</span>
+                <div>
+                    <div class="font-bold">Webhook endpoint for NuvisERPX</div>
+                    <code class="font-mono text-[12px] break-all"><?= htmlspecialchars($erpWebhookUrl) ?></code>
+                    <div class="mt-1 opacity-80">Point NuvisERPX invoice &amp; reconciliation events here. Last sync: <span class="font-semibold"><?= $erpConfig['last_sync'] ? htmlspecialchars($erpConfig['last_sync']) : 'never' ?></span></div>
+                </div>
+            </div>
+
+            <!-- Tenant selector + sync -->
+            <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+                <form method="GET" action="developer.php" class="flex items-end gap-2">
+                    <div>
+                        <label class="form-label">Tenant</label>
+                        <select name="erptenant" class="form-select" onchange="this.form.submit()">
+                            <?php foreach ($tenantsList as $tnt): ?>
+                                <option value="<?= htmlspecialchars($tnt['id']) ?>" <?= $tnt['id'] === $erpInvoiceTenant ? 'selected' : '' ?>><?= htmlspecialchars($tnt['name']) ?><?= empty($tnt['nuvis_erp_client_id']) ? ' (no ERP client id)' : '' ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </form>
+                <form action="actions/erp_actions.php" method="POST">
+                    <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+                    <input type="hidden" name="action" value="sync_now">
+                    <input type="hidden" name="tenant_id" value="<?= htmlspecialchars($erpInvoiceTenant) ?>">
+                    <button type="submit" class="btn-secondary"><span class="material-symbols-outlined text-[18px]">sync</span>Sync this tenant now</button>
+                </form>
+            </div>
+
+            <!-- Invoices -->
+            <div class="overflow-x-auto rounded-xl border border-outline-variant/30">
+                <table class="w-full text-xs">
+                    <thead class="bg-surface-container-low text-slate-500 uppercase tracking-wider text-[10px]">
+                        <tr><th class="text-left px-3 py-2.5">Invoice</th><th class="text-left px-3 py-2.5">ERP ID</th><th class="text-right px-3 py-2.5">Amount</th><th class="text-left px-3 py-2.5">Status</th><th class="text-left px-3 py-2.5">Reconciled</th><th class="text-right px-3 py-2.5">Action</th></tr>
+                    </thead>
+                    <tbody class="divide-y divide-outline-variant/20">
+                        <?php if (empty($erpInvoices)): ?><tr><td colspan="6" class="px-3 py-8 text-center text-slate-400">No invoices for this tenant. Record one below or sync from NuvisERPX.</td></tr><?php endif; ?>
+                        <?php $eChip = ['paid'=>'bg-emerald-100 text-emerald-800','issued'=>'bg-blue-100 text-blue-800','sent'=>'bg-indigo-100 text-indigo-800','partially_paid'=>'bg-amber-100 text-amber-800','overdue'=>'bg-rose-100 text-rose-800','void'=>'bg-slate-200 text-slate-600','draft'=>'bg-slate-100 text-slate-600'];
+                        foreach ($erpInvoices as $inv): ?>
+                            <tr class="hover:bg-surface-container-low/50">
+                                <td class="px-3 py-2.5 whitespace-nowrap font-mono font-bold"><?= htmlspecialchars($inv['invoice_number'] ?: ('#'.substr($inv['id'],0,8))) ?></td>
+                                <td class="px-3 py-2.5 whitespace-nowrap font-mono text-[11px] text-slate-500"><?= htmlspecialchars($inv['erp_invoice_id'] ?: '—') ?></td>
+                                <td class="px-3 py-2.5 whitespace-nowrap text-right font-bold"><?= htmlspecialchars($inv['currency']) ?> $<?= number_format((float)$inv['amount'],2) ?></td>
+                                <td class="px-3 py-2.5 whitespace-nowrap"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold <?= $eChip[$inv['status']] ?? 'bg-slate-100 text-slate-600' ?>"><?= htmlspecialchars(ucfirst(str_replace('_',' ',$inv['status']))) ?></span></td>
+                                <td class="px-3 py-2.5 whitespace-nowrap text-slate-500"><?= $inv['reconciled_at'] ? htmlspecialchars(date('d M Y', strtotime($inv['reconciled_at']))) : '—' ?></td>
+                                <td class="px-3 py-2.5 whitespace-nowrap text-right">
+                                    <?php if (!in_array($inv['status'], ['paid','void'], true)): ?>
+                                        <form action="actions/erp_actions.php" method="POST" class="inline" onsubmit="return confirm('Mark this invoice paid/reconciled? This records a payment and reactivates the subscription.');">
+                                            <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+                                            <input type="hidden" name="action" value="set_invoice_status">
+                                            <input type="hidden" name="invoice_id" value="<?= htmlspecialchars($inv['id']) ?>">
+                                            <input type="hidden" name="status" value="paid">
+                                            <button type="submit" class="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-[10px] font-bold">Mark reconciled</button>
+                                        </form>
+                                    <?php else: ?><span class="text-slate-300">—</span><?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Manual invoice entry (onboarding / testing) -->
+            <details class="rounded-xl border border-outline-variant/30 bg-surface-container-low p-4">
+                <summary class="text-sm font-bold text-on-surface cursor-pointer">Record an invoice manually</summary>
+                <form action="actions/erp_actions.php" method="POST" class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+                    <input type="hidden" name="action" value="record_invoice">
+                    <input type="hidden" name="tenant_id" value="<?= htmlspecialchars($erpInvoiceTenant) ?>">
+                    <div><label class="form-label">Invoice number</label><input type="text" name="invoice_number" class="form-input" placeholder="INV-2026-001"></div>
+                    <div><label class="form-label">ERP invoice id</label><input type="text" name="erp_invoice_id" class="form-input"></div>
+                    <div><label class="form-label">Amount</label><input type="number" step="0.01" name="amount" class="form-input"></div>
+                    <div><label class="form-label">Currency</label><input type="text" name="currency" value="FJD" class="form-input"></div>
+                    <div><label class="form-label">Status</label><select name="status" class="form-select"><?php foreach (\ClinicFlow\Services\NuvisErpService::STATUSES as $s): ?><option value="<?= $s ?>"><?= ucfirst(str_replace('_',' ',$s)) ?></option><?php endforeach; ?></select></div>
+                    <div><label class="form-label">Issue date</label><input type="date" name="issue_date" class="form-input"></div>
+                    <div><label class="form-label">Due date</label><input type="date" name="due_date" class="form-input"></div>
+                    <div class="sm:col-span-2"><label class="form-label">PDF URL (hosted in NuvisERPX)</label><input type="url" name="pdf_url" class="form-input"></div>
+                    <div class="sm:col-span-3 flex justify-end"><button type="submit" class="btn-primary"><span class="material-symbols-outlined text-[18px]">add</span>Save invoice</button></div>
+                </form>
+            </details>
+
+            <!-- Sync log -->
+            <?php if (!empty($erpLogs)): ?>
+            <div>
+                <h3 class="text-sm font-bold text-on-surface mb-2 flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px] text-slate-400">receipt_long</span>Recent sync activity</h3>
+                <div class="space-y-1 max-h-56 overflow-y-auto font-mono text-[11px]">
+                    <?php foreach ($erpLogs as $lg): ?>
+                        <div class="flex items-center gap-2 px-2 py-1 rounded <?= $lg['status']==='error' ? 'bg-rose-50 text-rose-700' : 'bg-slate-50 text-slate-600' ?>">
+                            <span class="text-slate-400"><?= htmlspecialchars(date('d M H:i', strtotime($lg['created_at']))) ?></span>
+                            <span class="font-bold"><?= htmlspecialchars($lg['direction']) ?>/<?= htmlspecialchars($lg['event']) ?></span>
+                            <span class="truncate"><?= htmlspecialchars($lg['message']) ?></span>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+        </div>
+    </div> <!-- End dev-panel-erp -->
+
+    <!-- Monitoring Dashboard Panel -->
+    <div id="dev-panel-monitoring" class="hidden space-y-6">
+        <?php
+            $monCritical = array_filter($monIncidents, fn($i) => $i['severity'] === 'critical');
+            $monOverall = count($monCritical) ? 'critical' : (count($monIncidents) ? 'warning' : 'healthy');
+            $monBanner = [
+                'healthy'  => ['bg-emerald-50 border-emerald-200 text-emerald-900', 'check_circle', 'text-emerald-600', 'All systems healthy'],
+                'warning'  => ['bg-amber-50 border-amber-200 text-amber-900', 'warning', 'text-amber-600', count($monIncidents) . ' issue(s) need attention'],
+                'critical' => ['bg-rose-50 border-rose-200 text-rose-900', 'e911_emergency', 'text-rose-600', count($monCritical) . ' critical issue(s) detected'],
+            ][$monOverall];
+        ?>
+
+        <!-- Health banner -->
+        <div class="rounded-2xl border p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 <?= $monBanner[0] ?>">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-3xl <?= $monBanner[2] ?>"><?= $monBanner[1] ?></span>
+                <div>
+                    <div class="text-lg font-bold"><?= htmlspecialchars($monBanner[3]) ?></div>
+                    <div class="text-xs opacity-75">Last check: <?= $monSettings['monitor_last_check'] ? htmlspecialchars($monSettings['monitor_last_check']) : 'never' ?> · Email alerts <?= $monSettings['monitoring_enabled'] === '1' ? 'on' : 'off' ?></div>
+                </div>
+            </div>
+            <form action="actions/monitoring_actions.php" method="POST">
+                <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+                <input type="hidden" name="action" value="run_now">
+                <button type="submit" class="px-4 py-2 bg-white/70 hover:bg-white text-slate-800 text-xs font-bold rounded-xl transition flex items-center gap-1.5 border border-white/50"><span class="material-symbols-outlined text-base">play_circle</span>Run check &amp; notify now</button>
+            </form>
+        </div>
+
+        <!-- Active incidents -->
+        <?php if (!empty($monIncidents)): ?>
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-5 shadow-xs">
+            <h3 class="text-xs font-bold text-primary uppercase tracking-wider mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-base">report</span>Active issues</h3>
+            <div class="space-y-2">
+                <?php foreach ($monIncidents as $i): $crit = $i['severity'] === 'critical'; ?>
+                    <div class="flex items-start gap-3 p-3 rounded-xl border <?= $crit ? 'bg-rose-50 border-rose-200' : 'bg-amber-50 border-amber-200' ?>">
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase <?= $crit ? 'bg-rose-600 text-white' : 'bg-amber-500 text-white' ?>"><?= htmlspecialchars($i['severity']) ?></span>
+                        <div class="min-w-0">
+                            <div class="text-sm font-bold text-slate-900"><?= htmlspecialchars($i['title']) ?></div>
+                            <div class="text-xs text-slate-600"><?= htmlspecialchars($i['detail']) ?></div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- App + DB + Cache metrics -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <!-- Application -->
+            <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-5 shadow-xs space-y-3">
+                <h3 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2"><span class="material-symbols-outlined text-base">memory</span>Application</h3>
+                <dl class="text-xs space-y-1.5">
+                    <div class="flex justify-between"><dt class="text-slate-500">PHP</dt><dd class="font-bold text-slate-800"><?= htmlspecialchars($monApp['php_version']) ?></dd></div>
+                    <div class="flex justify-between"><dt class="text-slate-500">Server</dt><dd class="font-mono text-slate-700 truncate max-w-[160px]" title="<?= htmlspecialchars((string)$monApp['server_software']) ?>"><?= htmlspecialchars((string)$monApp['server_software']) ?></dd></div>
+                    <div class="flex justify-between"><dt class="text-slate-500">Memory</dt><dd class="font-bold text-slate-800"><?= $fmtBytes($monApp['memory_used']) ?> / peak <?= $fmtBytes($monApp['memory_peak']) ?></dd></div>
+                    <?php if ($monApp['load']): ?><div class="flex justify-between"><dt class="text-slate-500">Load (1/5/15m)</dt><dd class="font-mono text-slate-700"><?= implode(' ', array_map(fn($l) => number_format($l, 2), $monApp['load'])) ?></dd></div><?php endif; ?>
+                    <?php if ($monApp['disk_pct'] !== null): ?>
+                    <div>
+                        <div class="flex justify-between"><dt class="text-slate-500">Disk used</dt><dd class="font-bold <?= $monApp['disk_pct'] >= 90 ? 'text-rose-600' : 'text-slate-800' ?>"><?= $monApp['disk_pct'] ?>%</dd></div>
+                        <div class="h-1.5 rounded-full bg-slate-100 mt-1 overflow-hidden"><div class="h-full <?= $monApp['disk_pct'] >= 90 ? 'bg-rose-500' : 'bg-primary' ?>" style="width: <?= min(100, $monApp['disk_pct']) ?>%"></div></div>
+                        <div class="text-[10px] text-slate-400 mt-0.5"><?= $fmtBytes($monApp['disk_free']) ?> free of <?= $fmtBytes($monApp['disk_total']) ?></div>
+                    </div>
+                    <?php endif; ?>
+                    <?php if ($monApp['opcache_hit'] !== null): ?><div class="flex justify-between"><dt class="text-slate-500">OPcache hit rate</dt><dd class="font-bold text-slate-800"><?= $monApp['opcache_hit'] ?>%</dd></div><?php endif; ?>
+                </dl>
+            </div>
+
+            <!-- Database -->
+            <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-5 shadow-xs space-y-3">
+                <h3 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2"><span class="material-symbols-outlined text-base">database</span>Database
+                    <span class="ml-auto w-2 h-2 rounded-full <?= $monDb['connected'] ? 'bg-emerald-500' : 'bg-rose-500' ?>"></span>
+                </h3>
+                <dl class="text-xs space-y-1.5">
+                    <div class="flex justify-between"><dt class="text-slate-500">Status</dt><dd class="font-bold <?= $monDb['connected'] ? 'text-emerald-700' : 'text-rose-700' ?>"><?= $monDb['connected'] ? 'Connected' : 'Unreachable' ?></dd></div>
+                    <?php if ($monDb['version']): ?><div class="flex justify-between"><dt class="text-slate-500">Version</dt><dd class="font-mono text-slate-700 truncate max-w-[150px]"><?= htmlspecialchars($monDb['version']) ?></dd></div><?php endif; ?>
+                    <?php if ($monDb['size_mb'] !== null): ?><div class="flex justify-between"><dt class="text-slate-500">Size</dt><dd class="font-bold text-slate-800"><?= number_format($monDb['size_mb'], 1) ?> MB</dd></div><?php endif; ?>
+                    <?php if ($monDb['table_count'] !== null): ?><div class="flex justify-between"><dt class="text-slate-500">Tables</dt><dd class="font-bold text-slate-800"><?= (int)$monDb['table_count'] ?></dd></div><?php endif; ?>
+                    <?php if ($monDb['threads_connected'] !== null): ?><div class="flex justify-between"><dt class="text-slate-500">Connections</dt><dd class="font-bold text-slate-800"><?= (int)$monDb['threads_connected'] ?> / <?= (int)$monDb['threads_max'] ?></dd></div><?php endif; ?>
+                    <?php if ($monDb['uptime_days'] !== null): ?><div class="flex justify-between"><dt class="text-slate-500">Uptime</dt><dd class="font-bold text-slate-800"><?= $monDb['uptime_days'] ?> days</dd></div><?php endif; ?>
+                    <?php if ($monDb['slow_queries'] !== null): ?><div class="flex justify-between"><dt class="text-slate-500">Slow queries</dt><dd class="font-bold <?= $monDb['slow_queries'] > 100 ? 'text-amber-600' : 'text-slate-800' ?>"><?= (int)$monDb['slow_queries'] ?></dd></div><?php endif; ?>
+                </dl>
+                <?php if (!empty($monDb['top_tables'])): ?>
+                <details class="text-xs"><summary class="text-slate-500 cursor-pointer font-semibold">Largest tables</summary>
+                    <div class="mt-1.5 space-y-0.5">
+                        <?php foreach ($monDb['top_tables'] as $tt): ?>
+                            <div class="flex justify-between font-mono text-[11px]"><span class="text-slate-600 truncate max-w-[150px]"><?= htmlspecialchars($tt['name']) ?></span><span class="text-slate-400"><?= number_format((int)$tt['rows']) ?> rows · <?= $tt['size_mb'] ?> MB</span></div>
+                        <?php endforeach; ?>
+                    </div>
+                </details>
+                <?php endif; ?>
+            </div>
+
+            <!-- Errors / issues + cache -->
+            <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-5 shadow-xs space-y-3">
+                <h3 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2"><span class="material-symbols-outlined text-base">bug_report</span>Errors &amp; cache</h3>
+                <div class="grid grid-cols-3 gap-2 text-center">
+                    <div class="p-2 rounded-xl bg-surface-container-low"><div class="text-lg font-bold <?= $monErrors['count_1h'] > 0 ? 'text-rose-600' : 'text-slate-800' ?>"><?= $monErrors['count_1h'] ?></div><div class="text-[10px] text-slate-400 uppercase font-bold">1 hour</div></div>
+                    <div class="p-2 rounded-xl bg-surface-container-low"><div class="text-lg font-bold text-slate-800"><?= $monErrors['count_24h'] ?></div><div class="text-[10px] text-slate-400 uppercase font-bold">24 hours</div></div>
+                    <div class="p-2 rounded-xl bg-surface-container-low"><div class="text-lg font-bold text-slate-800"><?= $monErrors['count_7d'] ?></div><div class="text-[10px] text-slate-400 uppercase font-bold">7 days</div></div>
+                </div>
+                <div class="flex justify-between text-xs pt-1">
+                    <span class="text-slate-500">Redis cache</span>
+                    <span class="font-bold <?= !$monCache['enabled'] ? 'text-slate-400' : ($monCache['connected'] ? 'text-emerald-700' : 'text-rose-700') ?>"><?= !$monCache['enabled'] ? 'Disabled' : ($monCache['connected'] ? 'Connected' : 'Down') ?></span>
+                </div>
+                <?php if (!empty($monErrors['top'])): ?>
+                <details class="text-xs"><summary class="text-slate-500 cursor-pointer font-semibold">Top errors (7d)</summary>
+                    <div class="mt-1.5 space-y-1">
+                        <?php foreach ($monErrors['top'] as $te): ?>
+                            <div class="flex justify-between gap-2"><span class="text-slate-600 truncate" title="<?= htmlspecialchars($te['msg']) ?>"><?= htmlspecialchars($te['msg']) ?></span><span class="text-rose-600 font-bold shrink-0">×<?= (int)$te['n'] ?></span></div>
+                        <?php endforeach; ?>
+                    </div>
+                </details>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- Recent errors -->
+        <?php if (!empty($monErrors['recent'])): ?>
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-5 shadow-xs">
+            <h3 class="text-xs font-bold text-primary uppercase tracking-wider mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-base">list_alt</span>Recent errors</h3>
+            <div class="overflow-x-auto rounded-xl border border-outline-variant/30">
+                <table class="w-full text-xs">
+                    <thead class="bg-surface-container-low text-slate-500 uppercase text-[10px] tracking-wider"><tr><th class="text-left px-3 py-2">Time</th><th class="text-left px-3 py-2">Type</th><th class="text-left px-3 py-2">Level</th><th class="text-left px-3 py-2">Message</th></tr></thead>
+                    <tbody class="divide-y divide-outline-variant/20">
+                        <?php foreach ($monErrors['recent'] as $er): ?>
+                            <tr>
+                                <td class="px-3 py-2 whitespace-nowrap text-slate-500 font-mono text-[11px]"><?= htmlspecialchars(date('d M H:i', strtotime($er['created_at']))) ?></td>
+                                <td class="px-3 py-2 whitespace-nowrap"><span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-bold"><?= htmlspecialchars($er['type']) ?></span></td>
+                                <td class="px-3 py-2 whitespace-nowrap"><span class="px-1.5 py-0.5 rounded text-[10px] font-bold <?= strtoupper($er['level']) === 'ERROR' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700' ?>"><?= htmlspecialchars($er['level']) ?></span></td>
+                                <td class="px-3 py-2 text-slate-700 max-w-[480px] truncate" title="<?= htmlspecialchars($er['message']) ?>"><?= htmlspecialchars($er['message']) ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- Tenant performance -->
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-5 shadow-xs">
+            <h3 class="text-xs font-bold text-primary uppercase tracking-wider mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-base">apartment</span>Tenant performance &amp; health</h3>
+            <div class="overflow-x-auto rounded-xl border border-outline-variant/30">
+                <table class="w-full text-xs">
+                    <thead class="bg-surface-container-low text-slate-500 uppercase text-[10px] tracking-wider">
+                        <tr><th class="text-left px-3 py-2">Clinic</th><th class="text-left px-3 py-2">Health</th><th class="text-right px-3 py-2">Patients</th><th class="text-right px-3 py-2">Appts today</th><th class="text-right px-3 py-2">Errors 24h</th><th class="text-left px-3 py-2">Storage</th><th class="text-right px-3 py-2">Open inv.</th><th class="text-left px-3 py-2">Subscription</th><th class="text-left px-3 py-2">Last activity</th></tr>
+                    </thead>
+                    <tbody class="divide-y divide-outline-variant/20">
+                        <?php if (empty($monTenants)): ?><tr><td colspan="9" class="px-3 py-6 text-center text-slate-400">No tenants.</td></tr><?php endif; ?>
+                        <?php
+                        $hDot = ['healthy'=>'bg-emerald-500','warning'=>'bg-amber-500','critical'=>'bg-rose-500'];
+                        $subChip = ['active'=>'text-emerald-700','past_due'=>'text-amber-700','suspended'=>'text-rose-700'];
+                        foreach ($monTenants as $t): ?>
+                            <tr class="hover:bg-surface-container-low/50">
+                                <td class="px-3 py-2 whitespace-nowrap font-bold text-slate-800"><?= htmlspecialchars($t['name']) ?></td>
+                                <td class="px-3 py-2 whitespace-nowrap"><span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full <?= $hDot[$t['health']] ?>"></span><span class="capitalize text-slate-600"><?= $t['health'] ?></span></span></td>
+                                <td class="px-3 py-2 whitespace-nowrap text-right text-slate-700"><?= number_format($t['patients']) ?></td>
+                                <td class="px-3 py-2 whitespace-nowrap text-right text-slate-700"><?= (int)$t['appts_today'] ?></td>
+                                <td class="px-3 py-2 whitespace-nowrap text-right font-bold <?= $t['errors_24h'] > 0 ? 'text-rose-600' : 'text-slate-400' ?>"><?= (int)$t['errors_24h'] ?></td>
+                                <td class="px-3 py-2 whitespace-nowrap text-slate-600"><?= $t['storage_used_mb'] ?>/<?= $t['storage_limit_mb'] ?>MB <span class="<?= $t['storage_pct'] >= 85 ? 'text-amber-600 font-bold' : 'text-slate-400' ?>">(<?= $t['storage_pct'] ?>%)</span></td>
+                                <td class="px-3 py-2 whitespace-nowrap text-right <?= $t['outstanding_invoices'] > 0 ? 'text-amber-700 font-bold' : 'text-slate-400' ?>"><?= (int)$t['outstanding_invoices'] ?></td>
+                                <td class="px-3 py-2 whitespace-nowrap capitalize font-semibold <?= $subChip[$t['subscription_status']] ?? 'text-slate-600' ?>"><?= htmlspecialchars(str_replace('_',' ',$t['subscription_status'])) ?></td>
+                                <td class="px-3 py-2 whitespace-nowrap text-slate-500"><?= $t['last_activity'] ? htmlspecialchars(date('d M H:i', strtotime($t['last_activity']))) : '—' ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Notification settings -->
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-5 shadow-xs">
+            <h3 class="text-xs font-bold text-primary uppercase tracking-wider mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-base">notifications_active</span>Automatic email alerts</h3>
+            <form action="actions/monitoring_actions.php" method="POST" class="space-y-4">
+                <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+                <input type="hidden" name="action" value="save_settings">
+                <label class="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" name="monitoring_enabled" <?= $monSettings['monitoring_enabled'] === '1' ? 'checked' : '' ?> class="rounded"> Email developers automatically when issues are detected</label>
+                <div>
+                    <label class="form-label">Recipient emails (comma-separated)</label>
+                    <input type="text" name="monitor_recipients" value="<?= htmlspecialchars($monSettings['monitor_recipients']) ?>" class="form-input" placeholder="dev@nuvistechnologies.com.fj, ops@...">
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                    <div><label class="form-label">Errors / 24h</label><input type="number" name="th_errors_24h" value="<?= htmlspecialchars($monSettings['th_errors_24h']) ?>" class="form-input"></div>
+                    <div><label class="form-label">Errors / 1h</label><input type="number" name="th_errors_1h" value="<?= htmlspecialchars($monSettings['th_errors_1h']) ?>" class="form-input"></div>
+                    <div><label class="form-label">Storage %</label><input type="number" name="th_storage_pct" value="<?= htmlspecialchars($monSettings['th_storage_pct']) ?>" class="form-input"></div>
+                    <div><label class="form-label">DB conns</label><input type="number" name="th_db_conn" value="<?= htmlspecialchars($monSettings['th_db_conn']) ?>" class="form-input"></div>
+                    <div><label class="form-label">Cooldown (min)</label><input type="number" name="monitor_cooldown_min" value="<?= htmlspecialchars($monSettings['monitor_cooldown_min']) ?>" class="form-input"></div>
+                </div>
+                <div class="flex justify-end"><button type="submit" class="btn-primary"><span class="material-symbols-outlined text-[18px]">save</span>Save alert settings</button></div>
+            </form>
+            <div class="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-900 flex items-start gap-2">
+                <span class="material-symbols-outlined text-[18px] text-blue-600">schedule</span>
+                <div>
+                    <div class="font-bold">Automate the check with cron</div>
+                    <p class="opacity-80 mb-1">Add this to the server crontab to run checks every 5 minutes (alerts respect the cooldown above):</p>
+                    <code class="font-mono text-[11px] break-all block bg-white/60 rounded p-2">*/5 * * * * curl -s "<?= htmlspecialchars($monCronUrl) ?>" >/dev/null 2>&1</code>
+                </div>
+            </div>
+        </div>
+    </div> <!-- End dev-panel-monitoring -->
 
     <!-- Lab Catalog Customization Panel -->
     <div id="dev-panel-lab" class="hidden space-y-6">
@@ -1692,7 +2223,7 @@ function closeTenantModal() {
 }
 
 function switchDevTab(tab) {
-    const panels = ['git', 'tenants', 'vms', 'cloud', 'database', 'lab', 'pagination', 'rbac', 'redis', 'logs', 'integrations', 'vsdc'];
+    const panels = ['git', 'tenants', 'vms', 'cloud', 'database', 'lab', 'pagination', 'rbac', 'redis', 'logs', 'integrations', 'vsdc', 'subscriptions', 'alerts', 'erp', 'monitoring'];
     panels.forEach(p => {
         const el = document.getElementById('dev-panel-' + p);
         if (el) el.classList.add('hidden');
@@ -2263,6 +2794,26 @@ function testSdcPing(actionType = 'test_sdc_ping') {
         }
     });
 }
+
+// Broadcast-alert composer: reveal the right target field for the audience.
+function nxAlertAudience(val) {
+    var t = document.getElementById('alert-target-tenant');
+    var r = document.getElementById('alert-target-role');
+    if (t) t.classList.toggle('hidden', val !== 'tenant');
+    if (r) r.classList.toggle('hidden', val !== 'role');
+}
+
+// Reopen the Subscriptions tab after switching tenants in its selector.
+document.addEventListener('DOMContentLoaded', function () {
+    try {
+        var p = new URLSearchParams(window.location.search);
+        if (p.get('focus') === 'subscriptions' || p.has('subtenant')) {
+            if (typeof switchDevTab === 'function') switchDevTab('subscriptions');
+        } else if (p.has('erptenant')) {
+            if (typeof switchDevTab === 'function') switchDevTab('erp');
+        }
+    } catch (e) {}
+});
 </script>
 
 <?php include __DIR__ . '/includes/footer.php'; ?>

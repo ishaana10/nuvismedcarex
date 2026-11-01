@@ -16,10 +16,8 @@ $csrfToken = generateCsrfToken();
 $pdo = getDB();
 $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 
-// Fetch Clinic Settings
 // Settings for the active clinic (its own values over the shared defaults)
 $settings = nxSettings();
-$settings = [];
 
 $clinicProfile = nxClinic();
 $clinicName = $clinicProfile['name'];
@@ -27,12 +25,21 @@ $clinicSubtitle = $clinicProfile['subtitle'];
 $clinicAddress = $clinicProfile['address'];
 $clinicPhone = $settings['clinic_phone'] ?? '+679 331 2233';
 $clinicEmail = $settings['clinic_email'] ?? 'medico@nuvistechnologies.com.fj';
+$clinicWebsite = $settings['clinic_website'] ?? '';
 $clinicDea = $settings['clinic_dea'] ?? 'FC9823019';
 $clinicNpi = $settings['clinic_npi'] ?? '1092830192';
 
-$rxHeaderTitle = $settings['rx_header_title'] ?? 'OFFICIAL MEDICAL PRESCRIPTION';
-$rxDisclaimer = $settings['rx_disclaimer'] ?? 'Notice: This prescription is valid for 30 days from date of issue unless specified otherwise.';
-$rxFooterNote = $settings['rx_footer_note'] ?? 'Substitution Permitted unless DAW (Dispense As Written) is indicated.';
+// Per-clinic prescription template customisation
+$rxCfg = (new \ClinicFlow\Services\DocumentTemplateSettings($pdo, $currentTenantId))->load('prescription');
+$rxAccent = $rxCfg['accent'];
+$rxFontStack = \ClinicFlow\Services\DocumentTemplateSettings::fontStack($rxCfg['font']);
+$rxLogo = !empty($rxCfg['show_logo']) ? ($rxCfg['logo'] ?: ($clinicProfile['logo'] ?? '')) : '';
+$rxLogoW = \ClinicFlow\Services\DocumentTemplateSettings::logoWidth($rxCfg['logo_size']);
+$rxDateFmt = $rxCfg['date_format'] ?: 'M d, Y';
+$rxHeaderTitle = $rxCfg['header_title'] ?: 'OFFICIAL MEDICAL PRESCRIPTION';
+$rxSubtitle = $rxCfg['header_subtitle'] ?: $clinicSubtitle;
+$rxDisclaimer = $rxCfg['disclaimer'];
+$rxFooterNote = $rxCfg['footer_note'];
 
 // Fetch patient info
 $stmt = $pdo->prepare("SELECT * FROM patients WHERE (id = ? OR mrn = ?) AND tenant_id = ?");
@@ -108,16 +115,31 @@ $verificationUrl = $rxVerificationService->getVerificationUrl($verificationToken
     </div>
 
     <!-- Customized Clinic Header -->
-    <div class="border-b-2 border-blue-900 pb-4 mb-6 flex justify-between items-start">
-        <div>
-            <h1 class="text-2xl font-bold text-blue-900 uppercase tracking-tight"><?= htmlspecialchars($clinicName) ?></h1>
-            <p class="text-xs text-blue-700 font-medium"><?= htmlspecialchars($clinicSubtitle) ?></p>
-            <p class="text-xs text-slate-500 mt-1"><?= htmlspecialchars($clinicAddress) ?> • Phone: <?= htmlspecialchars($clinicPhone) ?></p>
-            <p class="text-xs text-slate-500">DEA: <?= htmlspecialchars($clinicDea) ?> • NPI: <?= htmlspecialchars($clinicNpi) ?></p>
+    <div class="pb-4 mb-6 flex justify-between items-start" style="border-bottom: 2px solid <?= htmlspecialchars($rxAccent) ?>; font-family: <?= $rxFontStack ?>;">
+        <div class="flex items-center gap-3 <?= $rxCfg['logo_align'] === 'center' ? 'mx-auto text-center flex-col' : '' ?>">
+            <?php if ($rxLogo): ?>
+                <img src="<?= htmlspecialchars($rxLogo) ?>" alt="Clinic logo" style="width: <?= $rxLogoW ?>px" class="object-contain shrink-0">
+            <?php endif; ?>
+            <div>
+                <h1 class="text-2xl font-bold uppercase tracking-tight" style="color: <?= htmlspecialchars($rxAccent) ?>"><?= htmlspecialchars($clinicName) ?></h1>
+                <?php if (!empty($rxSubtitle)): ?><p class="text-xs font-medium" style="color: <?= htmlspecialchars($rxAccent) ?>"><?= htmlspecialchars($rxSubtitle) ?></p><?php endif; ?>
+                <?php
+                $rxContact = [];
+                if (!empty($rxCfg['show_address']) && $clinicAddress) $rxContact[] = htmlspecialchars($clinicAddress);
+                if (!empty($rxCfg['show_phone']) && $clinicPhone) $rxContact[] = 'Phone: ' . htmlspecialchars($clinicPhone);
+                if (!empty($rxCfg['show_email']) && $clinicEmail) $rxContact[] = htmlspecialchars($clinicEmail);
+                if (!empty($rxCfg['show_website']) && $clinicWebsite) $rxContact[] = htmlspecialchars($clinicWebsite);
+                if ($rxContact): ?><p class="text-xs text-slate-500 mt-1"><?= implode(' • ', $rxContact) ?></p><?php endif; ?>
+                <?php
+                $rxCred = [];
+                if (!empty($rxCfg['show_dea']) && $clinicDea) $rxCred[] = 'DEA: ' . htmlspecialchars($clinicDea);
+                if (!empty($rxCfg['show_npi']) && $clinicNpi) $rxCred[] = 'NPI: ' . htmlspecialchars($clinicNpi);
+                if ($rxCred): ?><p class="text-xs text-slate-500"><?= implode(' • ', $rxCred) ?></p><?php endif; ?>
+            </div>
         </div>
-        <div class="text-right">
-            <span class="text-2xl font-serif font-bold text-blue-900">Rx</span>
-            <p class="text-xs text-slate-500 font-mono mt-1">Date: <?= date('M d, Y') ?></p>
+        <div class="text-right shrink-0">
+            <?php if (!empty($rxCfg['show_rx_symbol'])): ?><span class="text-2xl font-serif font-bold" style="color: <?= htmlspecialchars($rxAccent) ?>">℞</span><?php endif; ?>
+            <p class="text-xs text-slate-500 font-mono mt-1">Date: <?= date($rxDateFmt) ?></p>
         </div>
     </div>
 
@@ -136,7 +158,7 @@ $verificationUrl = $rxVerificationService->getVerificationUrl($verificationToken
         <div>
             <p class="text-slate-500 font-semibold uppercase text-[10px]">Medical Record No.</p>
             <p class="font-bold text-sm font-mono text-slate-900"><?= htmlspecialchars($patient['mrn']) ?></p>
-            <p class="text-slate-500 mt-1">Allergies: <strong class="text-red-600"><?= htmlspecialchars($patient['known_allergies'] ?: 'NKDA') ?></strong></p>
+            <?php if (!empty($rxCfg['show_allergies'])): ?><p class="text-slate-500 mt-1">Allergies: <strong class="text-red-600"><?= htmlspecialchars($patient['known_allergies'] ?: 'NKDA') ?></strong></p><?php endif; ?>
         </div>
     </div>
 
@@ -175,6 +197,7 @@ $verificationUrl = $rxVerificationService->getVerificationUrl($verificationToken
     </div>
 
     <!-- Pharmacy QR Code Verification Block -->
+    <?php if (!empty($rxCfg['show_verification_qr'])): ?>
     <div class="mb-8 p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-4">
         <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=<?= urlencode($verificationUrl) ?>" alt="Scan to Verify Prescription" class="w-20 h-20 rounded border border-slate-300 shrink-0">
         <div class="text-xs text-slate-700">
@@ -188,6 +211,7 @@ $verificationUrl = $rxVerificationService->getVerificationUrl($verificationToken
             </a>
         </div>
     </div>
+    <?php endif; ?>
 
     <!-- Custom Disclaimer & Refill Notes -->
     <div class="mb-8 p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600 space-y-1">
@@ -198,20 +222,21 @@ $verificationUrl = $rxVerificationService->getVerificationUrl($verificationToken
     <!-- Physician Signature Block -->
     <div class="pt-6 border-t border-slate-300 flex justify-between items-end text-xs">
         <div>
-            <?php if (!empty($attendingDoc['digital_stamp'])): ?>
+            <?php if (!empty($rxCfg['show_stamp']) && !empty($attendingDoc['digital_stamp'])): ?>
                 <img src="<?= htmlspecialchars($attendingDoc['digital_stamp']) ?>" class="max-h-32 max-w-[180px] object-contain opacity-95 mb-1" alt="Official Stamp">
             <?php endif; ?>
             <p class="text-slate-500 text-[10px] uppercase font-semibold">Substitution</p>
             <p class="font-medium text-slate-700">Refill: [ ] 0  [ ] 1  [ ] 2  [ ] 3  [ ] PRN</p>
         </div>
         <div class="text-right w-64 relative">
-            <?php if (!empty($attendingDoc['esignature'])): ?>
+            <?php if (!empty($rxCfg['show_signature']) && !empty($attendingDoc['esignature'])): ?>
                 <img src="<?= htmlspecialchars($attendingDoc['esignature']) ?>" class="max-h-20 max-w-[200px] object-contain ml-auto -mb-3 relative z-10" alt="E-Signature">
             <?php endif; ?>
-            <div class="border-b border-slate-400 mb-1 pb-1 font-serif text-lg font-bold text-blue-900 italic"><?= htmlspecialchars($attendingDoc['name']) ?></div>
+            <div class="border-b border-slate-400 mb-1 pb-1 font-serif text-lg font-bold italic" style="color: <?= htmlspecialchars($rxAccent) ?>"><?= htmlspecialchars($attendingDoc['name']) ?></div>
             <p class="font-bold text-slate-800"><?= htmlspecialchars($attendingDoc['name']) ?></p>
             <p class="text-slate-500"><?= htmlspecialchars($attendingDoc['specialty']) ?></p>
-            <p class="text-[10px] font-mono text-slate-500 mt-0.5">Medical License No: <?= htmlspecialchars($attendingDoc['prc_number'] ?? $settings['doc_prc_no'] ?? 'N/A') ?></p>
+            <?php if (!empty($rxCfg['show_license'])): ?><p class="text-[10px] font-mono text-slate-500 mt-0.5">Medical License No: <?= htmlspecialchars($attendingDoc['prc_number'] ?? $settings['doc_prc_no'] ?? 'N/A') ?></p><?php endif; ?>
+            <?php if (!empty($rxCfg['show_ptr']) && !empty($attendingDoc['ptr_number'])): ?><p class="text-[10px] font-mono text-slate-500">PTR No: <?= htmlspecialchars($attendingDoc['ptr_number']) ?></p><?php endif; ?>
         </div>
     </div>
 </div>

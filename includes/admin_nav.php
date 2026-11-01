@@ -8,11 +8,14 @@ $adminTabs = [
     'users'     => ['Staff',           'group',           'admin.php?tab=users',     ['users', 'view']],
     'access'    => ['Access & roles',  'shield_person',   'access.php',              ['users', 'view']],
     'clinic'    => ['Clinic & branding', 'domain',        'admin.php?tab=clinic',    ['settings', 'view']],
+    'locations' => ['Locations',       'pin_drop',        'admin.php?tab=locations', ['settings', 'view']],
+    'subscription' => ['Subscription', 'credit_card',     'admin.php?tab=subscription', ['settings', 'view']],
     'receipts'  => ['Receipts',        'receipt',         'receipt_settings.php',    ['settings', 'view']],
     'email'     => ['Email',           'mail',            'admin.php?tab=email',     ['settings', 'view']],
     'inventory' => ['Inventory setup', 'inventory_2',     'admin.php?tab=inventory', ['settings', 'view']],
     'insurance' => ['Insurance',       'health_and_safety', 'insurance_providers.php', ['settings', 'view']],
     'consent'   => ['Consent forms',   'assignment',      'consent_forms.php',       ['settings', 'view']],
+    'documents' => ['Documents',       'prescriptions',   'document_settings.php',   ['settings', 'view']],
     'audit'     => ['Audit log',       'history',         'admin.php?tab=audit',     ['users', 'view']],
 ];
 ?>
