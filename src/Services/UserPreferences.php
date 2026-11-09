@@ -65,6 +65,7 @@ final class UserPreferences
             'show_help_hints'  => true,
             'voice_input'      => false,        // dictation is opt-in, typing always works
             'voice_lang'       => 'en-US',
+            'voice_words'      => '',           // personal word list, one entry per line
         ];
         foreach (self::ALERTS as $k => [, $def]) {
             $d[$k] = $def;
@@ -116,10 +117,27 @@ final class UserPreferences
         $out['show_help_hints'] = !empty($in['show_help_hints']);
         $out['voice_input'] = !empty($in['voice_input']);
         if (isset(self::VOICE_LANGS[$in['voice_lang'] ?? ''])) $out['voice_lang'] = $in['voice_lang'];
+        if (array_key_exists('voice_words', $in)) $out['voice_words'] = self::cleanVoiceWords((string) $in['voice_words']);
         foreach (array_keys(self::ALERTS) as $k) {
             $out[$k] = !empty($in[$k]);
         }
         return $out;
+    }
+
+    /**
+     * A personal word list for dictation. Each line is either a term the doctor uses
+     * ("Metoclopramide") or a fix ("sevilla = Seville"). Capped so it can't bloat the row.
+     */
+    public static function cleanVoiceWords(string $raw): string
+    {
+        $lines = [];
+        foreach (preg_split('/\R/u', $raw) ?: [] as $line) {
+            $line = trim(preg_replace('/[\x00-\x1F\x7F]/u', '', $line) ?? '');
+            if ($line === '' || $line === '=') continue;
+            $lines[] = mb_substr($line, 0, 80);
+            if (count($lines) >= 150) break;
+        }
+        return implode("\n", $lines);
     }
 
     public function save(string $userId, array $prefs): void
