@@ -24,3 +24,10 @@ test('spoken punctuation, but clinical words like period are untouched', () => {
     'Fever for three days. Cough\nNo chest pain');
   assert.strictEqual(V.appendDictation('', 'last period was in october'), 'Last period was in october');
 });
+
+test('growing repeats from the recogniser collapse instead of piling up', () => {
+  assert.strictEqual(
+    V.collapseResults(['stomach', 'stomach pain', 'stomach pain in', 'stomach pain in the lower abdomen']),
+    'stomach pain in the lower abdomen');
+  assert.strictEqual(V.collapseResults(['migraine', 'Migraine', 'back pain', 'nausea']), 'migraine back pain nausea');
+});
