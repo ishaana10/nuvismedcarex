@@ -36,6 +36,16 @@ final class UserPreferences
         'inventory.php'      => 'Inventory',
     ];
 
+    /** Languages the browser's speech recogniser is asked to listen for. */
+    public const VOICE_LANGS = [
+        'en-US' => 'English (United States)',
+        'en-GB' => 'English (United Kingdom)',
+        'en-AU' => 'English (Australia)',
+        'en-IN' => 'English (India)',
+        'en-PH' => 'English (Philippines)',
+        'en-NZ' => 'English (New Zealand)',
+    ];
+
     public const ALERTS = [
         'alert_patient_registered' => ['A patient is registered', true],
         'alert_appointment_booked' => ['An appointment is booked', true],
@@ -53,6 +63,8 @@ final class UserPreferences
             'time_format'      => 'g:i A',
             'landing_page'     => 'index.php',
             'show_help_hints'  => true,
+            'voice_input'      => false,        // dictation is opt-in, typing always works
+            'voice_lang'       => 'en-US',
         ];
         foreach (self::ALERTS as $k => [, $def]) {
             $d[$k] = $def;
@@ -102,6 +114,8 @@ final class UserPreferences
 
         $out['sidebar_collapsed'] = !empty($in['sidebar_collapsed']);
         $out['show_help_hints'] = !empty($in['show_help_hints']);
+        $out['voice_input'] = !empty($in['voice_input']);
+        if (isset(self::VOICE_LANGS[$in['voice_lang'] ?? ''])) $out['voice_lang'] = $in['voice_lang'];
         foreach (array_keys(self::ALERTS) as $k) {
             $out[$k] = !empty($in[$k]);
         }

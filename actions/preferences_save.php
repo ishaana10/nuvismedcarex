@@ -55,6 +55,7 @@ if ($section === 'alerts') {
     $input = array_merge($current, $_POST);
     $input['sidebar_collapsed'] = !empty($_POST['sidebar_collapsed']);
     $input['show_help_hints'] = !empty($_POST['show_help_hints']);
+    $input['voice_input'] = !empty($_POST['voice_input']);
 }
 
 $prefs = UserPreferences::sanitise($input, $current);

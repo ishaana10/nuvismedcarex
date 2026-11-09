@@ -395,6 +395,16 @@ if ($rawSoap) {
     ];
 }
 
+// Optional dictation: the doctor opts in under Settings → Voice dictation.
+$voiceOn = !empty(nxPrefs()['voice_input']);
+$nxMic = function (string $targetId, string $label) use ($voiceOn): string {
+    if (!$voiceOn) return '';
+    $t = htmlspecialchars($targetId, ENT_QUOTES);
+    return '<button type="button" data-voice-for="' . $t . '" data-voice-status="' . $t . '-voice" aria-pressed="false" '
+        . 'aria-label="Dictate ' . htmlspecialchars($label, ENT_QUOTES) . '" '
+        . 'class="nx-voice-btn inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-outline-variant/50 text-[11px] font-semibold text-slate-600 hover:text-primary hover:border-primary transition">'
+        . '<span class="material-symbols-outlined text-[16px]" aria-hidden="true">mic</span><span data-voice-label>Dictate</span></button>';
+};
 $assessmentCodes = json_decode($soap['assessment_codes'] ?? '[]', true) ?: [];
 
 // Fetch Lab Orders for Patient
@@ -559,13 +569,21 @@ include __DIR__ . '/includes/header.php';
 
             <div class="text-xs space-y-4">
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Subjective (Chief Complaint & History)</label>
-                    <textarea name="subjective" rows="3" class="w-full bg-surface-container-low p-3 rounded-xl border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none font-medium"><?= htmlspecialchars($soap['subjective']) ?></textarea>
+                    <div class="flex items-center justify-between gap-2 mb-1">
+                        <label for="soap_subjective" class="block font-bold text-slate-700">Subjective (Chief Complaint & History)</label>
+                        <?= $nxMic('soap_subjective', 'the subjective section') ?>
+                    </div>
+                    <textarea id="soap_subjective" name="subjective" rows="3" class="w-full bg-surface-container-low p-3 rounded-xl border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none font-medium"><?= htmlspecialchars($soap['subjective']) ?></textarea>
+                    <?php if ($voiceOn): ?><p id="soap_subjective-voice" class="text-[10px] text-slate-500 mt-1 min-h-[14px]" role="status" aria-live="polite"></p><?php endif; ?>
                 </div>
 
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Objective (Physical Exam & Diagnostic Data)</label>
-                    <textarea name="objective" rows="3" class="w-full bg-surface-container-low p-3 rounded-xl border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none font-medium"><?= htmlspecialchars($soap['objective']) ?></textarea>
+                    <div class="flex items-center justify-between gap-2 mb-1">
+                        <label for="soap_objective" class="block font-bold text-slate-700">Objective (Physical Exam & Diagnostic Data)</label>
+                        <?= $nxMic('soap_objective', 'the objective section') ?>
+                    </div>
+                    <textarea id="soap_objective" name="objective" rows="3" class="w-full bg-surface-container-low p-3 rounded-xl border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none font-medium"><?= htmlspecialchars($soap['objective']) ?></textarea>
+                    <?php if ($voiceOn): ?><p id="soap_objective-voice" class="text-[10px] text-slate-500 mt-1 min-h-[14px]" role="status" aria-live="polite"></p><?php endif; ?>
                 </div>
 
                 <div>
@@ -575,8 +593,12 @@ include __DIR__ . '/includes/header.php';
                 </div>
 
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Plan (Treatment & Follow-up)</label>
-                    <textarea name="plan" rows="3" class="w-full bg-surface-container-low p-3 rounded-xl border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none font-medium"><?= htmlspecialchars($soap['plan']) ?></textarea>
+                    <div class="flex items-center justify-between gap-2 mb-1">
+                        <label for="soap_plan" class="block font-bold text-slate-700">Plan (Treatment & Follow-up)</label>
+                        <?= $nxMic('soap_plan', 'the plan section') ?>
+                    </div>
+                    <textarea id="soap_plan" name="plan" rows="3" class="w-full bg-surface-container-low p-3 rounded-xl border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none font-medium"><?= htmlspecialchars($soap['plan']) ?></textarea>
+                    <?php if ($voiceOn): ?><p id="soap_plan-voice" class="text-[10px] text-slate-500 mt-1 min-h-[14px]" role="status" aria-live="polite"></p><?php endif; ?>
                 </div>
             </div>
 
@@ -1215,6 +1237,22 @@ function toggleFinalizeInvoiceFields() {
 
             <p class="font-bold text-slate-900 text-xs">Add New Medication Line</p>
 
+            <?php if ($voiceOn): ?>
+            <div class="rounded-xl border border-dashed border-blue-200 bg-blue-50/50 p-3 space-y-1.5">
+                <div class="flex items-center justify-between gap-2">
+                    <span class="text-[11px] text-slate-600">Prefer to speak it? Say the medicine, dose, how often and for how long.</span>
+                    <button type="button" data-voice-rx data-voice-status="rx-voice-status" data-voice-heard="rx-voice-heard" aria-pressed="false"
+                            class="nx-voice-btn inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-blue-200 text-[11px] font-semibold text-blue-700 hover:border-blue-400 transition shrink-0">
+                        <span class="material-symbols-outlined text-[16px]" aria-hidden="true">mic</span><span data-voice-label>Dictate</span>
+                    </button>
+                </div>
+                <p class="text-[10px] text-slate-500">Example: “Amoxicillin 500 milligrams three times a day for seven days after meals”.</p>
+                <p id="rx-voice-heard" class="text-[11px] text-slate-700 italic"></p>
+                <p id="rx-voice-status" class="text-[10px] text-slate-500 min-h-[14px]" role="status" aria-live="polite"></p>
+                <p class="text-[10px] text-amber-800">The fields below are filled from what was heard. Check the name and dose, then press Add Line.</p>
+            </div>
+            <?php endif; ?>
+
             <div>
                 <input type="text" name="medication_name" placeholder="Medication Name (e.g. Amoxicillin)" required class="w-full bg-slate-50 px-3.5 py-2.5 rounded-xl border border-slate-200/80 text-xs font-medium focus:bg-white focus:outline-none focus:border-blue-500 transition">
             </div>
@@ -1585,4 +1623,8 @@ $clinicSettings = $settings;
 <?php endif; ?>
 
 <?php require_once __DIR__ . '/includes/lab_order_modal.php'; ?>
+<?php if ($voiceOn): ?>
+<script>window.NX_VOICE = <?= json_encode(['enabled' => true, 'lang' => nxPrefs()['voice_lang'] ?? 'en-US'], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;</script>
+<script src="assets/js/voice.js?v=<?= htmlspecialchars((string) ($nxAssetVersion ?? '1'), ENT_QUOTES) ?>" defer></script>
+<?php endif; ?>
 <?php include __DIR__ . '/includes/footer.php'; ?>

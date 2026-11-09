@@ -750,3 +750,16 @@ input[type="checkbox"], input[type="radio"] { border-radius: 6px; }
 /* Pill-friendly search + segmented controls already round themselves; leave
    buttons to their own utilities. Small, dense inputs stay slightly tighter. */
 .nx-input-sm, input.input-sm, select.input-sm { border-radius: 10px; }
+
+/* Dictation: the mic button pulses while the microphone is open */
+.nx-voice-btn.nx-voice-on {
+  color: rgb(190 18 60);
+  border-color: rgb(244 63 94);
+  background-color: rgb(255 241 242);
+  animation: nx-voice-pulse 1.4s ease-in-out infinite;
+}
+@keyframes nx-voice-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(244 63 94 / .35); }
+  50%      { box-shadow: 0 0 0 5px rgb(244 63 94 / 0); }
+}
+@media (prefers-reduced-motion: reduce) { .nx-voice-btn.nx-voice-on { animation: none; } }
