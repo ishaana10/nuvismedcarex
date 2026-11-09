@@ -135,6 +135,30 @@ $clinicDefaultPageSize = (int) nxSetting('default_pagination_limit', 10);
             </div>
         </section>
 
+        <section class="bg-white rounded-2xl border border-slate-200 p-5 space-y-4" id="voice-prefs">
+            <div>
+                <h2 class="text-base font-semibold text-slate-900">Voice dictation</h2>
+                <p class="text-[13px] text-slate-500 mt-0.5">Optional. Narrate SOAP notes and prescription lines instead of typing them. Typing always stays available.</p>
+            </div>
+            <label class="flex items-start gap-3 cursor-pointer">
+                <input type="checkbox" name="voice_input" value="1" class="mt-0.5 rounded border-slate-300 text-blue-700 focus:ring-blue-500/30" <?= !empty($prefs['voice_input']) ? 'checked' : '' ?>>
+                <span class="text-[13px] text-slate-700">Show microphone buttons in clinical encounters
+                    <span class="block text-xs text-slate-500 mt-0.5">Nothing is saved until you review the text and press save.</span>
+                </span>
+            </label>
+            <div class="max-w-xs">
+                <label class="form-label" for="pr-voice-lang">Spoken language and accent</label>
+                <select id="pr-voice-lang" name="voice_lang" class="form-select">
+                    <?php foreach (UserPreferences::VOICE_LANGS as $code => $label): ?>
+                        <option value="<?= $code ?>" <?= ($prefs['voice_lang'] ?? 'en-US') === $code ? 'selected' : '' ?>><?= htmlspecialchars($label) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <p class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                Dictation uses your browser's built-in speech recognition. In Chrome and Edge the audio is sent to the browser vendor to be transcribed, so check this is acceptable under your clinic's patient-privacy policy before turning it on. Safari processes speech through Apple; Firefox does not support it.
+            </p>
+        </section>
+
         <div class="sticky bottom-3 z-10 flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/95 backdrop-blur px-4 py-3 shadow-pop">
             <span class="text-[13px] text-slate-500">Only you can see this page</span>
             <button type="submit" class="btn-primary">Save profile</button>
