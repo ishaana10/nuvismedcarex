@@ -155,6 +155,29 @@
     return out;
   }
 
+  /**
+   * Some browsers (notably Chrome on Android) re-send the growing phrase as a fresh
+   * result each time, so "stomach", "stomach pain", "stomach pain in" would all be
+   * appended. Rebuild from every result and let a longer result replace the shorter
+   * one it extends.
+   */
+  function collapseResults(parts) {
+    var norm = function (x) { return x.toLowerCase().replace(/\s+/g, ' ').trim(); };
+    var out = [];
+    parts.forEach(function (raw) {
+      var cur = String(raw || '').trim();
+      if (!cur) return;
+      var last = out.length ? out[out.length - 1] : null;
+      if (last !== null) {
+        var a = norm(last), b = norm(cur);
+        if (b === a || a.indexOf(b) === 0) return;          // shorter or identical repeat
+        if (b.indexOf(a) === 0) { out[out.length - 1] = cur; return; } // grew from the last one
+      }
+      out.push(cur);
+    });
+    return out.join(' ');
+  }
+
   /* ---------- browser wiring ---------- */
 
   function getRecognition() {
@@ -194,7 +217,7 @@
 
     function stopActive() { if (active) active.stop(); }
 
-    function start(btn, onFinal, onInterim) {
+    function start(btn, onText) {
       stopActive();
       var rec = new Rec();
       rec.lang = cfg.lang || 'en-US';
@@ -210,13 +233,11 @@
         say(btn, '');
       }
       rec.onresult = function (ev) {
-        var interim = '';
-        for (var i = ev.resultIndex; i < ev.results.length; i++) {
-          var r = ev.results[i];
-          if (r.isFinal) onFinal(r[0].transcript);
-          else interim += r[0].transcript;
+        var finals = [], interims = [];
+        for (var i = 0; i < ev.results.length; i++) {
+          (ev.results[i].isFinal ? finals : interims).push(ev.results[i][0].transcript);
         }
-        if (onInterim) onInterim(interim);
+        onText(collapseResults(finals), collapseResults(interims));
       };
       rec.onerror = function (ev) {
         var why = ev && ev.error;
@@ -242,18 +263,15 @@
 
         if (btn.hasAttribute('data-voice-rx')) {
           var form = btn.closest('form');
-          var heard = '';
-          start(btn, function (t) {
-            heard = (heard + ' ' + t).trim();
+          start(btn, function (finalText, interim) {
+            var heard = collapseResults([finalText, interim]);
             var rx = parseRx(heard);
             ['medication_name', 'dosage', 'frequency', 'duration', 'instructions'].forEach(function (k) {
               var f = form && form.querySelector('[name="' + k + '"]');
               if (f) f.value = rx[k];
             });
             var tr = document.getElementById(btn.getAttribute('data-voice-heard'));
-            if (tr) tr.textContent = '“' + heard + '”';
-          }, function (interim) {
-            say(btn, interim ? 'Hearing: ' + interim : 'Listening…');
+            if (tr) tr.textContent = heard ? '“' + heard + '”' : '';
           });
           return;
         }
@@ -261,12 +279,11 @@
         var ta = document.getElementById(btn.getAttribute('data-voice-for'));
         if (!ta) return;
         ta.focus();
-        start(btn, function (t) {
-          ta.value = appendDictation(ta.value, t);
+        var baseline = ta.value; // what was there before; dictation is rebuilt on top of it
+        start(btn, function (finalText, interim) {
+          ta.value = appendDictation(baseline, collapseResults([finalText, interim]));
           ta.dispatchEvent(new Event('input', { bubbles: true }));
           ta.scrollTop = ta.scrollHeight;
-        }, function (interim) {
-          say(btn, interim ? 'Hearing: ' + interim : 'Listening…');
         });
       });
     });
@@ -278,5 +295,5 @@
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') stopActive(); });
   }
 
-  return { init: init, parseRx: parseRx, appendDictation: appendDictation, applyVoiceCommands: applyVoiceCommands, numberWordsToDigits: numberWordsToDigits };
+  return { init: init, parseRx: parseRx, appendDictation: appendDictation, applyVoiceCommands: applyVoiceCommands, numberWordsToDigits: numberWordsToDigits, collapseResults: collapseResults };
 });
