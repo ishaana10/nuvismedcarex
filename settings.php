@@ -239,6 +239,12 @@ $clinicDefaultPageSize = (int) nxSetting('default_pagination_limit', 10);
                     <?php endforeach; ?>
                 </select>
             </div>
+            <div>
+                <label class="form-label" for="pr-voice-words">My medical words</label>
+                <textarea id="pr-voice-words" name="voice_words" rows="5" maxlength="12000" class="form-textarea" spellcheck="false"
+                          placeholder="Metoclopramide&#10;sevilla = Seville&#10;high pertension = hypertension"><?= htmlspecialchars((string) ($prefs['voice_words'] ?? '')) ?></textarea>
+                <p class="text-xs text-slate-500 mt-1">One per line. A plain term (Metoclopramide) is used to correct close mishearings. <code>heard = correct</code> always swaps that wording. Medicines in your inventory are matched automatically.</p>
+            </div>
             <p class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
                 Dictation uses your browser's built-in speech recognition. In Chrome and Edge the audio is sent to the browser vendor to be transcribed, so check this is acceptable under your clinic's patient-privacy policy before turning it on. Safari processes speech through Apple; Firefox does not support it.
             </p>

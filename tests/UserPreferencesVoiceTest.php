@@ -33,4 +33,12 @@ class UserPreferencesVoiceTest extends TestCase
         $current = array_merge(UserPreferences::defaults(), ['voice_input' => true]);
         $this->assertFalse(UserPreferences::sanitise([], $current)['voice_input']);
     }
+
+    public function testWordListIsTidiedAndCapped(): void
+    {
+        $out = UserPreferences::sanitise(['voice_words' => "  Metoclopramide \n\n=\nsevilla = Seville"], UserPreferences::defaults());
+        $this->assertSame("Metoclopramide\nsevilla = Seville", $out['voice_words']);
+        $many = implode("\n", array_fill(0, 400, 'term'));
+        $this->assertCount(150, explode("\n", UserPreferences::cleanVoiceWords($many)));
+    }
 }

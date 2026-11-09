@@ -1624,7 +1624,7 @@ $clinicSettings = $settings;
 
 <?php require_once __DIR__ . '/includes/lab_order_modal.php'; ?>
 <?php if ($voiceOn): ?>
-<script>window.NX_VOICE = <?= json_encode(['enabled' => true, 'lang' => nxPrefs()['voice_lang'] ?? 'en-US'], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;</script>
+<script>window.NX_VOICE = <?= json_encode(['enabled' => true, 'lang' => nxPrefs()['voice_lang'] ?? 'en-US', 'words' => (string) (nxPrefs()['voice_words'] ?? ''), 'drugs' => array_slice(array_values(array_unique(array_map(fn($i) => (string) ($i['name'] ?? ''), $inventoryList))), 0, 1500)], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;</script>
 <script src="assets/js/voice.js?v=<?= htmlspecialchars((string) ($nxAssetVersion ?? '1'), ENT_QUOTES) ?>" defer></script>
 <?php endif; ?>
 <?php include __DIR__ . '/includes/footer.php'; ?>

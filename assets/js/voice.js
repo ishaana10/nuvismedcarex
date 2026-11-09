@@ -71,8 +71,10 @@
   }
 
   /** Join a new chunk onto what is already in the field, with sensible spacing and capitals. */
-  function appendDictation(existing, chunk) {
-    chunk = applyVoiceCommands(String(chunk || '').trim());
+  function appendDictation(existing, chunk, fix) {
+    chunk = String(chunk || '').trim();
+    if (fix) chunk = fix(chunk);
+    chunk = applyVoiceCommands(chunk);
     if (!chunk) return existing;
     var prev = existing || '';
     var atStart = prev.trim() === '' || /[.?!]\s*$/.test(prev) || /\n\s*$/.test(prev);
@@ -178,6 +180,93 @@
     return out.join(' ');
   }
 
+  /* ---------- medical word corrections ---------- */
+
+  function lev(a, b) {
+    var prev = [], cur = [], i, j;
+    for (j = 0; j <= b.length; j++) prev[j] = j;
+    for (i = 1; i <= a.length; i++) {
+      cur = [i];
+      for (j = 1; j <= b.length; j++) {
+        cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a.charAt(i - 1) === b.charAt(j - 1) ? 0 : 1));
+      }
+      prev = cur;
+    }
+    return prev[b.length];
+  }
+  function sim(a, b) { var m = Math.max(a.length, b.length); return m ? 1 - lev(a, b) / m : 1; }
+  function escRe(x) { return x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+  /**
+   * Fixes what the recogniser got wrong, using only words the doctor or the clinic gave us:
+   *  - "heard = correct" lines are exact swaps
+   *  - plain terms and inventory medicines correct close misspellings (strict, so ordinary
+   *    words are left alone)
+   * cfg: { words: "multi-line text", drugs: ["Amoxicillin 500mg Capsule", ...] }
+   */
+  function makeCorrector(cfg) {
+    cfg = cfg || {};
+    var fixes = [], vocab = [], seen = {};
+    String(cfg.words || '').split(/\r?\n/).forEach(function (line) {
+      line = line.trim();
+      if (!line) return;
+      var eq = line.indexOf('=');
+      if (eq > 0) {
+        var from = line.slice(0, eq).trim(), to = line.slice(eq + 1).trim();
+        if (from && to) fixes.push([new RegExp('\\b' + escRe(from).replace(/\s+/g, '\\s+') + '\\b', 'gi'), to]);
+      } else if (!seen[line.toLowerCase()]) { seen[line.toLowerCase()] = 1; vocab.push(line); }
+    });
+    var drugs = [];
+    (cfg.drugs || []).forEach(function (n) {
+      var c = String(n || '').replace(/\s*\d.*$/, '').replace(/\s+/g, ' ').trim();
+      if (c.length >= 4 && !seen[c.toLowerCase()]) { seen[c.toLowerCase()] = 1; drugs.push(c); }
+    });
+    var known = vocab.concat(drugs);
+    // single words to match against in free text (multi-word names contribute their words)
+    var words = [];
+    known.forEach(function (k) { k.split(/\s+/).forEach(function (w) { if (w.length >= 6) words.push(w); }); });
+
+    function nearest(word, min) {
+      var lw = word.toLowerCase(), best = null, bestS = 0;
+      for (var i = 0; i < words.length; i++) {
+        var cw = words[i].toLowerCase();
+        if (cw === lw) return word; // already right
+        if (cw.charAt(0) !== lw.charAt(0)) continue;
+        var s = sim(lw, cw);
+        if (s > bestS) { bestS = s; best = words[i]; }
+      }
+      return best && bestS >= min ? best : word;
+    }
+
+    return {
+      /** For note text. */
+      text: function (str) {
+        var t = String(str || '');
+        fixes.forEach(function (f) { t = t.replace(f[0], f[1]); });
+        if (!words.length) return t;
+        return t.replace(/[A-Za-z][A-Za-z'-]{5,}/g, function (w) {
+          var fixed = nearest(w, 0.86);
+          return fixed === w ? w : (w.charAt(0) === w.charAt(0).toUpperCase() ? fixed.charAt(0).toUpperCase() + fixed.slice(1) : fixed);
+        });
+      },
+      /** For a spoken medicine name: closer match allowed, as it must be one of the known medicines. */
+      drug: function (name) {
+        var n = String(name || '').trim();
+        if (!n || !known.length) return n;
+        var swapped = n;
+        fixes.forEach(function (f) { swapped = swapped.replace(f[0], f[1]); });
+        if (swapped !== n) return swapped;
+        var ln = n.toLowerCase(), best = null, bestS = 0;
+        known.forEach(function (k) {
+          var lk = k.toLowerCase();
+          var s = Math.max(sim(ln, lk), sim(ln.split(' ')[0], lk.split(' ')[0]) * 0.97);
+          if (s > bestS) { bestS = s; best = k; }
+        });
+        return best && bestS >= 0.72 ? best : n;
+      }
+    };
+  }
+
   /* ---------- browser wiring ---------- */
 
   function getRecognition() {
@@ -198,6 +287,7 @@
       return;
     }
 
+    var corrector = makeCorrector(cfg);
     var active = null; // { rec, btn, stop() }
 
     function setBtn(btn, listening) {
@@ -266,6 +356,7 @@
           start(btn, function (finalText, interim) {
             var heard = collapseResults([finalText, interim]);
             var rx = parseRx(heard);
+            rx.medication_name = corrector.drug(rx.medication_name);
             ['medication_name', 'dosage', 'frequency', 'duration', 'instructions'].forEach(function (k) {
               var f = form && form.querySelector('[name="' + k + '"]');
               if (f) f.value = rx[k];
@@ -281,7 +372,7 @@
         ta.focus();
         var baseline = ta.value; // what was there before; dictation is rebuilt on top of it
         start(btn, function (finalText, interim) {
-          ta.value = appendDictation(baseline, collapseResults([finalText, interim]));
+          ta.value = appendDictation(baseline, collapseResults([finalText, interim]), corrector.text);
           ta.dispatchEvent(new Event('input', { bubbles: true }));
           ta.scrollTop = ta.scrollHeight;
         });
@@ -295,5 +386,5 @@
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') stopActive(); });
   }
 
-  return { init: init, parseRx: parseRx, appendDictation: appendDictation, applyVoiceCommands: applyVoiceCommands, numberWordsToDigits: numberWordsToDigits, collapseResults: collapseResults };
+  return { init: init, parseRx: parseRx, appendDictation: appendDictation, applyVoiceCommands: applyVoiceCommands, numberWordsToDigits: numberWordsToDigits, collapseResults: collapseResults, makeCorrector: makeCorrector };
 });
