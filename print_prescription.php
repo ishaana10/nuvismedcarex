@@ -29,6 +29,9 @@ $clinicWebsite = $settings['clinic_website'] ?? '';
 
 // Per-clinic prescription template customisation
 $rxCfg = (new \ClinicFlow\Services\DocumentTemplateSettings($pdo, $currentTenantId))->load('prescription');
+// Live preview (document_preview.php): the unsaved settings, and a sample patient
+$nxPreview = defined('NX_DOC_PREVIEW');
+if ($nxPreview) { $rxCfg = $GLOBALS['nxPreviewCfg']; }
 $rxAccent = $rxCfg['accent'];
 $rxFontStack = \ClinicFlow\Services\DocumentTemplateSettings::fontStack($rxCfg['font']);
 $rxLogo = !empty($rxCfg['show_logo']) ? ($rxCfg['logo'] ?: ($clinicProfile['logo'] ?? '')) : '';
@@ -39,6 +42,25 @@ $rxSubtitle = $rxCfg['header_subtitle'] ?: $clinicSubtitle;
 $rxDisclaimer = $rxCfg['disclaimer'];
 $rxFooterNote = $rxCfg['footer_note'];
 
+if ($nxPreview) {
+    $child = !empty($_POST['sample_child']);
+    $today = new DateTimeImmutable('today');
+    $patient = [
+        'id' => 'preview', 'mrn' => '#00000', 'first_name' => 'Sample', 'last_name' => $child ? 'Child' : 'Patient',
+        'dob' => $today->modify($child ? '-5 years -6 months' : '-34 years')->format('Y-m-d'),
+        'age' => $child ? 5 : 34, 'gender' => $child ? 'Male' : 'Female', 'email' => '',
+        'known_allergies' => 'Penicillin',
+    ];
+    $prescriptions = [
+        ['medication_name' => 'Amoxicillin 500 mg capsules', 'dosage' => '500 mg', 'frequency' => 'Three times daily', 'duration' => '7 days', 'instructions' => 'Take with food. Finish the whole course.'],
+        ['medication_name' => 'Paracetamol 500 mg tablets', 'dosage' => '500 mg', 'frequency' => 'Every 6 hours if needed', 'duration' => '3 days', 'instructions' => ''],
+    ];
+    $assessmentCodes = [['code' => 'J06.9', 'label' => 'Acute upper respiratory infection, unspecified']];
+    $visitId = '';
+    $attendingDoc = nxAttendingDoctor($pdo) ?: ['name' => $_SESSION['user_name'] ?? 'Attending Physician', 'specialty' => '', 'prc_number' => ''];
+    $verificationToken = 'SAMPLE-TOKEN';
+    $verificationUrl = 'https://example.invalid/verify_prescription.php?token=SAMPLE-TOKEN';
+} else {
 // Fetch patient info
 $stmt = $pdo->prepare("SELECT * FROM patients WHERE (id = ? OR mrn = ?) AND tenant_id = ?");
 $stmt->execute([$patientId, $patientId, $currentTenantId]);
@@ -74,6 +96,7 @@ $tenantId = $currentTenantId;
 $rxVerificationService = new PrescriptionVerificationService();
 $verificationToken = $rxVerificationService->getOrCreateToken($pdo, $tenantId, $patient['id'], $visitId, $attendingDoc['id'] ?? null);
 $verificationUrl = $rxVerificationService->getVerificationUrl($verificationToken);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -93,6 +116,7 @@ $verificationUrl = $rxVerificationService->getVerificationUrl($verificationToken
 <body class="bg-slate-100 p-8 min-h-screen text-slate-800 font-sans">
 
 <div class="max-w-2xl mx-auto bg-white p-8 rounded-2xl shadow-lg border border-slate-200">
+<?php if (!$nxPreview): ?>
     <!-- Action buttons -->
     <div class="no-print mb-6 flex flex-wrap justify-between items-center gap-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
         <a href="clinical_visit.php?patient_id=<?= htmlspecialchars($patient['id']) ?>" class="text-xs font-semibold text-slate-600 hover:text-slate-900">&larr; Back to Encounter</a>
@@ -109,6 +133,8 @@ $verificationUrl = $rxVerificationService->getVerificationUrl($verificationToken
             <button onclick="window.print()" class="px-4 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition">Print Rx</button>
         </div>
     </div>
+
+<?php endif; ?>
 
     <!-- Customized Clinic Header -->
     <div class="pb-4 mb-6 flex justify-between items-start" style="border-bottom: 2px solid <?= htmlspecialchars($rxAccent) ?>; font-family: <?= $rxFontStack ?>;">
@@ -217,14 +243,14 @@ $verificationUrl = $rxVerificationService->getVerificationUrl($verificationToken
     <div class="pt-6 border-t border-slate-300 flex justify-between items-end text-xs">
         <div>
             <?php if (!empty($rxCfg['show_stamp']) && !empty($attendingDoc['digital_stamp'])): ?>
-                <img src="<?= htmlspecialchars($attendingDoc['digital_stamp']) ?>" class="max-h-32 max-w-[180px] object-contain opacity-95 mb-1" alt="Official Stamp">
+                <img src="<?= htmlspecialchars(nxMediaUrl($attendingDoc['digital_stamp'])) ?>" class="max-h-32 max-w-[180px] object-contain opacity-95 mb-1" alt="Official Stamp">
             <?php endif; ?>
             <p class="text-slate-500 text-[10px] uppercase font-semibold">Substitution</p>
             <p class="font-medium text-slate-700">Refill: [ ] 0  [ ] 1  [ ] 2  [ ] 3  [ ] PRN</p>
         </div>
         <div class="text-right w-64 relative">
             <?php if (!empty($rxCfg['show_signature']) && !empty($attendingDoc['esignature'])): ?>
-                <img src="<?= htmlspecialchars($attendingDoc['esignature']) ?>" class="max-h-20 max-w-[200px] object-contain ml-auto -mb-3 relative z-10" alt="E-Signature">
+                <img src="<?= htmlspecialchars(nxMediaUrl($attendingDoc['esignature'])) ?>" class="max-h-20 max-w-[200px] object-contain ml-auto -mb-3 relative z-10" alt="E-Signature">
             <?php endif; ?>
             <div class="border-b border-slate-400 mb-1 pb-1 font-serif text-lg font-bold italic" style="color: <?= htmlspecialchars($rxAccent) ?>"><?= htmlspecialchars($attendingDoc['name']) ?></div>
             <p class="font-bold text-slate-800"><?= htmlspecialchars($attendingDoc['name']) ?></p>

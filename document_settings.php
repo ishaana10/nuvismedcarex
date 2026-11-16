@@ -41,8 +41,16 @@ $typeLabel = $docType === 'certificate' ? 'Medical certificate' : 'Prescription'
     <?php endforeach; ?>
 </div>
 
-<form action="actions/document_settings_save.php" method="POST" enctype="multipart/form-data"
-      class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,420px)] gap-6 items-start">
+<style>
+    @media (min-width:1280px){ .ds-grid{grid-template-columns:minmax(0,1fr) minmax(0,600px)} }
+    .ds-pane{overflow:hidden;background:#eef2f7;border-radius:0 0 16px 16px;position:relative}
+    .ds-pane iframe{border:0;display:block;width:820px;background:#eef2f7;transform-origin:top left}
+    .ds-busy{position:absolute;top:8px;right:10px;font-size:11px;color:#64748b;background:#fff;border:1px solid #e2e8f0;border-radius:999px;padding:2px 10px;opacity:0;transition:opacity .15s}
+    .ds-busy.on{opacity:1}
+    @media (min-width:1280px){ .ds-aside{position:sticky;top:80px} .ds-scroll{max-height:calc(100vh - 150px);overflow:auto} }
+</style>
+<form action="actions/document_settings_save.php" method="POST" enctype="multipart/form-data" id="ds-form"
+      class="ds-grid grid grid-cols-1 gap-6 items-start">
     <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
     <input type="hidden" name="doc_type" value="<?= htmlspecialchars($docType) ?>">
 
@@ -194,32 +202,62 @@ $typeLabel = $docType === 'certificate' ? 'Medical certificate' : 'Prescription'
         <?php endif; ?>
     </div>
 
-    <!-- Preview -->
-    <aside class="xl:sticky xl:top-20">
+    <!-- Live preview: the real document, redrawn as you change things -->
+    <aside class="ds-aside">
         <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
-            <div class="px-4 py-2.5 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">Letterhead preview</div>
-            <div class="p-5" style="font-family: <?= DocumentTemplateSettings::fontStack($cfg['font']) ?>;">
-                <div class="flex items-center gap-3 <?= $cfg['logo_align'] === 'center' ? 'justify-center text-center flex-col' : ($cfg['logo_align'] === 'right' ? 'flex-row-reverse text-right' : '') ?>">
-                    <?php if ($docType === 'certificate' && !empty($cfg['show_caduceus'])): ?>
-                        <img src="<?= DocumentTemplateSettings::CADUCEUS ?>" alt="" style="width:44px" class="object-contain shrink-0">
-                    <?php endif; ?>
-                    <?php if (!empty($cfg['show_logo']) && $effectiveLogo): ?>
-                        <img src="<?= htmlspecialchars($effectiveLogo) ?>" alt="" style="width: <?= DocumentTemplateSettings::logoWidth($cfg['logo_size']) ?>px" class="object-contain shrink-0">
-                    <?php endif; ?>
-                    <div class="min-w-0">
-                        <div class="font-bold text-lg leading-tight" style="color: <?= htmlspecialchars($cfg['accent']) ?>"><?= htmlspecialchars($clinic['name']) ?></div>
-                        <?php if (!empty($cfg['show_address']) && !empty($clinic['address'])): ?><div class="text-[11px] text-slate-500"><?= htmlspecialchars($clinic['address']) ?></div><?php endif; ?>
-                    </div>
+            <div class="px-4 py-2.5 border-b border-slate-200 flex items-center justify-between gap-3">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Live preview: <?= htmlspecialchars($typeLabel) ?></span>
+                <label class="text-[11px] text-slate-500 inline-flex items-center gap-1.5 cursor-pointer">
+                    <input type="checkbox" id="ds-child" class="rounded border-slate-300"> Child patient (under 15)
+                </label>
+            </div>
+            <div class="ds-scroll">
+                <div class="ds-pane" id="ds-pane">
+                    <span class="ds-busy" id="ds-busy" role="status">Updating…</span>
+                    <iframe id="ds-frame" title="Live preview of the <?= htmlspecialchars(strtolower($typeLabel)) ?>" sandbox="allow-same-origin" height="900"></iframe>
                 </div>
-                <div class="mt-4 pt-3 border-t-2" style="border-color: <?= htmlspecialchars($cfg['accent']) ?>">
-                    <div class="text-center font-bold tracking-wide" style="color: <?= htmlspecialchars($cfg['accent']) ?>"><?= htmlspecialchars($cfg['header_title']) ?></div>
-                    <?php if (!empty($cfg['header_subtitle'])): ?><div class="text-center text-[11px] text-slate-500"><?= htmlspecialchars($cfg['header_subtitle']) ?></div><?php endif; ?>
-                </div>
-                <p class="text-[11px] text-slate-400 mt-4 italic"><?= htmlspecialchars($cfg['disclaimer']) ?></p>
             </div>
         </div>
-        <p class="text-[11px] text-slate-400 mt-2 px-1">This is a quick letterhead preview. Print a real <?= htmlspecialchars(strtolower($typeLabel)) ?> to see the full layout with your choices applied.</p>
+        <p class="text-[11px] text-slate-400 mt-2 px-1">The whole <?= htmlspecialchars(strtolower($typeLabel)) ?>, with a sample patient and visit, updates as you type. Your own signature, stamp and licence number are shown. Nothing changes until you press Save.</p>
     </aside>
 </form>
+
+
+<script>
+(function () {
+    var form = document.getElementById('ds-form'), frame = document.getElementById('ds-frame'),
+        pane = document.getElementById('ds-pane'), busy = document.getElementById('ds-busy'),
+        child = document.getElementById('ds-child');
+    if (!form || !frame) return;
+    var timer = null, seq = 0;
+
+    function fit() {
+        var w = pane.clientWidth || 600, scale = Math.min(1, w / 820), doc = frame.contentDocument;
+        var h = doc && doc.documentElement ? Math.max(doc.documentElement.scrollHeight, doc.body ? doc.body.scrollHeight : 0) : 900;
+        frame.style.height = h + 'px';
+        frame.style.transform = 'scale(' + scale + ')';
+        pane.style.height = Math.ceil(h * scale) + 'px';
+    }
+    frame.addEventListener('load', fit);
+    window.addEventListener('resize', fit);
+
+    function refresh() {
+        var mine = ++seq, fd = new FormData(form);
+        fd.set('sample_child', child && child.checked ? '1' : '');
+        busy.classList.add('on');
+        fetch('document_preview.php', { method: 'POST', body: fd, credentials: 'same-origin' })
+            .then(function (r) { return r.ok ? r.text() : Promise.reject(r.status); })
+            .then(function (html) { if (mine === seq) { frame.srcdoc = html; } })
+            .catch(function () { /* keep the last good preview */ })
+            .then(function () { if (mine === seq) busy.classList.remove('on'); });
+    }
+    function later() { clearTimeout(timer); timer = setTimeout(refresh, 350); }
+
+    form.addEventListener('input', later);
+    form.addEventListener('change', later);
+    if (child) child.addEventListener('change', later);
+    refresh();
+})();
+</script>
 
 <?php include __DIR__ . '/includes/footer.php'; ?>
