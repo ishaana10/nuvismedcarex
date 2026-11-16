@@ -566,6 +566,8 @@
     ['Go to clinical encounter', ['G', 'E']],
     ['Go to billing', ['G', 'B']],
     ['Go to inventory', ['G', 'I']],
+    ['Go to settings', ['G', 'S']],
+    ['Go to the user guide', ['G', 'U']],
     ['Register a new patient', ['N']],
     ['Switch light / dark theme', ['Shift', 'D']],
     ['Collapse or expand sidebar', ['[']],
@@ -590,7 +592,9 @@
             el('p', { class: 'text-xs text-slate-500 mt-0.5', text: 'Shortcuts work anywhere except while typing in a field.' })
           ]), close
         ])
-      ].concat(rows)));
+      ].concat(rows).concat([
+        el('a', { href: 'user_guide.php', class: 'mt-4 inline-flex items-center gap-2 text-sm font-semibold text-blue-700 hover:underline' }, [icon('menu_book'), document.createTextNode('Open the full user guide')])
+      ])));
       close.addEventListener('click', function () { helpDialog.close(); });
       helpDialog.addEventListener('click', function (e) { if (e.target === helpDialog) helpDialog.close(); });
       document.body.appendChild(helpDialog);
@@ -600,7 +604,7 @@
 
   /* ---------------------------------------------------- Keyboard routing */
   var gPending = 0;
-  var goMap = { d: 'index.php', p: 'patients.php', a: 'appointment.php', e: 'clinical_visit.php', b: 'billing.php', i: 'inventory.php', s: 'settings.php' };
+  var goMap = { d: 'index.php', p: 'patients.php', a: 'appointment.php', e: 'clinical_visit.php', b: 'billing.php', i: 'inventory.php', s: 'settings.php', u: 'user_guide.php' };
   function typing(t) {
     return t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
   }

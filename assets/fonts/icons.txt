@@ -36,6 +36,7 @@ balance
 barcode
 bed
 bedtime
+biotech
 block
 blood_pressure
 book
@@ -76,16 +77,18 @@ code_off
 colors
 comment
 commit
+computer
 conditions
 contact_phone
+contacts
 content_copy
 contrast
 cookie
 credit_card
-crop
 css
 csv
 cut
+cycle
 dark_mode
 dashboard
 data_object
@@ -96,8 +99,10 @@ delete_sweep
 description
 desk
 details
+devices
 diagnosis
 dialogs
+difference
 dns
 docs
 domain
@@ -127,6 +132,7 @@ expand
 expand_less
 expand_more
 explicit
+explore
 exposure
 extension
 fact_check
@@ -186,6 +192,7 @@ keyboard
 keyboard_arrow_up
 keyboard_capslock
 label
+labs
 lan
 landscape
 language
@@ -214,6 +221,7 @@ medication
 meeting_room
 memory
 menu
+menu_book
 merge
 mic
 mobile
@@ -356,6 +364,7 @@ tab
 table
 table_rows
 table_view
+tablet
 tabs
 tag
 target
@@ -366,9 +375,11 @@ timeline
 timer
 title
 toast
+toc
 today
 token
 toolbar
+topic
 transform
 translate
 travel
@@ -391,7 +402,9 @@ vital_signs
 vitals
 vpn_key
 warning
+watch
 water
+waving_hand
 web
 webhook
 weight

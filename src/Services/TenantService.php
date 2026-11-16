@@ -109,7 +109,7 @@ class TenantService {
         $phone = $data['phone'] ?? '';
         $email = $data['email'] ?? '';
         $storageLimitMb = (int)($data['storage_limit_mb'] ?? 500);
-        $storageProvider = in_array($data['storage_provider'] ?? 'server', ['server', 'googledrive', 'onedrive'], true) ? $data['storage_provider'] : 'server';
+        $storageProvider = in_array($data['storage_provider'] ?? 'server', ['server', 'googledrive', 'onedrive'], true) ? ($data['storage_provider'] ?? 'server') : 'server';
         $planPrice = (float)($data['plan_price'] ?? 0.00);
         $billingCycle = $data['billing_cycle'] ?? 'monthly';
         $currency = $data['currency'] ?? 'FJD';
