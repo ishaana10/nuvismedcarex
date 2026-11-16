@@ -267,6 +267,16 @@
     document.documentElement.classList.toggle('dark', dark);
     store.set('nx-theme', dark ? 'dark' : 'light');
     applyThemeIcon();
+    // Signed-in people have a saved theme that is applied on every page, so save
+    // the choice there too; otherwise the next page would put the old theme back.
+    var meta = document.querySelector('meta[name="csrf-token"]');
+    if (meta && window.fetch) {
+      fetch('actions/theme_save.php', {
+        method: 'POST', credentials: 'same-origin', keepalive: true,
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': meta.content },
+        body: JSON.stringify({ theme: dark ? 'dark' : 'light' })
+      }).catch(function () {});
+    }
   };
   NX.toggleSidebar = function () {
     var c = !document.documentElement.classList.contains('nx-sidebar-collapsed');

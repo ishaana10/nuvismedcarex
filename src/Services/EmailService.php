@@ -229,6 +229,21 @@ class EmailService {
     /** RFC-compliant message: encoded headers, and body lines starting with "." doubled. */
     private function buildMessage(string $recipient, string $subject, string $htmlBody, string $from, string $fromName, string $replyTo, string $host): string {
         $encode = static fn(string $v): string => '=?UTF-8?B?' . base64_encode($v) . '?=';
+        // Gmail and Outlook drop images embedded as data: URIs, so turn each one into an
+        // inline attachment referenced by cid: (multipart/related). This is how the
+        // locally generated QR codes reach the recipient without any external service.
+        $inline = [];
+        $htmlBody = (string) preg_replace_callback(
+            '#src=([\'"])data:image/(png|jpeg|gif);base64,([A-Za-z0-9+/=\s]+)\\1#',
+            static function (array $m) use (&$inline, $host): string {
+                $cid = bin2hex(random_bytes(8)) . '@' . $host;
+                $inline[] = ['cid' => $cid, 'type' => 'image/' . $m[2], 'data' => preg_replace('/\s+/', '', $m[3])];
+                return 'src=' . $m[1] . 'cid:' . $cid . $m[1];
+            },
+            $htmlBody
+        );
+        $boundary = '=_nuvis_' . bin2hex(random_bytes(8));
+
         $headers = [
             'Date: ' . date('r'),
             'Message-ID: <' . bin2hex(random_bytes(12)) . '@' . $host . '>',
@@ -236,12 +251,26 @@ class EmailService {
             'To: <' . $recipient . '>',
             'Subject: ' . $encode($subject),
             'MIME-Version: 1.0',
-            'Content-Type: text/html; charset=UTF-8',
+            $inline
+                ? 'Content-Type: multipart/related; type="text/html"; boundary="' . $boundary . '"'
+                : 'Content-Type: text/html; charset=UTF-8',
             'Content-Transfer-Encoding: 8bit',
             'X-Mailer: Nuvis Medcare X',
         ];
         if ($replyTo !== '' && filter_var($replyTo, FILTER_VALIDATE_EMAIL)) {
             $headers[] = 'Reply-To: <' . $replyTo . '>';
+        }
+
+        if ($inline) {
+            $htmlBody = "--{$boundary}\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n"
+                . $htmlBody . "\r\n";
+            foreach ($inline as $i => $img) {
+                $htmlBody .= "--{$boundary}\r\nContent-Type: {$img['type']}; name=\"image" . ($i + 1) . '.' . substr($img['type'], 6) . "\"\r\n"
+                    . "Content-Transfer-Encoding: base64\r\nContent-ID: <{$img['cid']}>\r\n"
+                    . "Content-Disposition: inline; filename=\"image" . ($i + 1) . '.' . substr($img['type'], 6) . "\"\r\n\r\n"
+                    . chunk_split($img['data'], 76, "\r\n");
+            }
+            $htmlBody .= "--{$boundary}--\r\n";
         }
 
         // Normalise line endings, then dot-stuff so a line of "." cannot end the message early
@@ -524,7 +553,7 @@ class EmailService {
             $qrSection = "
             <div style='background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid #e2e8f0; text-align: center;'>
                 <p style='margin: 0 0 10px 0; font-size: 13px; font-weight: bold; color: #1e293b;'>Pharmacy Verification QR Code</p>
-                <img src='https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=" . urlencode($verificationUrl) . "' alt='QR Verification' style='width: 140px; height: 140px; border-radius: 6px; border: 1px solid #cbd5e1;'>
+                <img src='" . \ClinicFlow\Utils\QrCode::pngDataUri($verificationUrl, 4) . "' alt='QR Verification' style='width: 140px; height: 140px; border-radius: 6px; border: 1px solid #cbd5e1;'>
                 <p style='margin: 8px 0 0 0; font-size: 11px; font-family: monospace; color: #475569;'>Token: " . htmlspecialchars($verificationToken ?? '') . "</p>
                 <p style='margin: 4px 0 0 0; font-size: 12px;'><a href='" . htmlspecialchars($verificationUrl) . "' style='color: #2563eb; text-decoration: underline;'>Verify Prescription Online</a></p>
             </div>";

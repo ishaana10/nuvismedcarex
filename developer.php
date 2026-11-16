@@ -103,6 +103,10 @@ $fmtBytes = function ($b) {
         <span class="material-symbols-outlined text-base">point_of_sale</span>
         <span>VMS Fiscal Settings</span>
     </button>
+    <button type="button" onclick="switchDevTab('encryption')" id="dev-tab-btn-encryption" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+        <span class="material-symbols-outlined text-base">key</span>
+        <span>Encryption</span>
+    </button>
     <button type="button" onclick="switchDevTab('cloud')" id="dev-tab-btn-cloud" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">cloud</span>
         <span>Cloud Storage & Drive</span>
@@ -1031,6 +1035,54 @@ $fmtBytes = function ($b) {
             </div>
         </form>
     </div> <!-- End dev-panel-pagination -->
+
+    <!-- Encryption key & re-encryption -->
+    <div id="dev-panel-encryption" class="hidden space-y-6">
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-4">
+            <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                <span class="material-symbols-outlined text-base">key</span>
+                <span>Encryption key for clinical notes and vitals</span>
+            </h2>
+            <div id="enc-banner" class="rounded-xl border px-4 py-3 text-sm bg-slate-50 border-slate-200 text-slate-700">Checking&hellip;</div>
+
+            <ol class="list-decimal pl-5 space-y-1.5 text-sm text-on-surface">
+                <li><b>Back up the database</b> and keep the backup until you have checked a few patient records.</li>
+                <li>Generate a key below and store it in your password manager. <b>If this key is lost, the notes cannot be recovered.</b></li>
+                <li>Add it to the config file the app is actually using on the server, <code class="font-mono text-xs">config/config.php</code> (or <code class="font-mono text-xs">config/config.local.php</code> if that file exists):
+                    <code class="block font-mono text-xs bg-slate-100 rounded-lg px-3 py-2 mt-1.5">'app_key' =&gt; 'paste-the-key-here',</code>
+                    Do not commit it to git. Existing notes stay readable meanwhile.</li>
+                <li>Reload this tab, then press <b>Re-encrypt now</b> until nothing is left to do.</li>
+                <li>Optional, once everything is re-encrypted: add <code class="font-mono text-xs">'allow_legacy_key' =&gt; false,</code> so the old public key is never used again.</li>
+            </ol>
+
+            <div class="flex flex-wrap items-center gap-2">
+                <button type="button" onclick="encGenerateKey()" class="btn-secondary">Generate a key</button>
+                <input id="enc-key-out" type="text" readonly placeholder="Press Generate. Created in this browser, never sent to the server." class="form-input font-mono text-xs flex-1 min-w-[260px]" aria-label="Generated key">
+                <button type="button" onclick="encCopyKey()" class="btn-secondary">Copy</button>
+            </div>
+        </div>
+
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <h2 class="text-xs font-bold text-primary uppercase tracking-wider">Where each value stands</h2>
+                <button type="button" onclick="encLoad()" class="btn-secondary">Refresh</button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead><tr class="text-left text-xs text-outline">
+                        <th class="py-1.5 pr-4">Column</th><th class="pr-4">On your key</th><th class="pr-4">On old public key</th><th class="pr-4">Not encrypted</th><th>Unreadable</th>
+                    </tr></thead>
+                    <tbody id="enc-rows"><tr><td colspan="5" class="py-2 text-outline">Loading&hellip;</td></tr></tbody>
+                </table>
+            </div>
+            <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="enc-plain" class="rounded"> Also encrypt notes that were saved without encryption</label>
+            <div class="flex flex-wrap items-center gap-2">
+                <button type="button" id="enc-dry" onclick="encRun(true)" class="btn-secondary">Preview (changes nothing)</button>
+                <button type="button" id="enc-go" onclick="encRun(false)" class="btn-primary">Re-encrypt now</button>
+            </div>
+            <p id="enc-result" class="text-sm text-on-surface" role="status" aria-live="polite"></p>
+        </div>
+    </div> <!-- End dev-panel-encryption -->
 
     <!-- VMS Fiscal Settings Panel -->
     <div id="dev-panel-vms" class="hidden space-y-6">
@@ -2222,8 +2274,83 @@ function closeTenantModal() {
     if (modal) modal.classList.add('hidden');
 }
 
+/* ---- Encryption tab ---- */
+function encGenerateKey() {
+    const b = new Uint8Array(32);
+    crypto.getRandomValues(b);
+    document.getElementById('enc-key-out').value = Array.from(b, x => x.toString(16).padStart(2, '0')).join('');
+}
+function encCopyKey() {
+    const i = document.getElementById('enc-key-out');
+    if (!i.value) return;
+    i.select();
+    (navigator.clipboard ? navigator.clipboard.writeText(i.value) : Promise.resolve(document.execCommand('copy'))).catch(() => {});
+}
+function encRender(s) {
+    const banner = document.getElementById('enc-banner');
+    const t = s.totals || {};
+    let cls = 'rounded-xl border px-4 py-3 text-sm ';
+    if (!s.key_configured) {
+        cls += 'bg-red-50 border-red-200 text-red-800';
+        banner.textContent = 'No app_key is set. Clinical data is protected only by a key that is public in the source code. Follow the steps above.';
+    } else if (t.legacy_key > 0) {
+        cls += 'bg-amber-50 border-amber-200 text-amber-900';
+        banner.textContent = 'Your key is set. ' + t.legacy_key + ' value(s) are still on the old public key (they are readable). Press Re-encrypt now.';
+    } else {
+        cls += 'bg-emerald-50 border-emerald-200 text-emerald-900';
+        banner.textContent = 'Your key is set and every encrypted value uses it.' + (s.legacy_fallback ? ' You can now add allow_legacy_key => false to the config.' : ' The old public key is disabled.');
+    }
+    if (t.unreadable > 0) banner.textContent += ' ' + t.unreadable + ' value(s) cannot be opened by any known key and were left untouched.';
+    banner.className = cls;
+    const body = document.getElementById('enc-rows');
+    body.textContent = '';
+    Object.keys(s.columns || {}).forEach(name => {
+        const c = s.columns[name], tr = document.createElement('tr');
+        tr.className = 'border-t border-outline-variant/30';
+        [name, c.current_key, c.legacy_key, c.plaintext, c.unreadable].forEach((v, i) => {
+            const td = document.createElement('td');
+            td.className = 'py-1.5 pr-4' + (i === 0 ? ' font-mono text-xs' : '');
+            td.textContent = v;
+            tr.appendChild(td);
+        });
+        body.appendChild(tr);
+    });
+    document.getElementById('enc-go').disabled = !s.key_configured;
+}
+function encLoad() {
+    fetch('actions/encryption_actions.php?action=enc_status')
+        .then(r => r.json())
+        .then(s => { if (s.success) encRender(s); else document.getElementById('enc-banner').textContent = s.error || 'Could not read status.'; })
+        .catch(() => { document.getElementById('enc-banner').textContent = 'Could not read status.'; });
+}
+async function encRun(dry) {
+    const out = document.getElementById('enc-result');
+    const btns = [document.getElementById('enc-go'), document.getElementById('enc-dry')];
+    btns.forEach(b => b.disabled = true);
+    let total = 0, guard = 0;
+    try {
+        while (guard++ < 500) {
+            const r = await fetch('actions/encryption_actions.php?action=enc_migrate', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dry_run: dry, encrypt_plaintext: document.getElementById('enc-plain').checked })
+            });
+            const j = await r.json();
+            if (!j.success) { out.textContent = j.error || 'Stopped.'; return; }
+            total += j.migrated;
+            out.textContent = (dry ? 'Would re-encrypt ' : 'Re-encrypted ') + total + ' value(s)' + (dry ? '.' : '; ' + j.remaining + ' remaining\u2026');
+            if (dry || j.done || j.migrated === 0) break;
+        }
+        if (!dry) out.textContent = 'Finished: re-encrypted ' + total + ' value(s).';
+    } catch (e) {
+        out.textContent = 'Stopped: ' + e.message + '. Nothing is lost; you can run it again.';
+    } finally {
+        btns.forEach(b => b.disabled = false);
+        encLoad();
+    }
+}
+
 function switchDevTab(tab) {
-    const panels = ['git', 'tenants', 'vms', 'cloud', 'database', 'lab', 'pagination', 'rbac', 'redis', 'logs', 'integrations', 'vsdc', 'subscriptions', 'alerts', 'erp', 'monitoring'];
+    const panels = ['git', 'tenants', 'vms', 'encryption', 'cloud', 'database', 'lab', 'pagination', 'rbac', 'redis', 'logs', 'integrations', 'vsdc', 'subscriptions', 'alerts', 'erp', 'monitoring'];
     panels.forEach(p => {
         const el = document.getElementById('dev-panel-' + p);
         if (el) el.classList.add('hidden');
@@ -2238,6 +2365,8 @@ function switchDevTab(tab) {
 
     if (tab === 'git') {
         if (typeof refreshGitStatus === 'function') refreshGitStatus();
+    } else if (tab === 'encryption') {
+        if (typeof encLoad === 'function') encLoad();
     } else if (tab === 'redis') {
         if (typeof fetchRedisDiagnostics === 'function') fetchRedisDiagnostics();
     } else if (tab === 'logs') {

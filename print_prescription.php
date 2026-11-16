@@ -197,7 +197,7 @@ $verificationUrl = $rxVerificationService->getVerificationUrl($verificationToken
     <!-- Pharmacy QR Code Verification Block -->
     <?php if (!empty($rxCfg['show_verification_qr'])): ?>
     <div class="mb-8 p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-4">
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=<?= urlencode($verificationUrl) ?>" alt="Scan to Verify Prescription" class="w-20 h-20 rounded border border-slate-300 shrink-0">
+        <img src="<?= htmlspecialchars(\ClinicFlow\Utils\QrCode::svgDataUri($verificationUrl, 120), ENT_QUOTES) ?>" alt="Scan to Verify Prescription" class="w-20 h-20 rounded border border-slate-300 shrink-0">
         <div class="text-xs text-slate-700">
             <p class="font-bold text-slate-900 flex items-center gap-1">
                 <span class="material-symbols-outlined text-sm text-emerald-600">verified</span> Pharmacy Verification QR Code
