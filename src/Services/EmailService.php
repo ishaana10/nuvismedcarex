@@ -8,8 +8,19 @@ use ClinicFlow\Services\ClinicSettings;
 class EmailService {
     private PDO $db;
 
+    /** @var (callable(string,string,string,array):array)|null Replaces the SMTP connection (used by tests). */
+    private $transport = null;
+
     public function __construct(PDO $db) {
         $this->db = $db;
+    }
+
+    /**
+     * Send through $transport instead of opening an SMTP connection. It receives
+     * (recipient, subject, htmlBody, smtpConfig) and returns ['success' => bool, 'error' => ?string].
+     */
+    public function useTransport(?callable $transport): void {
+        $this->transport = $transport;
     }
 
     /**
@@ -340,7 +351,9 @@ class EmailService {
             return false;
         }
 
-        $res = $this->sendSmtpEmail($recipientEmail, $subject, $htmlBody, $smtpConfig);
+        $res = $this->transport
+            ? ($this->transport)($recipientEmail, $subject, $htmlBody, $smtpConfig)
+            : $this->sendSmtpEmail($recipientEmail, $subject, $htmlBody, $smtpConfig);
         $this->logEmailResult(
             $tenantId, $recipientEmail, $subject, $documentType, $documentId,
             $res['success'] ? 'Sent' : 'Failed',

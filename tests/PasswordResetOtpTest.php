@@ -41,10 +41,53 @@ class PasswordResetOtpTest extends TestCase {
         $this->assertEquals('password_resets', $stmt->fetchColumn());
     }
 
+    /** Give the default clinic an outgoing mail server, as Administration -> Email would. */
+    private function configureMail(): void {
+        \ClinicFlow\Shared\TenantContext::setTenantId('default-clinic');
+        $settings = new \ClinicFlow\Services\ClinicSettings($this->pdo, 'default-clinic');
+        $settings->save(['smtp_host' => 'smtp.example.test', 'smtp_port' => '587', 'smtp_user' => 'clinic@example.test', 'smtp_pass' => 'secret']);
+    }
+
     public function testEmailServiceSendOtpEmail(): void {
+        $this->configureMail();
+        $sent = [];
         $emailService = new EmailService($this->pdo);
+        // No real mail server in tests: capture what would have been sent.
+        $emailService->useTransport(function (string $to, string $subject, string $html, array $cfg) use (&$sent): array {
+            $sent[] = compact('to', 'subject', 'html');
+            return ['success' => true, 'error' => null];
+        });
+
         $result = $emailService->sendOtpEmail('testdoc@clinicflow.com', '654321', 15);
+
         $this->assertTrue($result);
+        $this->assertCount(1, $sent);
+        $this->assertSame('testdoc@clinicflow.com', $sent[0]['to']);
+        $this->assertStringContainsString('654321', $sent[0]['html']);
+        $this->assertStringContainsString('15 minutes', $sent[0]['html']);
+        $log = $this->pdo->query("SELECT status FROM email_logs WHERE document_type = 'otp_reset'")->fetchColumn();
+        $this->assertSame('Sent', $log);
+    }
+
+    public function testOtpEmailFailsClearlyWhenNoMailServerIsSetUp(): void {
+        $emailService = new EmailService($this->pdo);
+        $emailService->useTransport(function (): array {
+            $this->fail('Nothing should be sent without a mail server.');
+        });
+
+        $this->assertFalse($emailService->sendOtpEmail('testdoc@clinicflow.com', '654321', 15));
+        $row = $this->pdo->query("SELECT status, error_message FROM email_logs WHERE document_type = 'otp_reset'")->fetch(PDO::FETCH_ASSOC);
+        $this->assertSame('Failed', $row['status']);
+        $this->assertStringContainsString('Administration', (string) $row['error_message']);
+    }
+
+    public function testOtpEmailReportsATransportFailure(): void {
+        $this->configureMail();
+        $emailService = new EmailService($this->pdo);
+        $emailService->useTransport(fn(): array => ['success' => false, 'error' => 'Could not connect']);
+
+        $this->assertFalse($emailService->sendOtpEmail('testdoc@clinicflow.com', '654321', 15));
+        $this->assertSame('Could not connect', $this->pdo->query("SELECT error_message FROM email_logs WHERE document_type = 'otp_reset'")->fetchColumn());
     }
 
     public function testOtpGenerationAndValidation(): void {

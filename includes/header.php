@@ -238,6 +238,7 @@ $nxCsrf = htmlspecialchars(getCsrfToken());
                     <button type="button" class="nx-menu-item" onclick="openChangePasswordModal()"><span class="material-symbols-outlined">key</span>Change password</button>
                     <a href="settings.php" class="nx-menu-item"><span class="material-symbols-outlined">tune</span>Settings</a>
                     <button type="button" class="nx-menu-item sm:hidden" data-nx-theme-toggle><span class="material-symbols-outlined" data-nx-theme-icon>dark_mode</span>Switch theme</button>
+                    <a href="user_guide.php" class="nx-menu-item"><span class="material-symbols-outlined">menu_book</span>User guide</a>
                     <button type="button" class="nx-menu-item hidden sm:flex" data-nx-help-open><span class="material-symbols-outlined">keyboard</span>Keyboard shortcuts</button>
                     <div class="my-1.5 border-t border-slate-200"></div>
                     <a href="actions/logout.php" class="nx-menu-item is-danger"><span class="material-symbols-outlined">logout</span>Sign out</a>
