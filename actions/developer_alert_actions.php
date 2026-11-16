@@ -20,7 +20,7 @@ $alertService = Container::getInstance()->get(DeveloperAlertService::class);
 $logger = Container::getInstance()->get(Logger::class);
 $userId = $_SESSION['user_id'] ?? '';
 
-$back = $_SERVER['HTTP_REFERER'] ?? '../index.php';
+$back = nxSafeReferer('../index.php');
 
 if ($action === 'dismiss_alert') {
     $id = trim($_POST['alert_id'] ?? '');

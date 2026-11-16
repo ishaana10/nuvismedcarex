@@ -20,7 +20,7 @@ $tenantId = TenantContext::getTenantId();
 $locationService = Container::getInstance()->get(LocationService::class);
 $logger = Container::getInstance()->get(Logger::class);
 
-$back = $_SERVER['HTTP_REFERER'] ?? '../admin.php?tab=locations';
+$back = nxSafeReferer('../admin.php?tab=locations');
 
 if ($action === 'set_current_location') {
     $locationId = trim($_POST['location_id'] ?? '');

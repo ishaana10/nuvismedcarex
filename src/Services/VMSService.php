@@ -171,8 +171,8 @@ class VMSService
 
         // Log Fiscalization Request
         $logId = 'vlog-' . uniqid();
-        $stmtLog = $this->pdo->prepare("INSERT INTO vms_logs (id, invoice_id, event_type, request_payload) VALUES (?, ?, 'FISCALIZATION_REQ', ?)");
-        $stmtLog->execute([$logId, $invoiceId, json_encode($sdcRequest)]);
+        $stmtLog = $this->pdo->prepare("INSERT INTO vms_logs (id, tenant_id, invoice_id, event_type, request_payload) VALUES (?, ?, ?, 'FISCALIZATION_REQ', ?)");
+        $stmtLog->execute([$logId, $tenantId, $invoiceId, json_encode($sdcRequest)]);
 
         // Try Live HTTP Request if Live Mode is enabled
         $isLiveMode = !empty($vmsSettings['vms_live_mode']) && $vmsSettings['vms_live_mode'] === '1';
@@ -285,8 +285,8 @@ class VMSService
         ]);
 
         // Log Fiscalization Response
-        $stmtRespLog = $this->pdo->prepare("INSERT INTO vms_logs (id, invoice_id, event_type, response_payload, status_code) VALUES (?, ?, 'FISCALIZATION_RESP', ?, 200)");
-        $stmtRespLog->execute(['vlog-' . uniqid(), $invoiceId, json_encode($sdcResponse)]);
+        $stmtRespLog = $this->pdo->prepare("INSERT INTO vms_logs (id, tenant_id, invoice_id, event_type, response_payload, status_code) VALUES (?, ?, ?, 'FISCALIZATION_RESP', ?, 200)");
+        $stmtRespLog->execute(['vlog-' . uniqid(), $tenantId, $invoiceId, json_encode($sdcResponse)]);
 
         return array_merge($invoice, $sdcResponse);
     }
@@ -365,13 +365,14 @@ class VMSService
 
         // Copy item lines
         $stmtItemIns = $this->pdo->prepare("
-            INSERT INTO invoice_items (id, invoice_id, name, gtin, unit_price, quantity, total_price, tax_label, tax_rate, tax_amount)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO invoice_items (id, tenant_id, invoice_id, name, gtin, unit_price, quantity, total_price, tax_label, tax_rate, tax_amount)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
 
         foreach ($origItems as $item) {
             $stmtItemIns->execute([
                 'item-' . uniqid(),
+                $tenantId,
                 $newInvoiceId,
                 $item['name'],
                 $item['gtin'],
@@ -388,8 +389,8 @@ class VMSService
         $this->fiscalizeInvoice($newInvoiceId);
 
         // Mark original invoice status as Cancelled
-        $stmtUpdateOrig = $this->pdo->prepare("UPDATE invoices SET status = 'Cancelled' WHERE id = ?");
-        $stmtUpdateOrig->execute([$originalInvoiceId]);
+        $stmtUpdateOrig = $this->pdo->prepare("UPDATE invoices SET status = 'Cancelled' WHERE id = ? AND tenant_id = ?");
+        $stmtUpdateOrig->execute([$originalInvoiceId, $tenantId]);
 
         return $newInvoiceId;
     }

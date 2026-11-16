@@ -22,8 +22,10 @@ $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 // "Acting clinician" is a clinical role, so the front desk is not offered
 $doctors = nxClinicians($pdo);
 if (empty($doctors)) {
-    $allDocsStmt = $pdo->query("SELECT * FROM doctors ORDER BY name ASC");
-    $doctors = $allDocsStmt ? $allDocsStmt->fetchAll(PDO::FETCH_ASSOC) : [];
+    // This clinic's own staff only - never every clinic's (and never the password hash).
+    $allDocsStmt = $pdo->prepare("SELECT id, name, specialty, role, avatar, color, dot_color_class FROM doctors WHERE tenant_id = ? ORDER BY name ASC");
+    $allDocsStmt->execute([$currentTenantId]);
+    $doctors = $allDocsStmt->fetchAll(PDO::FETCH_ASSOC);
 }
 $currentDoctorId = $_SESSION['current_doctor_id'] ?? ($doctors[0]['id'] ?? 'doc-1');
 $currentDoctor = array_filter($doctors, fn($d) => $d['id'] === $currentDoctorId);
@@ -98,6 +100,27 @@ $nxCsrf = htmlspecialchars(getCsrfToken());
           'can' => array_map(fn($m) => nxAccess()->level($nxUserRole, $m), array_combine(array_keys(\ClinicFlow\Services\AccessControl::MODULES), array_keys(\ClinicFlow\Services\AccessControl::MODULES))),
           'alerts' => array_intersect_key(nxPrefs(), array_flip(array_keys(\ClinicFlow\Services\UserPreferences::ALERTS))),
       ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+    </script>
+    <script>
+    /* Developer control endpoints: send mutating actions as POST with the CSRF token. */
+    (function () {
+        var origFetch = window.fetch, readOnly = ['git_status','git_log','get_error_logs','get_redis_status','test_redis_ping'];
+        var m = document.querySelector('meta[name="csrf-token"]');
+        window.fetch = function (input, init) {
+            try {
+                var url = typeof input === 'string' ? input : (input && input.url) || '';
+                if (/actions\/(git|redis|integration)_actions\.php/.test(url)) {
+                    var act = new URL(url, location.href).searchParams.get('action') || '';
+                    init = init || {};
+                    var h = new Headers(init.headers || {});
+                    if (m) h.set('X-CSRF-Token', m.content);
+                    init.headers = h;
+                    if (readOnly.indexOf(act) === -1 && (!init.method || init.method.toUpperCase() === 'GET')) init.method = 'POST';
+                }
+            } catch (e) {}
+            return origFetch.call(this, input, init);
+        };
+    })();
     </script>
     <script src="assets/js/app.js?v=<?= $nxAssetVersion ?>" defer></script>
 </head>

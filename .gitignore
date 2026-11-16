@@ -2,7 +2,8 @@ vendor/
 node_modules/
 config/config.php
 *.sqlite
-uploads/
+uploads/*
+!uploads/.htaccess
 .env
 logs/
 config/config.cloud.php

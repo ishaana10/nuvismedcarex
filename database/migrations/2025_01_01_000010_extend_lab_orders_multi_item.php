@@ -60,7 +60,10 @@ return new class {
             ]
         ], JSON_PRETTY_PRINT);
 
-        $stmt = $pdo->prepare("INSERT OR IGNORE INTO clinic_settings (setting_key, setting_value) VALUES ('lab_catalog', ?)");
+        // "INSERT OR IGNORE" is SQLite-only and a syntax error on MySQL/MariaDB (where the
+        // app really runs, so the catalogue was never seeded); MySQL spells it "INSERT IGNORE".
+        $verb = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite' ? 'INSERT OR IGNORE' : 'INSERT IGNORE';
+        $stmt = $pdo->prepare("{$verb} INTO clinic_settings (setting_key, setting_value) VALUES ('lab_catalog', ?)");
         $stmt->execute([$defaultCatalog]);
     }
 };

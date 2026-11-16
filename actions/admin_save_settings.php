@@ -10,7 +10,7 @@ if (empty($_SESSION['authenticated'])) {
 require_once __DIR__ . '/../config/database.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    $redirect = $_SERVER['HTTP_REFERER'] ?? '../admin.php';
+    $redirect = nxSafeReferer('../admin.php');
     header("Location: " . $redirect);
     exit;
 }
@@ -21,7 +21,7 @@ $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 
 if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) {
     setToast('Not saved', 'Your session token expired. Reload the page and try again.', 'error');
-    header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '../admin.php'));
+    header('Location: ' . (nxSafeReferer('../admin.php')));
     exit;
 }
 
@@ -50,7 +50,7 @@ if (array_key_exists('default_pagination_limit', $_POST)) {
 }
 
 // VMS Fiscal Settings (if submitted)
-if (isset($_POST['vms_seller_tin'])) {
+if (isset($_POST['vms_seller_tin']) && nxCurrentRole() === 'Developer') { // VMS is Developer-only this release
     $settings['vms_enabled']           = isset($_POST['vms_enabled']) ? '1' : '0';
     $settings['vms_seller_tin']        = trim($_POST['vms_seller_tin']);
     $settings['vms_pos_number']        = trim($_POST['vms_pos_number']);
@@ -124,7 +124,7 @@ try {
 } catch (\Throwable $e) {
     error_log('[admin_save_settings] ' . $e->getMessage());
     setToast('Not saved', 'Those settings could not be saved. Try again, or contact your administrator.', 'error');
-    header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '../admin.php'));
+    header('Location: ' . (nxSafeReferer('../admin.php')));
     exit;
 }
 
@@ -145,6 +145,6 @@ $clinicName = $settings['clinic_name'] ?? nxClinicName();
 setToast('Settings saved', $counts['clinic'] > 0
     ? 'Updated for ' . $clinicName . '. Other clinics are unaffected.'
     : 'Updated for every clinic on this installation.');
-$redirect = $_SERVER['HTTP_REFERER'] ?? '../admin.php';
+$redirect = nxSafeReferer('../admin.php');
 header("Location: " . $redirect);
 exit;

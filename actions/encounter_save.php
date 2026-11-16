@@ -49,12 +49,32 @@ if ($patientId === '') {
     exit;
 }
 
+// Every action below works on this patient, so confirm they belong to the
+// signed-in user's clinic once, up front, instead of trusting the posted id.
+$ownStmt = $pdo->prepare("SELECT id FROM patients WHERE id = ? AND tenant_id = ? LIMIT 1");
+$ownStmt->execute([$patientId, \ClinicFlow\Shared\TenantContext::getTenantId()]);
+if (!$ownStmt->fetchColumn()) {
+    setToast('Not found', 'That patient is not in this clinic.', 'error');
+    header("Location: ../patients.php");
+    exit;
+}
+$nxTid = \ClinicFlow\Shared\TenantContext::getTenantId();
+
+// delete_rx / copy_rx arrive as links (GET). validateCsrfRequest() only guards
+// POST, so these were open to a forged link or image tag. They now need the
+// session's token, which the page's own links carry.
+if (in_array($action, ['delete_rx', 'copy_rx'], true) && !verifyCsrfToken($_GET['csrf_token'] ?? null)) {
+    setToast('Not changed', 'That link expired. Reload the page and try again.', 'error');
+    header("Location: ../clinical_visit.php?patient_id=" . urlencode($patientId) . "&visit_id=" . urlencode($visitId));
+    exit;
+}
+
 if ($action === 'delete_rx') {
     $rxId = $_GET['rx_id'] ?? '';
     if ($rxId !== '') {
         try {
-            $stmt = $pdo->prepare("DELETE FROM prescriptions WHERE id = ? AND patient_id = ?");
-            $stmt->execute([$rxId, $patientId]);
+            $stmt = $pdo->prepare("DELETE FROM prescriptions WHERE id = ? AND patient_id = ? AND tenant_id = ?");
+            $stmt->execute([$rxId, $patientId, $nxTid]);
             setToast("Medication Removed", "Prescription line removed.", "info");
         } catch (\Throwable $e) {
             $logger->error("Error deleting rx: " . $e->getMessage());
@@ -69,15 +89,16 @@ if ($action === 'copy_rx') {
     $rxId = $_GET['rx_id'] ?? '';
     if ($rxId !== '') {
         try {
-            $stmt = $pdo->prepare("SELECT * FROM prescriptions WHERE id = ? AND patient_id = ?");
-            $stmt->execute([$rxId, $patientId]);
+            $stmt = $pdo->prepare("SELECT * FROM prescriptions WHERE id = ? AND patient_id = ? AND tenant_id = ?");
+            $stmt->execute([$rxId, $patientId, $nxTid]);
             $oldRx = $stmt->fetch();
 
             if ($oldRx) {
                 $newRxId = "rx-" . time() . '-' . rand(100, 999);
-                $copyStmt = $pdo->prepare("INSERT INTO prescriptions (id, patient_id, visit_id, medication_name, dosage, frequency, duration, instructions) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                $copyStmt = $pdo->prepare("INSERT INTO prescriptions (id, tenant_id, patient_id, visit_id, medication_name, dosage, frequency, duration, instructions) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 $copyStmt->execute([
                     $newRxId,
+                    $nxTid,
                     $patientId,
                     $visitId,
                     $oldRx['medication_name'],
@@ -141,8 +162,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($rxId !== '' && $medName !== '') {
             try {
-                $updateStmt = $pdo->prepare("UPDATE prescriptions SET medication_name = ?, dosage = ?, frequency = ?, duration = ?, instructions = ? WHERE id = ? AND patient_id = ?");
-                $updateStmt->execute([$medName, $dosage, $frequency, $duration, $instructions, $rxId, $patientId]);
+                $updateStmt = $pdo->prepare("UPDATE prescriptions SET medication_name = ?, dosage = ?, frequency = ?, duration = ?, instructions = ? WHERE id = ? AND patient_id = ? AND tenant_id = ?");
+                $updateStmt->execute([$medName, $dosage, $frequency, $duration, $instructions, $rxId, $patientId, $nxTid]);
                 setToast("Medication Updated", "Prescription line updated successfully.");
             } catch (\Throwable $e) {
                 $logger->error("Error updating rx: " . $e->getMessage());
@@ -166,8 +187,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $alerts = $alertService->checkMedicationAllergies($patientId, $medName);
 
                 $rxId = "rx-" . time() . '-' . rand(100, 999);
-                $stmt = $pdo->prepare("INSERT INTO prescriptions (id, patient_id, visit_id, medication_name, dosage, frequency, duration, instructions) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                $stmt->execute([$rxId, $patientId, $visitId, $medName, $dosage, $frequency, $duration, $instructions]);
+                $stmt = $pdo->prepare("INSERT INTO prescriptions (id, tenant_id, patient_id, visit_id, medication_name, dosage, frequency, duration, instructions) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$rxId, $nxTid, $patientId, $visitId, $medName, $dosage, $frequency, $duration, $instructions]);
 
                 if (!empty($alerts)) {
                     $alertMsg = implode(' ', array_column($alerts, 'message'));
@@ -185,16 +206,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'save' || $action === 'finish') {
+        // Only what the clinician actually entered. A blank field stays blank
+        // (NULL); it used to be replaced by an invented "normal" reading.
+        $vitalField = static function (string $key): ?string {
+            $v = trim((string) ($_POST[$key] ?? ''));
+            return $v === '' ? null : $v;
+        };
         $vitalsData = [
-            'blood_pressure' => trim($_POST['blood_pressure'] ?? '120/80'),
-            'heart_rate' => (int)($_POST['heart_rate'] ?? 72),
-            'heart_rhythm' => trim($_POST['heart_rhythm'] ?? 'Regular'),
-            'temperature' => (float)($_POST['temperature'] ?? 98.6),
-            'weight' => (int)($_POST['weight'] ?? 145),
-            'height' => (int)($_POST['height'] ?? 66),
-            'respiratory_rate' => (int)($_POST['respiratory_rate'] ?? 16),
-            'oxygen_sat' => (int)($_POST['oxygen_sat'] ?? 99),
-            'sugar' => trim($_POST['sugar'] ?? '95 mg/dL')
+            'blood_pressure' => $vitalField('blood_pressure'),
+            'heart_rate' => $vitalField('heart_rate'),
+            'heart_rhythm' => $vitalField('heart_rhythm'),
+            'temperature' => $vitalField('temperature'),
+            'weight' => $vitalField('weight'),
+            'height' => $vitalField('height'),
+            'respiratory_rate' => $vitalField('respiratory_rate'),
+            'oxygen_sat' => $vitalField('oxygen_sat'),
+            'sugar' => $vitalField('sugar'),
         ];
 
         $icdInput = trim($_POST['icd_code'] ?? '');
@@ -237,19 +264,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 // Automatically send prescription email if prescriptions exist & patient has email
                 try {
-                    $pStmt = $pdo->prepare("SELECT first_name, last_name, email FROM patients WHERE id = ?");
-                    $pStmt->execute([$patientId]);
+                    $pStmt = $pdo->prepare("SELECT first_name, last_name, email FROM patients WHERE id = ? AND tenant_id = ?");
+                    $pStmt->execute([$patientId, $nxTid]);
                     $pRow = $pStmt->fetch();
 
                     if ($pRow && !empty($pRow['email'])) {
-                        $rxStmt = $pdo->prepare("SELECT medication_name, dosage, frequency, duration, instructions FROM prescriptions WHERE patient_id = ? AND visit_id = ?");
-                        $rxStmt->execute([$patientId, $visitId]);
+                        $rxStmt = $pdo->prepare("SELECT medication_name, dosage, frequency, duration, instructions FROM prescriptions WHERE patient_id = ? AND visit_id = ? AND tenant_id = ?");
+                        $rxStmt->execute([$patientId, $visitId, $nxTid]);
                         $prescriptionsData = $rxStmt->fetchAll();
 
                         if (!empty($prescriptionsData)) {
-                            $tenantId = $_SESSION['tenant_id'] ?? 'tenant-default';
+                            $tenantId = $nxTid;
                             $rxService = new \ClinicFlow\Services\PrescriptionVerificationService();
-                            $token = $rxService->getOrCreateToken($pdo, $tenantId, $patientId, $visitId);
+                            $rxDoctor = nxAttendingDoctor($pdo);
+                            $token = $rxService->getOrCreateToken($pdo, $tenantId, $patientId, $visitId, $rxDoctor['id'] ?? null);
                             $url = $rxService->getVerificationUrl($token);
                             $emailService = Container::getInstance()->get(\ClinicFlow\Services\EmailService::class);
                             $emailService->sendPrescriptionEmail($pRow['email'], $pRow['first_name'] . ' ' . $pRow['last_name'], $prescriptionsData, $url, $token);

@@ -103,10 +103,21 @@ function seedDefaultUsersIfEmpty(PDO $pdo): void {
     if ($checked) return;
     $checked = true;
 
+    // SECURITY: this used to create a Developer account and a doctor, both with
+    // the password "password", on any database with no staff - including a
+    // production database after a restore or a failed install. Demo accounts are
+    // now opt-in for local development only (NUVIS_SEED_DEMO_USERS=1) and get a
+    // random password that is printed to the PHP error log once.
+    if (getenv('NUVIS_SEED_DEMO_USERS') !== '1') {
+        return;
+    }
+
     try {
         $stmt = $pdo->query("SELECT COUNT(*) FROM doctors");
         if ($stmt && (int)$stmt->fetchColumn() === 0) {
-            $defaultPasswordHash = password_hash('password', PASSWORD_DEFAULT);
+            $demoPassword = bin2hex(random_bytes(9));
+            error_log('[seed] demo accounts created; one-time password: ' . $demoPassword);
+            $defaultPasswordHash = password_hash($demoPassword, PASSWORD_DEFAULT);
             $doctors = [
                 ['doc-1', 'default-clinic', 'System Developer', 'Developer / IT Administrator', 'medico@nuvistechnologies.com.fj', $defaultPasswordHash, 'Developer', '#10B981', 'bg-emerald-500', 'assets/images/nuvis_medico_logo.png', 'PRC-DEV-001', 'PTR-DEV-001', null, null, 1],
                 ['doc-2', 'default-clinic', 'Dr. Sarah Jenkins', 'Internal Medicine', 'sjenkins@clinicflow.com', $defaultPasswordHash, 'Doctor', '#10B981', 'bg-emerald-500', 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=200', 'PRC-0098412', 'PTR-8842109', null, null, 1]
@@ -157,6 +168,7 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
             if ($fieldName !== '') $cols[] = $fieldName;
         }
 
+        $driverName = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
         $isMysql = ($driverName === 'mysql');
         $longTextType = $isMysql ? 'LONGTEXT' : 'TEXT';
 

@@ -40,9 +40,12 @@ if ($user && isset($user['is_active']) && (int)$user['is_active'] !== 0) {
         $expiryTime = date('Y-m-d H:i:s', time() + 15 * 60); // 15 minutes
         $resetId = \ClinicFlow\Utils\Uuid::uuidv7();
 
-        // Save OTP
+        // A new code replaces any earlier outstanding one
+        $pdo->prepare("UPDATE password_resets SET used = 1 WHERE LOWER(email) = LOWER(?) AND used = 0")->execute([$email]);
+
+        // Save only a keyed digest of the OTP, never the code itself
         $insertStmt = $pdo->prepare("INSERT INTO password_resets (id, email, otp, expires_at, used) VALUES (?, ?, ?, ?, 0)");
-        $insertStmt->execute([$resetId, $email, $otp, $expiryTime]);
+        $insertStmt->execute([$resetId, $email, nxOtpDigest($otp), $expiryTime]);
 
         // Dispatch Email
         $emailService = new \ClinicFlow\Services\EmailService($pdo);

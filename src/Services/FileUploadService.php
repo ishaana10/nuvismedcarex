@@ -16,6 +16,49 @@ class FileUploadService
     {
         $this->db = $db;
         $this->uploadBasePath = $uploadBasePath ?? dirname(__DIR__, 2) . '/uploads';
+        $this->protectUploadDir();
+    }
+
+    /**
+     * Patient files must only be reachable through actions/view_file.php (which
+     * checks the signed-in user's clinic and permissions). If the uploads folder
+     * is inside the web root, make sure the web server refuses direct requests.
+     * Best effort and idempotent; the real fix on any server is to keep uploads
+     * outside the web root or deny the path in the server config.
+     */
+    private function protectUploadDir(): void
+    {
+        try {
+            if (!is_dir($this->uploadBasePath) && !@mkdir($this->uploadBasePath, 0755, true) && !is_dir($this->uploadBasePath)) {
+                return;
+            }
+            $ht = $this->uploadBasePath . '/.htaccess';
+            if (!file_exists($ht)) {
+                @file_put_contents($ht, "<IfModule mod_authz_core.c>\n    Require all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n    Order allow,deny\n    Deny from all\n</IfModule>\n");
+            }
+            $idx = $this->uploadBasePath . '/index.html';
+            if (!file_exists($idx)) {
+                @file_put_contents($idx, '');
+            }
+        } catch (\Throwable $e) {
+            // Never block uploads over this.
+        }
+    }
+
+    /** Detect the real type from the file's bytes, not the browser-supplied label. */
+    private function detectMime(array $fileArray): string
+    {
+        if (function_exists('finfo_open') && !empty($fileArray['tmp_name']) && is_file($fileArray['tmp_name'])) {
+            $f = @finfo_open(FILEINFO_MIME_TYPE);
+            if ($f) {
+                $m = @finfo_file($f, $fileArray['tmp_name']);
+                @finfo_close($f);
+                if (is_string($m) && $m !== '') {
+                    return $m;
+                }
+            }
+        }
+        return 'application/octet-stream';
     }
 
     /**
@@ -203,7 +246,7 @@ class FileUploadService
             throw new RuntimeException("Tenant drive storage quota exceeded. Allocated: {$usage['formatted_limit']}, Current Usage: {$usage['formatted_used']}. Please upgrade tenant drive plan.");
         }
 
-        $mimeType = $fileArray['type'] ?? (function_exists('mime_content_type') ? @mime_content_type($fileArray['tmp_name']) : null) ?: 'application/octet-stream';
+        $mimeType = $this->detectMime($fileArray);
 
         $tenantDir = $this->uploadBasePath . '/tenants/' . preg_replace('/[^a-zA-Z0-9_\-]/', '', $tenantId);
         if (!is_dir($tenantDir)) {
@@ -366,7 +409,7 @@ class FileUploadService
         }
 
         $fileSize = (int)$fileArray['size'];
-        $mimeType = $fileArray['type'] ?? (function_exists('mime_content_type') ? @mime_content_type($fileArray['tmp_name']) : null) ?: 'application/octet-stream';
+        $mimeType = $this->detectMime($fileArray);
 
         $cloudSettings = $this->getCloudSettings();
         $folderId = $cloudSettings['cloud_googledrive_folder_id'] ?? '';
@@ -495,7 +538,7 @@ class FileUploadService
         }
 
         $fileSize = (int)$fileArray['size'];
-        $mimeType = $fileArray['type'] ?? (function_exists('mime_content_type') ? @mime_content_type($fileArray['tmp_name']) : null) ?: 'application/octet-stream';
+        $mimeType = $this->detectMime($fileArray);
 
         $tenantDir = $this->uploadBasePath . '/tenants/' . preg_replace('/[^a-zA-Z0-9_\-]/', '', $tenantId);
         if (!is_dir($tenantDir)) {

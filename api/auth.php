@@ -56,17 +56,44 @@ if ($method === 'POST') {
     $stmt->execute(['email' => $email]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($user && password_verify($password, $user['password_hash'])) {
+    // Same timing whether or not the account exists.
+    static $dummyHash = '$2y$10$9KlMwQHSl80pZpMXIWmy.e.AQiURt9/cBxOR.T9I2M3MUwvEJ1.Ym';
+    $passwordOk = $user && !empty($user['password_hash'])
+        ? password_verify($password, $user['password_hash'])
+        : (password_verify($password, $dummyHash) && false);
+
+    if ($passwordOk) {
+        // Multi-factor: this endpoint used to skip it, so MFA could be bypassed
+        // by signing in here instead of through the login page.
+        if (!empty($user['mfa_enabled']) && (int) $user['mfa_enabled'] === 1) {
+            $mfaCode = trim((string) ($input['mfa_code'] ?? ''));
+            $mfa = new \ClinicFlow\Services\MfaService();
+            if ($mfaCode === '' || !$mfa->verifyCode((string) ($user['mfa_secret'] ?? ''), $mfaCode)) {
+                recordLoginAttempt($ip, $email, $pdo);
+                http_response_code(401);
+                echo json_encode(['error' => 'Invalid email, password or verification code.', 'mfa_required' => true]);
+                exit;
+            }
+        }
+
         clearLoginAttempts($ip, $email, $pdo);
         session_regenerate_id(true);
+
+        // Tenant first, so a signed-in session never exists without one.
+        $_SESSION['tenant_id'] = $user['tenant_id'] ?? 'default-clinic';
+        \ClinicFlow\Shared\TenantContext::setTenantId($_SESSION['tenant_id']);
 
         $_SESSION['authenticated'] = true;
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['user_name'] = $user['name'];
         $_SESSION['user_email'] = $user['email'];
         $_SESSION['user_role'] = $user['role'] ?? 'Doctor';
-        $_SESSION['tenant_id'] = $user['tenant_id'] ?? 'default-clinic';
-        $_SESSION['user'] = $user;
+        $_SESSION['current_doctor_id'] = $user['id'];
+        $_SESSION['last_activity'] = time();
+        $_SESSION['user_agent'] = $_SERVER['HTTP_USER_AGENT'] ?? '';
+        $_SESSION['user_ip'] = $ip;
+        // NOTE: the full user row (password hash, MFA secret, signature images)
+        // is intentionally NOT stored in the session any more.
 
         $audit = new AuditService($pdo);
         $audit->log("LOGIN_SUCCESS", "User {$user['email']} logged in successfully");

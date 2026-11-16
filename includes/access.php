@@ -58,7 +58,7 @@ if (!function_exists('nxAccess')) {
         // Billing
         'actions/billing_pay.php'         => ['billing', 'edit'],
         'actions/vms_create_invoice.php'  => ['billing', 'edit'],
-        'actions/vms_cancel_invoice.php'  => ['billing', 'full'],
+        'actions/vms_cancel_invoice.php'  => ['developer', 'full'], // FRCS VMS is Developer-only this release
         'actions/insurance_claim_save.php' => ['billing', 'edit', ['delete_claim' => 'full']],
         'actions/insurance_report_save.php'   => ['billing', 'edit'],
         'actions/insurance_report_export.php' => ['billing', 'view'],
@@ -85,8 +85,9 @@ if (!function_exists('nxAccess')) {
         'actions/consent_form_save.php'   => ['settings', 'edit'],
         'actions/consent_record_save.php' => ['encounters', 'edit', ['withdraw' => 'full']],
         'print_consent.php'               => ['encounters', 'view'],
-        'actions/vms_save_settings.php'   => ['settings', 'edit'],
-        'actions/vms_actions.php'         => ['settings', 'edit'],
+        'actions/vms_save_settings.php'   => ['developer', 'full'], // FRCS VMS is Developer-only this release
+        'actions/vms_actions.php'         => ['developer', 'full'],
+        'api/vms.php'                     => ['developer', 'full'],
         // Drive credentials moved to Developer → Document storage
         'actions/cloud_storage_settings.php' => ['developer', 'full'],
         'actions/cloud_oauth.php'         => ['developer', 'full'],
@@ -144,6 +145,51 @@ if (!function_exists('nxAccess')) {
      *
      * @return array<int, array<string, mixed>>
      */
+    /**
+     * The clinician a document should be issued under, ALWAYS from the active
+     * clinic. Prefers the acting doctor chosen in the header, then the signed-in
+     * user. Returns null rather than guessing: earlier code used
+     * "WHERE id = ? OR role = 'Doctor'" with no clinic filter, which could put
+     * another clinic's doctor name, registration number and e-signature on a
+     * prescription.
+     */
+    function nxAttendingDoctor(PDO $pdo, ?string $preferredId = null): ?array
+    {
+        $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+        $candidates = array_values(array_unique(array_filter([
+            $preferredId,
+            $_SESSION['current_doctor_id'] ?? null,
+            $_SESSION['user_id'] ?? null,
+        ])));
+        foreach ($candidates as $id) {
+            $st = $pdo->prepare("SELECT * FROM doctors WHERE id = ? AND tenant_id = ? LIMIT 1");
+            $st->execute([(string) $id, $tenantId]);
+            if ($row = $st->fetch(PDO::FETCH_ASSOC)) {
+                return $row;
+            }
+        }
+        return null;
+    }
+
+    /** Find a clinician in the active clinic by (part of) their name. */
+    function nxFindDoctorByName(PDO $pdo, string $name): ?array
+    {
+        $name = trim($name);
+        if ($name === '') {
+            return null;
+        }
+        $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
+        $st = $pdo->prepare("SELECT * FROM doctors WHERE tenant_id = ? AND name = ? LIMIT 1");
+        $st->execute([$tenantId, $name]);
+        if ($row = $st->fetch(PDO::FETCH_ASSOC)) {
+            return $row;
+        }
+        $like = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $name) . '%';
+        $st = $pdo->prepare("SELECT * FROM doctors WHERE tenant_id = ? AND name LIKE ? ORDER BY name LIMIT 1");
+        $st->execute([$tenantId, $like]);
+        return $st->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
     function nxClinicians(PDO $pdo): array
     {
         static $cache = [];

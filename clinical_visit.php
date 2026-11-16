@@ -358,19 +358,13 @@ if (!$patient) {
 }
 
 // Fetch vitals
-$vitalsStmt = $pdo->prepare("SELECT * FROM vitals WHERE patient_id = ? ORDER BY updated_at DESC LIMIT 1");
-$vitalsStmt->execute([$patientId]);
+$vitalsStmt = $pdo->prepare("SELECT * FROM vitals WHERE patient_id = ? AND tenant_id = ? ORDER BY updated_at DESC LIMIT 1");
+$vitalsStmt->execute([$patientId, $currentTenantId]);
+// Nothing recorded yet means empty fields (the placeholders show the expected
+// format). Pre-filling "normal" values made it easy to save a reading nobody took.
 $vitals = $vitalsStmt->fetch() ?: [
-    'blood_pressure' => '120/80',
-    'heart_rate' => 72,
-    'heart_rhythm' => 'Regular',
-    'temperature' => 98.6,
-    'weight' => 145,
-    'height' => 66,
-    'respiratory_rate' => 16,
-    'oxygen_sat' => 99,
-    'sugar' => '95 mg/dL',
-    'bmi' => 23.4
+    'blood_pressure' => '', 'heart_rate' => '', 'heart_rhythm' => '', 'temperature' => '',
+    'weight' => '', 'height' => '', 'respiratory_rate' => '', 'oxygen_sat' => '', 'sugar' => '', 'bmi' => '',
 ];
 
 // Fetch SOAP notes
@@ -492,7 +486,7 @@ include __DIR__ . '/includes/header.php';
             <div class="vital-metric border-r border-slate-200/80 pr-2">
                 <span class="vital-label text-[10px] font-bold text-outline uppercase tracking-wider block mb-1">BLOOD PRESSURE</span>
                 <div class="vital-value flex items-baseline gap-1">
-                    <input type="text" name="blood_pressure" value="<?= htmlspecialchars($vitals['blood_pressure']) ?>" placeholder="120/80" class="border-none p-0 focus:ring-0 text-lg font-bold w-20 bg-transparent text-slate-900">
+                    <input type="text" name="blood_pressure" value="<?= htmlspecialchars((string)($vitals['blood_pressure'] ?? '')) ?>" placeholder="120/80" class="border-none p-0 focus:ring-0 text-lg font-bold w-20 bg-transparent text-slate-900">
                     <span class="vital-unit text-[10px] text-outline font-semibold">mmHg</span>
                 </div>
             </div>
@@ -500,7 +494,7 @@ include __DIR__ . '/includes/header.php';
             <div class="vital-metric border-r border-slate-200/80 pr-2">
                 <span class="vital-label text-[10px] font-bold text-outline uppercase tracking-wider block mb-1">HEART RATE</span>
                 <div class="vital-value flex items-baseline gap-1">
-                    <input type="number" name="heart_rate" value="<?= htmlspecialchars($vitals['heart_rate']) ?>" placeholder="72" class="border-none p-0 focus:ring-0 text-lg font-bold w-12 bg-transparent text-slate-900">
+                    <input type="number" name="heart_rate" value="<?= htmlspecialchars((string)($vitals['heart_rate'] ?? '')) ?>" placeholder="72" class="border-none p-0 focus:ring-0 text-lg font-bold w-12 bg-transparent text-slate-900">
                     <span class="vital-unit text-[10px] text-outline font-semibold">bpm</span>
                 </div>
             </div>
@@ -508,14 +502,14 @@ include __DIR__ . '/includes/header.php';
             <div class="vital-metric border-r border-slate-200/80 pr-2">
                 <span class="vital-label text-[10px] font-bold text-outline uppercase tracking-wider block mb-1">HEART RHYTHM</span>
                 <div class="vital-value flex items-baseline gap-1">
-                    <input type="text" name="heart_rhythm" value="<?= htmlspecialchars($vitals['heart_rhythm']) ?>" placeholder="Regular" class="border-none p-0 focus:ring-0 text-sm font-bold w-16 bg-transparent text-slate-900">
+                    <input type="text" name="heart_rhythm" value="<?= htmlspecialchars((string)($vitals['heart_rhythm'] ?? '')) ?>" placeholder="Regular" class="border-none p-0 focus:ring-0 text-sm font-bold w-16 bg-transparent text-slate-900">
                 </div>
             </div>
 
             <div class="vital-metric border-r border-slate-200/80 pr-2">
                 <span class="vital-label text-[10px] font-bold text-outline uppercase tracking-wider block mb-1">TEMPERATURE</span>
                 <div class="vital-value flex items-baseline gap-1">
-                    <input type="text" name="temperature" value="<?= htmlspecialchars($vitals['temperature']) ?>" placeholder="98.6" class="border-none p-0 focus:ring-0 text-lg font-bold w-14 bg-transparent text-slate-900">
+                    <input type="text" name="temperature" value="<?= htmlspecialchars((string)($vitals['temperature'] ?? '')) ?>" placeholder="98.6" class="border-none p-0 focus:ring-0 text-lg font-bold w-14 bg-transparent text-slate-900">
                     <span class="vital-unit text-[10px] text-outline font-semibold">°F</span>
                 </div>
             </div>
@@ -523,7 +517,7 @@ include __DIR__ . '/includes/header.php';
             <div class="vital-metric border-r border-slate-200/80 pr-2">
                 <span class="vital-label text-[10px] font-bold text-outline uppercase tracking-wider block mb-1">WEIGHT</span>
                 <div class="vital-value flex items-baseline gap-1">
-                    <input type="text" name="weight" value="<?= htmlspecialchars($vitals['weight']) ?>" placeholder="145" class="border-none p-0 focus:ring-0 text-lg font-bold w-12 bg-transparent text-slate-900">
+                    <input type="text" name="weight" value="<?= htmlspecialchars((string)($vitals['weight'] ?? '')) ?>" placeholder="145" class="border-none p-0 focus:ring-0 text-lg font-bold w-12 bg-transparent text-slate-900">
                     <span class="vital-unit text-[10px] text-outline font-semibold">lbs</span>
                 </div>
             </div>
@@ -531,7 +525,7 @@ include __DIR__ . '/includes/header.php';
             <div class="vital-metric border-r border-slate-200/80 pr-2">
                 <span class="vital-label text-[10px] font-bold text-outline uppercase tracking-wider block mb-1">HEIGHT</span>
                 <div class="vital-value flex items-baseline gap-1">
-                    <input type="number" name="height" value="<?= htmlspecialchars($vitals['height']) ?>" placeholder="66" class="border-none p-0 focus:ring-0 text-lg font-bold w-12 bg-transparent text-slate-900">
+                    <input type="number" name="height" value="<?= htmlspecialchars((string)($vitals['height'] ?? '')) ?>" placeholder="66" class="border-none p-0 focus:ring-0 text-lg font-bold w-12 bg-transparent text-slate-900">
                     <span class="vital-unit text-[10px] text-outline font-semibold">in</span>
                 </div>
             </div>
@@ -539,7 +533,7 @@ include __DIR__ . '/includes/header.php';
             <div class="vital-metric border-r border-slate-200/80 pr-2">
                 <span class="vital-label text-[10px] font-bold text-outline uppercase tracking-wider block mb-1">RESP. RATE</span>
                 <div class="vital-value flex items-baseline gap-1">
-                    <input type="number" name="respiratory_rate" value="<?= htmlspecialchars($vitals['respiratory_rate']) ?>" placeholder="16" class="border-none p-0 focus:ring-0 text-lg font-bold w-12 bg-transparent text-slate-900">
+                    <input type="number" name="respiratory_rate" value="<?= htmlspecialchars((string)($vitals['respiratory_rate'] ?? '')) ?>" placeholder="16" class="border-none p-0 focus:ring-0 text-lg font-bold w-12 bg-transparent text-slate-900">
                     <span class="vital-unit text-[10px] text-outline font-semibold">/min</span>
                 </div>
             </div>
@@ -547,7 +541,7 @@ include __DIR__ . '/includes/header.php';
             <div class="vital-metric border-r border-slate-200/80 pr-2">
                 <span class="vital-label text-[10px] font-bold text-outline uppercase tracking-wider block mb-1">SPO2</span>
                 <div class="vital-value flex items-baseline gap-1">
-                    <input type="number" name="oxygen_sat" value="<?= htmlspecialchars($vitals['oxygen_sat']) ?>" placeholder="99" class="border-none p-0 focus:ring-0 text-lg font-bold w-12 bg-transparent text-slate-900">
+                    <input type="number" name="oxygen_sat" value="<?= htmlspecialchars((string)($vitals['oxygen_sat'] ?? '')) ?>" placeholder="99" class="border-none p-0 focus:ring-0 text-lg font-bold w-12 bg-transparent text-slate-900">
                     <span class="vital-unit text-[10px] text-outline font-semibold">%</span>
                 </div>
             </div>
@@ -555,7 +549,7 @@ include __DIR__ . '/includes/header.php';
             <div class="vital-metric">
                 <span class="vital-label text-[10px] font-bold text-outline uppercase tracking-wider block mb-1">BLOOD SUGAR</span>
                 <div class="vital-value flex items-baseline gap-1">
-                    <input type="text" name="sugar" value="<?= htmlspecialchars($vitals['sugar']) ?>" placeholder="95 mg/dL" class="border-none p-0 focus:ring-0 text-sm font-bold w-20 bg-transparent text-slate-900">
+                    <input type="text" name="sugar" value="<?= htmlspecialchars((string)($vitals['sugar'] ?? '')) ?>" placeholder="95 mg/dL" class="border-none p-0 focus:ring-0 text-sm font-bold w-20 bg-transparent text-slate-900">
                 </div>
             </div>
         </div>
@@ -643,7 +637,7 @@ include __DIR__ . '/includes/header.php';
                             <button type="button" onclick='openEditRxModal(<?= htmlspecialchars(json_encode($rx), ENT_QUOTES, "UTF-8") ?>)' class="p-1 text-slate-600 hover:text-primary hover:bg-slate-200 rounded-md transition" title="Edit Medication">
                                 <span class="material-symbols-outlined text-base">edit</span>
                             </button>
-                            <a href="actions/encounter_save.php?action=delete_rx&rx_id=<?= htmlspecialchars($rx['id']) ?>&patient_id=<?= htmlspecialchars($patient['id']) ?>&visit_id=<?= htmlspecialchars($visitId) ?>" data-nx-confirm="Remove this medication line?" class="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-md transition" title="Delete Medication">
+                            <a href="actions/encounter_save.php?csrf_token=<?= urlencode(getCsrfToken()) ?>&action=delete_rx&rx_id=<?= htmlspecialchars($rx['id']) ?>&patient_id=<?= htmlspecialchars($patient['id']) ?>&visit_id=<?= htmlspecialchars($visitId) ?>" data-nx-confirm="Remove this medication line?" class="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-md transition" title="Delete Medication">
                                 <span class="material-symbols-outlined text-base">delete</span>
                             </a>
                         </div>
@@ -744,12 +738,12 @@ include __DIR__ . '/includes/header.php';
                             <?php endif; ?>
 
                             <div class="pt-1.5 border-t border-slate-200/60 flex items-center justify-between">
-                                <a href="actions/encounter_save.php?action=copy_rx&rx_id=<?= htmlspecialchars($hrx['id']) ?>&patient_id=<?= htmlspecialchars($patient['id']) ?>&visit_id=<?= htmlspecialchars($visitId) ?>" class="text-[11px] font-bold text-primary hover:underline flex items-center gap-1">
+                                <a href="actions/encounter_save.php?csrf_token=<?= urlencode(getCsrfToken()) ?>&action=copy_rx&rx_id=<?= htmlspecialchars($hrx['id']) ?>&patient_id=<?= htmlspecialchars($patient['id']) ?>&visit_id=<?= htmlspecialchars($visitId) ?>" class="text-[11px] font-bold text-primary hover:underline flex items-center gap-1">
                                     <span class="material-symbols-outlined text-sm">content_copy</span>
                                     <span>Copy to Current Encounter</span>
                                 </a>
 
-                                <a href="actions/encounter_save.php?action=delete_rx&rx_id=<?= htmlspecialchars($hrx['id']) ?>&patient_id=<?= htmlspecialchars($patient['id']) ?>&visit_id=<?= htmlspecialchars($visitId) ?>" data-nx-confirm="Permanently delete this historical prescription record?" class="text-rose-500 hover:text-rose-700" title="Delete Historical Record">
+                                <a href="actions/encounter_save.php?csrf_token=<?= urlencode(getCsrfToken()) ?>&action=delete_rx&rx_id=<?= htmlspecialchars($hrx['id']) ?>&patient_id=<?= htmlspecialchars($patient['id']) ?>&visit_id=<?= htmlspecialchars($visitId) ?>" data-nx-confirm="Permanently delete this historical prescription record?" class="text-rose-500 hover:text-rose-700" title="Delete Historical Record">
                                     <span class="material-symbols-outlined text-sm">delete</span>
                                 </a>
                             </div>

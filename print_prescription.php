@@ -68,15 +68,13 @@ $soap = $soapStmt->fetch();
 $assessmentCodes = json_decode($soap['assessment_codes'] ?? '[]', true) ?: [];
 
 // Get attending doctor details
-$docId = $_SESSION['current_doctor_id'] ?? 'doc-2';
-$docStmt = $pdo->prepare("SELECT * FROM doctors WHERE id = ? OR role = 'Doctor'");
-$docStmt->execute([$docId]);
-$attendingDoc = $docStmt->fetch() ?: ['name' => 'Dr. Sarah Jenkins', 'specialty' => 'Internal Medicine', 'prc_number' => 'PRC-0098412', 'ptr_number' => 'PTR-8842109'];
+// Scoped to this clinic, and never a made-up fallback doctor.
+$attendingDoc = nxAttendingDoctor($pdo) ?: ['name' => $_SESSION['user_name'] ?? '', 'specialty' => '', 'prc_number' => '', 'ptr_number' => ''];
 
 // Generate Verification Token & Public Link
-$tenantId = $_SESSION['tenant_id'] ?? 'tenant-default';
+$tenantId = $currentTenantId;
 $rxVerificationService = new PrescriptionVerificationService();
-$verificationToken = $rxVerificationService->getOrCreateToken($pdo, $tenantId, $patient['id'], $visitId);
+$verificationToken = $rxVerificationService->getOrCreateToken($pdo, $tenantId, $patient['id'], $visitId, $attendingDoc['id'] ?? null);
 $verificationUrl = $rxVerificationService->getVerificationUrl($verificationToken);
 ?>
 <!DOCTYPE html>

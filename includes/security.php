@@ -64,6 +64,39 @@ function validateCsrfRequest(): void {
 }
 
 /**
+ * Keyed digest of a password-reset OTP, so the DB never holds usable codes.
+ * 10 hex chars fits the existing password_resets.otp VARCHAR(10) column.
+ */
+function nxOtpDigest(string $otp): string {
+    return substr(hash_hmac('sha256', 'pwreset|' . $otp, \ClinicFlow\Utils\Encryption::getKey()), 0, 10);
+}
+
+/**
+ * Guard for JSON/AJAX control endpoints (git, redis, webhooks...).
+ * Read-only actions may use GET; every other action must be a POST that carries
+ * a valid CSRF token (X-CSRF-Token header, csrf_token field, or JSON body field).
+ */
+function nxRequireCsrfForMutations(string $action, array $readOnlyActions): void {
+    if (in_array($action, $readOnlyActions, true)) {
+        return;
+    }
+    $fail = static function (int $code, string $msg): never {
+        http_response_code($code);
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'error' => $msg]);
+        exit;
+    };
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+        $fail(405, 'This action must be sent as POST.');
+    }
+    $body = json_decode((string) file_get_contents('php://input'), true);
+    $token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? $_POST['csrf_token'] ?? (is_array($body) ? ($body['csrf_token'] ?? null) : null);
+    if (!verifyCsrfToken(is_string($token) ? $token : null)) {
+        $fail(403, 'Invalid or missing CSRF token. Reload the page and try again.');
+    }
+}
+
+/**
  * Require User Authentication
  */
 function requireAuth(): void {
@@ -246,6 +279,33 @@ function sanitizeInput($data) {
 
 function e(?string $string): string {
     return htmlspecialchars($string ?? '', ENT_QUOTES, 'UTF-8');
+}
+
+/**
+ * Where to send the user back to after an action: the page they came from, but
+ * only if it is on THIS site. Redirecting to the raw Referer header let another
+ * website bounce a signed-in user onward (open redirect).
+ */
+function nxSafeReferer(string $fallback = '../index.php'): string {
+    $ref = (string) ($_SERVER['HTTP_REFERER'] ?? '');
+    if ($ref === '') {
+        return $fallback;
+    }
+    $parts = parse_url($ref);
+    if ($parts === false) {
+        return $fallback;
+    }
+    $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
+    $refHost = strtolower(($parts['host'] ?? '') . (isset($parts['port']) ? ':' . $parts['port'] : ''));
+    if ($refHost !== '' && $refHost !== $host) {
+        return $fallback;
+    }
+    $path = ($parts['path'] ?? '/') . (isset($parts['query']) ? '?' . $parts['query'] : '');
+    // Same-site absolute path only; no protocol-relative (//host) or control characters.
+    if (!preg_match('#^/(?!/)[^\r\n]*$#', $path)) {
+        return $fallback;
+    }
+    return $path;
 }
 
 function isAjaxRequest(): bool {

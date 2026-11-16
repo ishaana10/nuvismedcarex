@@ -26,7 +26,7 @@ $userName = $_SESSION['user_name'] ?? null;
 $wishService = Container::getInstance()->get(WishBoardService::class);
 $logger = Container::getInstance()->get(Logger::class);
 
-$back = $_SERVER['HTTP_REFERER'] ?? '../wishboard.php';
+$back = nxSafeReferer('../wishboard.php');
 
 if ($action === 'create_wish') {
     $title = trim($_POST['title'] ?? '');

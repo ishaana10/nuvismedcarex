@@ -115,7 +115,7 @@ try {
                     $done('Role not changed', "{$user['name']} is the only administrator. Make someone else an administrator first.", 'error');
                 }
             }
-            $pdo->prepare("UPDATE doctors SET role = ? WHERE id = ?")->execute([$role, $userId]);
+            $pdo->prepare("UPDATE doctors SET role = ? WHERE id = ? AND tenant_id = ?")->execute([$role, $userId, $tenantId]);
             $audit('ACCESS_ROLE_ASSIGNED', "{$user['name']}: {$oldRole} → {$role}");
             $done('Role changed', "{$user['name']} is now {$role}. It applies from their next page load.");
 

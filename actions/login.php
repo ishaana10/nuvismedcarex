@@ -11,16 +11,19 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $clientIp = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
-if (!checkLoginRateLimit($clientIp)) {
-    setToast('Too Many Attempts', 'Too many failed login attempts. Please wait 5 minutes before trying again.', 'error');
-    header("Location: ../login.php");
-    exit;
-}
 
 validateCsrfRequest();
 
 $email = trim($_POST['email'] ?? '');
 $password = $_POST['password'] ?? '';
+
+// Throttle by IP *and* by account, so a distributed guessing attack on one
+// account is slowed down even when every guess comes from a different address.
+if (!checkLoginRateLimit($clientIp, $email)) {
+    setToast('Too Many Attempts', 'Too many failed login attempts. Please wait 5 minutes before trying again.', 'error');
+    header("Location: ../login.php");
+    exit;
+}
 
 if ($email === '' || $password === '') {
     recordLoginAttempt($clientIp, $email);
@@ -34,15 +37,21 @@ $stmt = $pdo->prepare("SELECT * FROM doctors WHERE email = ? LIMIT 1");
 $stmt->execute([$email]);
 $user = $stmt->fetch();
 
-if ($user && isset($user['is_active']) && (int)$user['is_active'] === 0) {
-    setToast('Account Disabled', 'Your user account has been deactivated. Please contact an administrator.', 'error');
-    header("Location: ../login.php");
-    exit;
-}
-
+// Always run a password hash comparison, even for unknown emails, so response
+// time does not reveal which email addresses have accounts.
+static $dummyHash = '$2y$10$9KlMwQHSl80pZpMXIWmy.e.AQiURt9/cBxOR.T9I2M3MUwvEJ1.Ym';
 $valid = false;
 if ($user && !empty($user['password_hash'])) {
     $valid = password_verify($password, $user['password_hash']);
+} else {
+    password_verify($password, $dummyHash);
+}
+
+// Only someone who knows the password learns the account is deactivated.
+if ($valid && $user && isset($user['is_active']) && (int)$user['is_active'] === 0) {
+    setToast('Account Disabled', 'Your user account has been deactivated. Please contact an administrator.', 'error');
+    header("Location: ../login.php");
+    exit;
 }
 
 // MFA Verification Check if MFA is enabled for user
@@ -61,6 +70,12 @@ if ($valid && $user) {
     clearLoginAttempts();
     session_regenerate_id(true);
 
+    // The tenant is part of "being signed in": set it first and never inside a
+    // try/catch, so a signed-in session can never exist without one.
+    $tenantId = $user['tenant_id'] ?? 'default-clinic';
+    $_SESSION['tenant_id'] = $tenantId;
+    \ClinicFlow\Shared\TenantContext::setTenantId($tenantId);
+
     $_SESSION['authenticated'] = true;
     $_SESSION['user_id'] = $user['id'];
     $_SESSION['user_name'] = $user['name'];
@@ -74,9 +89,6 @@ if ($valid && $user) {
     // Log login activity to audit_logs
     try {
         $auditId = \ClinicFlow\Utils\Uuid::uuidv7();
-        $tenantId = $user['tenant_id'] ?? 'default-clinic';
-        $_SESSION['tenant_id'] = $tenantId;
-        \ClinicFlow\Shared\TenantContext::setTenantId($tenantId);
         $auditStmt = $pdo->prepare("INSERT INTO audit_logs (id, tenant_id, user_id, user_name, user_role, action, details, ip_address) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
         $auditStmt->execute([
             $auditId,

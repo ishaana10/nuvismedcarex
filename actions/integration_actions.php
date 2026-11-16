@@ -5,6 +5,7 @@
 
 require_once __DIR__ . '/../core/SessionBootstrap.php';
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../includes/security.php';
 
 header('Content-Type: application/json');
 
@@ -26,6 +27,7 @@ $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 
 $jsonInput = json_decode(file_get_contents('php://input'), true) ?? [];
 $action = $_GET['action'] ?? ($jsonInput['action'] ?? ($_POST['action'] ?? ''));
+nxRequireCsrfForMutations($action, []);
 
 try {
     if ($action === 'save_webhook') {

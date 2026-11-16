@@ -12,7 +12,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $clientIp = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
-if (!checkLoginRateLimit($clientIp)) {
+$email = trim($_POST['email'] ?? '');
+// Limit per IP *and* per target email, so guessing the code from many IPs is capped too.
+if (!checkLoginRateLimit($clientIp, $email)) {
     setToast('Too Many Attempts', 'Too many failed attempts. Please wait 5 minutes before trying again.', 'error');
     header("Location: ../forgot_password.php");
     exit;
@@ -20,7 +22,6 @@ if (!checkLoginRateLimit($clientIp)) {
 
 validateCsrfRequest();
 
-$email = trim($_POST['email'] ?? '');
 $otp = trim($_POST['otp'] ?? '');
 $newPassword = $_POST['new_password'] ?? '';
 $confirmPassword = $_POST['confirm_password'] ?? '';
@@ -49,8 +50,9 @@ $pdo = getDB();
 $now = date('Y-m-d H:i:s');
 
 // Verify OTP
-$otpStmt = $pdo->prepare("SELECT * FROM password_resets WHERE LOWER(email) = LOWER(?) AND otp = ? AND used = 0 AND expires_at > ? ORDER BY created_at DESC LIMIT 1");
-$otpStmt->execute([$email, $otp, $now]);
+// Stored value is a keyed digest; a pre-upgrade plaintext code is still honoured until it expires.
+$otpStmt = $pdo->prepare("SELECT * FROM password_resets WHERE LOWER(email) = LOWER(?) AND otp IN (?, ?) AND used = 0 AND expires_at > ? ORDER BY created_at DESC LIMIT 1");
+$otpStmt->execute([$email, nxOtpDigest($otp), $otp, $now]);
 $resetRecord = $otpStmt->fetch();
 
 if (!$resetRecord) {

@@ -24,8 +24,8 @@ if ($invoiceId !== '') {
             // Automatically send payment receipt email if patient email is available
             try {
                 $pdo = getDB();
-                $invStmt = $pdo->prepare("SELECT i.*, p.email FROM invoices i LEFT JOIN patients p ON i.patient_id = p.id WHERE i.id = ?");
-                $invStmt->execute([$invoiceId]);
+                $invStmt = $pdo->prepare("SELECT i.*, p.email FROM invoices i LEFT JOIN patients p ON i.patient_id = p.id WHERE i.id = ? AND i.tenant_id = ?");
+                $invStmt->execute([$invoiceId, \ClinicFlow\Shared\TenantContext::getTenantId()]);
                 $invRow = $invStmt->fetch();
                 if ($invRow && !empty($invRow['email'])) {
                     $emailService = Container::getInstance()->get(\ClinicFlow\Services\EmailService::class);
