@@ -9,6 +9,11 @@ final class GoogleDriveProvider extends CloudProvider
     private array $folderIds = [];
     public function id(): string { return 'gdrive'; }
     public function label(): string { return 'Google Drive'; }
+    /** Google expires refresh tokens after 7 days while the OAuth consent screen is in "Testing". */
+    protected function expiryHint(): string
+    {
+        return ' If this happens about a week after every connection, the Google Cloud OAuth consent screen is still in "Testing" mode: open Google Auth Platform > Audience, press "Publish app" (status: In production), then connect once more.';
+    }
     protected function tokenUrl(): string { return $this->ep('token', 'https://oauth2.googleapis.com/token'); }
     protected function refreshParams(): array { return ['client_id' => $this->cfg['client_id'], 'client_secret' => $this->cfg['client_secret'], 'refresh_token' => $this->cfg['refresh_token'], 'grant_type' => 'refresh_token']; }
 
