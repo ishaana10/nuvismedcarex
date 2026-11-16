@@ -43,15 +43,12 @@ if (!$own->fetchColumn()) {
     exit();
 }
 
-// Generate Certificate Number (MC-YYYYMMDD-XXXX)
-$certSeq = sprintf("%04d", rand(1, 9999));
-$certNum = 'MC-' . date('Ymd') . '-' . $certSeq;
 $certId = 'mc-' . uniqid();
 
 // Optional "clinic form" fields. Only written when the column exists, so issuing
 // still works on a database where the migration has not run yet.
 $cols = ['id', 'tenant_id', 'certificate_number', 'patient_id', 'visit_id', 'issue_date', 'diagnosis', 'fitness_status', 'fit_status_details', 'recommendations', 'doctor_name', 'prc_number', 'ptr_number'];
-$vals = [$certId, $tenantId, $certNum, $patientId, $visitId ?: null, $issueDate, $diagnosis, $fitnessStatus, $fitStatusDetails, $recommendations, $doctorName, $prcNumber, $ptrNumber];
+$vals = [$certId, $tenantId, '', $patientId, $visitId ?: null, $issueDate, $diagnosis, $fitnessStatus, $fitStatusDetails, $recommendations, $doctorName, $prcNumber, $ptrNumber];
 
 $toDate = static function (string $v): ?string {
     $v = trim($v);
@@ -78,7 +75,15 @@ foreach ($extras as $col => $val) {
 }
 
 $stmt = $pdo->prepare('INSERT INTO medical_certificates (' . implode(', ', $cols) . ') VALUES (' . implode(', ', array_fill(0, count($cols), '?')) . ')');
-$stmt->execute($vals);
+$numIdx = array_search('certificate_number', $cols, true);
+// The clinic's own numbering (prefix, date, running number); see Documents settings.
+$certNum = (new \ClinicFlow\Services\DocumentTemplateSettings($pdo, $tenantId))->issueCertificateNumber(
+    new DateTimeImmutable('now'),
+    function (string $number) use ($stmt, $vals, $numIdx) {
+        $vals[$numIdx] = $number;
+        $stmt->execute($vals);
+    }
+);
 
 setToast('Success', 'Medical Certificate issued successfully.', 'success');
 
