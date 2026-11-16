@@ -28,6 +28,13 @@ try {
     $logoUpload = $_FILES['logo'] ?? null;
     $cfg = DocumentTemplateSettings::sanitise($type, $_POST, $current, $logoUpload);
     $svc->save($type, $cfg);
+    // Continue numbering from a chosen count (e.g. the next number on a paper pad)
+    if ($type === 'certificate' && ctype_digit(trim((string) ($_POST['next_number'] ?? ''))) && (int) $_POST['next_number'] > 0) {
+        $svc->setCertificateCounter(
+            DocumentTemplateSettings::numberPeriod($cfg, new DateTimeImmutable('now')),
+            (int) $_POST['next_number'] - 1
+        );
+    }
     setToast('Saved', ($type === 'certificate' ? 'Medical certificate' : 'Prescription') . ' template updated.');
 } catch (\InvalidArgumentException $e) {
     setToast('Logo not saved', $e->getMessage(), 'error');

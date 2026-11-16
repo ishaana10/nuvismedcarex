@@ -1494,6 +1494,8 @@ $clinicSettings = $settings;
                 <textarea name="recommendations" rows="2" placeholder="e.g. Continuous rest, medications as prescribed." class="w-full bg-surface-container-low p-3 rounded-xl border border-outline-variant/40 font-medium"><?= htmlspecialchars($soap['plan'] ?? '') ?></textarea>
             </div>
 
+            <?php include __DIR__ . '/includes/cert_form_extras.php'; ?>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-outline-variant/20">
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">Attending Physician</label>

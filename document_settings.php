@@ -47,6 +47,58 @@ $typeLabel = $docType === 'certificate' ? 'Medical certificate' : 'Prescription'
     <input type="hidden" name="doc_type" value="<?= htmlspecialchars($docType) ?>">
 
     <div class="space-y-5 min-w-0">
+        <?php if ($docType === 'certificate'): ?>
+        <!-- Template -->
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 space-y-4">
+            <h2 class="text-base font-semibold text-slate-900">Certificate template</h2>
+            <p class="text-[13px] text-slate-500 -mt-2">Pick the layout your clinic prefers. You can change it any time; certificates already issued print in whichever layout is selected.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <?php foreach (DocumentTemplateSettings::LAYOUTS as $k => [$label, $blurb]): ?>
+                    <label class="relative cursor-pointer">
+                        <input type="radio" name="layout" value="<?= $k ?>" class="peer sr-only" <?= ($cfg['layout'] ?? 'classic') === $k ? 'checked' : '' ?> <?= $dis ?>>
+                        <span class="block rounded-xl border-2 border-slate-200 p-3 h-full peer-checked:border-blue-600 peer-checked:bg-blue-50/40 hover:border-slate-300">
+                            <span class="block font-semibold text-slate-900 text-sm"><?= htmlspecialchars($label) ?></span>
+                            <span class="block text-[12px] text-slate-500 mt-1"><?= htmlspecialchars($blurb) ?></span>
+                        </span>
+                    </label>
+                <?php endforeach; ?>
+            </div>
+            <div class="grid grid-cols-1 gap-3">
+                <div><label class="form-label">Doctor / registration line <span class="text-slate-400 font-normal">(Clinic form)</span></label>
+                    <input type="text" name="doctor_line" value="<?= htmlspecialchars($cfg['doctor_line']) ?>" class="form-input" maxlength="160" placeholder="e.g. Dr Jane Doe   REGISTERED MEDICAL PRACTITIONER (MBBS) (MP 0000)" <?= $dis ?>></div>
+                <div><label class="form-label">"Consultation in" services <span class="text-slate-400 font-normal">(Clinic form)</span></label>
+                    <textarea name="consultation_in" rows="2" class="form-textarea" maxlength="300" placeholder="e.g. Medicine, General Surgery (Minor Operations), Skin Diseases, OB &amp; Gynae &amp; Paeds and Family Medicine" <?= $dis ?>><?= htmlspecialchars($cfg['consultation_in']) ?></textarea></div>
+                <div><label class="form-label">Problem tick-boxes <span class="text-slate-400 font-normal">(one per line, up to 15)</span></label>
+                    <textarea name="problem_categories" rows="6" class="form-textarea" <?= $dis ?>><?= htmlspecialchars($cfg['problem_categories']) ?></textarea></div>
+            </div>
+        </section>
+        <?php endif; ?>
+
+        <?php if ($docType === 'certificate'):
+            $__now = new DateTimeImmutable('now');
+            $__next = $svc->previewNextNumber($__now);
+            $__nextRun = (int) preg_replace('/^.*?(\d+)$/', '$1', $__next);
+        ?>
+        <!-- Certificate numbering -->
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 space-y-4">
+            <h2 class="text-base font-semibold text-slate-900">Certificate numbers</h2>
+            <p class="text-[13px] text-slate-500 -mt-2">Build the number from your clinic letters, the date and a running count so it is unique to your clinic. Numbers already issued are kept, and counting carries on after the highest one.</p>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div><label class="form-label">Clinic letters</label><input type="text" name="number_prefix" value="<?= htmlspecialchars($cfg['number_prefix']) ?>" class="form-input uppercase" maxlength="8" placeholder="e.g. MTMC" pattern="[A-Za-z0-9]*" <?= $dis ?>></div>
+                <div><label class="form-label">Date part</label><select name="number_date" class="form-select" <?= $dis ?>><?php foreach (DocumentTemplateSettings::NUMBER_DATES as $k => $l): ?><option value="<?= $k ?>" <?= $cfg['number_date'] === $k ? 'selected' : '' ?>><?= htmlspecialchars($l) ?></option><?php endforeach; ?></select></div>
+                <div><label class="form-label">Separator</label><select name="number_separator" class="form-select" <?= $dis ?>><?php foreach (DocumentTemplateSettings::NUMBER_SEPARATORS as $k => $l): ?><option value="<?= htmlspecialchars((string) $k) ?>" <?= (string) $cfg['number_separator'] === (string) $k ? 'selected' : '' ?>><?= htmlspecialchars($l) ?></option><?php endforeach; ?></select></div>
+                <div><label class="form-label">Digits in count</label><select name="number_digits" class="form-select" <?= $dis ?>><?php foreach (range(3, 8) as $d): ?><option value="<?= $d ?>" <?= (int) $cfg['number_digits'] === $d ? 'selected' : '' ?>><?= $d ?></option><?php endforeach; ?></select></div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><label class="form-label">Count starts again</label><select name="number_reset" class="form-select" <?= $dis ?>><?php foreach (DocumentTemplateSettings::NUMBER_RESETS as $k => $l): ?><option value="<?= $k ?>" <?= $cfg['number_reset'] === $k ? 'selected' : '' ?>><?= htmlspecialchars($l) ?></option><?php endforeach; ?></select>
+                    <p class="text-[12px] text-slate-400 mt-1">It can only restart as often as the date in the number changes.</p></div>
+                <div><label class="form-label">Next count (optional)</label><input type="number" name="next_number" min="1" class="form-input" placeholder="<?= $__nextRun ?>" <?= $dis ?>>
+                    <p class="text-[12px] text-slate-400 mt-1">Leave blank to carry on. Set it to continue from a paper pad, e.g. 5033.</p></div>
+            </div>
+            <div class="rounded-xl bg-slate-50 border border-slate-200 px-4 py-3 text-[13px] text-slate-600">Next certificate number: <span class="font-mono font-semibold text-slate-900"><?= htmlspecialchars($__next) ?></span></div>
+        </section>
+        <?php endif; ?>
+
         <!-- Letterhead -->
         <section class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 space-y-4">
             <h2 class="text-base font-semibold text-slate-900">Letterhead &amp; branding</h2>
@@ -148,6 +200,9 @@ $typeLabel = $docType === 'certificate' ? 'Medical certificate' : 'Prescription'
             <div class="px-4 py-2.5 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">Letterhead preview</div>
             <div class="p-5" style="font-family: <?= DocumentTemplateSettings::fontStack($cfg['font']) ?>;">
                 <div class="flex items-center gap-3 <?= $cfg['logo_align'] === 'center' ? 'justify-center text-center flex-col' : ($cfg['logo_align'] === 'right' ? 'flex-row-reverse text-right' : '') ?>">
+                    <?php if ($docType === 'certificate' && !empty($cfg['show_caduceus'])): ?>
+                        <img src="<?= DocumentTemplateSettings::CADUCEUS ?>" alt="" style="width:44px" class="object-contain shrink-0">
+                    <?php endif; ?>
                     <?php if (!empty($cfg['show_logo']) && $effectiveLogo): ?>
                         <img src="<?= htmlspecialchars($effectiveLogo) ?>" alt="" style="width: <?= DocumentTemplateSettings::logoWidth($cfg['logo_size']) ?>px" class="object-contain shrink-0">
                     <?php endif; ?>

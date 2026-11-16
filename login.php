@@ -37,7 +37,10 @@ $expired = isset($_GET['expired']);
 
         <div class="flex-1 flex items-center">
             <div class="w-full max-w-[400px] mx-auto py-10">
-                <img src="assets/images/NuvisMedcareX_banner.webp" alt="Nuvis Medcare X" style="margin-left:-18px" class="h-20 sm:h-24 w-auto max-w-full object-contain mb-8 mix-blend-multiply dark:mix-blend-normal dark:bg-white dark:rounded-xl dark:px-3 dark:py-1">
+                <div class="flex items-center justify-between mb-8">
+                    <img src="assets/images/NuvisMedcareX_banner.webp" alt="Nuvis Medcare X" style="margin-left:-18px" class="h-20 sm:h-24 w-auto shrink-0 object-contain mix-blend-multiply dark:mix-blend-normal dark:bg-white dark:rounded-xl dark:px-3 dark:py-1">
+                    <img src="assets/images/caduceus_logo.png" alt="" aria-hidden="true" width="401" height="459" class="h-14 sm:h-20 w-auto object-contain shrink ml-2 min-w-0">
+                </div>
                 <h1 class="text-[28px] leading-tight font-semibold tracking-tight text-slate-900">Sign in to your clinic</h1>
                 <p class="mt-2 text-sm text-slate-500">Use the email address your administrator registered for you.</p>
 
