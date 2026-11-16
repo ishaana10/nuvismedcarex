@@ -35,16 +35,19 @@ try {
         exit;
     }
 
+    $idClause = \ClinicFlow\Services\PatientIdentifiers::searchClause($pdo, 'patients.id', 'patients.tenant_id', 's6');
     $stmt = $pdo->prepare(
         "SELECT id, first_name, last_name, mrn, phone, gender, age, known_allergies, avatar, initials
            FROM patients
           WHERE tenant_id = :tid
             AND (first_name LIKE :s1 OR last_name LIKE :s2 OR mrn LIKE :s3 OR phone LIKE :s4
-                 OR CONCAT(first_name, ' ', last_name) LIKE :s5)
+                 OR CONCAT(first_name, ' ', last_name) LIKE :s5" . ($idClause ? " OR {$idClause}" : '') . ")
           ORDER BY last_name ASC, first_name ASC
           LIMIT 8"
     );
-    $stmt->execute(['tid' => $tenantId, 's1' => $like, 's2' => $like, 's3' => $like, 's4' => $like, 's5' => $like]);
+    $qp = ['tid' => $tenantId, 's1' => $like, 's2' => $like, 's3' => $like, 's4' => $like, 's5' => $like];
+    if ($idClause) { $qp['s6'] = $like; }
+    $stmt->execute($qp);
 
     $patients = array_map(static function (array $p): array {
         $allergies = trim((string) ($p['known_allergies'] ?? ''));

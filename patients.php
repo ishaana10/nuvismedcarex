@@ -33,9 +33,11 @@ $tenantTotal = 0;
 $where = ['tenant_id = :tid'];
 $params = ['tid' => $currentTenantId];
 if ($search !== '') {
-    $where[] = "(first_name LIKE :s1 OR last_name LIKE :s2 OR mrn LIKE :s3 OR phone LIKE :s4 OR email LIKE :s5 OR CONCAT(first_name, ' ', last_name) LIKE :s6)";
+    $idClause = \ClinicFlow\Services\PatientIdentifiers::searchClause($pdo, 'patients.id', 'patients.tenant_id', 's7');
+    $where[] = "(first_name LIKE :s1 OR last_name LIKE :s2 OR mrn LIKE :s3 OR phone LIKE :s4 OR email LIKE :s5 OR CONCAT(first_name, ' ', last_name) LIKE :s6" . ($idClause ? " OR {$idClause}" : '') . ")";
     $term = "%{$search}%";
     foreach (['s1', 's2', 's3', 's4', 's5', 's6'] as $k) { $params[$k] = $term; }
+    if ($idClause) { $params['s7'] = $term; }
 }
 $noAllergy = "(known_allergies IS NULL OR TRIM(known_allergies) = '' OR known_allergies IN ('None', 'None reported', 'NKDA', 'NKA', 'N/A'))";
 if ($filter === 'allergies') $where[] = "NOT {$noAllergy}";

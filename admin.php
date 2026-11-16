@@ -335,24 +335,12 @@ $sv = fn(string $k, string $fallback = '') => htmlspecialchars((string) ($settin
         </section>
 
         <section class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5">
-            <h2 class="text-base font-semibold text-slate-900">Registration numbers</h2>
+            <h2 class="text-base font-semibold text-slate-900">Medical licence</h2>
             <p class="text-[13px] text-slate-500 mt-0.5 mb-4">Printed on prescriptions, invoices and certificates where they apply.</p>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="form-label" for="f-prc">Practitioner licence</label>
+                    <label class="form-label" for="f-prc">Medical Licence No.</label>
                     <input id="f-prc" type="text" name="doc_prc_no" maxlength="60" value="<?= $sv('doc_prc_no') ?>" class="form-input font-mono" <?= $cdis ?>>
-                </div>
-                <div>
-                    <label class="form-label" for="f-ptr">Practice registration</label>
-                    <input id="f-ptr" type="text" name="doc_ptr_no" maxlength="60" value="<?= $sv('doc_ptr_no') ?>" class="form-input font-mono" <?= $cdis ?>>
-                </div>
-                <div>
-                    <label class="form-label" for="f-dea">Controlled drugs licence</label>
-                    <input id="f-dea" type="text" name="clinic_dea" maxlength="60" value="<?= $sv('clinic_dea') ?>" class="form-input font-mono" <?= $cdis ?>>
-                </div>
-                <div>
-                    <label class="form-label" for="f-npi">Provider number</label>
-                    <input id="f-npi" type="text" name="clinic_npi" maxlength="60" value="<?= $sv('clinic_npi') ?>" class="form-input font-mono" <?= $cdis ?>>
                 </div>
             </div>
         </section>

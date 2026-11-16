@@ -36,8 +36,10 @@ $insurancePolicy = trim($_POST['insurance_policy_number'] ?? '');
 $insuranceGroup = trim($_POST['insurance_group_number'] ?? '');
 
 $allergies = trim($_POST['known_allergies'] ?? 'None');
-$bloodGroup = $_POST['blood_group'] ?? 'O+';
+$bloodGroup = $_POST['blood_group'] ?? '';
 $chronic = trim($_POST['chronic_conditions'] ?? '');
+$clinicalNotes = trim($_POST['clinical_notes'] ?? '');
+$bloodGroup = trim((string) $bloodGroup);
 
 if ($firstName === '' || $lastName === '' || $dob === '') {
     setToast('Error', 'First name, last name, and date of birth are required.', 'error');
@@ -47,7 +49,7 @@ if ($firstName === '' || $lastName === '' || $dob === '') {
 
 // Calculate age
 $birthYear = (int)date('Y', strtotime($dob));
-$age = max(0, (int)date('Y') - $birthYear);
+$age = max(0, date_diff(date_create($dob), date_create('today'))->y);
 
 $mrnNum = rand(10000, 99999);
 $mrn = "#" . $mrnNum;
@@ -59,14 +61,16 @@ $pdo = getDB();
 
 $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 
-$stmt = $pdo->prepare("INSERT INTO patients (id, tenant_id, mrn, first_name, last_name, dob, age, gender, phone, email, address, emergency_contact_name, emergency_contact_relationship, emergency_contact_phone, insurance_provider, insurance_policy_number, insurance_group_number, known_allergies, blood_group, chronic_conditions, initials, registration_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+$stmt = $pdo->prepare("INSERT INTO patients (id, tenant_id, mrn, first_name, last_name, dob, age, gender, phone, email, address, emergency_contact_name, emergency_contact_relationship, emergency_contact_phone, insurance_provider, insurance_policy_number, insurance_group_number, known_allergies, blood_group, chronic_conditions, clinical_notes, initials, registration_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
 $stmt->execute([
     $patientId, $tenantId, $mrn, $firstName, $lastName, $dob, $age, $gender, $phone, $email, $address,
     $emergencyName, $emergencyRel, $emergencyPhone,
     $insuranceProvider, $insurancePolicy, $insuranceGroup,
-    $allergies, $bloodGroup, $chronic, $initials, $regDate
+    $allergies, $bloodGroup, $chronic, $clinicalNotes, $initials, $regDate
 ]);
+
+\ClinicFlow\Services\PatientIdentifiers::save($pdo, $tenantId, $patientId, \ClinicFlow\Services\PatientIdentifiers::fromPost($_POST));
 
 // Add to activity log
 $actStmt = $pdo->prepare("INSERT INTO activities (id, tenant_id, type, title, detail, timestamp, badge_type) VALUES (?, ?, ?, ?, ?, ?, ?)");

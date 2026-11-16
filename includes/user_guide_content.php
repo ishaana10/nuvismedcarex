@@ -125,14 +125,15 @@ HTML,
     'summary' => 'Register a patient, find them again and keep their details correct.',
     'body' => <<<'HTML'
 <h4>The patient directory</h4>
-<p>Open <strong>Patients</strong>. Type in <strong>Search patients</strong> to find by name or MRN. Use the filters <em>All patients</em>, <em>With allergies</em>, <em>Self pay</em> and <em>New this month</em>, and sort by <em>Name (A–Z)</em>, <em>Recently registered</em> or <em>Oldest first</em>. <strong>Clear search</strong> returns to the full list. The table shows age and sex, contact, insurance and allergies at a glance.</p>
+<p>Open <strong>Patients</strong>. Type in <strong>Search patients</strong> to find by name, MRN, phone or any ID number on file (social welfare ID, NHN, BRN, voter ID, driving licence and so on). Use the filters <em>All patients</em>, <em>With allergies</em>, <em>Self pay</em> and <em>New this month</em>, and sort by <em>Name (A–Z)</em>, <em>Recently registered</em> or <em>Oldest first</em>. <strong>Clear search</strong> returns to the full list. The table shows age and sex, contact, insurance and allergies at a glance.</p>
 <h4>Registering a new patient</h4>
 <p>Press <strong>Register patient</strong> (or <kbd>N</kbd>). The form has three parts:</p>
 <ol>
-  <li><strong>Personal and demographics.</strong> First name, last name, date of birth, gender and phone number are required. Email and residential address are optional but useful for sending documents.</li>
+  <li><strong>Personal and demographics.</strong> First name, last name, date of birth, gender and phone number are required. Email and residential address are optional but useful for sending documents. Under <strong>ID numbers</strong> add any identity documents the patient has: pick the type (social welfare ID, NHN #, BRN #, voter ID, driving licence, passport, FNPF, TIN, or <em>Other</em> to name your own) and type the number; <strong>Add another ID</strong> adds more. Each one is searchable. The edit window on the patient chart has exactly the same fields.</li>
   <li><strong>Emergency contact and insurance.</strong> Contact name, relationship and phone, plus the insurance provider, policy number and group number. Leave insurance blank for self-pay patients.</li>
   <li><strong>Medical profile and allergies.</strong> Known allergies, blood group and past medical history, medication history or baseline notes.</li>
 </ol>
+<div class="g-tip"><strong>Children under 15.</strong> Their exact age (for example “5 yrs 6 mths”) is printed on the prescription, to support weight and age based dosing.</div>
 <p>Press <strong>Register &amp; Open Chart</strong>. The patient gets a medical record number (MRN) automatically.</p>
 <div class="g-tip"><strong>Search before you register.</strong> Registering the same person twice splits their history across two charts. Check the directory first, including spellings.</div>
 <h4>The patient chart</h4>

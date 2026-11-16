@@ -99,6 +99,12 @@ $clinicSettings = $settings;
                 <p class="text-xs text-outline mt-1 font-medium">
                     <?= htmlspecialchars($patient['age']) ?> Yrs • <?= htmlspecialchars($patient['gender']) ?> • DOB: <?= htmlspecialchars($patient['dob']) ?> • Blood: <?= htmlspecialchars($patient['blood_group'] ?: 'O+') ?>
                 </p>
+                <?php $hdrIds = \ClinicFlow\Services\PatientIdentifiers::forPatient($pdo, \ClinicFlow\Shared\TenantContext::getTenantId(), (string) $patient['id']); ?>
+                <?php if ($hdrIds): ?>
+                <p class="text-[11px] text-outline mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                    <?php foreach ($hdrIds as $hid): ?><span><?= htmlspecialchars($hid['type']) ?>: <span class="font-mono font-semibold text-on-surface"><?= htmlspecialchars($hid['number']) ?></span></span><?php endforeach; ?>
+                </p>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -394,104 +400,12 @@ $clinicSettings = $settings;
             <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
             <input type="hidden" name="patient_id" value="<?= htmlspecialchars($patient['id']) ?>">
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">First Name <span class="text-red-500">*</span></label>
-                    <input type="text" name="first_name" value="<?= htmlspecialchars($patient['first_name']) ?>" required class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-bold">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Last Name <span class="text-red-500">*</span></label>
-                    <input type="text" name="last_name" value="<?= htmlspecialchars($patient['last_name']) ?>" required class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-bold">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Date of Birth <span class="text-red-500">*</span></label>
-                    <input type="date" name="dob" value="<?= htmlspecialchars($patient['dob']) ?>" required class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-medium">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Gender</label>
-                    <select name="gender" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-semibold">
-                        <option value="Female" <?= $patient['gender'] === 'Female' ? 'selected' : '' ?>>Female</option>
-                        <option value="Male" <?= $patient['gender'] === 'Male' ? 'selected' : '' ?>>Male</option>
-                        <option value="Other" <?= $patient['gender'] === 'Other' ? 'selected' : '' ?>>Other</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Blood Group</label>
-                    <input type="text" name="blood_group" value="<?= htmlspecialchars($patient['blood_group'] ?? '') ?>" placeholder="e.g. O+, A-, B+" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-bold text-primary">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Phone Number</label>
-                    <input type="text" name="phone" value="<?= htmlspecialchars($patient['phone'] ?? '') ?>" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-medium">
-                </div>
-                <div class="md:col-span-2">
-                    <label class="block font-bold text-slate-700 mb-1">Email Address</label>
-                    <input type="email" name="email" value="<?= htmlspecialchars($patient['email'] ?? '') ?>" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-medium">
-                </div>
-                <div class="md:col-span-3">
-                    <label class="block font-bold text-slate-700 mb-1">Address</label>
-                    <input type="text" name="address" value="<?= htmlspecialchars($patient['address'] ?? '') ?>" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-medium">
-                </div>
-            </div>
-
-            <hr class="border-slate-200">
-
-            <!-- Emergency Contact -->
-            <p class="font-bold text-slate-800 text-xs">Emergency Contact Details</p>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Contact Name</label>
-                    <input type="text" name="emergency_contact_name" value="<?= htmlspecialchars($patient['emergency_contact_name'] ?? '') ?>" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-medium">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Relationship</label>
-                    <input type="text" name="emergency_contact_relationship" value="<?= htmlspecialchars($patient['emergency_contact_relationship'] ?? '') ?>" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-medium">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Phone Number</label>
-                    <input type="text" name="emergency_contact_phone" value="<?= htmlspecialchars($patient['emergency_contact_phone'] ?? '') ?>" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-medium">
-                </div>
-            </div>
-
-            <hr class="border-slate-200">
-
-            <!-- Insurance Info -->
-            <p class="font-bold text-slate-800 text-xs">Insurance Information</p>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Insurance Provider</label>
-                    <?php
-                    $ipValue = (string) ($patient['insurance_provider'] ?? '');
-                    $ipId = 'edit-insurance-provider';
-                    $ipClass = 'w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-medium';
-                    include __DIR__ . '/includes/insurance_provider_field.php';
-                    ?>
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Policy Number</label>
-                    <input type="text" name="insurance_policy_number" value="<?= htmlspecialchars($patient['insurance_policy_number'] ?? '') ?>" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-mono font-medium">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Group Number</label>
-                    <input type="text" name="insurance_group_number" value="<?= htmlspecialchars($patient['insurance_group_number'] ?? '') ?>" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-mono font-medium">
-                </div>
-            </div>
-
-            <hr class="border-slate-200">
-
-            <!-- Clinical Alerts -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Known Allergies</label>
-                    <textarea name="known_allergies" rows="2" class="w-full bg-slate-50 p-2.5 rounded-xl border border-slate-300 font-medium"><?= htmlspecialchars($patient['known_allergies'] ?? '') ?></textarea>
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Past medical History/Medication History/Baseline Notes</label>
-                    <textarea name="chronic_conditions" rows="2" class="w-full bg-slate-50 p-2.5 rounded-xl border border-slate-300 font-medium"><?= htmlspecialchars($patient['chronic_conditions'] ?? '') ?></textarea>
-                </div>
-                <div class="md:col-span-2">
-                    <label class="block font-bold text-slate-700 mb-1">Clinical Notes</label>
-                    <textarea name="clinical_notes" rows="2" class="w-full bg-slate-50 p-2.5 rounded-xl border border-slate-300 font-medium"><?= htmlspecialchars($patient['clinical_notes'] ?? '') ?></textarea>
-                </div>
+            <div class="space-y-6">
+                <?php
+                $pf = $patient; $pfNew = false; $pfKey = 'edit';
+                $pfIds = \ClinicFlow\Services\PatientIdentifiers::forPatient($pdo, \ClinicFlow\Shared\TenantContext::getTenantId(), (string) $patient['id']);
+                include __DIR__ . '/includes/patient_form_fields.php';
+                ?>
             </div>
 
             <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">

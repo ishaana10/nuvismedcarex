@@ -128,6 +128,8 @@ $stmt->execute([
     \ClinicFlow\Shared\TenantContext::getTenantId()
 ]);
 
+\ClinicFlow\Services\PatientIdentifiers::save($pdo, \ClinicFlow\Shared\TenantContext::getTenantId(), $patientId, \ClinicFlow\Services\PatientIdentifiers::fromPost($_POST));
+
 setToast("Patient Updated", "Patient record for " . htmlspecialchars($firstName . ' ' . $lastName) . " updated successfully.");
 header("Location: ../patient_detail.php?id=" . urlencode($patientId));
 exit;

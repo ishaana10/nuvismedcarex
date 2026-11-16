@@ -65,10 +65,7 @@ final class DocumentTemplateSettings
                 'show_website'  => ['Website', false],
             ],
             'Credentials' => [
-                'show_dea'      => ['DEA number', true],
-                'show_npi'      => ['NPI number', true],
-                'show_license'  => ['Prescriber licence (PRC)', true],
-                'show_ptr'      => ['PTR number', false],
+                'show_license'  => ['Medical licence number', true],
             ],
             'Prescription body' => [
                 'show_rx_symbol'   => ['℞ superscription symbol', true],
@@ -105,8 +102,7 @@ final class DocumentTemplateSettings
                 'show_patient_id'    => ['Patient ID / MRN', true],
             ],
             'Credentials & sign-off' => [
-                'show_license'   => ['Physician licence (PRC)', true],
-                'show_ptr'       => ['PTR number', true],
+                'show_license'   => ['Medical licence number', true],
                 'show_signature' => ['Physician signature', true],
                 'show_stamp'     => ['Clinic stamp', true],
             ],

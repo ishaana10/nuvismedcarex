@@ -115,6 +115,21 @@ CREATE TABLE IF NOT EXISTS patients (
 
 CREATE INDEX idx_patients_tenant ON patients(tenant_id);
 
+-- Patient identity documents (social welfare ID, NHN, BRN, voter ID, driving licence...)
+CREATE TABLE IF NOT EXISTS patient_identifiers (
+    id VARCHAR(50) PRIMARY KEY,
+    tenant_id VARCHAR(50) NOT NULL,
+    patient_id VARCHAR(50) NOT NULL,
+    id_type VARCHAR(60) NOT NULL,
+    id_number VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+    FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_patient_ids_number ON patient_identifiers(tenant_id, id_number);
+CREATE INDEX idx_patient_ids_patient ON patient_identifiers(patient_id);
+
+
 CREATE TABLE IF NOT EXISTS appointments (
     id VARCHAR(50) PRIMARY KEY,
     tenant_id VARCHAR(50) NOT NULL,
