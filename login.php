@@ -29,8 +29,7 @@ $expired = isset($_GET['expired']);
 <div class="min-h-screen grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
     <!-- Form -->
     <main class="flex flex-col px-6 sm:px-12 py-8">
-        <div class="flex items-center justify-between">
-            <img src="assets/images/NuvisMedcareX_banner.webp" alt="Nuvis Medcare X" class="h-11 w-auto object-contain mix-blend-multiply dark:mix-blend-normal dark:bg-white dark:rounded-lg dark:px-2">
+        <div class="flex items-center justify-end">
             <button type="button" class="nx-icon-btn" id="login-theme" aria-label="Switch colour theme">
                 <span class="material-symbols-outlined" id="login-theme-icon">dark_mode</span>
             </button>
@@ -38,6 +37,7 @@ $expired = isset($_GET['expired']);
 
         <div class="flex-1 flex items-center">
             <div class="w-full max-w-[400px] mx-auto py-10">
+                <img src="assets/images/NuvisMedcareX_banner.webp" alt="Nuvis Medcare X" class="h-20 sm:h-24 w-auto max-w-full object-contain mb-8 -ml-[18px] mix-blend-multiply dark:mix-blend-normal dark:bg-white dark:rounded-xl dark:px-3 dark:py-1">
                 <h1 class="text-[28px] leading-tight font-semibold tracking-tight text-slate-900">Sign in to your clinic</h1>
                 <p class="mt-2 text-sm text-slate-500">Use the email address your administrator registered for you.</p>
 
