@@ -81,6 +81,7 @@ if (!function_exists('nxAccess')) {
         // Clinic settings
         'actions/admin_save_settings.php' => ['settings', 'edit'],
         'actions/receipt_settings_save.php' => ['settings', 'edit'],
+        'actions/appearance_save.php' => ['settings', 'edit'],
         'actions/insurance_providers_save.php' => ['settings', 'edit'],
         'actions/consent_form_save.php'   => ['settings', 'edit'],
         'actions/consent_record_save.php' => ['encounters', 'edit', ['withdraw' => 'full']],

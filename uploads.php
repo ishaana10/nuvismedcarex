@@ -535,8 +535,6 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
 
 <!-- Modal: Cloud API Settings -->
 <!-- Google API Loader and GIS Client SDKs -->
-<script src="https://accounts.google.com/gsi/client" id="gsi-client-script"></script>
-<script src="https://apis.google.com/js/api.js" id="gapi-client-script"></script>
 
 <script>
 window.gdriveClientId = <?= json_encode($cloudSettings['cloud_googledrive_client_id'] ?? '') ?>;

@@ -27,7 +27,7 @@ $email = sanitizeInput($_GET['email'] ?? '');
 </head>
 <body class="min-h-full font-sans text-slate-900 bg-background">
 <div class="min-h-screen flex flex-col px-6 sm:px-12 py-8">
-    <div><a href="login.php"><img src="assets/images/NuvisMedcareX_banner.jpg" alt="Nuvis Medcare X" class="h-11 w-auto object-contain mix-blend-multiply dark:mix-blend-normal dark:bg-white dark:rounded-lg dark:px-2"></a></div>
+    <div><a href="login.php"><img src="assets/images/NuvisMedcareX_banner.webp" alt="Nuvis Medcare X" class="h-11 w-auto object-contain mix-blend-multiply dark:mix-blend-normal dark:bg-white dark:rounded-lg dark:px-2"></a></div>
 
     <main class="flex-1 flex items-center">
         <div class="w-full max-w-[420px] mx-auto py-10">

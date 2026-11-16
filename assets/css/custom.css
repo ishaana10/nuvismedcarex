@@ -763,3 +763,53 @@ input[type="checkbox"], input[type="radio"] { border-radius: 6px; }
   50%      { box-shadow: 0 0 0 5px rgb(244 63 94 / 0); }
 }
 @media (prefers-reduced-motion: reduce) { .nx-voice-btn.nx-voice-on { animation: none; } }
+
+/* 9. Phones and touch screens --------------------------------------------- */
+.nx-bottomnav { display: none; }
+@media (max-width: 767px) {
+  /* Room for the tab bar and the phone's home indicator */
+  body { padding-bottom: calc(3.75rem + env(safe-area-inset-bottom)); }
+  .nx-bottomnav {
+    display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 45;
+    padding-bottom: env(safe-area-inset-bottom);
+    background: rgb(var(--nx-card)); border-top: 1px solid rgb(var(--c-slate-200));
+    box-shadow: 0 -6px 18px -10px rgb(10 29 63 / .25);
+  }
+  .nx-bottomnav-item {
+    flex: 1 1 0; min-width: 0; min-height: 3.5rem; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 2px; padding: .25rem 0;
+    font-size: 10.5px; font-weight: 600; color: rgb(var(--c-slate-500));
+    background: none; border: 0; -webkit-tap-highlight-color: transparent;
+  }
+  .nx-bottomnav-item span:last-child { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nx-bottomnav-item .material-symbols-outlined { font-size: 1.5rem; }
+  .nx-bottomnav-item[aria-current="page"] { color: rgb(var(--c-blue-700)); }
+
+  /* iOS zooms the page when a field under 16px is focused */
+  input:not([type=checkbox]):not([type=radio]):not([type=range]), select, textarea { font-size: 16px !important; }
+
+  /* Wide tables become one card per row (marked up by NX.stackTables in app.js) */
+  table.nx-stack, .nx-stack thead, .nx-stack tbody, .nx-stack tr, .nx-stack th, .nx-stack td { display: block; width: 100%; }
+  .nx-stack thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .nx-stack tbody tr { padding: .75rem 1rem; border-bottom: 1px solid rgb(var(--c-slate-200)); }
+  .nx-stack tbody tr:last-child { border-bottom: 0; }
+  .nx-stack td { display: block; padding: .35rem 0 !important; border: 0 !important; text-align: left; min-width: 0; overflow-wrap: anywhere; }
+  .nx-stack td::before {
+    content: attr(data-label); display: block; margin-bottom: 2px;
+    font-size: 10.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+    color: rgb(var(--c-slate-500));
+  }
+  .nx-stack td[data-label=""]::before, .nx-stack td[colspan]::before { display: none; }
+  .nx-stack td[colspan] { text-align: center; }
+
+  /* Tab bars: scroll sideways with a hint that there is more */
+  .nx-tabs-scroll, [role=tablist] { scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .nx-tabs-scroll::-webkit-scrollbar, [role=tablist]::-webkit-scrollbar { display: none; }
+
+}
+/* Fingers need bigger targets than mice */
+@media (pointer: coarse) {
+  button, [role=button], select, input:not([type=checkbox]):not([type=radio]), .nx-icon-btn, .btn-primary, .btn-secondary, .nx-menu-item { min-height: 44px; }
+  .nx-icon-btn { min-width: 44px; }
+  td button, td a.btn-secondary, td .btn-secondary { min-height: 40px; }
+}

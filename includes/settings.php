@@ -53,13 +53,19 @@ if (!function_exists('nxClinicSettings')) {
         return nxClinic()['name'];
     }
 
+    /** Preferences service for the active clinic: its defaults sit under each person's own choices. */
+    function nxUserPreferences(): \ClinicFlow\Services\UserPreferences
+    {
+        return new \ClinicFlow\Services\UserPreferences(getDB(), \ClinicFlow\Services\AppearanceSettings::userDefaults(nxSettings()));
+    }
+
     /** Preferences of the signed-in person (see UserPreferences). */
     function nxPrefs(): array
     {
         static $prefs = null, $forUser = null;
         $uid = $_SESSION['user_id'] ?? null;
         if ($prefs === null || $forUser !== $uid) {
-            $prefs = (new \ClinicFlow\Services\UserPreferences(getDB()))->load($uid);
+            $prefs = nxUserPreferences()->load($uid);
             $forUser = $uid;
         }
         return $prefs;

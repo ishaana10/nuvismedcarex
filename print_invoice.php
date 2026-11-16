@@ -95,11 +95,10 @@ $patientOwed = (float)($invoice['patient_owed'] ?? max(0, $grandTotal - $insuran
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Commercial Invoice <?= htmlspecialchars($invoice['invoice_number']) ?> - <?= htmlspecialchars($clinicName) ?></title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="assets/css/fonts.css"/>
+    <link rel="stylesheet" href="assets/css/tailwind-public.css"/>
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        body { font-family: "IBM Plex Sans", system-ui, sans-serif; }
         @media print {
             .no-print { display: none !important; }
             body { background: white; padding: 0; }

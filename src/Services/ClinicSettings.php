@@ -32,6 +32,8 @@ final class ClinicSettings
         'doc_prc_no', 'doc_ptr_no',
         'rx_*', 'invoice_*', 'receipt_*', 'cert_*', 'lab_catalog', 'insurance_*',
         'vms_*', 'inventory_*', 'access_*', 'sse_notifications_enabled',
+        // How this clinic wants the app to look for its staff (AppearanceSettings)
+        'ui_*',
         // Each clinic sends patient email from its own mailbox
         'smtp_*', 'email_*',
     ];

@@ -8,6 +8,7 @@ $adminTabs = [
     'users'     => ['Staff',           'group',           'admin.php?tab=users',     ['users', 'view']],
     'access'    => ['Access & roles',  'shield_person',   'access.php',              ['users', 'view']],
     'clinic'    => ['Clinic & branding', 'domain',        'admin.php?tab=clinic',    ['settings', 'view']],
+    'appearance' => ['Appearance',     'palette',         'appearance_settings.php', ['settings', 'view']],
     'locations' => ['Locations',       'pin_drop',        'admin.php?tab=locations', ['settings', 'view']],
     'subscription' => ['Subscription', 'credit_card',     'admin.php?tab=subscription', ['settings', 'view']],
     'receipts'  => ['Receipts',        'receipt',         'receipt_settings.php',    ['settings', 'view']],

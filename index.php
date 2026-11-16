@@ -2,34 +2,6 @@
 require_once __DIR__ . '/core/Cache.php';
 require_once __DIR__ . '/core/SessionBootstrap.php';
 
-// Serve static assets if requested (handles relative or absolute /assets/ path requests)
-$uri = strtok($_SERVER['REQUEST_URI'] ?? '', '?');
-if (str_contains($uri, 'assets/')) {
-    $assetPos = strpos($uri, 'assets/');
-    $assetRel = '/' . substr($uri, $assetPos);
-    $assetFile = __DIR__ . $assetRel;
-    if (!file_exists($assetFile) || !is_file($assetFile)) {
-        $assetFile = __DIR__ . '/dist' . $assetRel;
-    }
-    if (file_exists($assetFile) && is_file($assetFile)) {
-        $mime = str_ends_with($assetFile, '.css') ? 'text/css' : (str_ends_with($assetFile, '.js') ? 'application/javascript' : (str_ends_with($assetFile, '.png') ? 'image/png' : 'text/plain'));
-        header("Content-Type: $mime");
-        readfile($assetFile);
-        exit;
-    }
-}
-
-// Serve React SPA only if view=react is explicitly requested; default to dynamic PHP EHR application
-$viewMode = $_GET['view'] ?? 'classic';
-if ($viewMode === 'react' && file_exists(__DIR__ . '/dist/index.html')) {
-    header('Content-Type: text/html; charset=UTF-8');
-    header("Cache-Control: no-cache, no-store, must-revalidate, max-age=0");
-    header("Pragma: no-cache");
-    header("Expires: 0");
-    readfile(__DIR__ . '/dist/index.html');
-    exit;
-}
-
 $pageTitle = "Dashboard - NuvisMedcareX";
 $activePage = "dashboard";
 include __DIR__ . '/includes/header.php';
@@ -211,6 +183,14 @@ $canChart = nxCan('encounters', 'edit') && nxIsClinician();
         <?php endif; ?>
     </div>
 </div>
+
+<?php $nxNotice = \ClinicFlow\Services\AppearanceSettings::cleanAnnouncement((string) nxSetting('ui_announcement', '')); ?>
+<?php if ($nxNotice !== ''): ?>
+<div class="mb-6 flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-[13px] text-blue-900" role="status">
+    <span class="material-symbols-outlined text-[20px] shrink-0">campaign</span>
+    <p class="min-w-0 break-words"><?= htmlspecialchars($nxNotice) ?></p>
+</div>
+<?php endif; ?>
 
 <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
     <div class="xl:col-span-2 space-y-6 min-w-0">

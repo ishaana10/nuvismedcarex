@@ -166,7 +166,7 @@ $receiptNo = $cfg['number_prefix'] . $invoice['invoice_number'];
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($receiptNo . ' · ' . $clinic['name']) ?></title>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/fonts.css">
     <style>
         <?= nxReceiptCss($cfg) ?>
         body { margin: 0; background: #e9edf2; font-family: "IBM Plex Sans", system-ui, sans-serif; color: #1b2430; }

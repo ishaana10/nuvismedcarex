@@ -169,7 +169,7 @@ $usersList = $usersStmt->fetchAll();
                             <tr class="user-row hover:bg-surface-container-low/50 transition" data-role="<?= htmlspecialchars($userRole) ?>" data-search="<?= htmlspecialchars(strtolower($usr['name'] . ' ' . $usr['email'] . ' ' . $usr['role'] . ' ' . $usr['specialty'])) ?>">
                                 <td class="py-3 px-4">
                                     <div class="flex items-center gap-3">
-                                        <img src="<?= htmlspecialchars($usr['avatar'] ?: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&q=80&w=200') ?>" class="w-9 h-9 rounded-xl object-cover border border-slate-200 shrink-0" alt="Avatar">
+                                        <img src="<?= htmlspecialchars($usr['avatar'] ?: 'assets/images/avatar-default.svg') ?>" class="w-9 h-9 rounded-xl object-cover border border-slate-200 shrink-0" alt="Avatar">
                                         <div>
                                             <div class="font-bold text-on-surface"><?= htmlspecialchars($usr['name']) ?></div>
                                             <div class="text-[11px] text-outline font-normal"><?= htmlspecialchars($usr['email']) ?></div>
@@ -1665,7 +1665,7 @@ $invCanEdit = nxCan('settings', 'edit');
                         <input type="file" name="avatar_file" id="usr_avatar_file" accept="image/*" class="text-xs text-slate-600">
                         <span class="text-xs text-slate-400 font-semibold">OR Image URL:</span>
                     </div>
-                    <input type="text" name="avatar" id="usr_avatar" placeholder="https://images.unsplash.com/photo-..." class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-medium">
+                    <input type="text" name="avatar" id="usr_avatar" placeholder="Optional: a picture saved on this server, e.g. assets/images/avatar-default.svg" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-medium">
                     <div id="avatar_preview" class="p-2 border border-slate-200 rounded-xl bg-white hidden flex items-center gap-3 shadow-2xs">
                         <img id="img_avatar_preview" src="" class="w-12 h-12 rounded-xl object-cover border border-slate-200" alt="Avatar Preview">
                         <div>
@@ -1861,7 +1861,7 @@ function viewCardDetails(usr) {
     document.getElementById('view-card-role').innerText = usr.role || 'Doctor';
     document.getElementById('view-card-specialty').innerText = usr.specialty || 'General Practice';
     document.getElementById('view-card-prc').innerText = usr.prc_number || 'N/A';
-    document.getElementById('view-card-avatar').src = usr.avatar || 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&q=80&w=200';
+    document.getElementById('view-card-avatar').src = usr.avatar || 'assets/images/avatar-default.svg';
 
     const sigEl = document.getElementById('view-card-sig-status');
     const sigContainer = document.getElementById('view-card-sig-container');

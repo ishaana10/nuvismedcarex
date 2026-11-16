@@ -105,7 +105,8 @@ foreach ($items as $item) {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lab Request - <?= htmlspecialchars($patient['first_name'] . ' ' . $patient['last_name']) ?></title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="assets/css/fonts.css"/>
+    <link rel="stylesheet" href="assets/css/tailwind-public.css"/>
     <style>
         @media print {
             .no-print { display: none !important; }

@@ -1,7 +1,7 @@
 # Nuvis Medcare X - Industrial Multi-Tenant EHR & VMS Platform
 
-**Current Version:** `v2.1.31` (Build 31)
-**Target Environment:** PHP 8.1+ (PDO / MySQL 8.0+) / Redis 6.0+ / Composer / Tailwind CSS
+**Current Version:** shown in the app footer and in `version.json` (stamped automatically on release)
+**Target Environment:** PHP 8.1+ (PDO / MySQL 8.0+) / optional Redis 6.0+ / Composer. Node is only needed on a developer machine to rebuild the stylesheet; the server needs none.
 
 ---
 
@@ -15,11 +15,10 @@
 
 ### 1. Multi-Tenancy & Request-Scoped Isolation
 - **Non-Nullable Schema Scoping:** All core database entities (`patients`, `appointments`, `clinical_visits`, `vitals`, `invoices`, `inventory`, `inventory_logs`, `lab_orders`, `uploaded_files`, `audit_logs`, `vms_transactions`, `tenant_settings`) strictly include `tenant_id` foreign keys to enforce tenant boundary isolation.
-- **Request-Scoped Context Resolver (`src/Shared/TenantContext.php`):** Deterministically resolves active tenant context via:
-  1. `HTTP_X_TENANT_ID` request header (API requests).
-  2. Authenticated user session (`$_SESSION['tenant_id']`).
-  3. Host subdomain extraction (e.g., `clinic1.domain.com`).
-  4. Fallback default tenant context (`default-clinic`).
+- **Request-Scoped Context Resolver (`src/Shared/TenantContext.php`):** Resolves the active clinic and **fails closed**:
+  1. A signed-in user's clinic comes from the server-side session and nothing else. The `X-Tenant-ID` header is ignored, so a client can no longer pick its own clinic.
+  2. Before sign-in (login page, public verification links) the clinic comes from the host subdomain (e.g. `clinic1.domain.com`) or the fallback `default-clinic`.
+  3. If no clinic can be determined for a signed-in request, the request is refused rather than defaulting to someone else's data.
 - **Multi-Clinic User Assignment & Switching (`user_tenants`):** Doctors and staff assigned to multiple practice locations can seamlessly switch active clinic views in real-time.
 
 ### 2. PSR-4 Domain-Driven Layered Architecture
@@ -77,6 +76,7 @@ src/
 - **PHP:** 8.1 or higher (Extensions required: `pdo_mysql`, `openssl`, `mbstring`, `json`, `gd`, optional `redis`)
 - **Database:** MySQL 8.0+ or MariaDB 10.5+
 - **Composer:** Dependency manager for PHP
+- **Node 18+ (developers only):** to rebuild `assets/css/tailwind.css` after changing a template's utility classes
 
 ### Setup Instructions
 1. **Clone repository and install Composer dependencies:**
@@ -86,11 +86,14 @@ src/
    composer install
    ```
 
-2. **Database Configuration:**
-   Copy example configuration and update database connection credentials:
+2. **Configuration:**
+   Copy the example configuration and set the database credentials:
    ```bash
    cp config/config.example.php config/config.php
    ```
+   Also set **`app_key`**, the secret that encrypts clinical notes and vitals at rest (AES-256-GCM). You generate it yourself: *Developer → Encryption → Generate a key* (it is made in your browser and never sent to the server), or `php -r "echo base64_encode(random_bytes(32)), PHP_EOL;"`. **Keep a copy in your password manager. If it is lost the notes cannot be recovered.** Only one of `config/config.local.php` / `config/config.php` is read, so put it in the file that is live on the server. Both are git-ignored.
+
+   Installations that already hold notes written under the old built-in key: back up the database, set `app_key`, then run **Developer → Encryption → Re-encrypt now** (or `php bin/reencrypt.php --dry-run`, then `--run`). Old notes stay readable through a read-only fallback until then. When `bin/reencrypt.php` reports nothing left, set `'allow_legacy_key' => false`.
 
 3. **Database Migration & Seeding:**
    Run schema migrations and initialize default tenant records:
@@ -105,6 +108,22 @@ src/
    chmod -R 775 uploads/
    ```
 
+5. **Production check:**
+   ```bash
+   php bin/preflight.php https://your-clinic-domain
+   ```
+   It reports default passwords, a missing `app_key`, data still on the old key, `install.php`/`seed.php` left reachable, header-spoofing and cookie flags.
+
+6. **Rebuilding the stylesheet (developers only):** `assets/css/tailwind.css` is committed, so deploying needs no build. After adding new utility classes to a template run:
+   ```bash
+   npm install
+   npm run build:css
+   ```
+   The theme lives in `tailwind.config.js`. Fonts are served from `assets/fonts`; `python3 bin/build-fonts.py` (see its header) rebuilds the trimmed icon font after you use an icon that is not in `assets/fonts/icons.txt`.
+
+### Google Drive that stays connected
+If Drive disconnects about a week after you connect it ("access was revoked or expired"), the Google Cloud OAuth consent screen is still in **Testing**, where Google expires refresh tokens after 7 days. In Google Cloud Console open **Google Auth Platform → Audience → Publish app** (status *In production*), then press **Reconnect** once. The app only asks for the `drive.file` scope, so no Google review is needed.
+
 ---
 
 ## 🧪 Testing & Quality Assurance
@@ -115,11 +134,26 @@ Run the automated PHPUnit test suite covering Domain Entities, Repositories, Ser
 ./vendor/bin/phpunit tests
 ```
 
-*Test Coverage Highlights:* 87 tests, 336 assertions passing 100%.
+*Test Coverage Highlights:* 135 tests, 788 assertions. The one known failure, `PasswordResetOtpTest::testEmailServiceSendOtpEmail`, needs a real mail transport and fails the same way on a clean checkout.
+Tenant isolation, request hardening, encryption migration, QR codes and tenant appearance each have their own test class (`SecurityHardeningTest`, `EncryptionMigrationTest`, `QrCodeTest`, `AppearanceSettingsTest`).
 
 ---
 
 ## 📜 Version History & Release Notes
+
+### **Security hardening, a faster and phone-friendly interface, and per-clinic appearance** - *November 2026*
+- **Fixed: one clinic could read and change another's data.** Any signed-in request could name a clinic in the `X-Tenant-ID` header and be served that clinic's records. The header is now ignored for signed-in users, the session decides, and the resolver fails closed. Every action and print page was checked for a `tenant_id` condition, and the gaps found were closed.
+- **Hardened sign-in and public endpoints:** `install.php` and `database/seed.php` are locked after set-up (seed could previously wipe the database), password-reset codes are stored hashed and rate-limited, the session cookie is `Secure` behind a proxy, uploads are validated by content, internal folders and dumps return 404, and developer endpoints (git, Redis, integrations, encryption) require a CSRF token.
+- **VMS fiscalisation is Developer-only for this release.** The Fiscalised tile and warnings are hidden from clinic roles and its endpoints refuse them.
+- **Vitals no longer invent normal values.** A missing measurement is stored as empty instead of 120/80, 72 bpm and so on.
+- **`app_key` and the Developer-only re-encryption tool:** notes and vitals are encrypted with a key you create and hold. The tool previews, re-encrypts safely (every value is read back before it is written), and can be re-run. `bin/preflight.php` warns until it is done.
+- **QR codes are generated on your own server** (`src/Utils/QrCode.php`, no third-party service, no Composer package, no GD). Prescriptions and receipts get an SVG; emails get an inline PNG that Gmail and Outlook display.
+- **Fixed: switching to light mode reverted to dark on the next page.** The choice is now saved to the account, so it follows the person on any device.
+- **Nothing loads from another website any more.** The installer, invoice, receipt, prescription, lab order and medical certificate prints and the public prescription verification page used Tailwind's CDN and Google Fonts; they now use `assets/css/tailwind-public.css` and the same local fonts. The Content-Security-Policy was narrowed to match (no CDN, font or image hosts; `object-src 'none'`), and the Google Drive picker scripts load only when the picker is opened. Demo avatars point at a local image, and staff pictures must now be files on this server (an old external avatar address shows as a blank picture; to reset them: `UPDATE doctors SET avatar = 'assets/images/avatar-default.svg' WHERE avatar LIKE 'http%';`).
+- **Faster pages.** The Tailwind in-browser compiler and Google Fonts are gone: utility classes come from a pre-built `assets/css/tailwind.css` (about 15 KB compressed), the text and icon fonts are served from `assets/fonts` (the icon font is trimmed from about 3.7 MB to about 40 KB), login images were cut from about 190 KB to 11 KB and 48 KB, the Google Picker scripts load asynchronously, caching and compression rules were added to `.htaccess`, new indexes cover the live-notification and list queries, and a background tab now releases its notification connection (each one holds a PHP worker).
+- **Better on a phone.** A bottom tab bar (Dashboard, Patients, Appointments, Billing, More), wide tables become one readable card per row instead of being cut off, inputs are 16 px so iPhones stop zooming in, touch targets are at least 44 px, and the page respects the notch and home indicator.
+- **Per-clinic appearance (Administration → Appearance).** Each clinic chooses a brand colour (eight presets or any colour; too-light colours are darkened so white text stays readable), the default theme, spacing, date and time format, first page and side-menu state for staff who have not set their own, which optional modules (Inventory, Documents, Wish board) appear in the menu, and a short notice shown on the dashboard. Everything is stored per clinic, needs *Clinic settings: Edit*, is audit-logged, and never changes what a role is allowed to open. A person's own saved choices always win.
+- **Clearer Google Drive expiry message**, which now names the Testing-mode cause and the fix (see *Google Drive that stays connected* above).
 
 ### **The consulting room belongs to clinical staff** - *October 2026*
 - **The front desk no longer appears in the list of physicians.** The `doctors` table holds every member of staff, so the receptionist was being offered as an attending physician when booking. Anywhere a patient is assigned to someone — the appointment's attending physician, the "acting clinician" in the header — now lists clinical staff only.
@@ -288,8 +322,13 @@ Run the automated PHPUnit test suite covering Domain Entities, Repositories, Ser
 ├── actions/                  # Endpoint action handlers for AJAX / Form submissions
 ├── api/                      # REST API & SSE notification streaming endpoints
 ├── assets/                   # Static assets (CSS, JS, Images, Icons)
-│   ├── css/custom.css        # Centralized design system tokens & FOUC prevention styles
+│   ├── css/custom.css        # Design tokens, app shell, phone layout
+│   ├── css/fonts.css         # @font-face rules and the icon class (shared by every page)
+│   ├── css/tailwind.css      # Pre-built utility classes for the app (npm run build:css; committed)
+│   ├── css/tailwind-public.css # Same for installer, printable documents and the prescription verifier
+│   ├── fonts/                # Self-hosted IBM Plex and the trimmed icon font
 │   └── js/uploads.js         # Modular file upload & Google Drive integration JS
+├── bin/                      # CLI tools: preflight.php, reencrypt.php, build-fonts.py
 ├── config/                   # Database & application configuration
 ├── core/                     # AppVersion, Cache (NuCache), SessionBootstrap, Redis Session Handler
 ├── database/                 # Migration runner & schema files
@@ -299,6 +338,8 @@ Run the automated PHPUnit test suite covering Domain Entities, Repositories, Ser
 │   ├── Infrastructure/       # Tenant-scoped Repositories
 │   ├── Services/             # Domain & Business Services
 │   └── Shared/               # Container DI & TenantContext
+├── tailwind.config.js        # Theme for the app stylesheet build
+├── tailwind.public.config.js # Standard-colour build for installer, print and verify pages
 ├── tests/                    # Automated PHPUnit test suite
 ├── print_invoice.php         # Commercial printable invoice view
 ├── print_prescription.php    # Printable doctor prescription with digital e-signatures
@@ -314,3 +355,7 @@ Run the automated PHPUnit test suite covering Domain Entities, Repositories, Ser
 - **XSS Protection:** Output sanitization via `htmlspecialchars()` across templates.
 - **CSRF Defense:** Strict CSRF token generation and validation on state-modifying requests.
 - **Multi-Tenant Boundary Guard:** Enforced tenant context isolation prevents cross-tenant data leaks.
+- **Tenant isolation by session, not by header:** signed-in requests can only ever act on their own clinic; the resolver fails closed.
+- **Encryption at rest:** AES-256-GCM for SOAP notes and vitals with a key you generate (`app_key`), plus a Developer-only migration tool.
+- **Nothing loads from outside:** fonts, icons, stylesheets, QR codes and avatars all come from your own server, on every page including the installer, printed documents and the public prescription check. The Content-Security-Policy allows only this site, plus Google's sign-in and picker scripts, which are fetched only when someone opens the Google Drive picker.
+- **Production readiness check:** `php bin/preflight.php https://your-domain` before go-live and after each deployment.
