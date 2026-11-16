@@ -57,11 +57,12 @@ if ($nxUserPrefs && function_exists('nxSetting')) {
       })();
     </script>
 
-    <!-- Fonts are served from assets/fonts (see custom.css); preload the ones every page needs -->
+    <!-- Fonts are served from assets/fonts (see assets/css/fonts.css); preload the ones every page needs -->
     <link rel="preload" href="assets/fonts/ibm-plex-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin/>
     <link rel="preload" href="assets/fonts/ibm-plex-sans-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin/>
     <link rel="preload" href="assets/fonts/material-symbols-outlined.woff2" as="font" type="font/woff2" crossorigin/>
 
+    <link rel="stylesheet" href="assets/css/fonts.css?v=<?= $nxAssetVersion ?>"/>
     <link rel="stylesheet" href="assets/css/custom.css?v=<?= $nxAssetVersion ?>"/>
 
     <!-- Utility classes: pre-built from tailwind.config.js (npm run build:css), no in-browser compiler -->

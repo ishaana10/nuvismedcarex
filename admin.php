@@ -1665,7 +1665,7 @@ $invCanEdit = nxCan('settings', 'edit');
                         <input type="file" name="avatar_file" id="usr_avatar_file" accept="image/*" class="text-xs text-slate-600">
                         <span class="text-xs text-slate-400 font-semibold">OR Image URL:</span>
                     </div>
-                    <input type="text" name="avatar" id="usr_avatar" placeholder="https://images.unsplash.com/photo-..." class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-medium">
+                    <input type="text" name="avatar" id="usr_avatar" placeholder="Optional: a picture saved on this server, e.g. assets/images/avatar-default.svg" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-medium">
                     <div id="avatar_preview" class="p-2 border border-slate-200 rounded-xl bg-white hidden flex items-center gap-3 shadow-2xs">
                         <img id="img_avatar_preview" src="" class="w-12 h-12 rounded-xl object-cover border border-slate-200" alt="Avatar Preview">
                         <div>

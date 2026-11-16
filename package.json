@@ -6,6 +6,6 @@
     "tailwindcss": "3.4"
   },
   "scripts": {
-    "build:css": "tailwindcss -c tailwind.config.js -i src/css/tailwind.input.css -o assets/css/tailwind.css --minify"
+    "build:css": "tailwindcss -c tailwind.config.js -i src/css/tailwind.input.css -o assets/css/tailwind.css --minify && tailwindcss -c tailwind.public.config.js -i src/css/tailwind.input.css -o assets/css/tailwind-public.css --minify"
   }
 }

@@ -83,8 +83,8 @@ $verificationUrl = $rxVerificationService->getVerificationUrl($verificationToken
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prescription - <?= htmlspecialchars($patient['first_name'] . ' ' . $patient['last_name']) ?></title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <link rel="stylesheet" href="assets/css/fonts.css"/>
+    <link rel="stylesheet" href="assets/css/tailwind-public.css"/>
     <style>
         @media print {
             .no-print { display: none !important; }

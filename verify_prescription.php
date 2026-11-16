@@ -18,11 +18,10 @@ $details = !empty($token) ? $verificationService->getVerificationDetails($pdo, $
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prescription Verification | Nuvis Medcare X</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <link rel="stylesheet" href="assets/css/fonts.css"/>
+    <link rel="stylesheet" href="assets/css/tailwind-public.css"/>
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { font-family: "IBM Plex Sans", system-ui, sans-serif; }
     </style>
 </head>
 <body class="bg-slate-100 min-h-screen text-slate-800 p-4 md:p-8 flex items-center justify-center">

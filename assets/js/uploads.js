@@ -5,6 +5,22 @@ function onPickerApiLoad() {
     pickerApiLoaded = true;
 }
 
+// Google's picker script is fetched only when someone actually opens the Google Drive picker,
+// so merely visiting the Documents page contacts no outside site.
+function loadGapi(callback) {
+    if (typeof gapi !== 'undefined' && gapi.load) { callback(); return; }
+    const script = document.createElement('script');
+    script.id = 'gapi-client-script';
+    script.src = 'https://apis.google.com/js/api.js';
+    script.async = true;
+    script.onload = callback;
+    script.onerror = () => {
+        logToUploadConsole('Could not reach apis.google.com (blocked by the browser, an ad blocker or the network).');
+        alert('The Google Drive picker could not be loaded. Check your connection or paste the Drive link instead.');
+    };
+    document.head.appendChild(script);
+}
+
 function logToUploadConsole(msg) {
     const card = document.getElementById('doc-upload-progress-card');
     const consoleBox = document.getElementById('doc-upload-console');
@@ -201,6 +217,7 @@ function launchGoogleDrivePicker() {
     if (oauthToken) {
         createPicker();
     } else {
+        loadGsiSdk(() => {
         const tokenClient = google.accounts.oauth2.initTokenClient({
             client_id: clientId,
             scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
@@ -214,10 +231,11 @@ function launchGoogleDrivePicker() {
                 if (tokenInput) {
                     tokenInput.value = oauthToken;
                 }
-                gapi.load('picker', { callback: createPicker });
+                loadGapi(() => gapi.load('picker', { callback: createPicker }));
             },
         });
         tokenClient.requestAccessToken({ prompt: 'consent' });
+        });
     }
 }
 
@@ -238,7 +256,7 @@ function createPicker() {
         const picker = pickerBuilder.build();
         picker.setVisible(true);
     } else {
-        gapi.load('picker', { callback: createPicker });
+        loadGapi(() => gapi.load('picker', { callback: createPicker }));
     }
 }
 

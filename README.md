@@ -149,6 +149,7 @@ Tenant isolation, request hardening, encryption migration, QR codes and tenant a
 - **`app_key` and the Developer-only re-encryption tool:** notes and vitals are encrypted with a key you create and hold. The tool previews, re-encrypts safely (every value is read back before it is written), and can be re-run. `bin/preflight.php` warns until it is done.
 - **QR codes are generated on your own server** (`src/Utils/QrCode.php`, no third-party service, no Composer package, no GD). Prescriptions and receipts get an SVG; emails get an inline PNG that Gmail and Outlook display.
 - **Fixed: switching to light mode reverted to dark on the next page.** The choice is now saved to the account, so it follows the person on any device.
+- **Nothing loads from another website any more.** The installer, invoice, receipt, prescription, lab order and medical certificate prints and the public prescription verification page used Tailwind's CDN and Google Fonts; they now use `assets/css/tailwind-public.css` and the same local fonts. The Content-Security-Policy was narrowed to match (no CDN, font or image hosts; `object-src 'none'`), and the Google Drive picker scripts load only when the picker is opened. Demo avatars point at a local image, and staff pictures must now be files on this server (an old external avatar address shows as a blank picture; to reset them: `UPDATE doctors SET avatar = 'assets/images/avatar-default.svg' WHERE avatar LIKE 'http%';`).
 - **Faster pages.** The Tailwind in-browser compiler and Google Fonts are gone: utility classes come from a pre-built `assets/css/tailwind.css` (about 15 KB compressed), the text and icon fonts are served from `assets/fonts` (the icon font is trimmed from about 3.7 MB to about 40 KB), login images were cut from about 190 KB to 11 KB and 48 KB, the Google Picker scripts load asynchronously, caching and compression rules were added to `.htaccess`, new indexes cover the live-notification and list queries, and a background tab now releases its notification connection (each one holds a PHP worker).
 - **Better on a phone.** A bottom tab bar (Dashboard, Patients, Appointments, Billing, More), wide tables become one readable card per row instead of being cut off, inputs are 16 px so iPhones stop zooming in, touch targets are at least 44 px, and the page respects the notch and home indicator.
 - **Per-clinic appearance (Administration → Appearance).** Each clinic chooses a brand colour (eight presets or any colour; too-light colours are darkened so white text stays readable), the default theme, spacing, date and time format, first page and side-menu state for staff who have not set their own, which optional modules (Inventory, Documents, Wish board) appear in the menu, and a short notice shown on the dashboard. Everything is stored per clinic, needs *Clinic settings: Edit*, is audit-logged, and never changes what a role is allowed to open. A person's own saved choices always win.
@@ -321,8 +322,10 @@ Tenant isolation, request hardening, encryption migration, QR codes and tenant a
 ├── actions/                  # Endpoint action handlers for AJAX / Form submissions
 ├── api/                      # REST API & SSE notification streaming endpoints
 ├── assets/                   # Static assets (CSS, JS, Images, Icons)
-│   ├── css/custom.css        # Design tokens, @font-face rules, phone layout
-│   ├── css/tailwind.css      # Pre-built utility classes (npm run build:css; committed)
+│   ├── css/custom.css        # Design tokens, app shell, phone layout
+│   ├── css/fonts.css         # @font-face rules and the icon class (shared by every page)
+│   ├── css/tailwind.css      # Pre-built utility classes for the app (npm run build:css; committed)
+│   ├── css/tailwind-public.css # Same for installer, printable documents and the prescription verifier
 │   ├── fonts/                # Self-hosted IBM Plex and the trimmed icon font
 │   └── js/uploads.js         # Modular file upload & Google Drive integration JS
 ├── bin/                      # CLI tools: preflight.php, reencrypt.php, build-fonts.py
@@ -335,7 +338,8 @@ Tenant isolation, request hardening, encryption migration, QR codes and tenant a
 │   ├── Infrastructure/       # Tenant-scoped Repositories
 │   ├── Services/             # Domain & Business Services
 │   └── Shared/               # Container DI & TenantContext
-├── tailwind.config.js        # Theme for the stylesheet build
+├── tailwind.config.js        # Theme for the app stylesheet build
+├── tailwind.public.config.js # Standard-colour build for installer, print and verify pages
 ├── tests/                    # Automated PHPUnit test suite
 ├── print_invoice.php         # Commercial printable invoice view
 ├── print_prescription.php    # Printable doctor prescription with digital e-signatures
@@ -353,5 +357,5 @@ Tenant isolation, request hardening, encryption migration, QR codes and tenant a
 - **Multi-Tenant Boundary Guard:** Enforced tenant context isolation prevents cross-tenant data leaks.
 - **Tenant isolation by session, not by header:** signed-in requests can only ever act on their own clinic; the resolver fails closed.
 - **Encryption at rest:** AES-256-GCM for SOAP notes and vitals with a key you generate (`app_key`), plus a Developer-only migration tool.
-- **Self-hosted assets:** fonts, icons and QR codes are served from your own server, so no patient link or page view is sent to a third-party service.
+- **Nothing loads from outside:** fonts, icons, stylesheets, QR codes and avatars all come from your own server, on every page including the installer, printed documents and the public prescription check. The Content-Security-Policy allows only this site, plus Google's sign-in and picker scripts, which are fetched only when someone opens the Google Drive picker.
 - **Production readiness check:** `php bin/preflight.php https://your-domain` before go-live and after each deployment.
