@@ -69,10 +69,6 @@ $details = !empty($token) ? $verificationService->getVerificationDetails($pdo, $
                     <p class="text-xs text-slate-500 mt-0.5"><?= htmlspecialchars($details['clinic']['address']) ?></p>
                     <p class="text-xs text-slate-500">Phone: <?= htmlspecialchars($details['clinic']['phone']) ?> • Email: <?= htmlspecialchars($details['clinic']['email']) ?></p>
                 </div>
-                <div class="text-right text-xs text-slate-500">
-                    <p>DEA: <strong class="font-mono text-slate-700"><?= htmlspecialchars($details['clinic']['dea']) ?></strong></p>
-                    <p>NPI: <strong class="font-mono text-slate-700"><?= htmlspecialchars($details['clinic']['npi']) ?></strong></p>
-                </div>
             </div>
 
             <!-- Patient & Physician Grid -->
@@ -84,6 +80,9 @@ $details = !empty($token) ? $verificationService->getVerificationDetails($pdo, $
                     <p class="text-sm font-bold text-slate-900"><?= htmlspecialchars($details['patient']['name']) ?></p>
                     <p class="text-slate-600 mt-1">MRN: <span class="font-mono font-semibold text-slate-800"><?= htmlspecialchars($details['patient']['mrn']) ?></span></p>
                     <p class="text-slate-600">DOB: <?= htmlspecialchars($details['patient']['dob']) ?></p>
+                    <?php if (\ClinicFlow\Services\PatientAge::isChild((string) $details['patient']['dob'])): ?>
+                        <p class="text-slate-900 font-bold">Age: <?= htmlspecialchars(\ClinicFlow\Services\PatientAge::exact((string) $details['patient']['dob'])) ?></p>
+                    <?php endif; ?>
                     <p class="text-slate-600 mt-1">Allergies: <strong class="text-red-600"><?= htmlspecialchars($details['patient']['allergies']) ?></strong></p>
                 </div>
 
@@ -93,7 +92,7 @@ $details = !empty($token) ? $verificationService->getVerificationDetails($pdo, $
                     </p>
                     <p class="text-sm font-bold text-slate-900"><?= htmlspecialchars($details['doctor']['name']) ?></p>
                     <p class="text-slate-600 mt-1"><?= htmlspecialchars($details['doctor']['specialty']) ?></p>
-                    <p class="text-slate-600 mt-1 font-mono">Medical License: <?= htmlspecialchars($details['doctor']['prc_number']) ?></p>
+                    <p class="text-slate-600 mt-1 font-mono">Medical Licence: <?= htmlspecialchars($details['doctor']['prc_number']) ?></p>
                 </div>
             </div>
 

@@ -68,7 +68,6 @@ $doctor = nxFindDoctorByName($pdo, (string) ($cert['doctor_name'] ?? ''));
 
 // Never invent a registration number on a legal document.
 $prcNo = $cert['prc_number'] ?: ($doctor['prc_number'] ?? $settings['doc_prc_no'] ?? '');
-$ptrNo = $cert['ptr_number'] ?: ($doctor['ptr_number'] ?? $settings['doc_ptr_no'] ?? '');
 $esignature = $doctor['esignature'] ?? '';
 $digitalStamp = $doctor['digital_stamp'] ?? '';
 ?>
@@ -222,7 +221,6 @@ $digitalStamp = $doctor['digital_stamp'] ?? '';
                 <div style="border-bottom:1px solid #1e293b;padding-bottom:2px">Signature:</div>
                 <div style="margin-top:3px;font-weight:600"><?= htmlspecialchars((string) $cert['doctor_name']) ?></div>
                 <?php if (!empty($certCfg['show_license']) && $prcNo): ?><div style="font-size:11px;color:#64748b">Licence No: <?= htmlspecialchars($prcNo) ?></div><?php endif; ?>
-                <?php if (!empty($certCfg['show_ptr']) && $ptrNo): ?><div style="font-size:11px;color:#64748b">PTR No: <?= htmlspecialchars($ptrNo) ?></div><?php endif; ?>
                 <?php if (!empty($certCfg['show_consult_date'])): ?>
                 <div style="border-bottom:1px solid #1e293b;padding-bottom:2px;margin-top:10px">Date of Consult: <span style="font-weight:600"><?= htmlspecialchars($fmtDate($cert['issue_date'] ?? '')) ?></span></div>
                 <?php endif; ?>
@@ -347,7 +345,6 @@ $digitalStamp = $doctor['digital_stamp'] ?? '';
                 <p class="font-bold text-slate-900 text-sm"><?= htmlspecialchars($cert['doctor_name']) ?>, M.D.</p>
                 <p class="text-xs text-slate-600 font-medium">Attending Physician</p>
                 <?php if (!empty($certCfg['show_license'])): ?><p class="text-xs text-slate-500 font-mono mt-1">Medical License No: <?= htmlspecialchars($prcNo) ?></p><?php endif; ?>
-                <?php if (!empty($certCfg['show_ptr'])): ?><p class="text-xs text-slate-500 font-mono">PTR No: <?= htmlspecialchars($ptrNo) ?></p><?php endif; ?>
             </div>
         </div>
 

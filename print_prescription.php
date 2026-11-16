@@ -26,8 +26,6 @@ $clinicAddress = $clinicProfile['address'];
 $clinicPhone = $settings['clinic_phone'] ?? '+679 331 2233';
 $clinicEmail = $settings['clinic_email'] ?? 'medico@nuvistechnologies.com.fj';
 $clinicWebsite = $settings['clinic_website'] ?? '';
-$clinicDea = $settings['clinic_dea'] ?? 'FC9823019';
-$clinicNpi = $settings['clinic_npi'] ?? '1092830192';
 
 // Per-clinic prescription template customisation
 $rxCfg = (new \ClinicFlow\Services\DocumentTemplateSettings($pdo, $currentTenantId))->load('prescription');
@@ -128,11 +126,6 @@ $verificationUrl = $rxVerificationService->getVerificationUrl($verificationToken
                 if (!empty($rxCfg['show_email']) && $clinicEmail) $rxContact[] = htmlspecialchars($clinicEmail);
                 if (!empty($rxCfg['show_website']) && $clinicWebsite) $rxContact[] = htmlspecialchars($clinicWebsite);
                 if ($rxContact): ?><p class="text-xs text-slate-500 mt-1"><?= implode(' • ', $rxContact) ?></p><?php endif; ?>
-                <?php
-                $rxCred = [];
-                if (!empty($rxCfg['show_dea']) && $clinicDea) $rxCred[] = 'DEA: ' . htmlspecialchars($clinicDea);
-                if (!empty($rxCfg['show_npi']) && $clinicNpi) $rxCred[] = 'NPI: ' . htmlspecialchars($clinicNpi);
-                if ($rxCred): ?><p class="text-xs text-slate-500"><?= implode(' • ', $rxCred) ?></p><?php endif; ?>
             </div>
         </div>
         <div class="text-right shrink-0">
@@ -151,7 +144,10 @@ $verificationUrl = $rxVerificationService->getVerificationUrl($verificationToken
         <div>
             <p class="text-slate-500 font-semibold uppercase text-[10px]">Patient Name</p>
             <p class="font-bold text-sm text-slate-900"><?= htmlspecialchars($patient['first_name'] . ' ' . $patient['last_name']) ?></p>
-            <p class="text-slate-500 mt-1">DOB: <?= htmlspecialchars($patient['dob']) ?> (<?= htmlspecialchars($patient['age']) ?> Yrs)</p>
+            <p class="text-slate-500 mt-1">DOB: <?= htmlspecialchars($patient['dob']) ?></p>
+            <?php if (\ClinicFlow\Services\PatientAge::isChild((string) $patient['dob'])): ?>
+                <p class="text-slate-900 mt-0.5 text-sm font-bold">Age: <?= htmlspecialchars(\ClinicFlow\Services\PatientAge::exact((string) $patient['dob'])) ?></p>
+            <?php endif; ?>
         </div>
         <div>
             <p class="text-slate-500 font-semibold uppercase text-[10px]">Medical Record No.</p>
@@ -233,8 +229,7 @@ $verificationUrl = $rxVerificationService->getVerificationUrl($verificationToken
             <div class="border-b border-slate-400 mb-1 pb-1 font-serif text-lg font-bold italic" style="color: <?= htmlspecialchars($rxAccent) ?>"><?= htmlspecialchars($attendingDoc['name']) ?></div>
             <p class="font-bold text-slate-800"><?= htmlspecialchars($attendingDoc['name']) ?></p>
             <p class="text-slate-500"><?= htmlspecialchars($attendingDoc['specialty']) ?></p>
-            <?php if (!empty($rxCfg['show_license'])): ?><p class="text-[10px] font-mono text-slate-500 mt-0.5">Medical License No: <?= htmlspecialchars($attendingDoc['prc_number'] ?? $settings['doc_prc_no'] ?? 'N/A') ?></p><?php endif; ?>
-            <?php if (!empty($rxCfg['show_ptr']) && !empty($attendingDoc['ptr_number'])): ?><p class="text-[10px] font-mono text-slate-500">PTR No: <?= htmlspecialchars($attendingDoc['ptr_number']) ?></p><?php endif; ?>
+            <?php if (!empty($rxCfg['show_license'])): ?><p class="text-[10px] font-mono text-slate-500 mt-0.5">Medical Licence No: <?= htmlspecialchars($attendingDoc['prc_number'] ?? $settings['doc_prc_no'] ?? 'N/A') ?></p><?php endif; ?>
         </div>
     </div>
 </div>

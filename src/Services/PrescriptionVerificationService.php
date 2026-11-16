@@ -154,15 +154,12 @@ class PrescriptionVerificationService
                 'address' => $issuingClinic['address'],
                 'phone' => $issuingClinic['phone'],
                 'email' => $issuingClinic['email'],
-                'dea' => $issuingClinic['dea'],
-                'npi' => $issuingClinic['npi'],
                 'disclaimer' => $settings['rx_disclaimer'] ?? 'Notice: This prescription is valid for 30 days from date of issue unless specified otherwise.'
             ],
             'doctor' => [
                 'name' => $attendingDoc['name'],
                 'specialty' => $attendingDoc['specialty'],
-                'prc_number' => $attendingDoc['prc_number'] ?? ($settings['doc_prc_no'] ?? 'N/A'),
-                'ptr_number' => $attendingDoc['ptr_number'] ?? ($settings['doc_ptr_no'] ?? 'N/A')
+                'prc_number' => $attendingDoc['prc_number'] ?? ($settings['doc_prc_no'] ?? 'N/A')
             ],
             'assessment' => !empty($assessmentCodes) ? ($assessmentCodes[0]['code'] . ' - ' . $assessmentCodes[0]['label']) : null,
             'prescriptions' => $prescriptions
