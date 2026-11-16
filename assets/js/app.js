@@ -403,6 +403,15 @@
 
     connect();
     window.addEventListener('pagehide', function () { closed = true; if (es) es.close(); });
+
+    // A background tab does not need a live connection, and each open stream
+    // holds one PHP worker on the server. Hand it back while the tab is hidden;
+    // on return the stream resumes from the last event it saw, so nothing is lost.
+    document.addEventListener('visibilitychange', function () {
+      if (closed) return;
+      if (document.hidden) { if (es) { es.close(); es = null; } }
+      else if (!es || es.readyState === EventSource.CLOSED) { retries = 0; connect(); }
+    });
   }
 
   /* ------------------------------------------------------ Command palette */
@@ -727,6 +736,7 @@
     bindTableFilters();
     bindSortableTables();
     bindPasswordForm();
+    watchTables();
 
     // Keep relative timestamps fresh
     setInterval(function () { $all('[data-nx-time]').forEach(function (n) { n.textContent = relTime(+n.getAttribute('data-nx-time') || n.getAttribute('data-nx-time')); }); }, 60000);
@@ -740,5 +750,43 @@
       });
     }
   }
+
+  /* ---- Phones: turn wide tables into one card per row ---------------------
+   * Copies each column heading onto its cells (data-label) and tags the table
+   * nx-stack; custom.css does the rest below 768px. Skipped for tables that
+   * hold form controls (editable line items) or opt out with data-nx-stack="off".
+   * Rows added later by scripts are picked up by the observer. */
+  var stackTimer = null;
+  function stackTables(root) {
+    $all('table', root || document).forEach(function (t) {
+      if (t.getAttribute('data-nx-stack') === 'off') return;
+      var heads = $all('thead th', t).map(function (th) { return (th.textContent || '').replace(/\s+/g, ' ').trim(); });
+      if (!heads.length || heads.length < 3) return;
+      var bodies = $all('tbody', t);
+      if (!bodies.length) return;
+      if (t.querySelector('tbody input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=submit]):not([type=button]), tbody select, tbody textarea') && t.getAttribute('data-nx-stack') !== 'on') return;
+      t.classList.add('nx-stack');
+      bodies.forEach(function (tb) {
+        $all('tr', tb).forEach(function (tr) {
+          var i = 0;
+          Array.prototype.forEach.call(tr.children, function (td) {
+            if (td.tagName !== 'TD') return;
+            if (!td.hasAttribute('data-label')) td.setAttribute('data-label', td.hasAttribute('colspan') ? '' : (heads[i] || ''));
+            i += parseInt(td.getAttribute('colspan') || '1', 10);
+          });
+        });
+      });
+    });
+  }
+  function watchTables() {
+    stackTables();
+    if (!window.MutationObserver) return;
+    new MutationObserver(function () {
+      clearTimeout(stackTimer);
+      stackTimer = setTimeout(stackTables, 60);
+    }).observe(document.body, { childList: true, subtree: true });
+  }
+  NX.stackTables = stackTables;
+
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();

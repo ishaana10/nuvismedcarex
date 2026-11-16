@@ -96,6 +96,29 @@ $renderNav = function (bool $mobile) use ($nxGrouped, $activePage, $nxCounts, $n
     </div>
 </aside>
 
+<!-- Mobile bottom tab bar: the four places used most, plus the full menu -->
+<?php
+$nxTabIds = ['dashboard', 'patients', 'calendar', 'billing'];
+$nxTabs = array_values(array_filter($nxNav, fn($i) => in_array($i['id'], $nxTabIds, true)));
+if (count($nxTabs) < 4) {   // fewer modules for this role: top up from the rest of the menu
+    foreach ($nxNav as $i) {
+        if (count($nxTabs) >= 4) break;
+        if (!in_array($i['id'], array_column($nxTabs, 'id'), true) && $i['id'] !== 'settings') $nxTabs[] = $i;
+    }
+}
+?>
+<nav class="nx-bottomnav md:hidden" aria-label="Quick navigation">
+    <?php foreach ($nxTabs as $t): $on = ($activePage === $t['id']); ?>
+        <a href="<?= htmlspecialchars($t['url']) ?>" class="nx-bottomnav-item" <?= $on ? 'aria-current="page"' : '' ?>>
+            <span class="material-symbols-outlined <?= $on ? 'fill' : '' ?>"><?= $t['icon'] ?></span>
+            <span><?= htmlspecialchars($t['label']) ?></span>
+        </a>
+    <?php endforeach; ?>
+    <button type="button" class="nx-bottomnav-item" onclick="toggleMobileSidebar()" aria-label="Open full menu">
+        <span class="material-symbols-outlined">menu</span><span>More</span>
+    </button>
+</nav>
+
 <script>
 function toggleMobileSidebar() {
     var sidebar = document.getElementById('mobileSidebar');

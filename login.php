@@ -30,7 +30,7 @@ $expired = isset($_GET['expired']);
     <!-- Form -->
     <main class="flex flex-col px-6 sm:px-12 py-8">
         <div class="flex items-center justify-between">
-            <img src="assets/images/NuvisMedcareX_banner.jpg" alt="Nuvis Medcare X" class="h-11 w-auto object-contain mix-blend-multiply dark:mix-blend-normal dark:bg-white dark:rounded-lg dark:px-2">
+            <img src="assets/images/NuvisMedcareX_banner.webp" alt="Nuvis Medcare X" class="h-11 w-auto object-contain mix-blend-multiply dark:mix-blend-normal dark:bg-white dark:rounded-lg dark:px-2">
             <button type="button" class="nx-icon-btn" id="login-theme" aria-label="Switch colour theme">
                 <span class="material-symbols-outlined" id="login-theme-icon">dark_mode</span>
             </button>
@@ -105,7 +105,7 @@ $expired = isset($_GET['expired']);
 
     <!-- Brand panel -->
     <aside class="hidden lg:block relative overflow-hidden bg-blue-900">
-        <img src="assets/images/NuvisMedcareX_login_sidepanel.jpg" alt="" class="absolute inset-0 w-full h-full object-cover object-top">
+        <img src="assets/images/NuvisMedcareX_login_sidepanel.webp" alt="" class="absolute inset-0 w-full h-full object-cover object-top">
         <div class="absolute inset-0" style="background: linear-gradient(180deg, rgb(10 29 63 / 0) 40%, rgb(10 29 63 / .88) 100%);"></div>
         <div class="absolute bottom-0 left-0 right-0 p-12 text-white max-w-xl">
             <p class="text-[26px] leading-snug font-semibold tracking-tight">Patient records, appointments, prescriptions and fiscal billing in one place.</p>

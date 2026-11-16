@@ -35,10 +35,12 @@ if (!is_string($theme) || !isset(UserPreferences::THEMES[$theme])) {
 }
 
 try {
-    $svc = new UserPreferences(getDB());
+    $svc = UserPreferences::forTenant(getDB(), \ClinicFlow\Shared\TenantContext::getTenantId());
     $userId = (string) $_SESSION['user_id'];
-    $current = $svc->load($userId);
-    $svc->save($userId, UserPreferences::sanitise(array_merge($current, ['theme' => $theme]), $current));
+    // Store only the theme: everything this person has not chosen keeps following the clinic's defaults
+    $saved = $svc->loadSaved($userId);
+    $saved['theme'] = $theme;
+    $svc->save($userId, $saved);
     echo json_encode(['success' => true, 'theme' => $theme]);
 } catch (\Throwable $e) {
     error_log('[theme_save] ' . $e->getMessage());

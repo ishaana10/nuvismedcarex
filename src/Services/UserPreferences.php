@@ -74,30 +74,46 @@ final class UserPreferences
     }
 
     private PDO $db;
+    /** The clinic's own starting point (AppearanceSettings::userDefaults), under what a person saved. */
+    private array $clinicDefaults;
 
-    public function __construct(PDO $db)
+    public function __construct(PDO $db, array $clinicDefaults = [])
     {
         $this->db = $db;
+        $this->clinicDefaults = array_intersect_key($clinicDefaults, self::defaults());
+    }
+
+    /** The service for one clinic, so its defaults sit under each person's own choices. */
+    public static function forTenant(PDO $db, string $tenantId): self
+    {
+        $settings = (new ClinicSettings($db, $tenantId))->all();
+        return new self($db, AppearanceSettings::userDefaults($settings));
+    }
+
+    /** What applies to someone who has chosen nothing: built-in defaults under the clinic's. */
+    public function baseline(): array
+    {
+        return array_merge(self::defaults(), $this->clinicDefaults);
+    }
+
+    /** Only the values this person has saved themselves (everything else follows the clinic). */
+    public function loadSaved(?string $userId): array
+    {
+        if (!$userId) return [];
+        try {
+            $stmt = $this->db->prepare("SELECT preferences FROM doctors WHERE id = ? LIMIT 1");
+            $stmt->execute([$userId]);
+            $saved = json_decode((string) $stmt->fetchColumn(), true);
+            return is_array($saved) ? array_intersect_key($saved, self::defaults()) : [];
+        } catch (\Throwable $e) {
+            error_log('[UserPreferences] loadSaved: ' . $e->getMessage());
+            return [];
+        }
     }
 
     public function load(?string $userId): array
     {
-        $prefs = self::defaults();
-        if (!$userId) {
-            return $prefs;
-        }
-        try {
-            $stmt = $this->db->prepare("SELECT preferences FROM doctors WHERE id = ? LIMIT 1");
-            $stmt->execute([$userId]);
-            $raw = $stmt->fetchColumn();
-            $saved = $raw ? json_decode((string) $raw, true) : null;
-            if (is_array($saved)) {
-                $prefs = array_merge($prefs, array_intersect_key($saved, $prefs));
-            }
-        } catch (\Throwable $e) {
-            error_log('[UserPreferences] load: ' . $e->getMessage());
-        }
-        return $prefs;
+        return array_merge($this->baseline(), $this->loadSaved($userId));
     }
 
     /** Keep only values we recognise, so a stored preference can't break a page. */

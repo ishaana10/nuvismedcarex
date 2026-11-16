@@ -109,7 +109,7 @@ if ($valid && $user) {
     // Open the page this person chose in Settings → Appearance
     $landing = 'index.php';
     try {
-        $own = (new \ClinicFlow\Services\UserPreferences($pdo))->load($user['id'])['landing_page'] ?? 'index.php';
+        $own = \ClinicFlow\Services\UserPreferences::forTenant($pdo, (string) $tenantId)->load($user['id'])['landing_page'] ?? 'index.php';
         if (isset(\ClinicFlow\Services\UserPreferences::LANDING[$own])) {
             $landing = $own;
         }

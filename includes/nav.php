@@ -25,7 +25,10 @@ if (!function_exists('nxNavItems')) {
             foreach ($items as &$it) { if ($it['id'] === 'admin') $it['url'] = 'admin.php?tab=clinic'; }
             unset($it);
         }
-        return array_values(array_filter($items, function ($i) use ($role) {
+        // Optional modules this clinic has switched off (cosmetic only: access is still decided by role permissions)
+        $hiddenNav = function_exists('nxSetting') ? array_filter(explode(',', (string) nxSetting('ui_hidden_nav', ''))) : [];
+        return array_values(array_filter($items, function ($i) use ($role, $hiddenNav) {
+            if (in_array($i['id'], $hiddenNav, true) && array_key_exists($i['id'], \ClinicFlow\Services\AppearanceSettings::OPTIONAL_NAV)) return false;
             if (!empty($i['roles']) && !in_array($role, $i['roles'], true)) return false;
             // Hide areas this role has no access to in the current clinic
             if ($i['id'] === 'admin' && function_exists('nxCan')) {

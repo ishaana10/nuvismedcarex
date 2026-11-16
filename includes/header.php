@@ -85,7 +85,7 @@ $nxCsrf = htmlspecialchars(getCsrfToken());
 <html class="h-full" lang="en">
 <head>
     <meta charset="utf-8"/>
-    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
     <meta name="csrf-token" content="<?= $nxCsrf ?>"/>
     <title><?= htmlspecialchars($pageTitle ?? 'Nuvis Medcare X') ?></title>
     <?php include __DIR__ . '/theme_head.php'; ?>

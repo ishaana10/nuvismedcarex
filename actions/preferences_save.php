@@ -27,7 +27,7 @@ if ($userId === '') {
     exit;
 }
 
-$svc = new UserPreferences(getDB());
+$svc = UserPreferences::forTenant(getDB(), \ClinicFlow\Shared\TenantContext::getTenantId());
 
 if (!empty($_POST['reset'])) {
     try {
