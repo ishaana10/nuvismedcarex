@@ -131,14 +131,14 @@ HTML,
 <ol>
   <li><strong>Personal and demographics.</strong> First name, last name, date of birth, gender and phone number are required. Email and residential address are optional but useful for sending documents.</li>
   <li><strong>Emergency contact and insurance.</strong> Contact name, relationship and phone, plus the insurance provider, policy number and group number. Leave insurance blank for self-pay patients.</li>
-  <li><strong>Medical profile and allergies.</strong> Known allergies, blood group and chronic conditions or baseline notes.</li>
+  <li><strong>Medical profile and allergies.</strong> Known allergies, blood group and past medical history, medication history or baseline notes.</li>
 </ol>
 <p>Press <strong>Register &amp; Open Chart</strong>. The patient gets a medical record number (MRN) automatically.</p>
 <div class="g-tip"><strong>Search before you register.</strong> Registering the same person twice splits their history across two charts. Check the directory first, including spellings.</div>
 <h4>The patient chart</h4>
 <p>Open any patient to see their chart:</p>
 <ul>
-  <li><strong>Clinical overview:</strong> known allergies, chronic conditions and clinical notes.</li>
+  <li><strong>Clinical overview:</strong> known allergies, past medical and medication history and clinical notes.</li>
   <li><strong>Contact and insurance:</strong> phone, address, emergency contact and insurance details.</li>
   <li><strong>Lab and diagnostic orders:</strong> tests ordered for this patient, with <strong>Order Test</strong>.</li>
   <li><strong>Issued medical certificates:</strong> every certificate for this patient, with <strong>Issue New Certificate</strong>.</li>

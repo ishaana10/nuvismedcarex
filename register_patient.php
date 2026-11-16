@@ -138,8 +138,8 @@ include __DIR__ . '/includes/header.php';
                 </div>
 
                 <div class="md:col-span-2">
-                    <label class="block font-bold text-slate-700 mb-1">Chronic Conditions & Baseline Notes</label>
-                    <textarea name="chronic_conditions" rows="3" placeholder="Document any existing medical conditions..." class="w-full bg-surface-container-low p-3 rounded-xl border border-outline-variant/40 font-medium text-on-surface focus:outline-none focus:border-primary focus:bg-white transition"></textarea>
+                    <label class="block font-bold text-slate-700 mb-1">Past medical History/Medication History/Baseline Notes</label>
+                    <textarea name="chronic_conditions" rows="3" placeholder="Past illnesses, surgeries, current and past medications, baseline notes..." class="w-full bg-surface-container-low p-3 rounded-xl border border-outline-variant/40 font-medium text-on-surface focus:outline-none focus:border-primary focus:bg-white transition"></textarea>
                 </div>
             </div>
         </div>

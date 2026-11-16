@@ -17,16 +17,6 @@ final class InsuranceProviders
     public const SETTING_KEY = 'insurance_providers';
     public const MAX = 40;
 
-    /** Offered on a brand-new clinic so the list is never empty to start with. */
-    public const SUGGESTED = [
-        'Fiji National Provident Fund',
-        'BSP Life Health',
-        'Sun Insurance',
-        'Tower Insurance',
-        'FijiCare Insurance',
-        'Dominion Insurance',
-    ];
-
     private PDO $db;
     private string $tenantId;
     private ?array $cache = null;

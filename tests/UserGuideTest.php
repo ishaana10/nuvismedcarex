@@ -86,4 +86,19 @@ final class UserGuideTest extends TestCase
             $this->assertMatchesRegularExpression('/\b' . strtolower($key) . ": '[a-z_]+\.php'/", $js, "G then $key is documented but not wired");
         }
     }
+
+    public function testEverySectionHasAHomeLinkToTheTop(): void
+    {
+        $page = file_get_contents(__DIR__ . '/../user_guide.php');
+        $this->assertStringContainsString('id="guide-top"', $page);
+        $this->assertStringContainsString('href="#guide-top"', $page);
+        $start = strpos($page, 'data-guide-section');
+        $card = substr($page, $start, strpos($page, '</section>', $start) - $start);
+        $this->assertStringContainsString('href="#guide-top"', $card, 'the Home link must sit inside each section card');
+    }
+
+    public function testNoInsurersArePreInserted(): void
+    {
+        $this->assertFalse(defined(\ClinicFlow\Services\InsuranceProviders::class . '::SUGGESTED'));
+    }
 }

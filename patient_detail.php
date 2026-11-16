@@ -150,7 +150,7 @@ $clinicSettings = $settings;
                 </div>
 
                 <div>
-                    <label class="font-bold text-slate-500 block mb-1">Chronic Conditions</label>
+                    <label class="font-bold text-slate-500 block mb-1">Past medical History / Medication History</label>
                     <div class="p-2.5 rounded-xl bg-surface-container-low font-medium text-on-surface">
                         <?= htmlspecialchars($patient['chronic_conditions'] ?: 'None documented') ?>
                     </div>
@@ -485,7 +485,7 @@ $clinicSettings = $settings;
                     <textarea name="known_allergies" rows="2" class="w-full bg-slate-50 p-2.5 rounded-xl border border-slate-300 font-medium"><?= htmlspecialchars($patient['known_allergies'] ?? '') ?></textarea>
                 </div>
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Chronic Conditions</label>
+                    <label class="block font-bold text-slate-700 mb-1">Past medical History/Medication History/Baseline Notes</label>
                     <textarea name="chronic_conditions" rows="2" class="w-full bg-slate-50 p-2.5 rounded-xl border border-slate-300 font-medium"><?= htmlspecialchars($patient['chronic_conditions'] ?? '') ?></textarea>
                 </div>
                 <div class="md:col-span-2">

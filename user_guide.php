@@ -68,6 +68,10 @@ foreach (AccessControl::MODULES as $key => $m) {
     .g-toc .material-symbols-outlined{font-size:18px}
     .g-card{background:#fff;border:1px solid rgb(226 232 240);border-radius:16px;padding:22px 24px;scroll-margin-top:84px}
     .g-card+.g-card{margin-top:16px}
+    .g-home{margin-top:18px;padding-top:12px;border-top:1px solid rgb(241 245 249);text-align:right}
+    .g-home a{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:600;color:rgb(30 64 175);text-decoration:none;padding:6px 10px;border-radius:10px}
+    .g-home a:hover{background:rgb(239 246 255)}
+    .g-home .material-symbols-outlined{font-size:18px}
     .g-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px}
     .g-ico{flex:none;width:40px;height:40px;border-radius:12px;background:rgb(219 234 254);color:rgb(30 64 175);display:flex;align-items:center;justify-content:center}
     .g-card h3{font-size:19px;line-height:1.25;font-weight:600;color:rgb(15 23 42);margin:0}
@@ -105,13 +109,13 @@ foreach (AccessControl::MODULES as $key => $m) {
     .g-me .l2,.g-me .l3{border-color:rgb(191 219 254);background:rgb(239 246 255);color:rgb(30 64 175)}
     mark.g-hit{background:rgb(254 240 138);border-radius:3px;padding:0 1px}
     @media print{
-        .g-toc,.g-tools,.nx-bottomnav,.g-me-card{display:none!important}
+        .g-toc,.g-tools,.g-home,.nx-bottomnav,.g-me-card{display:none!important}
         .g-wrap{display:block}.g-card{break-inside:avoid-page;border:none;padding:10px 0}
         .g-card[hidden]{display:block!important}
     }
 </style>
 
-<div class="mb-5 flex flex-wrap items-start justify-between gap-3">
+<div id="guide-top" class="mb-5 flex flex-wrap items-start justify-between gap-3" style="scroll-margin-top:84px">
     <div>
         <h1 class="nx-page-title">User guide</h1>
         <p class="nx-page-sub">How to use Nuvis Medcare X, step by step. Search it, or pick a topic on the left.</p>
@@ -181,6 +185,7 @@ foreach (AccessControl::MODULES as $key => $m) {
                     </div>
                 </div>
                 <div class="g-body"><?= $s['body'] ?></div>
+                <div class="g-home"><a href="#guide-top" data-guide-home><span class="material-symbols-outlined" aria-hidden="true">keyboard_arrow_up</span>Home: back to topics and search</a></div>
             </section>
         <?php endforeach; ?>
         </div>

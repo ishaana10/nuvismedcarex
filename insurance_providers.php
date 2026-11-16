@@ -109,12 +109,12 @@ $cur = nxCurrencySymbol();
                     <div class="flex-1 min-w-[12rem]">
                         <label class="form-label" for="p-name-<?= $i ?>">Provider name *</label>
                         <input id="p-name-<?= $i ?>" type="text" name="providers[<?= $i ?>][name]" value="<?= htmlspecialchars($p['name']) ?>"
-                               placeholder="e.g. BSP Life Health" maxlength="80" class="form-input w-full" <?= $dis ?>>
+                               placeholder="Insurance company name" maxlength="80" class="form-input w-full" <?= $dis ?>>
                     </div>
                     <div class="w-28">
                         <label class="form-label" for="p-code-<?= $i ?>">Short code</label>
                         <input id="p-code-<?= $i ?>" type="text" name="providers[<?= $i ?>][code]" value="<?= htmlspecialchars($p['code']) ?>"
-                               placeholder="BSP" maxlength="12" class="form-input w-full uppercase" <?= $dis ?>>
+                               placeholder="Short code (optional)" maxlength="12" class="form-input w-full uppercase" <?= $dis ?>>
                     </div>
                     <label class="inline-flex items-center gap-2 text-[13px] text-slate-700 cursor-pointer mt-5">
                         <input type="checkbox" name="providers[<?= $i ?>][active]" <?= !empty($p['active']) ? 'checked' : '' ?> class="w-4 h-4 rounded border-slate-300" <?= $dis ?>>
@@ -192,14 +192,6 @@ $cur = nxCurrencySymbol();
         <div class="flex flex-wrap items-center gap-2 mt-5">
             <button type="submit" class="btn-primary">Save providers</button>
             <button type="button" onclick="addProviderRow()" class="btn-secondary">Add another</button>
-            <?php if (!$providers): ?>
-                <span class="text-[12px] text-slate-500 ml-2">
-                    Common Fiji insurers:
-                    <?php foreach (InsuranceProviders::SUGGESTED as $n => $name): ?>
-                        <button type="button" onclick="addProviderRow(<?= htmlspecialchars(json_encode($name), ENT_QUOTES) ?>)" class="text-blue-700 hover:underline"><?= htmlspecialchars($name) ?></button><?= $n < count(InsuranceProviders::SUGGESTED) - 1 ? ',' : '' ?>
-                    <?php endforeach; ?>
-                </span>
-            <?php endif; ?>
         </div>
     <?php endif; ?>
 </form>
@@ -210,11 +202,11 @@ $cur = nxCurrencySymbol();
             <span class="material-symbols-outlined text-slate-300 text-[20px]">health_and_safety</span>
             <div class="flex-1 min-w-[12rem]">
                 <label class="form-label">Provider name *</label>
-                <input type="text" name="providers[__i__][name]" placeholder="e.g. BSP Life Health" maxlength="80" class="form-input w-full" data-name>
+                <input type="text" name="providers[__i__][name]" placeholder="Insurance company name" maxlength="80" class="form-input w-full" data-name>
             </div>
             <div class="w-28">
                 <label class="form-label">Short code</label>
-                <input type="text" name="providers[__i__][code]" placeholder="BSP" maxlength="12" class="form-input w-full uppercase">
+                <input type="text" name="providers[__i__][code]" placeholder="Short code (optional)" maxlength="12" class="form-input w-full uppercase">
             </div>
             <label class="inline-flex items-center gap-2 text-[13px] text-slate-700 cursor-pointer mt-5">
                 <input type="checkbox" name="providers[__i__][active]" checked class="w-4 h-4 rounded border-slate-300">
