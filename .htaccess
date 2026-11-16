@@ -25,13 +25,6 @@ RedirectMatch 404 ^/(database|src|core|includes|config|tests|vendor|node_modules
     Header always set X-Content-Type-Options "nosniff"
 </IfModule>
 
-<IfModule mod_rewrite.c>
-    RewriteEngine On
-    # If assets are requested directly and exist in /assets or /dist/assets, serve directly
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteRule ^assets/(.*)$ dist/assets/$1 [L]
-</IfModule>
-
 # --- Performance: compress text and let browsers keep static files ----------
 # CSS/JS are linked with ?v=<build>, so a new release changes the URL and a long
 # cache is safe. Pages themselves are PHP and are never cached here.

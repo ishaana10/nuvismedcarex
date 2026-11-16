@@ -2,34 +2,6 @@
 require_once __DIR__ . '/core/Cache.php';
 require_once __DIR__ . '/core/SessionBootstrap.php';
 
-// Serve static assets if requested (handles relative or absolute /assets/ path requests)
-$uri = strtok($_SERVER['REQUEST_URI'] ?? '', '?');
-if (str_contains($uri, 'assets/')) {
-    $assetPos = strpos($uri, 'assets/');
-    $assetRel = '/' . substr($uri, $assetPos);
-    $assetFile = __DIR__ . $assetRel;
-    if (!file_exists($assetFile) || !is_file($assetFile)) {
-        $assetFile = __DIR__ . '/dist' . $assetRel;
-    }
-    if (file_exists($assetFile) && is_file($assetFile)) {
-        $mime = str_ends_with($assetFile, '.css') ? 'text/css' : (str_ends_with($assetFile, '.js') ? 'application/javascript' : (str_ends_with($assetFile, '.png') ? 'image/png' : 'text/plain'));
-        header("Content-Type: $mime");
-        readfile($assetFile);
-        exit;
-    }
-}
-
-// Serve React SPA only if view=react is explicitly requested; default to dynamic PHP EHR application
-$viewMode = $_GET['view'] ?? 'classic';
-if ($viewMode === 'react' && file_exists(__DIR__ . '/dist/index.html')) {
-    header('Content-Type: text/html; charset=UTF-8');
-    header("Cache-Control: no-cache, no-store, must-revalidate, max-age=0");
-    header("Pragma: no-cache");
-    header("Expires: 0");
-    readfile(__DIR__ . '/dist/index.html');
-    exit;
-}
-
 $pageTitle = "Dashboard - NuvisMedcareX";
 $activePage = "dashboard";
 include __DIR__ . '/includes/header.php';
