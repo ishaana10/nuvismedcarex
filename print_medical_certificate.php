@@ -33,6 +33,10 @@ $certHeaderTitle = $certCfg['header_title'] ?: 'OFFICIAL MEDICAL CERTIFICATE';
 $certSubtitle = $certCfg['header_subtitle'] ?: $clinicSubtitle;
 $certDisclaimer = $certCfg['disclaimer'];
 $certFooterNote = $certCfg['footer_note'];
+$certLayout = ($certCfg['layout'] ?? 'classic') === 'form' ? 'form' : 'classic';
+$certCaduceus = !empty($certCfg['show_caduceus']) ? \ClinicFlow\Services\DocumentTemplateSettings::CADUCEUS : '';
+$certDateFmt = $certCfg['date_format'] ?: 'd M Y';
+$fmtDate = static fn($d) => ($d && strtotime((string) $d)) ? date($certDateFmt, strtotime((string) $d)) : '';
 
 // Fetch Certificate details
 $cert = null;
@@ -112,11 +116,132 @@ $digitalStamp = $doctor['digital_stamp'] ?? '';
         </form>
     </div>
 
+<?php if ($certLayout === 'form'):
+    $fAcc = htmlspecialchars($certAccent);
+    $fTitle = ($certHeaderTitle === 'OFFICIAL MEDICAL CERTIFICATE') ? 'MEDICAL CERTIFICATE' : $certHeaderTitle;
+    $fDocLine = $certCfg['doctor_line'] !== '' ? $certCfg['doctor_line'] : trim(($cert['doctor_name'] ?? '') . ($prcNo ? '   Reg. No. ' . $prcNo : ''));
+    $fTicked = array_map('trim', explode(',', (string) ($cert['problem_category'] ?? '')));
+    $fCats = \ClinicFlow\Services\DocumentTemplateSettings::categories($certCfg);
+    $fComments = trim(implode(' ', array_filter([
+        !empty($certCfg['show_fitness']) ? (string) ($cert['fitness_status'] ?? '') . '.' : '',
+        !empty($certCfg['show_rest_period']) ? (string) ($cert['fit_status_details'] ?? '') : '',
+        (string) ($cert['recommendations'] ?? ''),
+    ])));
+?>
+    <style>
+        .cf { background:#fff; padding:28px 34px 26px; border:1px solid #cbd5e1; border-radius:6px; color:#1e293b; font-family: <?= $certFontStack ?>; }
+        .cf-head { display:flex; align-items:center; gap:18px; }
+        .cf-head .cf-mid { flex:1; text-align:center; min-width:0; }
+        .cf-name { font-size:30px; line-height:1.1; letter-spacing:.02em; font-variant: small-caps; color:<?= $fAcc ?>; font-weight:500; }
+        .cf-docline { white-space:pre-wrap; font-size:14px; margin-top:6px; letter-spacing:.02em; }
+        .cf-consult { font-weight:700; font-size:18px; text-decoration:underline; text-underline-offset:3px; margin-top:8px; }
+        .cf-consult-in { font-size:11px; margin-top:2px; }
+        .cf-contact { display:flex; justify-content:space-between; gap:20px; font-size:12px; margin-top:6px; line-height:1.35; text-align:left; }
+        .cf-contact .r { text-align:right; }
+        .cf-title { display:flex; align-items:baseline; gap:18px; margin-top:16px; }
+        .cf-title h2 { font-size:20px; font-weight:700; text-decoration:underline; text-underline-offset:4px; letter-spacing:.02em; margin:0; }
+        .cf-title .no { color:#d6322e; font-size:17px; letter-spacing:.04em; font-weight:600; }
+        .cf-line { display:flex; align-items:flex-end; gap:8px; margin-top:12px; font-size:15px; }
+        .cf-fill { flex:1; border-bottom:1px solid #1e293b; min-height:26px; padding:0 8px 1px; font-family: "Segoe Script","Bradley Hand","Brush Script MT",cursive; font-size:19px; color:#1d3a8a; line-height:1.2; }
+        .cf-cats { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px 18px; margin-top:14px; font-size:15px; }
+        .cf-cat { display:flex; align-items:center; gap:8px; }
+        .cf-box { width:17px; height:17px; border:1.5px solid #1e293b; border-radius:2px; display:inline-flex; align-items:center; justify-content:center; font-size:15px; font-weight:700; line-height:1; color:#1d3a8a; flex:none; }
+        .cf-two { display:grid; grid-template-columns: 1.3fr 1fr; gap:18px; align-items:end; }
+        .cf-small { font-size:13px; }
+        .cf-sign { display:flex; justify-content:space-between; align-items:flex-end; gap:20px; margin-top:22px; }
+        .cf-foot { font-size:11px; color:#64748b; margin-top:16px; }
+        .cf-wm { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:90px; font-weight:800; color:rgba(100,116,139,.08); transform:rotate(-24deg); pointer-events:none; }
+        @media print { .cf { border:none; padding:0; } }
+    </style>
+    <div class="cf" style="position:relative">
+        <?php if (!empty($certCfg['watermark'])): ?><div class="cf-wm"><?= htmlspecialchars($certCfg['watermark']) ?></div><?php endif; ?>
+        <div class="cf-head">
+            <?php if ($certCaduceus): ?><img src="<?= htmlspecialchars($certCaduceus) ?>" alt="" style="width:78px;height:auto;flex:none"><?php endif; ?>
+            <div class="cf-mid">
+                <div class="cf-name"><?= htmlspecialchars($clinicName) ?></div>
+                <?php if ($fDocLine !== ''): ?><div class="cf-docline"><?= htmlspecialchars($fDocLine) ?></div><?php endif; ?>
+                <?php if ($certCfg['consultation_in'] !== '' || $certSubtitle !== ''): ?>
+                    <?php if ($certCfg['consultation_in'] !== ''): ?><div class="cf-consult">Consultation in :</div><?php endif; ?>
+                    <div class="cf-consult-in"><?= htmlspecialchars($certCfg['consultation_in'] !== '' ? $certCfg['consultation_in'] : $certSubtitle) ?></div>
+                <?php endif; ?>
+            </div>
+            <?php if ($certLogo): ?><img src="<?= htmlspecialchars($certLogo) ?>" alt="Clinic logo" style="width:<?= $certLogoW ?>px;height:auto;flex:none;object-fit:contain"><?php endif; ?>
+        </div>
+        <?php
+            $fLeft = []; $fRight = [];
+            if (!empty($certCfg['show_address']) && $clinicAddress) foreach (preg_split('/\s*,\s*|\R/', (string) $clinicAddress) as $l) if (trim($l) !== '') $fLeft[] = trim($l);
+            if (!empty($certCfg['show_phone']) && $clinicPhone) $fRight[] = 'Phone: ' . $clinicPhone;
+            if (!empty($certCfg['show_email']) && $clinicEmail) $fRight[] = 'Email: ' . $clinicEmail;
+            if (!empty($certCfg['show_website']) && $clinicWebsite) $fRight[] = $clinicWebsite;
+        ?>
+        <?php if ($fLeft || $fRight): ?>
+        <div class="cf-contact">
+            <div><?= implode('<br>', array_map('htmlspecialchars', $fLeft)) ?></div>
+            <div class="r"><?= implode('<br>', array_map('htmlspecialchars', $fRight)) ?></div>
+        </div>
+        <?php endif; ?>
+
+        <div class="cf-title"><h2><?= htmlspecialchars($fTitle) ?></h2><span class="no"><?= htmlspecialchars((string) $cert['certificate_number']) ?></span></div>
+
+        <div class="cf-line"><span>This is to certify that</span><span class="cf-fill"><?= htmlspecialchars($patient['first_name'] . ' ' . $patient['last_name']) ?></span></div>
+        <?php if (!empty($certCfg['show_diagnosis'])): ?>
+        <div class="cf-line"><span>i) is suffering from:</span><span class="cf-fill"><?= htmlspecialchars((string) $cert['diagnosis']) ?></span></div>
+        <?php endif; ?>
+
+        <?php if (!empty($certCfg['show_categories'])): ?>
+        <div class="cf-cats">
+            <?php foreach ($fCats as $c): ?>
+                <div class="cf-cat"><span class="cf-box"><?= in_array($c, $fTicked, true) ? '&#10003;' : '' ?></span><span><?= htmlspecialchars($c) ?></span></div>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+
+        <?php if (!empty($certCfg['show_dates'])): ?>
+        <div class="cf-line cf-small"><span>ii) Gives history of illness from:</span><span class="cf-fill" style="max-width:230px"><?= htmlspecialchars($fmtDate($cert['illness_from'] ?? '')) ?></span></div>
+        <?php endif; ?>
+        <div class="cf-two">
+            <?php if (!empty($certCfg['show_dates'])): ?>
+            <div class="cf-line cf-small"><span>iii) Should resume duties on:</span><span class="cf-fill"><?= htmlspecialchars($fmtDate($cert['resume_on'] ?? '')) ?></span></div>
+            <?php else: ?><div></div><?php endif; ?>
+            <?php if (!empty($certCfg['show_review'])): ?>
+            <div class="cf-line cf-small"><span>iv) Review</span><span class="cf-fill"><?= htmlspecialchars($fmtDate($cert['review_on'] ?? '')) ?></span></div>
+            <?php endif; ?>
+        </div>
+        <div class="cf-line cf-small"><span>Comments:</span><span class="cf-fill" style="font-size:16px"><?= htmlspecialchars($fComments) ?></span></div>
+
+        <div class="cf-sign">
+            <div>
+                <?php if (!empty($certCfg['show_stamp']) && !empty($digitalStamp)): ?>
+                    <img src="<?= htmlspecialchars($digitalStamp) ?>" style="max-height:120px;max-width:200px;object-fit:contain" alt="Official Digital Stamp">
+                <?php endif; ?>
+            </div>
+            <div style="width:300px;font-size:13px">
+                <?php if (!empty($certCfg['show_signature']) && !empty($esignature)): ?>
+                    <img src="<?= htmlspecialchars($esignature) ?>" style="max-height:70px;max-width:220px;object-fit:contain;display:block;margin-bottom:-14px;position:relative" alt="E-Signature">
+                <?php endif; ?>
+                <div style="border-bottom:1px solid #1e293b;padding-bottom:2px">Signature:</div>
+                <div style="margin-top:3px;font-weight:600"><?= htmlspecialchars((string) $cert['doctor_name']) ?></div>
+                <?php if (!empty($certCfg['show_license']) && $prcNo): ?><div style="font-size:11px;color:#64748b">Licence No: <?= htmlspecialchars($prcNo) ?></div><?php endif; ?>
+                <?php if (!empty($certCfg['show_ptr']) && $ptrNo): ?><div style="font-size:11px;color:#64748b">PTR No: <?= htmlspecialchars($ptrNo) ?></div><?php endif; ?>
+                <?php if (!empty($certCfg['show_consult_date'])): ?>
+                <div style="border-bottom:1px solid #1e293b;padding-bottom:2px;margin-top:10px">Date of Consult: <span style="font-weight:600"><?= htmlspecialchars($fmtDate($cert['issue_date'] ?? '')) ?></span></div>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php if ($certDisclaimer !== '' || $certFooterNote !== ''): ?>
+        <div class="cf-foot"><?= htmlspecialchars($certDisclaimer) ?> <?= htmlspecialchars($certFooterNote) ?></div>
+        <?php endif; ?>
+    </div>
+<?php else: ?>
     <!-- Official Certificate Body -->
     <div class="cert-box bg-white p-10 rounded-2xl shadow-xl border-2 border-slate-900 relative">
 
         <!-- Clinic Branding Header -->
-        <div class="text-center pb-6 mb-8" style="border-bottom: 2px solid <?= htmlspecialchars($certAccent) ?>; font-family: <?= $certFontStack ?>;">
+        <div class="pb-6 mb-8 flex items-center gap-4" style="border-bottom: 2px solid <?= htmlspecialchars($certAccent) ?>; font-family: <?= $certFontStack ?>;">
+            <?php if ($certCaduceus): ?>
+                <img src="<?= htmlspecialchars($certCaduceus) ?>" alt="" style="width: 64px; height: auto" class="object-contain shrink-0">
+            <?php endif; ?>
+            <div class="text-center flex-1 min-w-0">
             <?php if ($certLogo): ?>
                 <img src="<?= htmlspecialchars($certLogo) ?>" alt="Clinic logo" style="width: <?= $certLogoW + 20 ?>px" class="object-contain mx-auto mb-2">
             <?php endif; ?>
@@ -129,6 +254,8 @@ $digitalStamp = $doctor['digital_stamp'] ?? '';
             if (!empty($certCfg['show_email']) && $clinicEmail) $certContact[] = htmlspecialchars($clinicEmail);
             if (!empty($certCfg['show_website']) && $clinicWebsite) $certContact[] = htmlspecialchars($clinicWebsite);
             if ($certContact): ?><p class="text-xs text-slate-500 mt-1"><?= implode(' • ', $certContact) ?></p><?php endif; ?>
+            </div>
+            <?php if ($certCaduceus): ?><div style="width: 64px" class="shrink-0" aria-hidden="true"></div><?php endif; ?>
         </div>
 
         <!-- Document Title & Control No -->
@@ -225,6 +352,7 @@ $digitalStamp = $doctor['digital_stamp'] ?? '';
         </div>
 
     </div>
+<?php endif; ?>
 </div>
 
 </body>

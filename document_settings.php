@@ -47,6 +47,33 @@ $typeLabel = $docType === 'certificate' ? 'Medical certificate' : 'Prescription'
     <input type="hidden" name="doc_type" value="<?= htmlspecialchars($docType) ?>">
 
     <div class="space-y-5 min-w-0">
+        <?php if ($docType === 'certificate'): ?>
+        <!-- Template -->
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 space-y-4">
+            <h2 class="text-base font-semibold text-slate-900">Certificate template</h2>
+            <p class="text-[13px] text-slate-500 -mt-2">Pick the layout your clinic prefers. You can change it any time; certificates already issued print in whichever layout is selected.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <?php foreach (DocumentTemplateSettings::LAYOUTS as $k => [$label, $blurb]): ?>
+                    <label class="relative cursor-pointer">
+                        <input type="radio" name="layout" value="<?= $k ?>" class="peer sr-only" <?= ($cfg['layout'] ?? 'classic') === $k ? 'checked' : '' ?> <?= $dis ?>>
+                        <span class="block rounded-xl border-2 border-slate-200 p-3 h-full peer-checked:border-blue-600 peer-checked:bg-blue-50/40 hover:border-slate-300">
+                            <span class="block font-semibold text-slate-900 text-sm"><?= htmlspecialchars($label) ?></span>
+                            <span class="block text-[12px] text-slate-500 mt-1"><?= htmlspecialchars($blurb) ?></span>
+                        </span>
+                    </label>
+                <?php endforeach; ?>
+            </div>
+            <div class="grid grid-cols-1 gap-3">
+                <div><label class="form-label">Doctor / registration line <span class="text-slate-400 font-normal">(Clinic form)</span></label>
+                    <input type="text" name="doctor_line" value="<?= htmlspecialchars($cfg['doctor_line']) ?>" class="form-input" maxlength="160" placeholder="e.g. Dr Jane Doe   REGISTERED MEDICAL PRACTITIONER (MBBS) (MP 0000)" <?= $dis ?>></div>
+                <div><label class="form-label">"Consultation in" services <span class="text-slate-400 font-normal">(Clinic form)</span></label>
+                    <textarea name="consultation_in" rows="2" class="form-textarea" maxlength="300" placeholder="e.g. Medicine, General Surgery (Minor Operations), Skin Diseases, OB &amp; Gynae &amp; Paeds and Family Medicine" <?= $dis ?>><?= htmlspecialchars($cfg['consultation_in']) ?></textarea></div>
+                <div><label class="form-label">Problem tick-boxes <span class="text-slate-400 font-normal">(one per line, up to 15)</span></label>
+                    <textarea name="problem_categories" rows="6" class="form-textarea" <?= $dis ?>><?= htmlspecialchars($cfg['problem_categories']) ?></textarea></div>
+            </div>
+        </section>
+        <?php endif; ?>
+
         <!-- Letterhead -->
         <section class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 space-y-4">
             <h2 class="text-base font-semibold text-slate-900">Letterhead &amp; branding</h2>
@@ -148,6 +175,9 @@ $typeLabel = $docType === 'certificate' ? 'Medical certificate' : 'Prescription'
             <div class="px-4 py-2.5 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">Letterhead preview</div>
             <div class="p-5" style="font-family: <?= DocumentTemplateSettings::fontStack($cfg['font']) ?>;">
                 <div class="flex items-center gap-3 <?= $cfg['logo_align'] === 'center' ? 'justify-center text-center flex-col' : ($cfg['logo_align'] === 'right' ? 'flex-row-reverse text-right' : '') ?>">
+                    <?php if ($docType === 'certificate' && !empty($cfg['show_caduceus'])): ?>
+                        <img src="<?= DocumentTemplateSettings::CADUCEUS ?>" alt="" style="width:44px" class="object-contain shrink-0">
+                    <?php endif; ?>
                     <?php if (!empty($cfg['show_logo']) && $effectiveLogo): ?>
                         <img src="<?= htmlspecialchars($effectiveLogo) ?>" alt="" style="width: <?= DocumentTemplateSettings::logoWidth($cfg['logo_size']) ?>px" class="object-contain shrink-0">
                     <?php endif; ?>

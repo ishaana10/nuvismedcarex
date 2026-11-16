@@ -48,22 +48,37 @@ $certSeq = sprintf("%04d", rand(1, 9999));
 $certNum = 'MC-' . date('Ymd') . '-' . $certSeq;
 $certId = 'mc-' . uniqid();
 
-$stmt = $pdo->prepare("INSERT INTO medical_certificates (id, tenant_id, certificate_number, patient_id, visit_id, issue_date, diagnosis, fitness_status, fit_status_details, recommendations, doctor_name, prc_number, ptr_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-$stmt->execute([
-    $certId,
-    $tenantId,
-    $certNum,
-    $patientId,
-    $visitId ?: null,
-    $issueDate,
-    $diagnosis,
-    $fitnessStatus,
-    $fitStatusDetails,
-    $recommendations,
-    $doctorName,
-    $prcNumber,
-    $ptrNumber
-]);
+// Optional "clinic form" fields. Only written when the column exists, so issuing
+// still works on a database where the migration has not run yet.
+$cols = ['id', 'tenant_id', 'certificate_number', 'patient_id', 'visit_id', 'issue_date', 'diagnosis', 'fitness_status', 'fit_status_details', 'recommendations', 'doctor_name', 'prc_number', 'ptr_number'];
+$vals = [$certId, $tenantId, $certNum, $patientId, $visitId ?: null, $issueDate, $diagnosis, $fitnessStatus, $fitStatusDetails, $recommendations, $doctorName, $prcNumber, $ptrNumber];
+
+$toDate = static function (string $v): ?string {
+    $v = trim($v);
+    $d = DateTime::createFromFormat('Y-m-d', $v);
+    return ($d && $d->format('Y-m-d') === $v) ? $v : null;
+};
+$allowed = \ClinicFlow\Services\DocumentTemplateSettings::categories(
+    (new \ClinicFlow\Services\DocumentTemplateSettings($pdo, $tenantId))->load('certificate')
+);
+$picked = array_values(array_intersect($allowed, array_map('strval', (array) ($_POST['problem_category'] ?? []))));
+$extras = [
+    'problem_category' => $picked ? implode(', ', $picked) : null,
+    'illness_from'     => $toDate((string) ($_POST['illness_from'] ?? '')),
+    'resume_on'        => $toDate((string) ($_POST['resume_on'] ?? '')),
+    'review_on'        => $toDate((string) ($_POST['review_on'] ?? '')),
+];
+try {
+    $have = $pdo->query("SHOW COLUMNS FROM medical_certificates")->fetchAll(PDO::FETCH_COLUMN);
+} catch (Throwable $e) {
+    $have = [];
+}
+foreach ($extras as $col => $val) {
+    if (in_array($col, $have, true)) { $cols[] = $col; $vals[] = $val; }
+}
+
+$stmt = $pdo->prepare('INSERT INTO medical_certificates (' . implode(', ', $cols) . ') VALUES (' . implode(', ', array_fill(0, count($cols), '?')) . ')');
+$stmt->execute($vals);
 
 setToast('Success', 'Medical Certificate issued successfully.', 'success');
 

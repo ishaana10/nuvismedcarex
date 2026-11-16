@@ -37,6 +37,17 @@ final class DocumentTemplateSettings
         '#B0640A' => 'Amber',
         '#364354' => 'Charcoal',
     ];
+    /** Certificate layouts a clinic can choose between. */
+    public const LAYOUTS = [
+        'classic' => ['Classic letter', 'A formal letter: centred letterhead, a statement that the patient was examined, diagnosis and fitness boxes.'],
+        'form'    => ['Clinic form', 'Like a printed clinic pad: doctor credentials line, "consultation in" line, problem tick-boxes, illness / resume / review dates.'],
+    ];
+    public const DEFAULT_CATEGORIES = [
+        'Genitourinary Problems', 'Cardiac Problems', 'Skin Problems',
+        'Musculoskeletal Problems', 'OBS/ Gynae Problems', 'GIT Problems',
+        'Respiratory Tract Problems', 'Medical Problems', 'EENT Problems', 'Dental',
+    ];
+    public const CADUCEUS = 'assets/images/caduceus_logo.png';
     public const MAX_LOGO_BYTES = 300 * 1024;
 
     /** Toggles per document type: group => [key => [label, default]]. */
@@ -75,6 +86,13 @@ final class DocumentTemplateSettings
                 'show_phone'    => ['Phone number', true],
                 'show_email'    => ['Email address', true],
                 'show_website'  => ['Website', false],
+                'show_caduceus' => ['Golden caduceus beside the clinic name', true],
+            ],
+            'Clinic form layout' => [
+                'show_categories' => ['Problem tick-boxes', true],
+                'show_dates'      => ['Illness-from and resume-duties dates', true],
+                'show_review'     => ['Review line', true],
+                'show_consult_date' => ['Date of consultation by the signature', true],
             ],
             'Certificate body' => [
                 'show_diagnosis'     => ['Diagnosis / findings', true],
@@ -120,6 +138,10 @@ final class DocumentTemplateSettings
         ];
         if ($type === 'certificate') {
             return array_merge($common, [
+                'layout'          => 'classic',
+                'doctor_line'     => '',
+                'consultation_in' => '',
+                'problem_categories' => implode("\n", self::DEFAULT_CATEGORIES),
                 'header_title'    => 'OFFICIAL MEDICAL CERTIFICATE',
                 'header_subtitle' => '',
                 'disclaimer'      => 'This medical certificate is issued upon request of the patient for whatever legal or administrative purpose it may serve.',
@@ -173,6 +195,20 @@ final class DocumentTemplateSettings
         if (array_key_exists('header_subtitle', $in)) $cfg['header_subtitle'] = $str('header_subtitle', 120);
         if (array_key_exists('disclaimer', $in)) $cfg['disclaimer'] = $str('disclaimer', 500);
         if (array_key_exists('footer_note', $in)) $cfg['footer_note'] = $str('footer_note', 500);
+        if ($type === 'certificate') {
+            if (isset(self::LAYOUTS[$in['layout'] ?? ''])) $cfg['layout'] = $in['layout'];
+            if (array_key_exists('doctor_line', $in)) $cfg['doctor_line'] = $str('doctor_line', 160);
+            if (array_key_exists('consultation_in', $in)) $cfg['consultation_in'] = $str('consultation_in', 300);
+            if (array_key_exists('problem_categories', $in)) {
+                $lines = [];
+                foreach (preg_split('/\R/', (string) $in['problem_categories']) ?: [] as $l) {
+                    $l = mb_substr(trim($l), 0, 40);
+                    if ($l !== '' && !in_array($l, $lines, true)) $lines[] = $l;
+                    if (count($lines) >= 15) break;
+                }
+                $cfg['problem_categories'] = implode("\n", $lines ?: self::DEFAULT_CATEGORIES);
+            }
+        }
         if (array_key_exists('watermark', $in)) $cfg['watermark'] = $str('watermark', 40);
 
         foreach (self::TOGGLES[$type] as $group) {
@@ -203,6 +239,17 @@ final class DocumentTemplateSettings
     public function save(string $type, array $cfg): void
     {
         $this->putSetting(self::key($type), json_encode($cfg));
+    }
+
+    /** The tick-box labels for a certificate config, in order. */
+    public static function categories(array $cfg): array
+    {
+        $out = [];
+        foreach (preg_split('/\R/', (string) ($cfg['problem_categories'] ?? '')) ?: [] as $l) {
+            $l = trim($l);
+            if ($l !== '') $out[] = $l;
+        }
+        return $out ?: self::DEFAULT_CATEGORIES;
     }
 
     /** CSS font stack for a chosen font key. */
