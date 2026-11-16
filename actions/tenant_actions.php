@@ -22,7 +22,7 @@ if ($action === 'switch_tenant') {
     // everyday one: only developers may change the active clinic.
     if (nxCurrentRole() !== 'Developer') {
         setToast('Not allowed', 'Only a developer can change the active clinic. Ask your administrator if you need access to another clinic.', 'error');
-        header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '../index.php'));
+        header('Location: ' . (nxSafeReferer('../index.php')));
         exit;
     }
     $tenantId = $_POST['tenant_id'] ?? '';
@@ -31,7 +31,7 @@ if ($action === 'switch_tenant') {
     } else {
         setToast('Switch Error', 'Invalid or inactive clinic selected.', 'error');
     }
-    header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '../admin.php?tab=tenants'));
+    header('Location: ' . (nxSafeReferer('../admin.php?tab=tenants')));
     exit;
 }
 
@@ -88,7 +88,7 @@ if ($action === 'save_tenant') {
         setToast('Error', 'Failed to save clinic tenant.', 'error');
     }
 
-    header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '../admin.php?tab=tenants'));
+    header('Location: ' . (nxSafeReferer('../admin.php?tab=tenants')));
     exit;
 }
 

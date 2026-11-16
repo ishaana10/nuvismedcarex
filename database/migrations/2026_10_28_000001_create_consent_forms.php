@@ -57,14 +57,19 @@ return new class {
         );");
 
         foreach ([
-            "CREATE INDEX IF NOT EXISTS idx_consent_forms_tenant ON consent_forms (tenant_id, is_active)",
-            "CREATE INDEX IF NOT EXISTS idx_consent_records_patient ON consent_records (tenant_id, patient_id)",
-            "CREATE INDEX IF NOT EXISTS idx_consent_records_visit ON consent_records (tenant_id, visit_id)",
+            "CREATE INDEX idx_consent_forms_tenant ON consent_forms (tenant_id, is_active)",
+            "CREATE INDEX idx_consent_records_patient ON consent_records (tenant_id, patient_id)",
+            "CREATE INDEX idx_consent_records_visit ON consent_records (tenant_id, visit_id)",
         ] as $sql) {
             try {
                 $pdo->exec($sql);
             } catch (\Throwable $e) {
-                error_log('[migration] consent index: ' . $e->getMessage());
+                // "CREATE INDEX IF NOT EXISTS" is MariaDB-only and a syntax error on
+                // MySQL, so plain CREATE INDEX is used and "duplicate key name"
+                // (error 1061, i.e. already created) is the expected re-run result.
+                if (strpos($e->getMessage(), '1061') === false && stripos($e->getMessage(), 'Duplicate key name') === false && stripos($e->getMessage(), 'already exists') === false) {
+                    error_log('[migration] consent index: ' . $e->getMessage());
+                }
             }
         }
     }

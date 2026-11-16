@@ -86,6 +86,6 @@ try {
     setToast('Error', $errorMsg, 'error');
 }
 
-$redirectTo = $_SERVER['HTTP_REFERER'] ?? '../billing.php';
+$redirectTo = nxSafeReferer('../billing.php');
 header("Location: $redirectTo");
 exit;

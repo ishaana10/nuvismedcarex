@@ -55,10 +55,7 @@ if (!$patient) {
 }
 
 // Get attending doctor details
-$docId = $_SESSION['current_doctor_id'] ?? 'doc-2';
-$docStmt = $pdo->prepare("SELECT * FROM doctors WHERE id = ? OR role = 'Doctor'");
-$docStmt->execute([$docId]);
-$attendingDoc = $docStmt->fetch() ?: ['name' => $order['ordered_by'] ?? 'Dr. Sarah Jenkins', 'specialty' => 'Internal Medicine'];
+$attendingDoc = nxAttendingDoctor($pdo) ?: ['name' => $order['ordered_by'] ?? ($_SESSION['user_name'] ?? ''), 'specialty' => ''];
 
 // Map requested items for checklist matching
 $items = !empty($order['items']) ? $order['items'] : [

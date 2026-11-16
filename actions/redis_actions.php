@@ -4,6 +4,7 @@
  */
 
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../includes/security.php';
 require_once __DIR__ . '/../core/Cache.php';
 
 header('Content-Type: application/json');
@@ -21,6 +22,7 @@ if (!in_array($userRole, ['Administrator', 'Developer'])) {
 
 $jsonInput = json_decode(file_get_contents('php://input'), true) ?? [];
 $action = $_GET['action'] ?? ($jsonInput['action'] ?? ($_POST['action'] ?? ''));
+nxRequireCsrfForMutations($action, ['get_redis_status', 'test_redis_ping']);
 
 try {
     $cache = \NuCache::getInstance();

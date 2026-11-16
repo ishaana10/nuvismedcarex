@@ -37,16 +37,12 @@ $certFooterNote = $certCfg['footer_note'];
 // Fetch Certificate details
 $cert = null;
 if ($certId) {
-    $stmt = $pdo->prepare("SELECT * FROM medical_certificates WHERE id = ? OR certificate_number = ?");
-    $stmt->execute([$certId, $certId]);
+    $stmt = $pdo->prepare("SELECT * FROM medical_certificates WHERE (id = ? OR certificate_number = ?) AND tenant_id = ?");
+    $stmt->execute([$certId, $certId, $currentTenantId]);
     $cert = $stmt->fetch();
 }
-
-if (!$cert) {
-    // Fallback or latest
-    $stmt = $pdo->query("SELECT * FROM medical_certificates ORDER BY created_at DESC LIMIT 1");
-    $cert = $stmt->fetch();
-}
+// No "latest certificate" fallback: a mistyped or stale link must never print
+// some other patient's certificate.
 
 if (!$cert) {
     die("Medical Certificate not found.");
@@ -62,18 +58,13 @@ if (!$patient) {
 }
 
 // Fetch Attending Doctor details for e-signature, stamp, PRC, PTR
-$doctor = null;
-if (!empty($cert['doctor_name'])) {
-    $stmt = $pdo->prepare("SELECT * FROM doctors WHERE name = ? OR name LIKE ?");
-    $stmt->execute([$cert['doctor_name'], '%' . $cert['doctor_name'] . '%']);
-    $doctor = $stmt->fetch();
-}
-if (!$doctor) {
-    $doctor = $pdo->query("SELECT * FROM doctors WHERE role = 'Doctor' LIMIT 1")->fetch();
-}
+// Only clinicians of THIS clinic. (This used to search every clinic by name and
+// then take "any Doctor", printing another clinic's signature on the certificate.)
+$doctor = nxFindDoctorByName($pdo, (string) ($cert['doctor_name'] ?? ''));
 
-$prcNo = $cert['prc_number'] ?: ($doctor['prc_number'] ?? $settings['doc_prc_no'] ?? 'PRC-0098412');
-$ptrNo = $cert['ptr_number'] ?: ($doctor['ptr_number'] ?? $settings['doc_ptr_no'] ?? 'PTR-8842109');
+// Never invent a registration number on a legal document.
+$prcNo = $cert['prc_number'] ?: ($doctor['prc_number'] ?? $settings['doc_prc_no'] ?? '');
+$ptrNo = $cert['ptr_number'] ?: ($doctor['ptr_number'] ?? $settings['doc_ptr_no'] ?? '');
 $esignature = $doctor['esignature'] ?? '';
 $digitalStamp = $doctor['digital_stamp'] ?? '';
 ?>

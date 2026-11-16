@@ -8,6 +8,7 @@ include __DIR__ . '/includes/header.php';
 use ClinicFlow\Services\VMSService;
 
 $vmsService = new VMSService($pdo);
+$nxShowVms = (nxCurrentRole() === 'Developer'); // FRCS VMS UI is Developer-only this release
 
 $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 
@@ -845,7 +846,7 @@ $reconOff = abs($z['reconciliation']) >= 0.01;
 <?php else: ?>
 
 <!-- Headline figures ------------------------------------------------------- -->
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+<div class="grid grid-cols-2 <?= $nxShowVms ? 'lg:grid-cols-4' : 'lg:grid-cols-3' ?> gap-4 mb-6">
     <?php
     $zCards = [
         ['label' => 'Turnover', 'value' => $cur . number_format($z['total_sales'] - $z['total_refunds'], 2), 'note' => $z['sales_count'] . ' sales, ' . $z['refund_count'] . ' refunds', 'icon' => 'point_of_sale', 'tone' => 'bg-blue-50 text-blue-700'],
@@ -853,6 +854,7 @@ $reconOff = abs($z['reconciliation']) >= 0.01;
         ['label' => 'Paid by patients', 'value' => $cur . number_format($z['patient_share'], 2), 'note' => $z['insurance_covered'] > 0 ? $cur . number_format($z['insurance_covered'], 2) . ' billed to insurers' : 'No insurance on these invoices', 'icon' => 'payments', 'tone' => 'bg-slate-100 text-slate-600'],
         ['label' => 'Fiscalised', 'value' => $z['fiscalised_count'] . ' / ' . $z['total_invoices'], 'note' => $z['unfiscalised_count'] ? $z['unfiscalised_count'] . ' not sent to FRCS' : 'All invoices signed', 'icon' => $z['unfiscalised_count'] ? 'gpp_maybe' : 'verified_user', 'tone' => $z['unfiscalised_count'] ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700', 'warn' => $z['unfiscalised_count'] > 0],
     ];
+    if (!$nxShowVms) { array_pop($zCards); } // drop the Fiscalised tile
     foreach ($zCards as $c): ?>
         <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
             <div class="flex items-start justify-between gap-2">
@@ -987,7 +989,7 @@ $reconOff = abs($z['reconciliation']) >= 0.01;
 </div>
 <?php endif; ?>
 
-<?php if ($z['unfiscalised_count'] > 0): ?>
+<?php if ($nxShowVms && $z['unfiscalised_count'] > 0): ?>
     <p class="mb-6 text-[12px] text-amber-900 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-start gap-2">
         <span class="material-symbols-outlined text-[18px]">gpp_maybe</span>
         <span>

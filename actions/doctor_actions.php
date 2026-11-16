@@ -157,8 +157,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($action === 'save' || $action === 
 
     if ($isEdit) {
         // Fetch existing
-        $stmt = $pdo->prepare("SELECT * FROM doctors WHERE id = ?");
-        $stmt->execute([$docId]);
+        $stmt = $pdo->prepare("SELECT * FROM doctors WHERE id = ? AND tenant_id = ?");
+        $stmt->execute([$docId, $tenantIdCtx]);
         $existingDoc = $stmt->fetch();
 
         if (!$existingDoc) {
@@ -177,12 +177,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($action === 'save' || $action === 
             $passwordHash = password_hash($password, PASSWORD_DEFAULT);
         }
 
-        $updateStmt = $pdo->prepare("UPDATE doctors SET name = ?, specialty = ?, email = ?, password_hash = ?, role = ?, is_active = ?, color = ?, dot_color_class = ?, avatar = ?, prc_number = ?, ptr_number = ?, esignature = ?, digital_stamp = ? WHERE id = ?");
-        $updateStmt->execute([$name, $specialty, $email, $passwordHash, $role, $isActive, $color, $dotColorClass, $avatar, $prcNumber, $ptrNumber, $esignature, $digitalStamp, $docId]);
+        $updateStmt = $pdo->prepare("UPDATE doctors SET name = ?, specialty = ?, email = ?, password_hash = ?, role = ?, is_active = ?, color = ?, dot_color_class = ?, avatar = ?, prc_number = ?, ptr_number = ?, esignature = ?, digital_stamp = ? WHERE id = ? AND tenant_id = ?");
+        $updateStmt->execute([$name, $specialty, $email, $passwordHash, $role, $isActive, $color, $dotColorClass, $avatar, $prcNumber, $ptrNumber, $esignature, $digitalStamp, $docId, $tenantIdCtx]);
 
         setToast("User Updated", "User information and credentials updated successfully.");
     } else {
-        $initialPassword = !empty($password) ? $password : 'ClinicPass123';
+        // No shared default password: an administrator must set one (a known default
+        // like this is how accounts get taken over before the person ever signs in).
+        $initialPassword = (string) $password;
+        if ($initialPassword === '') {
+            $bounce('Password required', 'Set an initial password for the new account (8+ characters, with a capital letter and a number).');
+        }
         if (strlen($initialPassword) < 8 || !preg_match('/[A-Z]/', $initialPassword) || !preg_match('/[0-9]/', $initialPassword)) {
             setToast("Weak Password", "Password must be at least 8 characters long and contain at least one uppercase letter and one number.", "error");
             header("Location: ../admin.php?tab=users");
@@ -210,8 +215,8 @@ if ($action === 'toggle_status') {
     if ($status === 0 && $userId === $selfId) $bounce('Not changed', "You can't deactivate your own account.");
     if ($status === 0 && $isLastAdmin((string) $userId)) $bounce('Not changed', 'This is the only active administrator. Make someone else an administrator first.');
     if (!empty($userId)) {
-        $stmt = $pdo->prepare("UPDATE doctors SET is_active = ? WHERE id = ?");
-        $stmt->execute([$status, $userId]);
+        $stmt = $pdo->prepare("UPDATE doctors SET is_active = ? WHERE id = ? AND tenant_id = ?");
+        $stmt->execute([$status, $userId, $tenantIdCtx]);
         $statusMsg = $status === 1 ? "User account activated." : "User account deactivated.";
         setToast("Status Changed", $statusMsg);
     }
@@ -229,8 +234,8 @@ if ($action === 'delete') {
         $bounce('Not allowed', 'Only a developer can remove a developer account.');
     }
     if (!empty($docId)) {
-        $stmt = $pdo->prepare("DELETE FROM doctors WHERE id = ?");
-        $stmt->execute([$docId]);
+        $stmt = $pdo->prepare("DELETE FROM doctors WHERE id = ? AND tenant_id = ?");
+        $stmt->execute([$docId, $tenantIdCtx]);
         setToast("User Removed", "User account deleted successfully.");
     }
     header("Location: ../admin.php?tab=users");

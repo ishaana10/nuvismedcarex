@@ -6,6 +6,25 @@ AddDefaultCharset UTF-8
 RedirectMatch 404 /\.git
 RedirectMatch 404 /\.env
 
+# Never serve internal folders, dependency/build files, SQL dumps or logs.
+# (database/seed.php used to be runnable by anyone and wiped the database;
+#  uploads/ held patient files that could be downloaded without signing in.)
+RedirectMatch 404 ^/(database|src|core|includes|config|tests|vendor|node_modules|uploads|logs|\.github)(/|$)
+<FilesMatch "(^(composer\.(json|lock)|package(-lock)?\.json|bun\.lock|Dockerfile|docker-compose\.yml|README\.md|server\.log)$|\.(sql|bak|log|ini|sh|dist)$)">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Do not let the browser guess types, and never send wildcard CORS with cookies.
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+</IfModule>
+
 <IfModule mod_rewrite.c>
     RewriteEngine On
     # If assets are requested directly and exist in /assets or /dist/assets, serve directly
@@ -13,6 +32,5 @@ RedirectMatch 404 /\.env
     RewriteRule ^assets/(.*)$ dist/assets/$1 [L]
 </IfModule>
 
-<IfModule mod_headers.c>
-    Header set Access-Control-Allow-Origin "*"
-</IfModule>
+# (A global "Access-Control-Allow-Origin: *" was removed: this app is
+#  same-origin only and the header served no legitimate purpose.)

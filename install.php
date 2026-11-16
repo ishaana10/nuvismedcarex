@@ -3,6 +3,21 @@
  * ClinicFlow / Nuvis Medico Web Installation Wizard
  * Sets up Database, Developer / Administrator Credentials, Clinic Profile, Access Control & Seed Initial Data
  */
+// SECURITY: the installer must only work on a fresh server. Once it has run (or
+// the site is configured by hand / environment variables) it refuses to run
+// again - otherwise anyone on the internet could point the app at their own
+// database or reset the Developer account.
+$nuInstalled = file_exists(__DIR__ . '/config/config.php')
+    || file_exists(__DIR__ . '/config/config.local.php')
+    || file_exists(__DIR__ . '/config/installed.lock')
+    || (getenv('DB_HOST') !== false && getenv('DB_NAME') !== false);
+if ($nuInstalled && (($_GET['step'] ?? '') !== '2' || $_SERVER['REQUEST_METHOD'] === 'POST')) {
+    http_response_code(403);
+    header('Content-Type: text/plain; charset=utf-8');
+    echo "Nuvis Medcare X is already installed. Delete install.php from the server.\n";
+    exit;
+}
+
 require_once __DIR__ . '/core/SessionBootstrap.php';
 
 $step = $_GET['step'] ?? 1;
@@ -20,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Admin / Developer Account Setup
     $adminName  = trim($_POST['admin_name'] ?? 'System Developer');
     $adminEmail = trim($_POST['admin_email'] ?? 'medico@nuvistechnologies.com.fj');
-    $adminPass  = $_POST['admin_pass'] ?? 'password';
+    $adminPass  = $_POST['admin_pass'] ?? '';
     $adminRole  = trim($_POST['admin_role'] ?? 'Developer');
 
     // Clinic Profile Setup
@@ -34,9 +49,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $customKeys   = $_POST['custom_keys'] ?? [];
     $customValues = $_POST['custom_values'] ?? [];
 
+    if (strlen($adminPass) < 12) {
+        $error = 'Choose an administrator password of at least 12 characters.';
+    }
     $passHash = password_hash($adminPass, PASSWORD_DEFAULT);
 
     try {
+        if ($error) { throw new Exception($error); }
         // First test connection to MySQL server
         $dsnNoDb = "mysql:host={$dbHost};port={$dbPort};charset=utf8mb4";
         $pdoTest = new PDO($dsnNoDb, $dbUser, $dbPass, [
@@ -44,6 +63,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
 
         // Attempt to create database if it doesn't exist
+        if (!preg_match('/^[A-Za-z0-9_]{1,64}$/', $dbName)) {
+            throw new Exception('Database name may only contain letters, numbers and underscores.');
+        }
         $pdoTest->exec("CREATE DATABASE IF NOT EXISTS `$dbName` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
 
         // Connect to specific database
@@ -67,9 +89,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
 
         // Seed Initial Developer / Administrator Account
-        $stmtUser = $pdo->prepare("INSERT INTO doctors (id, name, specialty, email, password_hash, role, color, dot_color_class, avatar) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = VALUES(name), email = VALUES(email), password_hash = VALUES(password_hash), role = VALUES(role)");
+        $pdo->prepare("INSERT IGNORE INTO tenants (id, name, code, status, plan) VALUES ('default-clinic', ?, 'default-clinic', 'active', 'standard')")->execute([$clinicName]);
+        $stmtUser = $pdo->prepare("INSERT INTO doctors (id, tenant_id, name, specialty, email, password_hash, role, color, dot_color_class, avatar) VALUES ('doc-1', 'default-clinic', ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = VALUES(name), email = VALUES(email), password_hash = VALUES(password_hash), role = VALUES(role)");
         $stmtUser->execute([
-            'doc-1', $adminName, 'Developer / IT Administrator', $adminEmail, $passHash, $adminRole, '#10B981', 'bg-emerald-500', 'assets/images/nuvis_medico_logo.png'
+            $adminName, 'Developer / IT Administrator', $adminEmail, $passHash, $adminRole, '#10B981', 'bg-emerald-500', 'assets/images/nuvis_medico_logo.png'
         ]);
 
         // Seed initial clinic settings
@@ -89,11 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // Seed rest of mock clinical data if patients table is empty
-        $patCount = $pdo->query("SELECT COUNT(*) FROM patients")->fetchColumn();
-        if ($patCount == 0) {
-            require_once __DIR__ . '/database/seed.php';
-        }
+        // Demo data is no longer loaded by the web installer (database/seed.php is CLI-only).
 
         // Write Config File
         $configContent = "<?php\n" .
@@ -113,6 +132,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             "];\n";
 
         file_put_contents(__DIR__ . '/config/config.php', $configContent);
+        @chmod(__DIR__ . '/config/config.php', 0640);
+        @file_put_contents(__DIR__ . '/config/installed.lock', date('c') . "\n");
 
         $success = "Database installation completed successfully! Developer credentials and clinic profile saved.";
         $step = 2;

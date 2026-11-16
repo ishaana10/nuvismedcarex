@@ -58,20 +58,29 @@ class EncounterService {
             "INSERT INTO vitals (id, tenant_id, patient_id, blood_pressure, heart_rate, heart_rhythm, temperature, oxygen_sat, respiratory_rate, sugar, weight, height, bmi) " .
             "VALUES (:id, :tid, :pid, :bp, :hr, :hr_rhythm, :temp, :spo2, :rr, :sugar, :wt, :ht, :bmi)"
         );
+        // A vital sign that was not measured is stored as NULL. This used to fall
+        // back to "normal" values (120/80, HR 72, SpO2 99 ...), writing invented
+        // measurements into the patient's chart.
+        $num = static fn($v, callable $cast) => ($v === null || $v === '') ? null : $cast($v);
+        $text = static fn($v) => ($v === null || trim((string) $v) === '') ? null : trim((string) $v);
+        $weight = $num($vitalsData['weight'] ?? null, 'intval');
+        $height = $num($vitalsData['height'] ?? null, 'intval');
+        // BMI only from a real height and weight (pounds / inches).
+        $bmi = ($weight && $height) ? round(703 * $weight / ($height * $height), 1) : null;
         $vInsert->execute([
             'id' => Uuid::uuidv7(),
             'tid' => $tenantId,
             'pid' => $patientId,
-            'bp' => $vitalsData['blood_pressure'] ?? '120/80',
-            'hr' => (int)($vitalsData['heart_rate'] ?? 72),
-            'hr_rhythm' => $vitalsData['heart_rhythm'] ?? 'Regular',
-            'temp' => (float)($vitalsData['temperature'] ?? 98.6),
-            'spo2' => (int)($vitalsData['oxygen_sat'] ?? 99),
-            'rr' => (int)($vitalsData['respiratory_rate'] ?? 16),
-            'sugar' => $vitalsData['sugar'] ?? '95 mg/dL',
-            'wt' => (int)($vitalsData['weight'] ?? 145),
-            'ht' => (int)($vitalsData['height'] ?? 66),
-            'bmi' => (float)($vitalsData['bmi'] ?? 23.4)
+            'bp' => $text($vitalsData['blood_pressure'] ?? null),
+            'hr' => $num($vitalsData['heart_rate'] ?? null, 'intval'),
+            'hr_rhythm' => $text($vitalsData['heart_rhythm'] ?? null),
+            'temp' => $num($vitalsData['temperature'] ?? null, 'floatval'),
+            'spo2' => $num($vitalsData['oxygen_sat'] ?? null, 'intval'),
+            'rr' => $num($vitalsData['respiratory_rate'] ?? null, 'intval'),
+            'sugar' => $text($vitalsData['sugar'] ?? null),
+            'wt' => $weight,
+            'ht' => $height,
+            'bmi' => $bmi,
         ]);
 
         // 2. Encrypt and save SOAP Notes

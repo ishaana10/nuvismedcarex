@@ -15,7 +15,7 @@ requireRole(['Developer']);
 
 $action = $_POST['action'] ?? '';
 $mon = Container::getInstance()->get(MonitoringService::class);
-$back = $_SERVER['HTTP_REFERER'] ?? '../developer.php';
+$back = nxSafeReferer('../developer.php');
 
 if ($action === 'save_settings') {
     $mon->saveSettings([

@@ -61,6 +61,7 @@ class VMSServiceTest extends TestCase
 
             CREATE TABLE invoice_items (
                 id TEXT PRIMARY KEY,
+                tenant_id TEXT NOT NULL DEFAULT 'default-clinic',
                 invoice_id TEXT NOT NULL,
                 name TEXT NOT NULL,
                 gtin TEXT,
@@ -75,6 +76,7 @@ class VMSServiceTest extends TestCase
 
             CREATE TABLE vms_logs (
                 id TEXT PRIMARY KEY,
+                tenant_id TEXT NOT NULL,
                 invoice_id TEXT,
                 event_type TEXT NOT NULL,
                 request_payload TEXT,

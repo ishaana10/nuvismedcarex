@@ -22,7 +22,7 @@ $customNotes = trim($_POST['notes'] ?? '');
 
 if (empty($recipient) || empty($docType) || empty($docId)) {
     setToast('Email Error', 'Recipient email and document information are required.', 'error');
-    header("Location: " . ($_SERVER['HTTP_REFERER'] ?? '../index.php'));
+    header("Location: " . (nxSafeReferer('../index.php')));
     exit;
 }
 
@@ -33,15 +33,27 @@ if ($docType === 'prescription') {
 
     if (empty($patientId) && strpos($docId, 'RX-') === 0) {
         $mrn = str_replace('RX-', '', $docId);
-        $pStmt = $pdo->prepare("SELECT id FROM patients WHERE mrn = ?");
-        $pStmt->execute([$mrn]);
+        $pStmt = $pdo->prepare("SELECT id FROM patients WHERE mrn = ? AND tenant_id = ?");
+        $pStmt->execute([$mrn, \ClinicFlow\Shared\TenantContext::getTenantId()]);
         $patientId = $pStmt->fetchColumn() ?: '';
     }
 
+    // The patient must be in this clinic before a verification link is made for them.
     if (!empty($patientId)) {
-        $tenantId = $_SESSION['tenant_id'] ?? 'tenant-default';
+        $ownP = $pdo->prepare("SELECT id FROM patients WHERE id = ? AND tenant_id = ? LIMIT 1");
+        $ownP->execute([$patientId, \ClinicFlow\Shared\TenantContext::getTenantId()]);
+        if (!$ownP->fetchColumn()) {
+            setToast('Not sent', 'That patient is not in this clinic.', 'error');
+            header("Location: " . nxSafeReferer('../index.php'));
+            exit;
+        }
+    }
+
+    if (!empty($patientId)) {
+        $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
         $rxService = new PrescriptionVerificationService();
-        $token = $rxService->getOrCreateToken($pdo, $tenantId, $patientId, $visitId);
+        $rxDoctor = nxAttendingDoctor($pdo);
+        $token = $rxService->getOrCreateToken($pdo, $tenantId, $patientId, $visitId, $rxDoctor['id'] ?? null);
         $url = $rxService->getVerificationUrl($token);
 
         $qrSection = "
@@ -79,5 +91,5 @@ if ($success) {
     setToast('Email Failed', 'Could not dispatch email. Please check the email address.', 'error');
 }
 
-header("Location: " . ($_SERVER['HTTP_REFERER'] ?? '../index.php'));
+header("Location: " . (nxSafeReferer('../index.php')));
 exit;

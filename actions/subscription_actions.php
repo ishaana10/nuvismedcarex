@@ -19,7 +19,7 @@ $action = $_POST['action'] ?? '';
 $subscriptionService = Container::getInstance()->get(SubscriptionService::class);
 $logger = Container::getInstance()->get(Logger::class);
 
-$back = $_SERVER['HTTP_REFERER'] ?? '../developer.php';
+$back = nxSafeReferer('../developer.php');
 
 if ($action === 'record_payment') {
     $tenantId = trim($_POST['tenant_id'] ?? '');

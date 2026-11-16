@@ -4,6 +4,7 @@
  */
 
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../includes/security.php';
 require_once __DIR__ . '/../config/git_helper.php';
 
 header('Content-Type: application/json');
@@ -23,6 +24,7 @@ if (!in_array($userRole, ['Administrator', 'Developer'])) {
 $pdo = getDB();
 $jsonInput = json_decode(file_get_contents('php://input'), true) ?? [];
 $action = $_GET['action'] ?? ($jsonInput['action'] ?? ($_POST['action'] ?? ''));
+nxRequireCsrfForMutations($action, ['git_status', 'git_log', 'get_error_logs']);
 
 try {
     if ($action === 'git_status') {

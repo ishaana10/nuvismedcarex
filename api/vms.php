@@ -9,6 +9,13 @@ use ClinicFlow\Services\VMSService;
 
 requireAuth();
 
+// FRCS VMS (fiscalization) is not part of this release: Developer role only.
+if (($_SESSION['user_role'] ?? $_SESSION['role'] ?? '') !== 'Developer') {
+    http_response_code(403);
+    echo json_encode(['error' => 'VMS is not available for your account.']);
+    exit;
+}
+
 $pdo = getDB();
 $vms = new VMSService($pdo);
 $method = $_SERVER['REQUEST_METHOD'];

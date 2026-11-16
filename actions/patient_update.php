@@ -8,9 +8,11 @@ require_once __DIR__ . '/../config/database.php';
 requireAuth();
 validateCsrfRequest();
 
-$userRole = $_SESSION['user']['role'] ?? '';
-if (!in_array($userRole, ['Doctor', 'Administrator', 'Developer', 'Admin'])) {
-    setToast("Access Denied", "Only Doctors and Administrators can modify patient details.", "error");
+// Permission comes from Administration -> Access & roles. This used to read
+// $_SESSION['user']['role'], which the normal sign-in page never sets, so
+// nobody could edit a patient.
+if (!nxCan('patients', 'edit')) {
+    setToast("Access Denied", "You don't have permission to modify patient details.", "error");
     header("Location: ../patients.php");
     exit;
 }
@@ -99,7 +101,7 @@ $updateSql = "UPDATE patients SET
     chronic_conditions = ?,
     clinical_notes = ?,
     initials = ?
-WHERE id = ?";
+WHERE id = ? AND tenant_id = ?";
 
 $stmt = $pdo->prepare($updateSql);
 $stmt->execute([
@@ -122,7 +124,8 @@ $stmt->execute([
     $chronicConditions,
     $clinicalNotes,
     $initials,
-    $patientId
+    $patientId,
+    \ClinicFlow\Shared\TenantContext::getTenantId()
 ]);
 
 setToast("Patient Updated", "Patient record for " . htmlspecialchars($firstName . ' ' . $lastName) . " updated successfully.");

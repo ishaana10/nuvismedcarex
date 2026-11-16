@@ -27,6 +27,13 @@ return [
         'default_ttl' => 300,                                   // default TTL in seconds (5 min)
     ],
 
+    // REQUIRED in production. Key for encrypting clinical notes and vitals at rest.
+    // Generate once with:  php -r 'echo bin2hex(random_bytes(32)), PHP_EOL;'
+    // WARNING: if data was already saved WITHOUT a key, it is encrypted with the old built-in
+    // default. Do NOT just add a key: existing notes would become unreadable. Re-encrypt first.
+    // Never commit the real value; back it up somewhere safe (losing it loses the data).
+    'app_key' => '',
+
     'admin_doctor' => [
         'name'      => 'Dr. Sarah Jenkins',
         'specialty' => 'Internal Medicine',

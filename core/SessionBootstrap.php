@@ -19,7 +19,14 @@ if (!defined('NU_TIMEZONE_SET')) {
 
 if (session_status() === PHP_SESSION_NONE) {
     // Configure secure session cookie attributes before session start
-    $isHttps = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
+    // Behind a TLS-terminating proxy/CDN PHP sees plain HTTP; honour X-Forwarded-Proto so the
+    // cookie is still marked Secure. (A forged header can only make the cookie *more* restrictive.)
+    $isHttps = (isset($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off' && $_SERVER['HTTPS'] !== '')
+        || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https'
+        || (($_SERVER['SERVER_PORT'] ?? '') === '443');
+    // Refuse session IDs the server did not create (blocks session fixation).
+    ini_set('session.use_strict_mode', '1');
+    ini_set('session.use_only_cookies', '1');
     session_set_cookie_params([
         'lifetime' => 0,
         'path' => '/',

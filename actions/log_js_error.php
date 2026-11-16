@@ -8,20 +8,31 @@ require_once __DIR__ . '/../config/database.php';
 
 header('Content-Type: application/json');
 
-$json = file_get_contents('php://input');
-$data = json_decode($json, true) ?? [];
+// This endpoint can be called before sign-in (login page errors), so it is
+// throttled and size-capped to stop it being used to flood the error log.
+$json = file_get_contents('php://input', false, null, 0, 16384);
+$data = json_decode($json ?: '', true) ?? [];
 
-$message = trim((string)($data['message'] ?? ''));
+$now = time();
+$_SESSION['js_err_window'] = array_values(array_filter($_SESSION['js_err_window'] ?? [], fn($t) => $now - $t < 60));
+if (count($_SESSION['js_err_window']) >= 10) {
+    http_response_code(429);
+    echo json_encode(['success' => false, 'error' => 'Too many reports']);
+    exit();
+}
+$_SESSION['js_err_window'][] = $now;
+
+$message = mb_substr(trim((string)($data['message'] ?? '')), 0, 1000);
 if (empty($message)) {
     echo json_encode(['success' => false, 'error' => 'Message is required']);
     exit();
 }
 
-$url = trim((string)($data['url'] ?? ''));
+$url = mb_substr(trim((string)($data['url'] ?? '')), 0, 500);
 $line = isset($data['line']) ? (int)$data['line'] : 0;
 $column = isset($data['column']) ? (int)$data['column'] : 0;
-$stack = trim((string)($data['stack'] ?? ''));
-$userAgent = trim((string)($data['userAgent'] ?? ($_SERVER['HTTP_USER_AGENT'] ?? '')));
+$stack = mb_substr(trim((string)($data['stack'] ?? '')), 0, 4000);
+$userAgent = mb_substr(trim((string)($data['userAgent'] ?? ($_SERVER['HTTP_USER_AGENT'] ?? ''))), 0, 300);
 
 $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 $userId = $_SESSION['user_id'] ?? null;
@@ -44,5 +55,6 @@ try {
 
     echo json_encode(['success' => true, 'id' => $logId]);
 } catch (\Throwable $e) {
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    error_log('[log_js_error] ' . $e->getMessage());
+    echo json_encode(['success' => false, 'error' => 'Could not record the error']);
 }

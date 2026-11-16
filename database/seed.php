@@ -3,9 +3,25 @@
  * Database Initialization & Seed Script (Multi-Tenant Enabled)
  */
 
+// SECURITY: this script DELETES every table and loads demo data. It must never
+// be reachable from the web (it used to wipe the whole database on a plain GET).
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit;
+}
+
 require_once __DIR__ . '/../config/database.php';
 
 $pdo = getDB();
+
+// Even from the command line, refuse to run over real data unless forced.
+$existing = 0;
+try { $existing = (int) $pdo->query("SELECT COUNT(*) FROM patients")->fetchColumn(); } catch (Throwable $e) {}
+if ($existing > 0 && !in_array('--force-wipe', $argv ?? [], true)) {
+    fwrite(STDERR, "Refusing to run: this database already has {$existing} patient record(s).\n"
+        . "seed.php deletes ALL data. Re-run with --force-wipe only on a disposable database.\n");
+    exit(1);
+}
 
 echo "Initializing database tables...\n";
 

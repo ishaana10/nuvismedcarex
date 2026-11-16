@@ -18,7 +18,7 @@ if (empty($_SESSION['authenticated'])) {
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !verifyCsrfToken($_POST['csrf_token'] ?? null)) {
     setToast('Not saved', 'That request expired. Reload the page and try again.', 'error');
-    header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '../admin.php?tab=users'));
+    header('Location: ' . (nxSafeReferer('../admin.php?tab=users')));
     exit;
 }
 
@@ -30,7 +30,7 @@ $currentUserRole = nxCurrentRole();
 $isDeveloper = ($currentUserRole === 'Developer');
 $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 $selfId = (string) ($_SESSION['user_id'] ?? '');
-$back = $_SERVER['HTTP_REFERER'] ?? '../admin.php?tab=users';
+$back = nxSafeReferer('../admin.php?tab=users');
 $action = $_POST['action'] ?? 'add';
 
 /** Load a staff account visible to the active clinic. */
@@ -62,7 +62,7 @@ if ($action === 'toggle_status') {
         exit;
     }
     $new = ((int) $target['is_active'] === 1) ? 0 : 1;
-    $pdo->prepare("UPDATE doctors SET is_active = ? WHERE id = ?")->execute([$new, $docId]);
+    $pdo->prepare("UPDATE doctors SET is_active = ? WHERE id = ? AND tenant_id = ?")->execute([$new, $docId, $tenantId]);
     setToast('Status changed', $new ? 'Account access restored.' : 'Account access revoked.');
     header('Location: ' . $back);
     exit;

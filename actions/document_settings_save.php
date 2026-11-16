@@ -21,7 +21,7 @@ if (!in_array($type, DocumentTemplateSettings::TYPES, true)) {
 }
 $tenantId = TenantContext::getTenantId();
 $svc = new DocumentTemplateSettings(getDB(), $tenantId);
-$back = $_SERVER['HTTP_REFERER'] ?? ('../document_settings.php?doc=' . $type);
+$back = nxSafeReferer(('../document_settings.php?doc=' . $type));
 
 try {
     $current = $svc->load($type);

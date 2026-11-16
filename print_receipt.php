@@ -47,8 +47,8 @@ if ($isPreview) {
     }
     $signer = ['name' => $_SESSION['user_name'] ?? 'Dr. Sarah Jenkins', 'title' => 'Attending physician', 'signature' => '', 'stamp' => ''];
     try {
-        $d = $pdo->prepare("SELECT name, specialty, esignature, digital_stamp FROM doctors WHERE id = ?");
-        $d->execute([$_SESSION['user_id'] ?? '']);
+        $d = $pdo->prepare("SELECT name, specialty, esignature, digital_stamp FROM doctors WHERE id = ? AND tenant_id = ?");
+        $d->execute([$_SESSION['user_id'] ?? '', $currentTenantId]);
         if ($row = $d->fetch(PDO::FETCH_ASSOC)) {
             $signer = ['name' => $row['name'], 'title' => (string) $row['specialty'], 'signature' => (string) ($row['esignature'] ?? ''), 'stamp' => (string) ($row['digital_stamp'] ?? '')];
         }
@@ -85,8 +85,8 @@ if (!$invoice) {
     exit;
 }
 
-$stmtItems = $pdo->prepare("SELECT * FROM invoice_items WHERE invoice_id = ?");
-$stmtItems->execute([$invoice['id']]);
+$stmtItems = $pdo->prepare("SELECT * FROM invoice_items WHERE invoice_id = ? AND tenant_id = ?");
+$stmtItems->execute([$invoice["id"], $currentTenantId]);
 $items = $stmtItems->fetchAll(PDO::FETCH_ASSOC) ?: [];
 if (!$items) {
     $services = json_decode($invoice['services'] ?? '[]', true) ?: ['Medical service'];
@@ -123,8 +123,8 @@ if (!empty($invoice['cashier'])) {
     $signerRow = $docStmt->fetch(PDO::FETCH_ASSOC) ?: null;
 }
 if (!$signerRow && !empty($_SESSION['current_doctor_id'])) {
-    $docStmt = $pdo->prepare("SELECT * FROM doctors WHERE id = ?");
-    $docStmt->execute([$_SESSION['current_doctor_id']]);
+    $docStmt = $pdo->prepare("SELECT * FROM doctors WHERE id = ? AND tenant_id = ?");
+    $docStmt->execute([$_SESSION['current_doctor_id'], $currentTenantId]);
     $signerRow = $docStmt->fetch(PDO::FETCH_ASSOC) ?: null;
 }
 

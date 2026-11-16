@@ -97,8 +97,8 @@ try {
                 $stockStatus = ($newStock <= 0) ? 'Out of Stock' : (($newStock <= 10) ? 'Low Stock' : 'In Stock');
 
                 // Update inventory stock
-                $stmtStockUpd = $pdo->prepare("UPDATE inventory SET current_stock = ?, status = ? WHERE id = ?");
-                $stmtStockUpd->execute([$newStock, $stockStatus, $invItemId]);
+                $stmtStockUpd = $pdo->prepare("UPDATE inventory SET current_stock = ?, status = ? WHERE id = ? AND tenant_id = ?");
+                $stmtStockUpd->execute([$newStock, $stockStatus, $invItemId, $tenantId]);
 
                 // Log movement in inventory_logs
                 $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
@@ -174,13 +174,13 @@ try {
     ]);
 
     $stmtItem = $pdo->prepare("
-        INSERT INTO invoice_items (id, invoice_id, name, gtin, unit_price, quantity, total_price, tax_label, tax_rate, tax_amount)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO invoice_items (id, tenant_id, invoice_id, name, gtin, unit_price, quantity, total_price, tax_label, tax_rate, tax_amount)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
 
     foreach ($itemsToInsert as $item) {
         $stmtItem->execute([
-            $item['id'], $invoiceId, $item['name'], $item['gtin'], $item['unit_price'], $item['quantity'],
+            $item['id'], $tenantId, $invoiceId, $item['name'], $item['gtin'], $item['unit_price'], $item['quantity'],
             $item['total_price'], $item['tax_label'], $item['tax_rate'], $item['tax_amount']
         ]);
     }
@@ -190,8 +190,8 @@ try {
     // Automatically send invoice email to patient if email exists
     try {
         if (!empty($patientId)) {
-            $pStmt = $pdo->prepare("SELECT email FROM patients WHERE id = ?");
-            $pStmt->execute([$patientId]);
+            $pStmt = $pdo->prepare("SELECT email FROM patients WHERE id = ? AND tenant_id = ?");
+            $pStmt->execute([$patientId, $tenantId]);
             $patientEmail = $pStmt->fetchColumn();
             if (!empty($patientEmail)) {
                 $emailService = Container::getInstance()->get(\ClinicFlow\Services\EmailService::class);

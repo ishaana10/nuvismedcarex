@@ -33,20 +33,15 @@ $stmt = $pdo->prepare("SELECT * FROM invoices WHERE (id = ? OR invoice_number = 
 $stmt->execute([$invoiceId, $invoiceId, $currentTenantId]);
 $invoice = $stmt->fetch();
 
-if (!$invoice) {
-    // Fallback to any recent invoice for tenant
-    $stmt = $pdo->prepare("SELECT * FROM invoices WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 1");
-    $stmt->execute([$currentTenantId]);
-    $invoice = $stmt->fetch();
-}
-
+// No "latest invoice" fallback: a wrong link must not print a different
+// patient's invoice (and fiscal document).
 if (!$invoice) {
     die("Invoice record not found.");
 }
 
 // Fetch Itemized lines
-$stmtItems = $pdo->prepare("SELECT * FROM invoice_items WHERE invoice_id = ?");
-$stmtItems->execute([$invoice['id']]);
+$stmtItems = $pdo->prepare("SELECT * FROM invoice_items WHERE invoice_id = ? AND tenant_id = ?");
+$stmtItems->execute([$invoice['id'], $currentTenantId]);
 $items = $stmtItems->fetchAll();
 
 // Fallback if no itemized lines exist

@@ -21,7 +21,7 @@ requireRole(['Developer']);
 $action = $_POST['action'] ?? '';
 $erp = Container::getInstance()->get(NuvisErpService::class);
 $logger = Container::getInstance()->get(Logger::class);
-$back = $_SERVER['HTTP_REFERER'] ?? '../developer.php';
+$back = nxSafeReferer('../developer.php');
 
 if ($action === 'save_config') {
     try {

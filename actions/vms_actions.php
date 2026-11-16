@@ -14,8 +14,9 @@ if (empty($_SESSION['authenticated'])) {
 }
 
 $userRole = $_SESSION['user_role'] ?? $_SESSION['role'] ?? 'Doctor';
-if (!in_array($userRole, ['Administrator', 'Developer'])) {
-    echo json_encode(['success' => false, 'error' => 'Access denied: Administrator or Developer role required']);
+if ($userRole !== 'Developer') {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'error' => 'Access denied: VMS is Developer-only in this release']);
     exit();
 }
 
