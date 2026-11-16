@@ -48,7 +48,7 @@ abstract class CloudProvider
         $r = CloudHttp::request('POST', $this->tokenUrl(), ['Content-Type: application/x-www-form-urlencoded', 'Accept: application/json'], $this->refreshParams(), ['timeout' => 30]);
         $d = CloudHttp::json($r);
         if ($r['status'] !== 200 || empty($d['access_token'])) {
-            if (($d['error'] ?? '') === 'invalid_grant') throw new CloudException($this->label() . ' access was revoked or expired. Connect the account again.');
+            if (($d['error'] ?? '') === 'invalid_grant') throw new CloudException($this->label() . ' access was revoked or expired. Connect the account again.' . $this->expiryHint());
             throw new CloudException($this->label() . ' sign-in failed (' . CloudHttp::reason($r) . ').');
         }
         if (!empty($d['refresh_token']) && $d['refresh_token'] !== $this->cfg['refresh_token']) {   // Microsoft rotates refresh tokens
@@ -58,6 +58,8 @@ abstract class CloudProvider
         self::$tokenCache[$key] = ['tok' => (string)$d['access_token'], 'exp' => time() + (int)($d['expires_in'] ?? 3000)];
         return self::$tokenCache[$key]['tok'];
     }
+    /** Extra advice appended to the "revoked or expired" message; providers override it. */
+    protected function expiryHint(): string { return ''; }
     protected function tokenUrl(): string { return ''; }
     protected function refreshParams(): array { return []; }
 
