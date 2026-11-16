@@ -91,6 +91,18 @@ try {
     } else {
         out('PASS', 'Encryption app_key is configured');
     }
+    // Is any clinical data still on the old public key?
+    if (getenv('DB_HOST') && getenv('DB_NAME') && $appKey !== '') {
+        require_once $root . '/includes/autoloader.php';
+        $encPdo = new PDO(sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', getenv('DB_HOST'), getenv('DB_PORT') ?: '3306', getenv('DB_NAME')),
+            getenv('DB_USER') ?: 'root', getenv('DB_PASS') ?: '', [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+        $es = (new \ClinicFlow\Services\EncryptionMigrationService($encPdo))->status();
+        $es['totals']['legacy_key'] > 0
+            ? out('FAIL', $es['totals']['legacy_key'] . ' value(s) are still encrypted with the old PUBLIC key: run Developer > Encryption (or php bin/reencrypt.php --run)')
+            : out('PASS', 'No clinical data is on the old public key');
+        if ($es['totals']['unreadable'] > 0) out('WARN', $es['totals']['unreadable'] . ' encrypted value(s) cannot be opened by any known key (wrong/lost key?)');
+        $es['legacy_fallback'] ? out('WARN', "Old-key fallback is still on: after migrating, set 'allow_legacy_key' => false") : out('PASS', 'Old public key is disabled');
+    }
 } catch (Throwable $e) {
     out('WARN', 'Could not check app_key: ' . $e->getMessage());
 }

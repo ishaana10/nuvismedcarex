@@ -27,12 +27,20 @@ return [
         'default_ttl' => 300,                                   // default TTL in seconds (5 min)
     ],
 
-    // REQUIRED in production. Key for encrypting clinical notes and vitals at rest.
-    // Generate once with:  php -r 'echo bin2hex(random_bytes(32)), PHP_EOL;'
-    // WARNING: if data was already saved WITHOUT a key, it is encrypted with the old built-in
-    // default. Do NOT just add a key: existing notes would become unreadable. Re-encrypt first.
-    // Never commit the real value; back it up somewhere safe (losing it loses the data).
+    // REQUIRED in production: the secret that encrypts clinical notes and vitals at rest.
+    // Nobody issues it: you generate it once, yourself (Developer > Encryption can do it in the
+    // browser, or:  php -r 'echo bin2hex(random_bytes(32)), PHP_EOL;' ).
+    // Put it in the config file that is live on the server (config.php, or config.local.php if
+    // that exists, because only one of them is read) and never commit it.
+    // BACK IT UP in a password manager: if it is lost, the encrypted notes cannot be recovered.
+    //
+    // Existing data was encrypted with a built-in default key that is public in the source code.
+    // Adding a key is safe: old notes stay readable, then run Developer > Encryption (or
+    // `php bin/reencrypt.php --run`) to move them to your key. Back up the database first.
     'app_key' => '',
+
+    // After everything is re-encrypted you can stop honouring the old public key entirely:
+    // 'allow_legacy_key' => false,
 
     'admin_doctor' => [
         'name'      => 'Dr. Sarah Jenkins',

@@ -103,6 +103,7 @@ if (!function_exists('nxAccess')) {
         'actions/redis_actions.php'       => ['developer', 'full'],
         'actions/run_migrations.php'      => ['developer', 'full'],
         'actions/integration_actions.php' => ['developer', 'full'],
+        'actions/encryption_actions.php'  => ['developer', 'full'],
     ]);
 
     define('NX_LEVELS', ['view' => AccessControl::VIEW, 'edit' => AccessControl::EDIT, 'full' => AccessControl::FULL]);

@@ -59,7 +59,7 @@ if ($docType === 'prescription') {
         $qrSection = "
         <div style='background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid #e2e8f0; text-align: center;'>
             <p style='margin: 0 0 10px 0; font-size: 13px; font-weight: bold; color: #1e293b;'>Pharmacy Verification QR Code</p>
-            <img src='https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=" . urlencode($url) . "' alt='QR Verification' style='width: 140px; height: 140px; border-radius: 6px; border: 1px solid #cbd5e1;'>
+            <img src='" . \ClinicFlow\Utils\QrCode::pngDataUri($url, 4) . "' alt='QR Verification' style='width: 140px; height: 140px; border-radius: 6px; border: 1px solid #cbd5e1;'>
             <p style='margin: 8px 0 0 0; font-size: 11px; font-family: monospace; color: #475569;'>Token: " . htmlspecialchars($token) . "</p>
             <p style='margin: 4px 0 0 0; font-size: 12px;'><a href='" . htmlspecialchars($url) . "' style='color: #2563eb; text-decoration: underline;'>Verify Prescription Online</a></p>
         </div>";

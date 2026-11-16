@@ -1,6 +1,7 @@
 vendor/
 node_modules/
 config/config.php
+config/config.local.php
 *.sqlite
 uploads/*
 !uploads/.htaccess

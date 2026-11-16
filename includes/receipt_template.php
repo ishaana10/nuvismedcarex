@@ -180,16 +180,19 @@ CSS;
             // Sign-off
             $left = '';
             if ($cfg['show_qr'] && !empty($r['verification_url'])) {
-                // The QR image comes from an external service. If the front desk is
-                // offline the receipt still has to carry the verification link, so the
-                // image hides itself on failure and the URL prints instead.
+                // The QR code is generated here on the server (no external service, works
+                // offline). If it cannot be drawn the receipt still carries the link as text.
                 $url = (string) $r['verification_url'];
-                $left .= '<div class="rc-qr">'
-                    . '<img src="https://api.qrserver.com/v1/create-qr-code/?size=168x168&amp;data=' . $e(rawurlencode($url)) . '"'
-                    . ' alt="" referrerpolicy="no-referrer"'
-                    . ' onerror="this.style.display=\'none\';var f=this.parentNode.querySelector(\'.rc-qr-fallback\');if(f)f.style.display=\'block\'">'
+                try {
+                    $qrImg = '<img src="' . $e(\ClinicFlow\Utils\QrCode::svgDataUri($url, 168)) . '" alt="">';
+                    $qrFallbackStyle = '';
+                } catch (\Throwable $qrErr) {
+                    $qrImg = '';
+                    $qrFallbackStyle = ' style="display:block"';
+                }
+                $left .= '<div class="rc-qr">' . $qrImg
                     . '<div>Scan to verify this<br>fiscal invoice with FRCS'
-                    . '<span class="rc-qr-fallback">' . $e($url) . '</span></div></div>';
+                    . '<span class="rc-qr-fallback"' . $qrFallbackStyle . '>' . $e($url) . '</span></div></div>';
             }
             if ($cfg['show_stamp'] && $s['stamp'] !== '') $left .= '<img class="rc-stamp" src="' . $e($s['stamp']) . '" alt="Clinic stamp">';
             $right = '';

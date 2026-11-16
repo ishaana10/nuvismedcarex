@@ -104,12 +104,12 @@ $nxCsrf = htmlspecialchars(getCsrfToken());
     <script>
     /* Developer control endpoints: send mutating actions as POST with the CSRF token. */
     (function () {
-        var origFetch = window.fetch, readOnly = ['git_status','git_log','get_error_logs','get_redis_status','test_redis_ping'];
+        var origFetch = window.fetch, readOnly = ['git_status','git_log','get_error_logs','get_redis_status','test_redis_ping','enc_status'];
         var m = document.querySelector('meta[name="csrf-token"]');
         window.fetch = function (input, init) {
             try {
                 var url = typeof input === 'string' ? input : (input && input.url) || '';
-                if (/actions\/(git|redis|integration)_actions\.php/.test(url)) {
+                if (/actions\/(git|redis|integration|encryption)_actions\.php/.test(url)) {
                     var act = new URL(url, location.href).searchParams.get('action') || '';
                     init = init || {};
                     var h = new Headers(init.headers || {});
