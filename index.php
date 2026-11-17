@@ -131,7 +131,7 @@ for ($r = 1; $r <= 12; $r++) {
 
 $hour = (int) date('G');
 $greeting = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
-$displayName = $currentDoctor['name'] ?? ($_SESSION['user_name'] ?? '');
+$displayName = $nxUserName ?? ($_SESSION['user_name'] ?? '');
 $inClinicNow = count($queueItems);
 
 $initialsOf = static function (string $name): string {
