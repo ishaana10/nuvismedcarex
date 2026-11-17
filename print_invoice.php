@@ -244,7 +244,7 @@ $patientOwed = (float)($invoice['patient_owed'] ?? max(0, $grandTotal - $insuran
     <div class="pt-8 border-t border-slate-200 flex justify-between items-end">
         <div>
             <?php if (!empty($attendingDoc['digital_stamp'])): ?>
-                <img src="<?= htmlspecialchars($attendingDoc['digital_stamp']) ?>" class="max-h-24 max-w-[160px] object-contain opacity-90 mb-2" alt="Clinic Digital Stamp">
+                <img src="<?= htmlspecialchars(nxMediaUrl($attendingDoc['digital_stamp'])) ?>" class="max-h-24 max-w-[160px] object-contain opacity-90 mb-2" alt="Clinic Digital Stamp">
             <?php endif; ?>
             <p class="text-[10px] uppercase font-bold text-slate-400">Issued By Practice</p>
             <p class="font-bold text-slate-800 mt-0.5"><?= htmlspecialchars($clinicName) ?></p>

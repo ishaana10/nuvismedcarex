@@ -71,7 +71,7 @@ $clinicDefaultPageSize = (int) nxSetting('default_pagination_limit', 10);
                     <span class="form-label">Photo</span>
                     <div class="w-24 h-24 rounded-full border border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center" id="avatar-thumb">
                         <?php if (!empty($me['avatar'])): ?>
-                            <img src="<?= htmlspecialchars($me['avatar']) ?>" alt="" class="w-full h-full object-cover">
+                            <img src="<?= htmlspecialchars(nxMediaUrl($me['avatar'])) ?>" alt="" class="w-full h-full object-cover">
                         <?php else: ?>
                             <span class="text-lg font-semibold text-slate-400"><?= htmlspecialchars(nxInitials($me['name'] ?? '?')) ?></span>
                         <?php endif; ?>
@@ -115,7 +115,7 @@ $clinicDefaultPageSize = (int) nxSetting('default_pagination_limit', 10);
                         <span class="form-label"><?= $label ?></span>
                         <div class="h-24 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden p-2" id="<?= $id ?>-thumb">
                             <?php if (!empty($me[$field])): ?>
-                                <img src="<?= htmlspecialchars($me[$field]) ?>" alt="Current <?= strtolower($label) ?>" class="max-h-full max-w-full object-contain">
+                                <img src="<?= htmlspecialchars(nxMediaUrl($me[$field])) ?>" alt="Current <?= strtolower($label) ?>" class="max-h-full max-w-full object-contain">
                             <?php else: ?>
                                 <span class="text-xs text-slate-400">Not set</span>
                             <?php endif; ?>

@@ -14,6 +14,25 @@
 
 use ClinicFlow\Services\ClinicSettings;
 
+if (!function_exists('nxMediaUrl')) {
+    /**
+     * Address of a stored picture. Signatures, stamps and profile photos live in
+     * uploads/, which the web server refuses to serve directly (so nobody can
+     * download a doctor's signature by guessing a file name). They are fetched
+     * through media.php instead, which checks the person is signed in and that
+     * the picture belongs to their clinic. Other values (assets/..., data: URLs,
+     * http(s) links) are returned unchanged.
+     */
+    function nxMediaUrl(?string $v): string
+    {
+        $v = (string) $v;
+        if (preg_match('#^uploads/(signatures|stamps|avatars)/[A-Za-z0-9_.-]+$#', $v)) {
+            return 'media.php?p=' . rawurlencode($v);
+        }
+        return $v;
+    }
+}
+
 if (!function_exists('nxClinicSettings')) {
 
     function nxClinicSettings(): ClinicSettings

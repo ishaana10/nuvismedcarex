@@ -194,11 +194,11 @@ CSS;
                     . '<div>Scan to verify this<br>fiscal invoice with FRCS'
                     . '<span class="rc-qr-fallback"' . $qrFallbackStyle . '>' . $e($url) . '</span></div></div>';
             }
-            if ($cfg['show_stamp'] && $s['stamp'] !== '') $left .= '<img class="rc-stamp" src="' . $e($s['stamp']) . '" alt="Clinic stamp">';
+            if ($cfg['show_stamp'] && $s['stamp'] !== '') $left .= '<img class="rc-stamp" src="' . $e(nxMediaUrl($s['stamp'])) . '" alt="Clinic stamp">';
             $right = '';
             if ($cfg['show_signature']) {
                 $right .= '<div class="rc-sign">';
-                if ($s['signature'] !== '') $right .= '<img src="' . $e($s['signature']) . '" alt="Signature">';
+                if ($s['signature'] !== '') $right .= '<img src="' . $e(nxMediaUrl($s['signature'])) . '" alt="Signature">';
                 $right .= '<div class="line">' . $e($s['name'] ?: 'Authorised signature') . '</div>';
                 if ($s['title'] !== '') $right .= '<div class="muted">' . $e($s['title']) . '</div>';
                 $right .= '</div>';

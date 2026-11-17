@@ -169,7 +169,7 @@ $usersList = $usersStmt->fetchAll();
                             <tr class="user-row hover:bg-surface-container-low/50 transition" data-role="<?= htmlspecialchars($userRole) ?>" data-search="<?= htmlspecialchars(strtolower($usr['name'] . ' ' . $usr['email'] . ' ' . $usr['role'] . ' ' . $usr['specialty'])) ?>">
                                 <td class="py-3 px-4">
                                     <div class="flex items-center gap-3">
-                                        <img src="<?= htmlspecialchars($usr['avatar'] ?: 'assets/images/avatar-default.svg') ?>" class="w-9 h-9 rounded-xl object-cover border border-slate-200 shrink-0" alt="Avatar">
+                                        <img src="<?= htmlspecialchars(nxMediaUrl($usr['avatar'] ?: 'assets/images/avatar-default.svg')) ?>" class="w-9 h-9 rounded-xl object-cover border border-slate-200 shrink-0" alt="Avatar">
                                         <div>
                                             <div class="font-bold text-on-surface"><?= htmlspecialchars($usr['name']) ?></div>
                                             <div class="text-[11px] text-outline font-normal"><?= htmlspecialchars($usr['email']) ?></div>
@@ -434,6 +434,9 @@ $sv = fn(string $k, string $fallback = '') => htmlspecialchars((string) ($settin
     </form>
 
     <script>
+function nxMedia(v){ v = v || ''; return /^uploads\/(signatures|stamps|avatars)\/[A-Za-z0-9_.-]+$/.test(v) ? 'media.php?p=' + encodeURIComponent(v) : v; }
+</script>
+<script>
     (function () {
         var form = document.getElementById('clinic-form');
         if (!form) return;
@@ -1849,7 +1852,7 @@ function viewCardDetails(usr) {
     document.getElementById('view-card-role').innerText = usr.role || 'Doctor';
     document.getElementById('view-card-specialty').innerText = usr.specialty || 'General Practice';
     document.getElementById('view-card-prc').innerText = usr.prc_number || 'N/A';
-    document.getElementById('view-card-avatar').src = usr.avatar || 'assets/images/avatar-default.svg';
+    document.getElementById('view-card-avatar').src = nxMedia(usr.avatar || 'assets/images/avatar-default.svg');
 
     const sigEl = document.getElementById('view-card-sig-status');
     const sigContainer = document.getElementById('view-card-sig-container');
@@ -1859,7 +1862,7 @@ function viewCardDetails(usr) {
         sigEl.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800';
         if (sigContainer && sigImg) {
             sigContainer.classList.remove('hidden');
-            sigImg.src = usr.esignature;
+            sigImg.src = nxMedia(usr.esignature);
         }
     } else {
         sigEl.innerText = 'Not Uploaded';
@@ -1875,7 +1878,7 @@ function viewCardDetails(usr) {
         stampEl.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800';
         if (stampContainer && stampImg) {
             stampContainer.classList.remove('hidden');
-            stampImg.src = usr.digital_stamp;
+            stampImg.src = nxMedia(usr.digital_stamp);
         }
     } else {
         stampEl.innerText = 'Not Uploaded';
@@ -1903,7 +1906,7 @@ function openUserModal(usr = null) {
         document.getElementById('usr_avatar').value = usr.avatar || '';
         if (usr.avatar) {
             document.getElementById('avatar_preview').classList.remove('hidden');
-            document.getElementById('img_avatar_preview').src = usr.avatar;
+            document.getElementById('img_avatar_preview').src = nxMedia(usr.avatar);
         } else {
             document.getElementById('avatar_preview').classList.add('hidden');
         }
@@ -1912,7 +1915,7 @@ function openUserModal(usr = null) {
         document.getElementById('usr_esignature_data').value = usr.esignature || '';
         if (usr.esignature) {
             document.getElementById('esignature_preview').classList.remove('hidden');
-            document.getElementById('img_esignature_preview').src = usr.esignature;
+            document.getElementById('img_esignature_preview').src = nxMedia(usr.esignature);
         } else {
             document.getElementById('esignature_preview').classList.add('hidden');
         }
@@ -1921,7 +1924,7 @@ function openUserModal(usr = null) {
         document.getElementById('usr_digital_stamp_data').value = usr.digital_stamp || '';
         if (usr.digital_stamp) {
             document.getElementById('stamp_preview').classList.remove('hidden');
-            document.getElementById('img_stamp_preview').src = usr.digital_stamp;
+            document.getElementById('img_stamp_preview').src = nxMedia(usr.digital_stamp);
         } else {
             document.getElementById('stamp_preview').classList.add('hidden');
         }
@@ -1974,7 +1977,7 @@ document.addEventListener('DOMContentLoaded', function() {
         avatarUrlInput.addEventListener('input', function(e) {
             const val = e.target.value.trim();
             if (val) {
-                avatarImg.src = val;
+                avatarImg.src = nxMedia(val);
                 avatarPreview.classList.remove('hidden');
             } else {
                 avatarPreview.classList.add('hidden');
@@ -2005,7 +2008,7 @@ document.addEventListener('DOMContentLoaded', function() {
         esigDataInput.addEventListener('input', function(e) {
             const val = e.target.value.trim();
             if (val) {
-                esigImg.src = val;
+                esigImg.src = nxMedia(val);
                 esigPreview.classList.remove('hidden');
             } else {
                 esigPreview.classList.add('hidden');
@@ -2036,7 +2039,7 @@ document.addEventListener('DOMContentLoaded', function() {
         stampDataInput.addEventListener('input', function(e) {
             const val = e.target.value.trim();
             if (val) {
-                stampImg.src = val;
+                stampImg.src = nxMedia(val);
                 stampPreview.classList.remove('hidden');
             } else {
                 stampPreview.classList.add('hidden');

@@ -198,7 +198,7 @@ $nxCsrf = htmlspecialchars(getCsrfToken());
             <div class="relative pl-1 sm:pl-2 sm:ml-1 sm:border-l border-slate-200">
                 <button type="button" id="nx-profile-btn" class="flex items-center gap-2.5 rounded-xl p-1 pr-2 hover:bg-slate-100 transition" aria-haspopup="true" aria-expanded="false" aria-controls="nx-profile-menu">
                     <span class="nx-avatar w-8 h-8 text-xs">
-                        <?php if ($nxAvatar): ?><img src="<?= htmlspecialchars($nxAvatar) ?>" alt="" onerror="this.remove()"><?php endif; ?>
+                        <?php if ($nxAvatar): ?><img src="<?= htmlspecialchars(nxMediaUrl($nxAvatar)) ?>" alt="" onerror="this.remove()"><?php endif; ?>
                         <span><?= htmlspecialchars(nxInitials($currentDoctor['name'] ?? $nxUserName)) ?></span>
                     </span>
                     <span class="hidden lg:block text-left leading-tight">

@@ -25,6 +25,9 @@ $clinicWebsite = $settings['clinic_website'] ?? '';
 // Per-clinic certificate template customisation
 $tenantIdForCert = \ClinicFlow\Shared\TenantContext::getTenantId();
 $certCfg = (new \ClinicFlow\Services\DocumentTemplateSettings($pdo, $tenantIdForCert))->load('certificate');
+// Live preview (document_preview.php): the unsaved settings, and a sample patient
+$nxPreview = defined('NX_DOC_PREVIEW');
+if ($nxPreview) { $certCfg = $GLOBALS['nxPreviewCfg']; }
 $certAccent = $certCfg['accent'];
 $certFontStack = \ClinicFlow\Services\DocumentTemplateSettings::fontStack($certCfg['font']);
 $certLogo = !empty($certCfg['show_logo']) ? ($certCfg['logo'] ?: ($clinicProfile['logo'] ?? '')) : '';
@@ -38,6 +41,38 @@ $certCaduceus = !empty($certCfg['show_caduceus']) ? \ClinicFlow\Services\Documen
 $certDateFmt = $certCfg['date_format'] ?: 'd M Y';
 $fmtDate = static fn($d) => ($d && strtotime((string) $d)) ? date($certDateFmt, strtotime((string) $d)) : '';
 
+if ($nxPreview) {
+    // A made-up patient and visit, so the clinic can judge the layout. The
+    // signature, stamp and licence number are the signed-in clinician's own.
+    $child = !empty($_POST['sample_child']);
+    $svcPrev = new \ClinicFlow\Services\DocumentTemplateSettings($pdo, $tenantIdForCert);
+    $cats = \ClinicFlow\Services\DocumentTemplateSettings::categories($certCfg);
+    $doctor = nxAttendingDoctor($pdo) ?: ['name' => $_SESSION['user_name'] ?? 'Attending Physician'];
+    $today = new DateTimeImmutable('today');
+    // The number this clinic would get next, using the numbering being edited
+    $nextN = (ctype_digit(trim((string) ($_POST['next_number'] ?? ''))) && (int) $_POST['next_number'] > 0)
+        ? (int) $_POST['next_number']
+        : (int) preg_replace('/^.*?(\d+)$/', '$1', $svcPrev->previewNextNumber(new DateTimeImmutable('now')));
+    $previewNo = \ClinicFlow\Services\DocumentTemplateSettings::formatNumber($certCfg, max(1, $nextN), new DateTimeImmutable('now'));
+    $cert = [
+        'id' => 'preview', 'certificate_number' => $previewNo,
+        'issue_date' => $today->format('Y-m-d'),
+        'diagnosis' => 'Acute upper respiratory tract infection',
+        'fitness_status' => 'Unfit for duties',
+        'fit_status_details' => 'Rest for 3 days, from ' . $today->format('d M Y') . '.',
+        'recommendations' => 'Plenty of fluids and rest. Return if symptoms worsen.',
+        'doctor_name' => $doctor['name'] ?? 'Attending Physician', 'prc_number' => '',
+        'problem_category' => $cats[0] ?? '',
+        'illness_from' => $today->modify('-2 days')->format('Y-m-d'),
+        'resume_on' => $today->modify('+3 days')->format('Y-m-d'),
+        'review_on' => $today->modify('+7 days')->format('Y-m-d'),
+    ];
+    $patient = [
+        'id' => 'preview', 'first_name' => $child ? 'Sample' : 'Sample', 'last_name' => $child ? 'Child' : 'Patient',
+        'age' => $child ? 6 : 34, 'gender' => $child ? 'Male' : 'Female', 'email' => '',
+        'address' => '12 Sample Street, Suva', 'dob' => $today->modify($child ? '-6 years' : '-34 years')->format('Y-m-d'),
+    ];
+} else {
 // Fetch Certificate details
 $cert = null;
 if ($certId) {
@@ -66,6 +101,8 @@ if (!$patient) {
 // then take "any Doctor", printing another clinic's signature on the certificate.)
 $doctor = nxFindDoctorByName($pdo, (string) ($cert['doctor_name'] ?? ''));
 
+}
+
 // Never invent a registration number on a legal document.
 $prcNo = $cert['prc_number'] ?: ($doctor['prc_number'] ?? $settings['doc_prc_no'] ?? '');
 $esignature = $doctor['esignature'] ?? '';
@@ -91,6 +128,7 @@ $digitalStamp = $doctor['digital_stamp'] ?? '';
 
 <div class="max-w-3xl mx-auto">
 
+<?php if (!$nxPreview): ?>
     <!-- Action Bar -->
     <div class="no-print mb-6 bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
         <div class="flex justify-between items-center">
@@ -114,6 +152,8 @@ $digitalStamp = $doctor['digital_stamp'] ?? '';
             </button>
         </form>
     </div>
+<?php endif; ?>
+
 
 <?php if ($certLayout === 'form'):
     $fAcc = htmlspecialchars($certAccent);
@@ -211,12 +251,12 @@ $digitalStamp = $doctor['digital_stamp'] ?? '';
         <div class="cf-sign">
             <div>
                 <?php if (!empty($certCfg['show_stamp']) && !empty($digitalStamp)): ?>
-                    <img src="<?= htmlspecialchars($digitalStamp) ?>" style="max-height:120px;max-width:200px;object-fit:contain" alt="Official Digital Stamp">
+                    <img src="<?= htmlspecialchars(nxMediaUrl($digitalStamp)) ?>" style="max-height:120px;max-width:200px;object-fit:contain" alt="Official Digital Stamp">
                 <?php endif; ?>
             </div>
             <div style="width:300px;font-size:13px">
                 <?php if (!empty($certCfg['show_signature']) && !empty($esignature)): ?>
-                    <img src="<?= htmlspecialchars($esignature) ?>" style="max-height:70px;max-width:220px;object-fit:contain;display:block;margin-bottom:-14px;position:relative" alt="E-Signature">
+                    <img src="<?= htmlspecialchars(nxMediaUrl($esignature)) ?>" style="max-height:70px;max-width:220px;object-fit:contain;display:block;margin-bottom:-14px;position:relative" alt="E-Signature">
                 <?php endif; ?>
                 <div style="border-bottom:1px solid #1e293b;padding-bottom:2px">Signature:</div>
                 <div style="margin-top:3px;font-weight:600"><?= htmlspecialchars((string) $cert['doctor_name']) ?></div>
@@ -330,13 +370,13 @@ $digitalStamp = $doctor['digital_stamp'] ?? '';
         <div class="pt-8 border-t border-slate-300 flex justify-between items-end">
             <div>
                 <?php if (!empty($certCfg['show_stamp']) && !empty($digitalStamp)): ?>
-                    <img src="<?= htmlspecialchars($digitalStamp) ?>" class="max-h-36 max-w-[200px] object-contain opacity-95" alt="Official Digital Stamp">
+                    <img src="<?= htmlspecialchars(nxMediaUrl($digitalStamp)) ?>" class="max-h-36 max-w-[200px] object-contain opacity-95" alt="Official Digital Stamp">
                 <?php endif; ?>
             </div>
 
             <div class="text-center w-72 relative">
                 <?php if (!empty($certCfg['show_signature']) && !empty($esignature)): ?>
-                    <img src="<?= htmlspecialchars($esignature) ?>" class="max-h-24 max-w-[220px] object-contain mx-auto -mb-4 relative z-10" alt="E-Signature">
+                    <img src="<?= htmlspecialchars(nxMediaUrl($esignature)) ?>" class="max-h-24 max-w-[220px] object-contain mx-auto -mb-4 relative z-10" alt="E-Signature">
                 <?php endif; ?>
 
                 <div class="border-b border-slate-900 pb-1 mb-2 font-serif text-lg font-bold italic" style="color: <?= htmlspecialchars($certAccent) ?>">
