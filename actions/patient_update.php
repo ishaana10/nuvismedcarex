@@ -60,7 +60,7 @@ $clinicalNotes = trim($_POST['clinical_notes'] ?? '');
 
 if (empty($firstName) || empty($lastName) || empty($dob)) {
     setToast("Missing Information", "First name, last name, and date of birth are required.", "error");
-    header("Location: ../patient_detail.php?id=" . urlencode($patientId));
+    header("Location: " . nxPatientLanding((string) $patientId, '../'));
     exit;
 }
 
@@ -131,5 +131,5 @@ $stmt->execute([
 \ClinicFlow\Services\PatientIdentifiers::save($pdo, \ClinicFlow\Shared\TenantContext::getTenantId(), $patientId, \ClinicFlow\Services\PatientIdentifiers::fromPost($_POST));
 
 setToast("Patient Updated", "Patient record for " . htmlspecialchars($firstName . ' ' . $lastName) . " updated successfully.");
-header("Location: ../patient_detail.php?id=" . urlencode($patientId));
+header("Location: " . nxPatientLanding((string) $patientId, '../'));
 exit;

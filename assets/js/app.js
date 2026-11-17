@@ -11,6 +11,8 @@
  *  - Modals: Esc / backdrop click to close, focus on open
  *  - Double-submit protection on forms
  */
+function nxCanChart() { var c = (window.NX_CONTEXT || {}).can || {}; return (c.charts | 0) >= 1; }
+
 (function () {
   'use strict';
 
@@ -297,7 +299,7 @@
     list.innerHTML = '';
     notifs.forEach(function (n) {
       var appt = /appointment|booked/i.test(n.title || '');
-      var item = el('a', { href: n.patient_id ? 'patient_detail.php?id=' + encodeURIComponent(n.patient_id) : '#', class: 'flex gap-3 px-4 py-3 border-b border-slate-100 hover:bg-slate-50 transition ' + (n.read ? '' : 'bg-blue-50/40') }, [
+      var item = el('a', { href: n.patient_id ? (nxCanChart() ? 'patient_detail.php?id=' + encodeURIComponent(n.patient_id) : 'patients.php') : '#', class: 'flex gap-3 px-4 py-3 border-b border-slate-100 hover:bg-slate-50 transition ' + (n.read ? '' : 'bg-blue-50/40') }, [
         el('span', { class: 'w-8 h-8 rounded-full flex items-center justify-center shrink-0 ' + (appt ? 'bg-sky-100 text-sky-700' : 'bg-emerald-100 text-emerald-700') }, [icon(appt ? 'event_available' : 'person_add', '!text-[18px]')]),
         el('span', { class: 'min-w-0 flex-1' }, [
           el('span', { class: 'block text-[13px] font-semibold text-slate-900', text: n.title || 'Notification' }),
@@ -348,7 +350,7 @@
     saveNotifs();
     renderNotifs();
     beep();
-    NX.toast(data.title, data.message, 'info', data.patient_id ? { action: { label: 'Open chart', run: function () { location.href = 'patient_detail.php?id=' + encodeURIComponent(data.patient_id); } } } : {});
+    NX.toast(data.title, data.message, 'info', (data.patient_id && nxCanChart()) ? { action: { label: 'Open chart', run: function () { location.href = 'patient_detail.php?id=' + encodeURIComponent(data.patient_id); } } } : {});
   }
   window.addNotificationItem = addNotif; // legacy name
   window.clearAllNotifications = function () { notifs = []; saveNotifs(); renderNotifs(); };
@@ -464,7 +466,7 @@
     var sections = [];
     if (remote && (remote.patients.length || remote.appointments.length)) {
       if (remote.patients.length) sections.push({ title: 'Patients', items: remote.patients.map(function (p) {
-        return { label: p.name, icon: 'person', sub: [p.mrn, p.summary].filter(Boolean).join(' · '), meta: p.allergies ? 'Allergy: ' + p.allergies : p.phone, warn: !!p.allergies, url: 'patient_detail.php?id=' + encodeURIComponent(p.id), initials: p.initials };
+        return { label: p.name, icon: 'person', sub: [p.mrn, p.summary].filter(Boolean).join(' · '), meta: p.allergies ? 'Allergy: ' + p.allergies : p.phone, warn: !!p.allergies, url: (p.chart === false ? 'patients.php?q=' + encodeURIComponent(p.name) : 'patient_detail.php?id=' + encodeURIComponent(p.id)), initials: p.initials };
       }) });
       if (remote.appointments.length) sections.push({ title: 'Upcoming appointments', items: remote.appointments.map(function (a) {
         return { label: a.patient_name, icon: 'event', sub: a.doctor_name, meta: a.appointment_date + ' · ' + a.time, url: 'appointment.php?date=' + encodeURIComponent(a.appointment_date) };

@@ -292,9 +292,9 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
 
                             <td class="p-3.5 font-medium text-on-surface">
                                 <?php if (!empty($file['patient_name'])): ?>
-                                    <a href="patient_detail.php?id=<?= urlencode($file['patient_id']) ?>" class="font-bold text-primary hover:underline">
+                                    <?= nxChartLink((string) $file['patient_id'], 'font-bold text-primary hover:underline') ?>
                                         <?= htmlspecialchars($file['patient_name']) ?>
-                                    </a>
+                                    <?= nxChartLinkEnd() ?>
                                     <span class="text-[10px] block font-mono text-slate-500"><?= htmlspecialchars($file['mrn']) ?></span>
                                 <?php else: ?>
                                     <span class="text-slate-400 italic">General / Unassigned</span>

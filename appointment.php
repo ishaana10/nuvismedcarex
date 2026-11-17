@@ -310,9 +310,9 @@ if ($action === 'edit' && !empty($editApptId)) {
                             <div class="text-[11px] text-outline font-mono"><?= htmlspecialchars($a['time'] ?? '') ?></div>
                         </td>
                         <td class="py-3 px-3 font-bold text-on-surface">
-                            <a href="patient_detail.php?id=<?= htmlspecialchars($a['patient_id'] ?? '') ?>" class="hover:underline text-primary">
+                            <?= nxChartLink((string) ($a['patient_id'] ?? ''), 'hover:underline text-primary') ?>
                                 <?= htmlspecialchars(($a['first_name'] ?? 'Patient') . ' ' . ($a['last_name'] ?? '')) ?>
-                            </a>
+                            <?= nxChartLinkEnd() ?>
                             <p class="text-[10px] font-mono font-medium text-slate-500"><?= htmlspecialchars($a['mrn'] ?? '#00000') ?></p>
                         </td>
                         <td class="py-3 px-3 font-medium text-on-surface-variant"><?= htmlspecialchars($a['doctor_name'] ?? 'Doctor') ?></td>

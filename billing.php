@@ -465,7 +465,7 @@ $vcTone = [
                         <span>Invoice</span>
                     </a>
                 <?php endif; ?>
-                <?php if (!empty($viewClaim['patient_id'])): ?>
+                <?php if (!empty($viewClaim['patient_id']) && nxCanViewCharts()): ?>
                     <a href="patient_detail.php?id=<?= urlencode((string) $viewClaim['patient_id']) ?>" class="btn-secondary">
                         <span class="material-symbols-outlined text-[18px]">person</span>
                         <span>Patient record</span>
