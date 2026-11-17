@@ -38,7 +38,20 @@ $activeClinicName = $activeClinic['name'];
 require_once __DIR__ . '/nav.php';
 
 $nxUserRole = $_SESSION['user_role'] ?? $_SESSION['role'] ?? 'Doctor';
-$nxUserName = $_SESSION['user_name'] ?? $currentDoctor['name'] ?? 'Clinician';
+// Who is signed in is the user's OWN record. "Acting clinician" ($currentDoctor) is only
+// a clinical choice and, for the front desk (who are not on that list), falls back to
+// the first doctor - so it must never be shown as the signed-in person.
+$nxMe = [];
+if (!empty($_SESSION['user_id'])) {
+    try {
+        $meStmt = $pdo->prepare("SELECT name, specialty, avatar FROM doctors WHERE id = ? AND (tenant_id = ? OR tenant_id IS NULL)");
+        $meStmt->execute([$_SESSION['user_id'], $currentTenantId]);
+        $nxMe = $meStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+    } catch (\Throwable $e) {}
+}
+$nxUserName = $_SESSION['user_name'] ?? ($nxMe['name'] ?? 'Clinician');
+$nxIsClinical = function_exists('nxIsClinician') ? nxIsClinician() : false;
+$nxUserSub = (strcasecmp((string) $nxUserRole, 'Doctor') === 0 && !empty($nxMe['specialty'])) ? $nxMe['specialty'] : $nxUserRole;
 $nxNav = nxNavItems($nxUserRole);
 $nxActiveNav = null;
 foreach ($nxNav as $nxItem) {
@@ -78,7 +91,7 @@ if ($nxCanSwitchClinic) {
     } catch (\Throwable $e) {}
 }
 
-$nxAvatar = $currentDoctor['avatar'] ?? '';
+$nxAvatar = $nxMe['avatar'] ?? '';
 $nxCsrf = htmlspecialchars(getCsrfToken());
 ?>
 <!DOCTYPE html>
@@ -199,11 +212,11 @@ $nxCsrf = htmlspecialchars(getCsrfToken());
                 <button type="button" id="nx-profile-btn" class="flex items-center gap-2.5 rounded-xl p-1 pr-2 hover:bg-slate-100 transition" aria-haspopup="true" aria-expanded="false" aria-controls="nx-profile-menu">
                     <span class="nx-avatar w-8 h-8 text-xs">
                         <?php if ($nxAvatar): ?><img src="<?= htmlspecialchars(nxMediaUrl($nxAvatar)) ?>" alt="" onerror="this.remove()"><?php endif; ?>
-                        <span><?= htmlspecialchars(nxInitials($currentDoctor['name'] ?? $nxUserName)) ?></span>
+                        <span><?= htmlspecialchars(nxInitials($nxUserName)) ?></span>
                     </span>
                     <span class="hidden lg:block text-left leading-tight">
-                        <span class="block text-[13px] font-semibold text-slate-900 max-w-[160px] truncate"><?= htmlspecialchars($currentDoctor['name'] ?? $nxUserName) ?></span>
-                        <span class="block text-[11px] text-slate-500 max-w-[160px] truncate"><?= htmlspecialchars($currentDoctor['specialty'] ?? $nxUserRole) ?></span>
+                        <span class="block text-[13px] font-semibold text-slate-900 max-w-[160px] truncate"><?= htmlspecialchars($nxUserName) ?></span>
+                        <span class="block text-[11px] text-slate-500 max-w-[160px] truncate"><?= htmlspecialchars($nxUserSub) ?></span>
                     </span>
                     <span class="material-symbols-outlined text-[18px] text-slate-400 hidden lg:inline-block">expand_more</span>
                 </button>
@@ -212,7 +225,7 @@ $nxCsrf = htmlspecialchars(getCsrfToken());
                         <div class="text-sm font-semibold text-slate-900"><?= htmlspecialchars($nxUserName) ?></div>
                         <div class="text-xs text-slate-500"><?= htmlspecialchars($nxUserRole) ?> · <?= htmlspecialchars($activeClinicName) ?></div>
                     </div>
-                    <?php if (count($doctors) > 1): ?>
+                    <?php if ($nxIsClinical && count($doctors) > 1): ?>
                     <form action="actions/set_doctor.php" method="POST" class="px-3 pb-2">
                         <input type="hidden" name="csrf_token" value="<?= $nxCsrf ?>">
                         <label for="nx-doctor" class="block text-xs font-medium text-slate-500 mb-1">Acting clinician</label>
