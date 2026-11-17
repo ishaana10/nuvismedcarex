@@ -60,4 +60,12 @@ final class PatientChartAccessTest extends TestCase
         $this->assertMatchesRegularExpression("#appointment_cancel\\.php'\\s*=>\\s*\\['appointments', 'edit'\\]#", $map);
         $this->assertMatchesRegularExpression("#appointment_delete\\.php'\\s*=>\\s*\\['appointments', 'full'\\]#", $map);
     }
+
+    public function testLabResultFormDoesNotRevealWhereFilesAreStored(): void
+    {
+        $src = file_get_contents(__DIR__ . '/../includes/lab_order_modal.php');
+        $this->assertStringNotContainsString('Where it will be kept', $src);
+        $this->assertStringNotContainsString('Google Drive', $src);
+        $this->assertStringNotContainsString('Cloud::labels', $src);
+    }
 }
