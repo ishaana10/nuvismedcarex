@@ -107,15 +107,21 @@ $verificationUrl = $rxVerificationService->getVerificationUrl($verificationToken
     <link rel="stylesheet" href="assets/css/fonts.css"/>
     <link rel="stylesheet" href="assets/css/tailwind-public.css"/>
     <style>
+        @page { size: A4; margin: 10mm; }
         @media print {
             .no-print { display: none !important; }
-            body { background: white; }
+            body { background: white; padding: 0 !important; min-height: 0 !important; }
+            /* Keep the whole prescription on one sheet */
+            .rx-sheet { box-shadow: none !important; border: 0 !important; padding: 0 !important; max-width: none !important; border-radius: 0 !important; }
+            .rx-sheet .mb-8 { margin-bottom: 12px !important; }
+            .rx-sheet .mb-6 { margin-bottom: 10px !important; }
+            .rx-sheet .mb-5 { margin-bottom: 8px !important; }
         }
     </style>
 </head>
 <body class="bg-slate-100 p-8 min-h-screen text-slate-800 font-sans">
 
-<div class="max-w-2xl mx-auto bg-white p-8 rounded-2xl shadow-lg border border-slate-200">
+<div class="rx-sheet max-w-2xl mx-auto bg-white p-8 rounded-2xl shadow-lg border border-slate-200">
 <?php if (!$nxPreview): ?>
     <!-- Action buttons -->
     <div class="no-print mb-6 flex flex-wrap justify-between items-center gap-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
@@ -193,24 +199,23 @@ $verificationUrl = $rxVerificationService->getVerificationUrl($verificationToken
     <?php endif; ?>
 
     <!-- Prescription Lines -->
-    <div class="mb-8">
-        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200 pb-2 mb-4">Prescribed Medication Details</h2>
-        <div class="space-y-4">
+    <div class="mb-5">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200 pb-2 mb-3">Prescribed Medication Details</h2>
+        <?php $rxDense = count($prescriptions) > 5; // more than 5 medicines: tighten further so it stays on one page ?>
+        <div style="display:flex;flex-direction:column;gap:<?= $rxDense ? '4px' : '8px' ?>">
             <?php foreach ($prescriptions as $index => $rx): ?>
-                <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                    <div class="flex justify-between items-baseline">
-                        <span class="font-bold text-base text-slate-900"><?= ($index + 1) ?>. <?= htmlspecialchars($rx['medication_name']) ?></span>
-                        <span class="font-mono font-bold text-blue-800 text-sm"><?= htmlspecialchars($rx['dosage']) ?></span>
+                <div class="rounded-lg bg-slate-50 border border-slate-200" style="break-inside:avoid;padding:<?= $rxDense ? '4px 10px' : '8px 12px' ?>">
+                    <div class="flex justify-between items-baseline gap-3">
+                        <span class="font-bold text-slate-900" style="font-size:<?= $rxDense ? '12px' : '14px' ?>"><?= ($index + 1) ?>. <?= htmlspecialchars($rx['medication_name']) ?></span>
+                        <span class="font-mono font-bold text-blue-800 shrink-0" style="font-size:<?= $rxDense ? '11px' : '13px' ?>"><?= htmlspecialchars($rx['dosage']) ?></span>
                     </div>
-                    <div class="mt-2 text-xs text-slate-700 flex gap-6">
+                    <div class="text-slate-700" style="font-size:<?= $rxDense ? '10px' : '11px' ?>;margin-top:2px;display:flex;flex-wrap:wrap;column-gap:14px">
                         <span><strong>Frequency:</strong> <?= htmlspecialchars($rx['frequency']) ?></span>
                         <span><strong>Duration:</strong> <?= htmlspecialchars($rx['duration']) ?></span>
+                        <?php if (!empty($rx['instructions'])): ?>
+                            <span class="text-slate-600"><strong>Sig:</strong> <?= htmlspecialchars($rx['instructions']) ?></span>
+                        <?php endif; ?>
                     </div>
-                    <?php if (!empty($rx['instructions'])): ?>
-                        <p class="mt-2 text-xs text-slate-600 bg-white p-2 rounded border border-slate-100">
-                            <strong>Sig / Instructions:</strong> <?= htmlspecialchars($rx['instructions']) ?>
-                        </p>
-                    <?php endif; ?>
                 </div>
             <?php endforeach; ?>
         </div>
