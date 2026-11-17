@@ -6,6 +6,7 @@ include __DIR__ . '/includes/header.php';
 
 // Starting a visit belongs to clinical staff, not the front desk
 $nxCanStartVisit = nxCan('encounters', 'edit') && nxIsClinician();
+$nxCanChart = nxCanViewCharts();
 
 $search = trim($_GET['q'] ?? '');
 $sort = $_GET['sort'] ?? 'name';
@@ -40,7 +41,7 @@ if ($search !== '') {
     if ($idClause) { $params['s7'] = $term; }
 }
 $noAllergy = "(known_allergies IS NULL OR TRIM(known_allergies) = '' OR known_allergies IN ('None', 'None reported', 'NKDA', 'NKA', 'N/A'))";
-if ($filter === 'allergies') $where[] = "NOT {$noAllergy}";
+if ($filter === 'allergies' && nxCanViewCharts()) $where[] = "NOT {$noAllergy}";
 if ($filter === 'selfpay')   $where[] = "(insurance_provider IS NULL OR TRIM(insurance_provider) = '' OR insurance_provider = 'Self Pay')";
 if ($filter === 'new')       { $where[] = "registration_date >= :since"; $params['since'] = date('Y-m-01'); }
 $whereSql = implode(' AND ', $where);
@@ -128,7 +129,7 @@ $hasAllergy = static function (?string $a): bool {
                     <th class="py-2.5 px-4 hidden sm:table-cell">Age / sex</th>
                     <th class="py-2.5 px-4 hidden lg:table-cell">Contact</th>
                     <th class="py-2.5 px-4 hidden xl:table-cell">Insurance</th>
-                    <th class="py-2.5 px-4">Allergies</th>
+                    <?php if ($nxCanChart): ?><th class="py-2.5 px-4">Allergies</th><?php endif; ?>
                     <th class="py-2.5 px-4 text-right"><span class="sr-only">Actions</span></th>
                 </tr>
             </thead>
@@ -164,7 +165,7 @@ $hasAllergy = static function (?string $a): bool {
                                     <span><?= htmlspecialchars($initials) ?></span>
                                 </span>
                                 <div class="min-w-0">
-                                    <a href="<?= $detailUrl ?>" class="block text-[13px] font-semibold text-slate-900 hover:text-blue-700 truncate"><?= htmlspecialchars($fullName) ?></a>
+                                    <?= nxChartLink((string) ($p['id'] ?? ''), 'block text-[13px] font-semibold text-slate-900 hover:text-blue-700 truncate') ?><?= htmlspecialchars($fullName) ?><?= nxChartLinkEnd() ?>
                                     <div class="text-[11px] font-mono text-slate-500"><?= htmlspecialchars($p['mrn'] ?? '') ?></div>
                                 </div>
                             </div>
@@ -180,7 +181,7 @@ $hasAllergy = static function (?string $a): bool {
                         <td class="py-3 px-4 hidden xl:table-cell">
                             <span class="inline-flex px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[12px] font-medium"><?= htmlspecialchars(($p['insurance_provider'] ?? '') ?: 'Self pay') ?></span>
                         </td>
-                        <td class="py-3 px-4">
+                        <?php if ($nxCanChart): ?><td class="py-3 px-4">
                             <?php if ($hasAllergy($p['known_allergies'] ?? '')): ?>
                                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-50 text-red-700 ring-1 ring-red-200 text-[12px] font-semibold max-w-[220px]" title="Known allergies: <?= htmlspecialchars($p['known_allergies']) ?>">
                                     <span class="material-symbols-outlined !text-[14px]">warning</span>
@@ -189,9 +190,9 @@ $hasAllergy = static function (?string $a): bool {
                             <?php else: ?>
                                 <span class="text-slate-500 text-[12px]" title="No known drug allergies">None known</span>
                             <?php endif; ?>
-                        </td>
+                        </td><?php endif; ?>
                         <td class="py-3 px-4 text-right whitespace-nowrap">
-                            <a href="<?= $detailUrl ?>" class="hidden sm:inline-flex items-center px-3 py-1.5 rounded-lg border border-slate-200 text-[12px] font-semibold text-slate-700 hover:bg-white hover:border-slate-300">Chart</a>
+                            <?php if ($nxCanChart): ?><a href="<?= $detailUrl ?>" class="hidden sm:inline-flex items-center px-3 py-1.5 rounded-lg border border-slate-200 text-[12px] font-semibold text-slate-700 hover:bg-white hover:border-slate-300">Chart</a><?php endif; ?>
                             <?php if ($nxCanStartVisit): ?>
                                 <a href="clinical_visit.php?patient_id=<?= urlencode($p['id'] ?? '') ?>" class="inline-flex items-center px-3 py-1.5 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-[12px] font-semibold ml-1">Start visit</a>
                             <?php endif; ?>

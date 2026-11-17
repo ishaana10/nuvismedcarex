@@ -5,6 +5,12 @@ require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/includes/pagination.php';
 $pdo = getDB();
 
+// A patient's chart (history, visits, results, notes) is for doctors and administrators
+// (the "Patient charts" permission). Checked before anything about the patient is read.
+require_once __DIR__ . '/includes/security.php';
+requireAuth();
+requireAccess('charts', 'view');
+
 // Only a patient of the clinic being worked in
 $stmt = $pdo->prepare("SELECT * FROM patients WHERE id = ? AND tenant_id = ?");
 $stmt->execute([$patientId, \ClinicFlow\Shared\TenantContext::getTenantId()]);

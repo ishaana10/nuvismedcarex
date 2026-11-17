@@ -20,6 +20,7 @@ if (!function_exists('nxAccess')) {
     /** Page id ($activePage) → [module, level] */
     define('NX_PAGE_ACCESS', [
         'patients'         => ['patients', 'view'],
+        'patient-chart'    => ['charts', 'view'],
         'register-patient' => ['patients', 'edit'],
         'calendar'         => ['appointments', 'view'],
         'clinical-visit'   => ['encounters', 'view'],
@@ -260,6 +261,33 @@ if (!function_exists('nxAccess')) {
         }
         header('Location: ' . $back);
         exit;
+    }
+
+    /** May the signed-in user open patient charts (history, visits, results, notes)? */
+    function nxCanViewCharts(): bool
+    {
+        return nxCan('charts', 'view');
+    }
+
+    /** Opening tag for a link to a patient's chart; plain text for staff who may not open charts. */
+    function nxChartLink(string $patientId, string $class = ''): string
+    {
+        $c = htmlspecialchars($class, ENT_QUOTES);
+        if (nxCanViewCharts()) {
+            return '<a href="patient_detail.php?id=' . urlencode($patientId) . '" class="' . $c . '">';
+        }
+        return '<span class="' . $c . '">';
+    }
+
+    function nxChartLinkEnd(): string
+    {
+        return nxCanViewCharts() ? '</a>' : '</span>';
+    }
+
+    /** Where to send someone after saving a patient: their chart if they may open it, else the list. */
+    function nxPatientLanding(string $patientId, string $prefix = ''): string
+    {
+        return nxCanViewCharts() ? $prefix . 'patient_detail.php?id=' . urlencode($patientId) : $prefix . 'patients.php';
     }
 
     /** Stop the request with a clear message when the user lacks access. */

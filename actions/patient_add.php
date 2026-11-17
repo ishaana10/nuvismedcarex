@@ -85,7 +85,7 @@ $actStmt->execute([
 ]);
 
 setToast("Patient Registered", "$firstName $lastName ($mrn) was registered successfully.");
-header("Location: ../patient_detail.php?id=$patientId");
+header("Location: " . nxPatientLanding((string) $patientId, '../'));
 exit;
 $controller = new \ClinicFlow\Http\Controllers\PatientController();
 $controller->register();

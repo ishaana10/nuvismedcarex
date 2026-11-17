@@ -49,14 +49,16 @@ try {
     if ($idClause) { $qp['s6'] = $like; }
     $stmt->execute($qp);
 
-    $patients = array_map(static function (array $p): array {
-        $allergies = trim((string) ($p['known_allergies'] ?? ''));
+    $canCharts = nxCanViewCharts();
+    $patients = array_map(static function (array $p) use ($canCharts): array {
+        $allergies = $canCharts ? trim((string) ($p['known_allergies'] ?? '')) : '';
         return [
             'id'        => $p['id'],
             'name'      => trim(($p['first_name'] ?? '') . ' ' . ($p['last_name'] ?? '')),
             'mrn'       => $p['mrn'] ?? '',
             'phone'     => $p['phone'] ?? '',
             'summary'   => trim(($p['age'] ?? '') . ' yrs · ' . ($p['gender'] ?? ''), ' ·'),
+            'chart'     => $canCharts,
             'allergies' => ($allergies !== '' && strcasecmp($allergies, 'NKDA') !== 0 && strcasecmp($allergies, 'None') !== 0) ? $allergies : '',
             'initials'  => $p['initials'] ?: mb_strtoupper(mb_substr($p['first_name'] ?? '', 0, 1) . mb_substr($p['last_name'] ?? '', 0, 1)),
         ];

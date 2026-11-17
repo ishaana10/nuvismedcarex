@@ -218,7 +218,7 @@ $canChart = nxCan('encounters', 'edit') && nxIsClinician();
                             <li class="rounded-xl border border-slate-200 bg-slate-50/60 p-3">
                                 <div class="flex items-start justify-between gap-2">
                                     <div class="min-w-0">
-                                        <a href="patient_detail.php?id=<?= urlencode($q['patient_id'] ?? '') ?>" class="block text-[13px] font-semibold text-slate-900 hover:text-blue-700 truncate"><?= htmlspecialchars($q['patient_name'] ?? 'Patient') ?></a>
+                                        <?= nxChartLink((string) ($q['patient_id'] ?? ''), 'block text-[13px] font-semibold text-slate-900 hover:text-blue-700 truncate') ?><?= htmlspecialchars($q['patient_name'] ?? 'Patient') ?><?= nxChartLinkEnd() ?>
                                         <div class="text-[11px] text-slate-500 truncate"><span class="font-mono"><?= htmlspecialchars($q['mrn'] ?? '') ?></span> · <?= htmlspecialchars($q['doctor_name'] ?? '') ?></div>
                                     </div>
                                     <span class="text-[11px] font-medium text-slate-500 whitespace-nowrap tabular" title="Appointment time"><?= htmlspecialchars($q['time'] ?? '') ?></span>
@@ -255,7 +255,7 @@ $canChart = nxCan('encounters', 'edit') && nxIsClinician();
                             <li class="rounded-xl border border-blue-200 bg-blue-50/50 p-3">
                                 <div class="flex items-start justify-between gap-2">
                                     <div class="min-w-0">
-                                        <a href="patient_detail.php?id=<?= urlencode($q['patient_id'] ?? '') ?>" class="block text-[13px] font-semibold text-slate-900 hover:text-blue-700 truncate"><?= htmlspecialchars($q['patient_name'] ?? 'Patient') ?></a>
+                                        <?= nxChartLink((string) ($q['patient_id'] ?? ''), 'block text-[13px] font-semibold text-slate-900 hover:text-blue-700 truncate') ?><?= htmlspecialchars($q['patient_name'] ?? 'Patient') ?><?= nxChartLinkEnd() ?>
                                         <div class="text-[11px] text-slate-500 truncate"><?= htmlspecialchars($q['doctor_name'] ?? '') ?><?= !empty($q['check_in_time']) ? ' · since ' . htmlspecialchars($q['check_in_time']) : '' ?></div>
                                     </div>
                                     <span class="text-[11px] font-semibold text-blue-800 bg-white border border-blue-200 rounded-md px-1.5 py-0.5 whitespace-nowrap"><?= htmlspecialchars(($q['room'] ?? '') ?: 'In room') ?></span>
@@ -304,7 +304,7 @@ $canChart = nxCan('encounters', 'edit') && nxIsClinician();
                         <?php foreach (array_slice($seenToday, -6) as $a): ?>
                             <li class="py-2 flex items-center gap-2.5">
                                 <span class="material-symbols-outlined text-[18px] text-emerald-600 fill">check_circle</span>
-                                <a href="patient_detail.php?id=<?= urlencode($a['patient_id'] ?? '') ?>" class="min-w-0 flex-1 text-[13px] text-slate-800 hover:text-blue-700 truncate"><?= htmlspecialchars($a['patient_name'] ?? '') ?></a>
+                                <?= nxChartLink((string) ($a['patient_id'] ?? ''), 'min-w-0 flex-1 text-[13px] text-slate-800 hover:text-blue-700 truncate') ?><?= htmlspecialchars($a['patient_name'] ?? '') ?><?= nxChartLinkEnd() ?>
                                 <span class="text-[11px] text-slate-500 tabular"><?= htmlspecialchars($a['time'] ?? '') ?></span>
                             </li>
                         <?php endforeach; ?>
@@ -342,10 +342,10 @@ $canChart = nxCan('encounters', 'edit') && nxIsClinician();
                             <div class="flex items-center gap-2.5 min-w-0">
                                 <span class="nx-avatar w-8 h-8 text-[11px]"><?= htmlspecialchars($initialsOf($a['patient_name'] ?? '')) ?></span>
                                 <div class="min-w-0">
-                                    <a href="patient_detail.php?id=<?= urlencode($a['patient_id'] ?? '') ?>" class="block text-[13px] font-semibold text-slate-900 hover:text-blue-700 truncate">
+                                    <?= nxChartLink((string) ($a['patient_id'] ?? ''), 'block text-[13px] font-semibold text-slate-900 hover:text-blue-700 truncate') ?>
                                         <?= htmlspecialchars($a['patient_name'] ?? '') ?>
                                         <?php if (!empty($a['is_urgent'])): ?><span class="ml-1 align-middle inline-block text-[10px] font-semibold text-red-700 bg-red-50 ring-1 ring-red-200 rounded px-1">Urgent</span><?php endif; ?>
-                                    </a>
+                                    <?= nxChartLinkEnd() ?>
                                     <div class="text-[11px] text-slate-500 font-mono truncate"><?= htmlspecialchars($a['patient_mrn'] ?? '') ?></div>
                                 </div>
                             </div>
