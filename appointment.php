@@ -69,14 +69,19 @@ try {
 
 try {
     // Only this clinic's patients may be booked here
-    $patientsStmt = $pdo->prepare("SELECT * FROM patients WHERE tenant_id = ? AND is_active = 1 ORDER BY last_name ASC, first_name ASC");
-    $patientsStmt->execute([$tenantId]);
-    $patients = $patientsStmt->fetchAll() ?: [];
+    // The booking form searches patients as you type (actions/patient_lookup.php), so only a
+    // patient passed in the link is loaded here, not the whole register.
+    if (!empty($_GET['patient_id'])) {
+        $patientsStmt = $pdo->prepare("SELECT id, first_name, last_name, mrn FROM patients WHERE tenant_id = ? AND id = ? AND is_active = 1");
+        $patientsStmt->execute([$tenantId, (string) $_GET['patient_id']]);
+        $patients = $patientsStmt->fetchAll() ?: [];
+    }
 } catch (\Throwable $e) {
     error_log("Calendar patients query error: " . $e->getMessage());
 }
 
 $nxCanLaunchVisit = nxCan('encounters', 'edit') && nxIsClinician();
+$nxCanDeleteAppt = nxCan('appointments', 'full');   // doctors and administrators; the front desk cancels instead
 
 try {
     // Only clinical staff can be the attending physician: the `doctors` table
@@ -209,14 +214,15 @@ if ($action === 'edit' && !empty($editApptId)) {
             <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
             <div>
                 <label class="block font-bold text-slate-700 mb-1">Select Patient <span class="text-red-500">*</span></label>
-                <select name="patient_id" required class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none font-medium">
-                    <option value="">-- Choose Patient --</option>
-                    <?php foreach ($patients as $p): ?>
-                        <option value="<?= htmlspecialchars($p['id'] ?? '') ?>" <?= $selectedPatientId === ($p['id'] ?? '') ? 'selected' : '' ?>>
-                            <?= htmlspecialchars(($p['first_name'] ?? '') . ' ' . ($p['last_name'] ?? '')) ?> (<?= htmlspecialchars($p['mrn'] ?? '') ?>)
-                        </option>
-                    <?php endforeach; ?>
-                </select>
+                <?php $preP = $patients[0] ?? null; ?>
+                <div id="pp" class="relative">
+                    <input type="hidden" name="patient_id" id="pp-id" value="<?= htmlspecialchars($preP['id'] ?? '') ?>" required>
+                    <input type="text" id="pp-q" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="pp-list" placeholder="Search by name, MRN, phone or ID number"
+                           value="<?= $preP ? htmlspecialchars(trim(($preP['first_name'] ?? '') . ' ' . ($preP['last_name'] ?? '')) . ' (' . ($preP['mrn'] ?? '') . ')') : '' ?>"
+                           class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none font-medium">
+                    <ul id="pp-list" role="listbox" hidden class="absolute z-20 left-0 right-0 mt-1 max-h-64 overflow-auto bg-white border border-slate-200 rounded-xl shadow-lg divide-y divide-slate-100"></ul>
+                    <p id="pp-msg" class="mt-1 text-[11px] text-slate-500">Start typing, then choose a patient from the list.</p>
+                </div>
             </div>
 
             <div>
@@ -347,13 +353,24 @@ if ($action === 'edit' && !empty($editApptId)) {
                                 <a href="appointment.php?action=edit&id=<?= htmlspecialchars($a['id'] ?? '') ?>&tab=<?= $tab ?>" class="p-1 text-slate-500 hover:text-blue-600 rounded-lg hover:bg-slate-100 transition" title="Edit Appointment">
                                     <span class="material-symbols-outlined text-base">edit</span>
                                 </a>
-                                <form action="actions/appointment_delete.php" method="POST" class="inline" data-nx-confirm="Are you sure you want to delete this appointment?">
+                                <?php if (!in_array($a['status'] ?? '', ['Cancelled', 'Completed'], true)): ?>
+                                <form action="actions/appointment_cancel.php" method="POST" class="inline" data-nx-confirm="Cancel this appointment? It stays in the record, marked as cancelled.">
+                                    <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+                                    <input type="hidden" name="appointment_id" value="<?= htmlspecialchars($a['id'] ?? '') ?>">
+                                    <button type="submit" class="p-1 text-slate-500 hover:text-amber-600 rounded-lg hover:bg-slate-100 transition" title="Cancel Appointment">
+                                        <span class="material-symbols-outlined text-base">event_busy</span>
+                                    </button>
+                                </form>
+                                <?php endif; ?>
+                                <?php if ($nxCanDeleteAppt): ?>
+                                <form action="actions/appointment_delete.php" method="POST" class="inline" data-nx-confirm="Delete this appointment permanently? Use Cancel to keep it in the record.">
                                     <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
                                     <input type="hidden" name="appointment_id" value="<?= htmlspecialchars($a['id'] ?? '') ?>">
                                     <button type="submit" class="p-1 text-slate-500 hover:text-red-600 rounded-lg hover:bg-slate-100 transition" title="Delete Appointment">
                                         <span class="material-symbols-outlined text-base">delete</span>
                                     </button>
                                 </form>
+                                <?php endif; ?>
                             </div>
                         </td>
                     </tr>
@@ -363,5 +380,51 @@ if ($action === 'edit' && !empty($editApptId)) {
     </div>
     <?= renderPagination($totalAppts, $currentPage, $limit, 'appointment.php', ['tab' => $tab]) ?>
 </div>
+
+
+<script>
+// Patient picker: searches this clinic's patients as you type, so it works with any number of patients.
+(function () {
+    var q = document.getElementById('pp-q'), id = document.getElementById('pp-id'), list = document.getElementById('pp-list'), msg = document.getElementById('pp-msg');
+    if (!q) return;
+    var timer, seq = 0, items = [], active = -1;
+    function close() { list.hidden = true; q.setAttribute('aria-expanded', 'false'); active = -1; }
+    function pick(p) { id.value = p.id; q.value = p.name + ' (' + p.mrn + ')'; msg.textContent = p.summary || ''; close(); }
+    function render() {
+        list.innerHTML = '';
+        if (!items.length) { var li = document.createElement('li'); li.className = 'px-3 py-2 text-slate-500'; li.textContent = 'No patient found. Check the spelling, or try the MRN or phone.'; list.appendChild(li); }
+        items.forEach(function (p, i) {
+            var li = document.createElement('li'); li.setAttribute('role', 'option'); li.id = 'pp-o' + i;
+            li.className = 'px-3 py-2 cursor-pointer hover:bg-blue-50' + (i === active ? ' bg-blue-50' : '');
+            var n = document.createElement('div'); n.className = 'font-semibold text-slate-900'; n.textContent = p.name;
+            var m = document.createElement('div'); m.className = 'text-[11px] text-slate-500'; m.textContent = [p.mrn, p.summary, p.phone].filter(Boolean).join(' · ');
+            li.appendChild(n); li.appendChild(m);
+            li.addEventListener('mousedown', function (e) { e.preventDefault(); pick(p); });
+            list.appendChild(li);
+        });
+        list.hidden = false; q.setAttribute('aria-expanded', 'true');
+    }
+    function search() {
+        var my = ++seq;
+        fetch('actions/patient_lookup.php?q=' + encodeURIComponent(q.value.trim()), { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(function (d) { if (my !== seq) return; items = d.patients || []; active = -1; render(); })
+            .catch(function () { msg.textContent = 'Could not search just now. Try again.'; });
+    }
+    q.addEventListener('input', function () { id.value = ''; msg.textContent = 'Choose a patient from the list.'; clearTimeout(timer); timer = setTimeout(search, 180); });
+    q.addEventListener('focus', function () { if (!id.value) search(); });
+    q.addEventListener('blur', function () { setTimeout(close, 120); });
+    q.addEventListener('keydown', function (e) {
+        if (list.hidden || !items.length) return;
+        if (e.key === 'ArrowDown') { e.preventDefault(); active = (active + 1) % items.length; render(); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); active = (active - 1 + items.length) % items.length; render(); }
+        else if (e.key === 'Enter' && active >= 0) { e.preventDefault(); pick(items[active]); }
+        else if (e.key === 'Escape') { close(); }
+    });
+    q.form.addEventListener('submit', function (e) {
+        if (!id.value) { e.preventDefault(); msg.textContent = 'Choose a patient from the list before saving.'; msg.className = 'mt-1 text-[11px] text-red-600'; q.focus(); }
+    });
+})();
+</script>
 
 <?php include __DIR__ . '/includes/footer.php'; ?>

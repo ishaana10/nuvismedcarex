@@ -46,7 +46,9 @@ if (!function_exists('nxAccess')) {
         // Appointments & queue
         'actions/appointment_add.php'     => ['appointments', 'edit'],
         'actions/appointment_edit.php'    => ['appointments', 'edit'],
+        'actions/appointment_cancel.php'  => ['appointments', 'edit'],
         'actions/appointment_delete.php'  => ['appointments', 'full'],
+        'actions/patient_lookup.php'      => ['patients', 'view'],
         'actions/queue_update.php'        => ['appointments', 'edit'],
         // Clinical
         'actions/encounter_save.php'      => ['encounters', 'edit', ['delete_rx' => 'full', 'create_invoice' => 'edit']],

@@ -46,9 +46,9 @@ final class AccessControl
     /** Built-in roles and what they can do out of the box. */
     public const DEFAULT_MATRIX = [
         'Administrator' => ['patients' => 3, 'appointments' => 3, 'charts' => 3, 'encounters' => 3, 'billing' => 3, 'inventory' => 3, 'documents' => 3, 'settings' => 3, 'users' => 3, 'developer' => 0],
-        'Doctor'        => ['patients' => 2, 'appointments' => 2, 'charts' => 3, 'encounters' => 3, 'billing' => 2, 'inventory' => 1, 'documents' => 2, 'settings' => 1, 'users' => 0, 'developer' => 0],
+        'Doctor'        => ['patients' => 2, 'appointments' => 3, 'charts' => 3, 'encounters' => 3, 'billing' => 2, 'inventory' => 1, 'documents' => 2, 'settings' => 1, 'users' => 0, 'developer' => 0],
         'Nurse'         => ['patients' => 2, 'appointments' => 2, 'charts' => 0, 'encounters' => 2, 'billing' => 0, 'inventory' => 1, 'documents' => 2, 'settings' => 0, 'users' => 0, 'developer' => 0],
-        'Receptionist'  => ['patients' => 2, 'appointments' => 3, 'charts' => 0, 'encounters' => 0, 'billing' => 2, 'inventory' => 0, 'documents' => 1, 'settings' => 0, 'users' => 0, 'developer' => 0],
+        'Receptionist'  => ['patients' => 2, 'appointments' => 2, 'charts' => 0, 'encounters' => 0, 'billing' => 2, 'inventory' => 0, 'documents' => 1, 'settings' => 0, 'users' => 0, 'developer' => 0],
         'Staff'         => ['patients' => 1, 'appointments' => 1, 'charts' => 0, 'encounters' => 0, 'billing' => 0, 'inventory' => 0, 'documents' => 0, 'settings' => 0, 'users' => 0, 'developer' => 0],
         'Developer'     => ['patients' => 3, 'appointments' => 3, 'charts' => 3, 'encounters' => 3, 'billing' => 3, 'inventory' => 3, 'documents' => 3, 'settings' => 3, 'users' => 3, 'developer' => 3],
     ];
@@ -57,7 +57,7 @@ final class AccessControl
         'Administrator' => 'Runs the clinic: staff, settings and every module, including patient charts',
         'Doctor'        => 'Sees patients, opens charts, writes encounters and bills visits',
         'Nurse'         => 'Records vitals and supports encounters',
-        'Receptionist'  => 'Front desk: registrations, bookings and payments. Cannot open patient charts',
+        'Receptionist'  => 'Front desk: registrations, bookings, cancellations and payments. Cannot open patient charts or delete appointments',
         'Staff'         => 'Read-only access to patients and the schedule',
         'Developer'     => 'System maintenance across all clinics',
     ];

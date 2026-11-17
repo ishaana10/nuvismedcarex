@@ -38,4 +38,26 @@ final class PatientChartAccessTest extends TestCase
         $this->assertNotFalse($guard);
         $this->assertLessThan(strpos($src, 'SELECT * FROM patients'), $guard);
     }
+
+    public function testFrontDeskCancelsButOnlyDoctorsAndAdminsDelete(): void
+    {
+        $ac = $this->ac();
+        $this->assertTrue($ac->can('Receptionist', 'appointments', AccessControl::EDIT), 'receptionist may cancel');
+        $this->assertFalse($ac->can('Receptionist', 'appointments', AccessControl::FULL), 'receptionist may not delete');
+        $this->assertTrue($ac->can('Doctor', 'appointments', AccessControl::FULL));
+        $this->assertTrue($ac->can('Administrator', 'appointments', AccessControl::FULL));
+        $this->assertFalse($ac->can('Nurse', 'appointments', AccessControl::FULL));
+    }
+
+    public function testAppointmentPageOffersCancelAndPatientSearch(): void
+    {
+        $src = file_get_contents(__DIR__ . '/../appointment.php');
+        $this->assertStringContainsString('actions/appointment_cancel.php', $src);
+        $this->assertStringContainsString('$nxCanDeleteAppt', $src);
+        $this->assertStringContainsString('actions/patient_lookup.php', $src);
+        $this->assertStringNotContainsString('<select name="patient_id"', $src, 'patient list must be searchable, not a giant dropdown');
+        $map = file_get_contents(__DIR__ . '/../includes/access.php');
+        $this->assertMatchesRegularExpression("#appointment_cancel\\.php'\\s*=>\\s*\\['appointments', 'edit'\\]#", $map);
+        $this->assertMatchesRegularExpression("#appointment_delete\\.php'\\s*=>\\s*\\['appointments', 'full'\\]#", $map);
+    }
 }
