@@ -93,14 +93,14 @@ $hasAllergy = static function (?string $a): bool {
     <div class="flex flex-wrap items-center gap-1.5" role="radiogroup" aria-label="Filter patients">
         <?php foreach ($filterOptions as $key => $label): $on = $filter === $key; ?>
             <label class="relative cursor-pointer">
-                <input type="radio" name="filter" value="<?= $key ?>" class="sr-only peer" <?= $on ? 'checked' : '' ?> onchange="this.form.submit()">
+                <input type="radio" name="filter" value="<?= $key ?>" class="sr-only peer" <?= $on ? 'checked' : '' ?> data-on-change="this.form.submit()">
                 <span class="inline-flex items-center h-9 px-3 rounded-full border text-[13px] font-medium transition peer-focus-visible:ring-2 peer-focus-visible:ring-blue-500 <?= $on ? 'bg-blue-700 border-blue-700 text-white' : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300' ?>"><?= htmlspecialchars($label) ?></span>
             </label>
         <?php endforeach; ?>
     </div>
     <div class="lg:ml-auto flex items-center gap-2">
         <label for="patient-sort" class="text-[13px] text-slate-500 whitespace-nowrap">Sort by</label>
-        <select id="patient-sort" name="sort" onchange="this.form.submit()" class="h-9 text-[13px] rounded-[10px] border-slate-200 bg-white text-slate-800 py-0 pl-3 pr-8 focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500">
+        <select id="patient-sort" name="sort" data-on-change="this.form.submit()" class="h-9 text-[13px] rounded-[10px] border-slate-200 bg-white text-slate-800 py-0 pl-3 pr-8 focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500">
             <?php foreach ($sortOptions as $key => [$label]): ?>
                 <option value="<?= $key ?>" <?= $sort === $key ? 'selected' : '' ?>><?= htmlspecialchars($label) ?></option>
             <?php endforeach; ?>
@@ -161,7 +161,7 @@ $hasAllergy = static function (?string $a): bool {
                         <td class="py-3 px-4">
                             <div class="flex items-center gap-3 min-w-0">
                                 <span class="nx-avatar w-9 h-9 text-xs">
-                                    <?php if (!empty($p['avatar'])): ?><img src="<?= htmlspecialchars($p['avatar']) ?>" alt="" loading="lazy" onerror="this.remove()"><?php endif; ?>
+                                    <?php if (!empty($p['avatar'])): ?><img src="<?= htmlspecialchars($p['avatar']) ?>" alt="" loading="lazy" data-on-error="this.remove()"><?php endif; ?>
                                     <span><?= htmlspecialchars($initials) ?></span>
                                 </span>
                                 <div class="min-w-0">
@@ -209,7 +209,7 @@ $hasAllergy = static function (?string $a): bool {
 echo renderPagination($totalPatients, $pagination['page'], $pagination['limit'], 'patients.php', $queryState);
 ?>
 
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 // Search as you type (server-side, so results cover every page)
 (function () {
     var input = document.getElementById('patient-q'), form = document.getElementById('patient-search-form'), t;

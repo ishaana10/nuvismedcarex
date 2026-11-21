@@ -35,7 +35,7 @@ if ($insuranceProvider === '__other__') {
 $insurancePolicy = trim($_POST['insurance_policy_number'] ?? '');
 $insuranceGroup = trim($_POST['insurance_group_number'] ?? '');
 
-$allergies = trim($_POST['known_allergies'] ?? 'None');
+$allergies = trim($_POST['known_allergies'] ?? ($_POST === [] || nxCanViewCharts() ? 'None' : ''));
 $bloodGroup = $_POST['blood_group'] ?? '';
 $chronic = trim($_POST['chronic_conditions'] ?? '');
 $clinicalNotes = trim($_POST['clinical_notes'] ?? '');

@@ -117,7 +117,7 @@ $expired = isset($_GET['expired']);
     </aside>
 </div>
 
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 (function () {
     var html = document.documentElement;
     var themeBtn = document.getElementById('login-theme'), themeIcon = document.getElementById('login-theme-icon');

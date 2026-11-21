@@ -120,7 +120,7 @@ $usersList = $usersStmt->fetchAll();
                 <p class="text-xs text-outline font-medium mt-0.5">Add new users, edit credentials, assign roles, and manage account statuses</p>
             </div>
 
-            <button type="button" onclick="openUserModal()" class="px-4 py-2.5 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-2">
+            <button type="button" data-on-click="openUserModal()" class="px-4 py-2.5 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-2">
                 <span class="material-symbols-outlined text-base">person_add</span>
                 <span>Add New User</span>
             </button>
@@ -130,19 +130,19 @@ $usersList = $usersStmt->fetchAll();
         <div class="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
             <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="font-bold text-outline mr-1">Filter Role:</span>
-                <button type="button" onclick="filterUserRole('all')" class="user-role-filter-btn px-3 py-1.5 rounded-lg bg-primary text-white font-bold transition" data-role="all">All</button>
+                <button type="button" data-on-click="filterUserRole('all')" class="user-role-filter-btn px-3 py-1.5 rounded-lg bg-primary text-white font-bold transition" data-role="all">All</button>
                 <?php if ($isDeveloper): ?>
-                <button type="button" onclick="filterUserRole('Developer')" class="user-role-filter-btn px-3 py-1.5 rounded-lg bg-surface-container-high text-on-surface font-semibold hover:bg-surface-variant transition" data-role="Developer">Developer</button>
+                <button type="button" data-on-click="filterUserRole('Developer')" class="user-role-filter-btn px-3 py-1.5 rounded-lg bg-surface-container-high text-on-surface font-semibold hover:bg-surface-variant transition" data-role="Developer">Developer</button>
                 <?php endif; ?>
-                <button type="button" onclick="filterUserRole('Administrator')" class="user-role-filter-btn px-3 py-1.5 rounded-lg bg-surface-container-high text-on-surface font-semibold hover:bg-surface-variant transition" data-role="Administrator">Administrator</button>
-                <button type="button" onclick="filterUserRole('Doctor')" class="user-role-filter-btn px-3 py-1.5 rounded-lg bg-surface-container-high text-on-surface font-semibold hover:bg-surface-variant transition" data-role="Doctor">Doctor</button>
-                <button type="button" onclick="filterUserRole('Nurse')" class="user-role-filter-btn px-3 py-1.5 rounded-lg bg-surface-container-high text-on-surface font-semibold hover:bg-surface-variant transition" data-role="Nurse">Nurse</button>
-                <button type="button" onclick="filterUserRole('Receptionist')" class="user-role-filter-btn px-3 py-1.5 rounded-lg bg-surface-container-high text-on-surface font-semibold hover:bg-surface-variant transition" data-role="Receptionist">Receptionist</button>
+                <button type="button" data-on-click="filterUserRole('Administrator')" class="user-role-filter-btn px-3 py-1.5 rounded-lg bg-surface-container-high text-on-surface font-semibold hover:bg-surface-variant transition" data-role="Administrator">Administrator</button>
+                <button type="button" data-on-click="filterUserRole('Doctor')" class="user-role-filter-btn px-3 py-1.5 rounded-lg bg-surface-container-high text-on-surface font-semibold hover:bg-surface-variant transition" data-role="Doctor">Doctor</button>
+                <button type="button" data-on-click="filterUserRole('Nurse')" class="user-role-filter-btn px-3 py-1.5 rounded-lg bg-surface-container-high text-on-surface font-semibold hover:bg-surface-variant transition" data-role="Nurse">Nurse</button>
+                <button type="button" data-on-click="filterUserRole('Receptionist')" class="user-role-filter-btn px-3 py-1.5 rounded-lg bg-surface-container-high text-on-surface font-semibold hover:bg-surface-variant transition" data-role="Receptionist">Receptionist</button>
             </div>
 
             <div class="relative w-full sm:w-64">
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-base">search</span>
-                <input type="text" id="user-search-input" onkeyup="searchUsers()" placeholder="Search user name or email..." class="w-full bg-surface-container-low pl-9 pr-3 py-2 rounded-xl border border-outline-variant/40 text-xs font-medium focus:outline-none focus:border-primary">
+                <input type="text" id="user-search-input" data-on-keyup="searchUsers()" placeholder="Search user name or email..." class="w-full bg-surface-container-low pl-9 pr-3 py-2 rounded-xl border border-outline-variant/40 text-xs font-medium focus:outline-none focus:border-primary">
             </div>
         </div>
 
@@ -199,11 +199,11 @@ $usersList = $usersStmt->fetchAll();
                                 </td>
                                 <td class="py-3 px-4 text-right">
                                     <div class="inline-flex items-center gap-1">
-                                        <button type="button" onclick='viewCardDetails(<?= htmlspecialchars(json_encode($usr), ENT_QUOTES, "UTF-8") ?>)' class="px-2.5 py-1 bg-surface-container-high hover:bg-surface-variant text-on-surface rounded-lg text-xs font-semibold transition flex items-center gap-1" title="View Full Card Details">
+                                        <button type="button" data-on-click='viewCardDetails(<?= htmlspecialchars(json_encode($usr), ENT_QUOTES, "UTF-8") ?>)' class="px-2.5 py-1 bg-surface-container-high hover:bg-surface-variant text-on-surface rounded-lg text-xs font-semibold transition flex items-center gap-1" title="View Full Card Details">
                                             <span class="material-symbols-outlined text-sm">visibility</span>
                                             <span>View</span>
                                         </button>
-                                        <button type="button" onclick='openUserModal(<?= htmlspecialchars(json_encode($usr), ENT_QUOTES, "UTF-8") ?>)' class="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold transition flex items-center gap-1">
+                                        <button type="button" data-on-click='openUserModal(<?= htmlspecialchars(json_encode($usr), ENT_QUOTES, "UTF-8") ?>)' class="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold transition flex items-center gap-1">
                                             <span class="material-symbols-outlined text-sm">edit</span>
                                             <span>Edit</span>
                                         </button>
@@ -433,10 +433,10 @@ $sv = fn(string $k, string $fallback = '') => htmlspecialchars((string) ($settin
         <?php endif; ?>
     </form>
 
-    <script>
+    <script nonce="<?= nxCspNonce() ?>">
 function nxMedia(v){ v = v || ''; return /^uploads\/(signatures|stamps|avatars)\/[A-Za-z0-9_.-]+$/.test(v) ? 'media.php?p=' + encodeURIComponent(v) : v; }
 </script>
-<script>
+<script nonce="<?= nxCspNonce() ?>">
     (function () {
         var form = document.getElementById('clinic-form');
         if (!form) return;
@@ -488,7 +488,7 @@ function nxMedia(v){ v = v || ''; return /^uploads\/(signatures|stamps|avatars)\
                 </h2>
                 <p class="text-xs text-outline font-medium mt-0.5">Run this clinic across multiple sites. The active location is remembered for your session and tagged onto new appointments.</p>
             </div>
-            <button type="button" onclick="openLocationModal()" class="px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-1.5">
+            <button type="button" data-on-click="openLocationModal()" class="px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-1.5">
                 <span class="material-symbols-outlined text-base">add_location_alt</span><span>Add location</span>
             </button>
         </div>
@@ -499,7 +499,7 @@ function nxMedia(v){ v = v || ''; return /^uploads\/(signatures|stamps|avatars)\
             <input type="hidden" name="action" value="set_current_location">
             <div class="flex-1">
                 <label class="form-label">Active location for this session</label>
-                <select name="location_id" class="form-select" onchange="this.form.submit()">
+                <select name="location_id" class="form-select" data-on-change="this.form.submit()">
                     <?php foreach ($clinicLocations as $loc): if (!$loc['is_active']) continue; ?>
                         <option value="<?= htmlspecialchars($loc['id']) ?>" <?= $loc['id'] === $currentLocationId ? 'selected' : '' ?>>
                             <?= htmlspecialchars($loc['name']) ?><?= $loc['is_primary'] ? ' (primary)' : '' ?>
@@ -531,11 +531,11 @@ function nxMedia(v){ v = v || ''; return /^uploads\/(signatures|stamps|avatars)\
                         <?php if (!empty($loc['email'])): ?><div class="flex items-center gap-1"><span class="material-symbols-outlined text-[13px] text-slate-400">mail</span><?= htmlspecialchars($loc['email']) ?></div><?php endif; ?>
                     </div>
                     <div class="pt-2 border-t border-outline-variant/20 flex items-center gap-2">
-                        <button type="button" onclick='openLocationModal(<?= htmlspecialchars(json_encode($loc), ENT_QUOTES, "UTF-8") ?>)' class="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1">
+                        <button type="button" data-on-click='openLocationModal(<?= htmlspecialchars(json_encode($loc), ENT_QUOTES, "UTF-8") ?>)' class="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1">
                             <span class="material-symbols-outlined text-sm">edit</span><span>Edit</span>
                         </button>
                         <?php if ($loc['is_active'] && !$loc['is_primary']): ?>
-                        <form action="actions/location_actions.php" method="POST" onsubmit="return confirm('Deactivate this location? Existing records are kept.');">
+                        <form action="actions/location_actions.php" method="POST" data-on-submit="return confirm('Deactivate this location? Existing records are kept.');">
                             <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
                             <input type="hidden" name="action" value="deactivate_location">
                             <input type="hidden" name="location_id" value="<?= htmlspecialchars($loc['id']) ?>">
@@ -554,7 +554,7 @@ function nxMedia(v){ v = v || ''; return /^uploads\/(signatures|stamps|avatars)\
     <div class="bg-white rounded-2xl border border-slate-200 shadow-pop max-w-lg w-full overflow-hidden" role="dialog" aria-modal="true">
         <div class="px-6 pt-5 pb-4 flex items-start justify-between">
             <h3 id="location-modal-title" class="font-semibold text-base text-slate-900">Add location</h3>
-            <button type="button" onclick="closeModal('modal-location')" class="nx-icon-btn -mr-2 -mt-1" aria-label="Close"><span class="material-symbols-outlined">close</span></button>
+            <button type="button" data-on-click="closeModal('modal-location')" class="nx-icon-btn -mr-2 -mt-1" aria-label="Close"><span class="material-symbols-outlined">close</span></button>
         </div>
         <form action="actions/location_actions.php" method="POST" class="px-6 pb-6 space-y-4">
             <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
@@ -574,13 +574,13 @@ function nxMedia(v){ v = v || ''; return /^uploads\/(signatures|stamps|avatars)\
                 <label class="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" name="is_active" id="loc-active" checked class="rounded"> Active</label>
             </div>
             <div class="flex items-center justify-end gap-2 pt-2">
-                <button type="button" onclick="closeModal('modal-location')" class="btn-secondary">Cancel</button>
+                <button type="button" data-on-click="closeModal('modal-location')" class="btn-secondary">Cancel</button>
                 <button type="submit" class="btn-primary">Save location</button>
             </div>
         </form>
     </div>
 </div>
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 function openLocationModal(data) {
     data = data || {};
     document.getElementById('location-modal-title').textContent = data.id ? 'Edit location' : 'Add location';
@@ -730,7 +730,7 @@ function openLocationModal(data) {
             <input type="hidden" name="tab" value="audit">
             <div class="flex items-center gap-2 flex-wrap w-full sm:w-auto">
                 <span class="font-bold text-outline">Action:</span>
-                <select name="audit_action" onchange="this.form.submit()" class="bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-bold text-on-surface">
+                <select name="audit_action" data-on-change="this.form.submit()" class="bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-bold text-on-surface">
                     <option value="">All Audit Actions</option>
                     <?php foreach ($distinctAuditActions as $act): ?>
                         <option value="<?= htmlspecialchars($act) ?>" <?= $auditActionFilter === $act ? 'selected' : '' ?>><?= htmlspecialchars($act) ?></option>
@@ -965,7 +965,7 @@ $emailQuery = fn(array $extra) => 'admin.php?' . http_build_query(array_merge(
                 <label class="sr-only" for="email-search">Search email history</label>
                 <input id="email-search" type="search" name="email_search" value="<?= htmlspecialchars($emailSearch) ?>" placeholder="Recipient or subject" class="form-input !py-2 w-40 lg:w-56">
                 <label class="sr-only" for="email-status">Status</label>
-                <select id="email-status" name="email_status" onchange="this.form.submit()" class="form-select !py-2">
+                <select id="email-status" name="email_status" data-on-change="this.form.submit()" class="form-select !py-2">
                     <?php foreach (['all' => 'All', 'Sent' => 'Sent', 'Failed' => 'Failed'] as $k => $label): ?>
                         <option value="<?= $k ?>" <?= $emailStatus === $k ? 'selected' : '' ?>><?= $label ?></option>
                     <?php endforeach; ?>
@@ -1044,7 +1044,7 @@ $emailQuery = fn(array $extra) => 'admin.php?' . http_build_query(array_merge(
         <?php endif; ?>
     </section>
 
-    <script>
+    <script nonce="<?= nxCspNonce() ?>">
     (function () {
         var form = document.getElementById('email-form');
         if (!form) return;
@@ -1203,7 +1203,7 @@ $invCanEdit = nxCan('settings', 'edit');
         <?php endif; ?>
     </form>
 
-    <script>
+    <script nonce="<?= nxCspNonce() ?>">
     (function () {
         var form = document.getElementById('inv-setup-form');
         if (!form) return;
@@ -1386,7 +1386,7 @@ $invCanEdit = nxCan('settings', 'edit');
                 <span class="material-symbols-outlined text-primary text-base">apartment</span>
                 <span>Clinic Tenant Profile</span>
             </h3>
-            <button type="button" onclick="closeTenantModal()" class="text-slate-400 hover:text-white text-lg">
+            <button type="button" data-on-click="closeTenantModal()" class="text-slate-400 hover:text-white text-lg">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
@@ -1515,7 +1515,7 @@ $invCanEdit = nxCan('settings', 'edit');
             </div>
 
             <div class="flex items-center justify-between pt-3 border-t border-slate-200">
-                <button type="button" onclick="closeTenantModal()" class="px-4 py-2 bg-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-300 transition">
+                <button type="button" data-on-click="closeTenantModal()" class="px-4 py-2 bg-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-300 transition">
                     Cancel
                 </button>
                 <button type="submit" class="px-5 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-1.5">
@@ -1535,7 +1535,7 @@ $invCanEdit = nxCan('settings', 'edit');
                 <span class="material-symbols-outlined text-primary text-xl">badge</span>
                 <h3 class="font-bold text-sm" id="view-card-name">User Profile Card</h3>
             </div>
-            <button type="button" onclick="closeModal('modal-view-user-details')" class="text-slate-400 hover:text-white">
+            <button type="button" data-on-click="closeModal('modal-view-user-details')" class="text-slate-400 hover:text-white">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
@@ -1580,7 +1580,7 @@ $invCanEdit = nxCan('settings', 'edit');
             </div>
 
             <div class="flex items-center justify-end pt-3 border-t border-outline-variant/20">
-                <button type="button" onclick="closeModal('modal-view-user-details')" class="px-5 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90">Close</button>
+                <button type="button" data-on-click="closeModal('modal-view-user-details')" class="px-5 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90">Close</button>
             </div>
         </div>
     </div>
@@ -1594,7 +1594,7 @@ $invCanEdit = nxCan('settings', 'edit');
                 <span class="material-symbols-outlined text-primary text-base">person_add</span>
                 <span>User Account Details</span>
             </h3>
-            <button type="button" onclick="closeUserModal()" class="text-slate-400 hover:text-white text-lg">
+            <button type="button" data-on-click="closeUserModal()" class="text-slate-400 hover:text-white text-lg">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
@@ -1698,7 +1698,7 @@ $invCanEdit = nxCan('settings', 'edit');
             </div>
 
             <div class="flex items-center justify-between pt-3 border-t border-slate-200">
-                <button type="button" onclick="closeUserModal()" class="px-4 py-2 bg-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-300 transition">
+                <button type="button" data-on-click="closeUserModal()" class="px-4 py-2 bg-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-300 transition">
                     Cancel
                 </button>
                 <button type="submit" class="px-5 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-1.5">
@@ -1710,7 +1710,7 @@ $invCanEdit = nxCan('settings', 'edit');
     </div>
 </div>
 
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 function openTenantModal(tnt = null) {
     const modal = document.getElementById('tenantModal');
     if (!modal) return;

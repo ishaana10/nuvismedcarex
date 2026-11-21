@@ -102,7 +102,7 @@ $nxCsrf = htmlspecialchars(getCsrfToken());
     <meta name="csrf-token" content="<?= $nxCsrf ?>"/>
     <title><?= htmlspecialchars($pageTitle ?? 'Nuvis Medcare X') ?></title>
     <?php include __DIR__ . '/theme_head.php'; ?>
-    <script>
+    <script nonce="<?= nxCspNonce() ?>">
       window.NUVIS_VERSION = <?= json_encode(AppVersion::get('full')) ?>;
       window.NX_CONTEXT = <?= json_encode([
           'tenant' => $currentTenantId,
@@ -114,7 +114,7 @@ $nxCsrf = htmlspecialchars(getCsrfToken());
           'alerts' => array_intersect_key(nxPrefs(), array_flip(array_keys(\ClinicFlow\Services\UserPreferences::ALERTS))),
       ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
     </script>
-    <script>
+    <script nonce="<?= nxCspNonce() ?>">
     /* Developer control endpoints: send mutating actions as POST with the CSRF token. */
     (function () {
         var origFetch = window.fetch, readOnly = ['git_status','git_log','get_error_logs','get_redis_status','test_redis_ping','enc_status'];
@@ -135,6 +135,7 @@ $nxCsrf = htmlspecialchars(getCsrfToken());
         };
     })();
     </script>
+    <script src="assets/js/actions.js?v=<?= $nxAssetVersion ?>" defer></script>
     <script src="assets/js/app.js?v=<?= $nxAssetVersion ?>" defer></script>
 </head>
 <body class="min-h-full font-sans text-slate-900 bg-background">
@@ -147,7 +148,7 @@ $nxCsrf = htmlspecialchars(getCsrfToken());
 <!-- Top bar -->
 <header class="nx-header sticky top-0 z-40">
     <div class="h-full flex items-center gap-3 px-3 sm:px-6">
-        <button type="button" onclick="toggleMobileSidebar()" aria-label="Open navigation" class="nx-icon-btn md:hidden">
+        <button type="button" data-on-click="toggleMobileSidebar()" aria-label="Open navigation" class="nx-icon-btn md:hidden">
             <span class="material-symbols-outlined">menu</span>
         </button>
 
@@ -169,7 +170,7 @@ $nxCsrf = htmlspecialchars(getCsrfToken());
                 <input type="hidden" name="csrf_token" value="<?= $nxCsrf ?>">
                 <input type="hidden" name="action" value="switch_tenant">
                 <label class="sr-only" for="nx-tenant">Active clinic</label>
-                <select id="nx-tenant" name="tenant_id" onchange="this.form.submit()" class="h-[38px] max-w-[200px] bg-slate-50 border border-slate-200 text-slate-800 text-[13px] rounded-[10px] pl-3 pr-8 focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500">
+                <select id="nx-tenant" name="tenant_id" data-on-change="this.form.submit()" class="h-[38px] max-w-[200px] bg-slate-50 border border-slate-200 text-slate-800 text-[13px] rounded-[10px] pl-3 pr-8 focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500">
                     <?php foreach ($allTenantsHeader as $tn): ?>
                         <option value="<?= htmlspecialchars($tn['id']) ?>" <?= $tn['id'] === $currentTenantId ? 'selected' : '' ?>><?= htmlspecialchars($tn['name']) ?></option>
                     <?php endforeach; ?>
@@ -211,7 +212,7 @@ $nxCsrf = htmlspecialchars(getCsrfToken());
             <div class="relative pl-1 sm:pl-2 sm:ml-1 sm:border-l border-slate-200">
                 <button type="button" id="nx-profile-btn" class="flex items-center gap-2.5 rounded-xl p-1 pr-2 hover:bg-slate-100 transition" aria-haspopup="true" aria-expanded="false" aria-controls="nx-profile-menu">
                     <span class="nx-avatar w-8 h-8 text-xs">
-                        <?php if ($nxAvatar): ?><img src="<?= htmlspecialchars(nxMediaUrl($nxAvatar)) ?>" alt="" onerror="this.remove()"><?php endif; ?>
+                        <?php if ($nxAvatar): ?><img src="<?= htmlspecialchars(nxMediaUrl($nxAvatar)) ?>" alt="" data-on-error="this.remove()"><?php endif; ?>
                         <span><?= htmlspecialchars(nxInitials($nxUserName)) ?></span>
                     </span>
                     <span class="hidden lg:block text-left leading-tight">
@@ -229,7 +230,7 @@ $nxCsrf = htmlspecialchars(getCsrfToken());
                     <form action="actions/set_doctor.php" method="POST" class="px-3 pb-2">
                         <input type="hidden" name="csrf_token" value="<?= $nxCsrf ?>">
                         <label for="nx-doctor" class="block text-xs font-medium text-slate-500 mb-1">Acting clinician</label>
-                        <select id="nx-doctor" name="doctor_id" onchange="this.form.submit()" class="w-full bg-slate-50 border border-slate-200 text-[13px] text-slate-900 rounded-lg py-1.5 focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500">
+                        <select id="nx-doctor" name="doctor_id" data-on-change="this.form.submit()" class="w-full bg-slate-50 border border-slate-200 text-[13px] text-slate-900 rounded-lg py-1.5 focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500">
                             <?php foreach ($doctors as $doc): ?>
                                 <option value="<?= htmlspecialchars($doc['id']) ?>" <?= $doc['id'] === $currentDoctor['id'] ? 'selected' : '' ?>><?= htmlspecialchars($doc['name']) ?></option>
                             <?php endforeach; ?>
@@ -241,14 +242,14 @@ $nxCsrf = htmlspecialchars(getCsrfToken());
                         <input type="hidden" name="csrf_token" value="<?= $nxCsrf ?>">
                         <input type="hidden" name="action" value="switch_tenant">
                         <label for="nx-tenant-m" class="block text-xs font-medium text-slate-500 mb-1">Clinic</label>
-                        <select id="nx-tenant-m" name="tenant_id" onchange="this.form.submit()" class="w-full bg-slate-50 border border-slate-200 text-[13px] text-slate-900 rounded-lg py-1.5">
+                        <select id="nx-tenant-m" name="tenant_id" data-on-change="this.form.submit()" class="w-full bg-slate-50 border border-slate-200 text-[13px] text-slate-900 rounded-lg py-1.5">
                             <?php foreach ($allTenantsHeader as $tn): ?>
                                 <option value="<?= htmlspecialchars($tn['id']) ?>" <?= $tn['id'] === $currentTenantId ? 'selected' : '' ?>><?= htmlspecialchars($tn['name']) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </form>
                     <?php endif; ?>
-                    <button type="button" class="nx-menu-item" onclick="openChangePasswordModal()"><span class="material-symbols-outlined">key</span>Change password</button>
+                    <button type="button" class="nx-menu-item" data-on-click="openChangePasswordModal()"><span class="material-symbols-outlined">key</span>Change password</button>
                     <a href="settings.php" class="nx-menu-item"><span class="material-symbols-outlined">tune</span>Settings</a>
                     <button type="button" class="nx-menu-item sm:hidden" data-nx-theme-toggle><span class="material-symbols-outlined" data-nx-theme-icon>dark_mode</span>Switch theme</button>
                     <a href="user_guide.php" class="nx-menu-item"><span class="material-symbols-outlined">menu_book</span>User guide</a>
@@ -269,7 +270,7 @@ $nxCsrf = htmlspecialchars(getCsrfToken());
                 <h3 id="nx-cp-title" class="font-semibold text-base text-slate-900">Change password</h3>
                 <p class="text-xs text-slate-500 mt-0.5">At least 8 characters, with one capital letter and one number.</p>
             </div>
-            <button type="button" onclick="closeChangePasswordModal()" class="nx-icon-btn -mr-2 -mt-1" aria-label="Close"><span class="material-symbols-outlined">close</span></button>
+            <button type="button" data-on-click="closeChangePasswordModal()" class="nx-icon-btn -mr-2 -mt-1" aria-label="Close"><span class="material-symbols-outlined">close</span></button>
         </div>
         <form action="actions/change_password.php" method="POST" class="px-6 pb-6 space-y-4" data-nx-password-form>
             <input type="hidden" name="csrf_token" value="<?= $nxCsrf ?>">
@@ -294,14 +295,14 @@ $nxCsrf = htmlspecialchars(getCsrfToken());
                 <p class="hidden mt-1 text-xs text-red-600" data-nx-pw-mismatch>Passwords don't match yet.</p>
             </div>
             <div class="flex items-center justify-end gap-2 pt-2">
-                <button type="button" onclick="closeChangePasswordModal()" class="btn-secondary">Cancel</button>
+                <button type="button" data-on-click="closeChangePasswordModal()" class="btn-secondary">Cancel</button>
                 <button type="submit" class="btn-primary">Update password</button>
             </div>
         </form>
     </div>
 </div>
 
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 function openChangePasswordModal() { if (window.NX) NX.openModal('modal-change-password-global'); else document.getElementById('modal-change-password-global').classList.remove('hidden'); }
 function closeChangePasswordModal() { if (window.NX) NX.closeModal('modal-change-password-global'); else document.getElementById('modal-change-password-global').classList.add('hidden'); }
 

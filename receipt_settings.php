@@ -180,7 +180,7 @@ $dis = $canEdit ? '' : 'disabled';
     </div>
 </form>
 
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 (function () {
     var form = document.getElementById('receipt-form');
     var frame = document.getElementById('rc-preview');

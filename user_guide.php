@@ -121,7 +121,7 @@ foreach (AccessControl::MODULES as $key => $m) {
         <p class="nx-page-sub">How to use Nuvis Medcare X, step by step. Search it, or pick a topic on the left.</p>
     </div>
     <div class="g-tools flex items-center gap-2">
-        <button type="button" class="btn-secondary" onclick="window.print()"><span class="material-symbols-outlined text-[18px]">print</span>Print or save as PDF</button>
+        <button type="button" class="btn-secondary" data-on-click="window.print()"><span class="material-symbols-outlined text-[18px]">print</span>Print or save as PDF</button>
     </div>
 </div>
 
@@ -195,7 +195,7 @@ foreach (AccessControl::MODULES as $key => $m) {
     </main>
 </div>
 
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 (function () {
     var input = document.getElementById('guide-search');
     var cards = [].slice.call(document.querySelectorAll('[data-guide-section]'));

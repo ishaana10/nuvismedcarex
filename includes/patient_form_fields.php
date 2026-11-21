@@ -122,6 +122,7 @@ if (!$pfIds) $pfIds = [['type' => '', 'number' => '']];
 
 <hr class="border-outline-variant/20">
 
+<?php if (function_exists('nxCanViewCharts') && nxCanViewCharts()): /* clinical profile: doctors and administrators only */ ?>
 <!-- 3. Medical profile -->
 <div class="space-y-4">
     <h2 class="<?= $h2 ?>"><span class="material-symbols-outlined text-base">medical_information</span><span>3. Medical Profile & Allergies</span></h2>
@@ -149,9 +150,10 @@ if (!$pfIds) $pfIds = [['type' => '', 'number' => '']];
         </div>
     </div>
 </div>
+<?php endif; ?>
 
 <?php if (empty($GLOBALS['nxPatientFormJs'])): $GLOBALS['nxPatientFormJs'] = true; ?>
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 (function () {
     function sync(row) {
         var sel = row.querySelector('[data-id-type]'), other = row.querySelector('[data-id-other]');

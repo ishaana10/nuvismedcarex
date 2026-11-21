@@ -248,7 +248,7 @@ if ($editId === 'new') {
                                     <option value="<?= $type ?>"><?= htmlspecialchars($label) ?></option>
                                 <?php endforeach; ?>
                             </select>
-                            <button type="button" onclick="addConsentField()" class="btn-secondary !py-1.5">
+                            <button type="button" data-on-click="addConsentField()" class="btn-secondary !py-1.5">
                                 <span class="material-symbols-outlined text-[18px]">add</span>
                                 <span>Add</span>
                             </button>
@@ -280,7 +280,7 @@ if ($editId === 'new') {
             <div class="p-5 bg-slate-50/70 space-y-3">
                 <div class="flex items-center justify-between">
                     <h3 class="text-[13px] font-semibold text-slate-900">What the patient sees</h3>
-                    <button type="button" onclick="renderConsentPreview()" class="text-[12px] font-medium text-blue-700 hover:underline">Refresh</button>
+                    <button type="button" data-on-click="renderConsentPreview()" class="text-[12px] font-medium text-blue-700 hover:underline">Refresh</button>
                 </div>
                 <div id="cf-preview" class="bg-white border border-slate-200 rounded-xl p-4 space-y-3 max-h-[60vh] overflow-y-auto"></div>
             </div>
@@ -323,7 +323,7 @@ if ($editId === 'new') {
     </li>
 </template>
 
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 (function () {
     const TYPES = <?= json_encode(array_map(static fn($t) => ['label' => $t[0], 'hint' => $t[1], 'options' => $t[2], 'static' => $t[3]], ConsentForms::FIELD_TYPES), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
     const EXISTING = <?= json_encode($editing['fields'], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;

@@ -121,7 +121,7 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
             </a>
         <?php endif; ?>
 
-        <button type="button" onclick="openModal('modal-upload-document')" class="px-5 py-2.5 bg-primary text-white font-bold text-xs rounded-xl hover:bg-primary/90 transition shadow-md shadow-primary/20 flex items-center gap-2">
+        <button type="button" data-on-click="openModal('modal-upload-document')" class="px-5 py-2.5 bg-primary text-white font-bold text-xs rounded-xl hover:bg-primary/90 transition shadow-md shadow-primary/20 flex items-center gap-2">
             <span class="material-symbols-outlined text-base">add</span>
             <span>Upload Document</span>
         </button>
@@ -256,7 +256,7 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
         <div class="p-12 text-center text-outline text-xs">
             <span class="material-symbols-outlined text-4xl text-slate-300 mb-2">cloud_off</span>
             <p class="font-medium text-slate-500">No documents found matching your filter criteria.</p>
-            <button type="button" onclick="openModal('modal-upload-document')" class="mt-3 px-4 py-2 bg-primary text-white font-bold rounded-xl text-xs inline-flex items-center gap-1 shadow-xs">
+            <button type="button" data-on-click="openModal('modal-upload-document')" class="mt-3 px-4 py-2 bg-primary text-white font-bold rounded-xl text-xs inline-flex items-center gap-1 shadow-xs">
                 <span class="material-symbols-outlined text-sm">add</span> Upload First Document
             </button>
         </div>
@@ -333,7 +333,7 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
 
                             <td class="p-3.5 text-right">
                                 <div class="flex items-center justify-end gap-2">
-                                    <button type="button" onclick="openDocumentViewer('<?= htmlspecialchars($file['id']) ?>', '<?= htmlspecialchars(addslashes($file['original_name'])) ?>')" class="px-2.5 py-1 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary/90 flex items-center gap-1 shadow-xs">
+                                    <button type="button" data-on-click="openDocumentViewer('<?= htmlspecialchars($file['id']) ?>', '<?= htmlspecialchars(addslashes($file['original_name'])) ?>')" class="px-2.5 py-1 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary/90 flex items-center gap-1 shadow-xs">
                                         <span class="material-symbols-outlined text-sm">visibility</span> View Document
                                     </button>
 
@@ -363,7 +363,7 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
                 <span class="material-symbols-outlined text-primary text-xl">cloud_upload</span>
                 <h3 class="font-bold text-sm">Upload or Link Document</h3>
             </div>
-            <button type="button" onclick="closeModal('modal-upload-document')" class="text-slate-400 hover:text-white">
+            <button type="button" data-on-click="closeModal('modal-upload-document')" class="text-slate-400 hover:text-white">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
@@ -481,7 +481,7 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button type="button" id="btn-gdrive-picker" onclick="launchGoogleDrivePicker()" class="px-3 py-1.5 bg-surface-container border border-outline-variant/40 text-on-surface font-semibold text-xs rounded-xl hover:bg-surface-container-high transition flex items-center gap-1.5">
+                        <button type="button" id="btn-gdrive-picker" data-on-click="launchGoogleDrivePicker()" class="px-3 py-1.5 bg-surface-container border border-outline-variant/40 text-on-surface font-semibold text-xs rounded-xl hover:bg-surface-container-high transition flex items-center gap-1.5">
                             <span class="material-symbols-outlined text-base">add_to_drive</span>
                             <span>Pick from Google Drive</span>
                         </button>
@@ -492,7 +492,7 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
                 </div>
             </details>
 
-            <script>
+            <script nonce="<?= nxCspNonce() ?>">
             // Linking instead of uploading: the file chooser is no longer required
             (function () {
                 const form = document.getElementById('doc-upload-form');
@@ -523,7 +523,7 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
             </div>
 
             <div class="flex items-center justify-end gap-2 pt-3 border-t border-outline-variant/20">
-                <button type="button" onclick="closeModal('modal-upload-document')" class="px-4 py-2 bg-surface-container hover:bg-surface-container-high rounded-xl font-semibold text-on-surface">Cancel</button>
+                <button type="button" data-on-click="closeModal('modal-upload-document')" class="px-4 py-2 bg-surface-container hover:bg-surface-container-high rounded-xl font-semibold text-on-surface">Cancel</button>
                 <button type="submit" id="btn-doc-submit" class="px-5 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 shadow-xs flex items-center gap-1.5">
                     <span class="material-symbols-outlined text-base">cloud_upload</span>
                     <span>Submit & Save Document</span>
@@ -536,7 +536,7 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
 <!-- Modal: Cloud API Settings -->
 <!-- Google API Loader and GIS Client SDKs -->
 
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 window.gdriveClientId = <?= json_encode($cloudSettings['cloud_googledrive_client_id'] ?? '') ?>;
 window.gdriveApiKey = <?= json_encode($cloudSettings['cloud_googledrive_api_key'] ?? '') ?>;
 </script>

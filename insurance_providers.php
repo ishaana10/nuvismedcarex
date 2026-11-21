@@ -54,7 +54,7 @@ $cur = nxCurrencySymbol();
             <span>Insurance report</span>
         </a>
         <?php if ($canEdit): ?>
-            <button type="button" onclick="addProviderRow()" class="btn-primary">
+            <button type="button" data-on-click="addProviderRow()" class="btn-primary">
                 <span class="material-symbols-outlined text-[18px]">add</span>
                 <span>Add provider</span>
             </button>
@@ -120,11 +120,11 @@ $cur = nxCurrencySymbol();
                         <input type="checkbox" name="providers[<?= $i ?>][active]" <?= !empty($p['active']) ? 'checked' : '' ?> class="w-4 h-4 rounded border-slate-300" <?= $dis ?>>
                         <span>In use</span>
                     </label>
-                    <button type="button" onclick="toggleProviderDetails(this)" class="nx-icon-btn mt-5" aria-expanded="false" aria-label="Show the details for this provider" title="Details">
+                    <button type="button" data-on-click="toggleProviderDetails(this)" class="nx-icon-btn mt-5" aria-expanded="false" aria-label="Show the details for this provider" title="Details">
                         <span class="material-symbols-outlined">expand_more</span>
                     </button>
                     <?php if ($canEdit): ?>
-                        <button type="button" onclick="removeProviderRow(this)" class="nx-icon-btn mt-5" aria-label="Remove this provider" title="Remove">
+                        <button type="button" data-on-click="removeProviderRow(this)" class="nx-icon-btn mt-5" aria-label="Remove this provider" title="Remove">
                             <span class="material-symbols-outlined">delete</span>
                         </button>
                     <?php endif; ?>
@@ -191,7 +191,7 @@ $cur = nxCurrencySymbol();
     <?php if ($canEdit): ?>
         <div class="flex flex-wrap items-center gap-2 mt-5">
             <button type="submit" class="btn-primary">Save providers</button>
-            <button type="button" onclick="addProviderRow()" class="btn-secondary">Add another</button>
+            <button type="button" data-on-click="addProviderRow()" class="btn-secondary">Add another</button>
         </div>
     <?php endif; ?>
 </form>
@@ -212,10 +212,10 @@ $cur = nxCurrencySymbol();
                 <input type="checkbox" name="providers[__i__][active]" checked class="w-4 h-4 rounded border-slate-300">
                 <span>In use</span>
             </label>
-            <button type="button" onclick="toggleProviderDetails(this)" class="nx-icon-btn mt-5" aria-expanded="true" aria-label="Hide the details for this provider" title="Details">
+            <button type="button" data-on-click="toggleProviderDetails(this)" class="nx-icon-btn mt-5" aria-expanded="true" aria-label="Hide the details for this provider" title="Details">
                 <span class="material-symbols-outlined">expand_less</span>
             </button>
-            <button type="button" onclick="removeProviderRow(this)" class="nx-icon-btn mt-5" aria-label="Remove this provider" title="Remove">
+            <button type="button" data-on-click="removeProviderRow(this)" class="nx-icon-btn mt-5" aria-label="Remove this provider" title="Remove">
                 <span class="material-symbols-outlined">delete</span>
             </button>
         </div>
@@ -260,7 +260,7 @@ $cur = nxCurrencySymbol();
     </section>
 </template>
 
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 let providerIndex = <?= count($rows) ?>;
 
 function addProviderRow(name) {

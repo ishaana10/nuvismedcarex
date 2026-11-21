@@ -78,6 +78,14 @@ if (!$existing) {
     exit;
 }
 
+// The clinical profile is hidden from roles that cannot open charts; keep what is already on file.
+if (!nxCanViewCharts()) {
+    $knownAllergies    = (string) ($existing['known_allergies'] ?? '');
+    $bloodGroup        = (string) ($existing['blood_group'] ?? '');
+    $chronicConditions = (string) ($existing['chronic_conditions'] ?? '');
+    $clinicalNotes     = (string) ($existing['clinical_notes'] ?? '');
+}
+
 // Generate initials
 $initials = strtoupper(substr($firstName, 0, 1) . substr($lastName, 0, 1));
 

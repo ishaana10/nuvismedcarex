@@ -103,7 +103,7 @@ $signedAt = (string) ($record['signed_at'] ?: $record['created_at']);
 <div class="toolbar">
     <a href="clinical_visit.php?patient_id=<?= urlencode((string) $record['patient_id']) ?><?= $record['visit_id'] ? '&visit_id=' . urlencode((string) $record['visit_id']) : '' ?>">&larr; Back to the encounter</a>
     <span style="font-size:11px;color:var(--muted)">Print this, or save it as a PDF, to give the patient a copy.</span>
-    <button type="button" class="primary" onclick="window.print()">Print / Save as PDF</button>
+    <button type="button" class="primary" data-on-click="window.print()">Print / Save as PDF</button>
 </div>
 
 <div class="sheet">
@@ -208,5 +208,6 @@ $signedAt = (string) ($record['signed_at'] ?: $record['created_at']);
     </div>
 </div>
 
+<script src="assets/js/actions.js" defer></script>
 </body>
 </html>

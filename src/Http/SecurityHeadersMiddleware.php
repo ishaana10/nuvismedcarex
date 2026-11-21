@@ -27,7 +27,6 @@ class SecurityHeadersMiddleware {
         // Referrer Policy
         header('Referrer-Policy: strict-origin-when-cross-origin');
 
-        // Content Security Policy
-        header("Content-Security-Policy: default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data:; img-src 'self' https: data: blob:; font-src 'self' https: data:;");
+        // The Content-Security-Policy is sent by includes/security.php (it carries a per-request nonce).
     }
 }

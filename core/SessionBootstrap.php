@@ -7,6 +7,21 @@ if (!defined('NU_ROOT')) {
 
 require_once NU_ROOT . '/config/database.php';
 
+/**
+ * One random value per request. The Content-Security-Policy only runs script blocks that carry it,
+ * so injected markup cannot execute even if some output were ever left unescaped.
+ */
+if (!function_exists('nxCspNonce')) {
+    function nxCspNonce(): string
+    {
+        static $nonce = null;
+        if ($nonce === null) {
+            $nonce = rtrim(strtr(base64_encode(random_bytes(18)), '+/', '-_'), '=');
+        }
+        return $nonce;
+    }
+}
+
 // Clinic-local time: "today", greetings and timestamps follow the clinic, not the server.
 // Override with 'timezone' in config/config.php or the APP_TIMEZONE environment variable.
 if (!defined('NU_TIMEZONE_SET')) {

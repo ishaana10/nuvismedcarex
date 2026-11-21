@@ -191,8 +191,8 @@ $receiptNo = $cfg['number_prefix'] . $invoice['invoice_number'];
     <a href="billing.php">&larr; Billing</a>
     <span class="meta"><?= htmlspecialchars(\ClinicFlow\Services\ReceiptSettings::PAPER[$cfg['paper']] ?? '') ?><?php if (nxCan('settings', 'view')): ?> · <a href="receipt_settings.php" style="border:0;padding:0;color:#164487">Change receipt design</a><?php endif; ?></span>
     <span style="display:flex;gap:8px">
-        <button type="button" onclick="document.getElementById('email-dlg').showModal()">Email to patient</button>
-        <button type="button" class="primary" onclick="window.print()">Print</button>
+        <button type="button" data-on-click="document.getElementById('email-dlg').showModal()">Email to patient</button>
+        <button type="button" class="primary" data-on-click="window.print()">Print</button>
     </span>
 </div>
 
@@ -205,12 +205,13 @@ $receiptNo = $cfg['number_prefix'] . $invoice['invoice_number'];
         <input id="rc-email" type="email" name="email" required value="<?= htmlspecialchars($invoice['patient_email'] ?? '') ?>" placeholder="name@example.com">
         <p>Receipt <?= htmlspecialchars($receiptNo) ?> will be sent straight away.</p>
         <div class="row">
-            <button type="button" onclick="this.closest('dialog').close()" style="font:inherit;padding:9px 14px;border-radius:9px;border:1px solid #d6dde6;background:#fff">Cancel</button>
+            <button type="button" data-on-click="this.closest('dialog').close()" style="font:inherit;padding:9px 14px;border-radius:9px;border:1px solid #d6dde6;background:#fff">Cancel</button>
             <button type="submit" style="font:inherit;font-weight:600;padding:9px 14px;border-radius:9px;border:0;background:#164487;color:#fff">Send receipt</button>
         </div>
     </form>
 </dialog>
 
 <div class="wrap"><div class="rc-screen-frame"><?= nxRenderReceipt($cfg, $data) ?></div></div>
+<script src="assets/js/actions.js" defer></script>
 </body>
 </html>

@@ -24,7 +24,7 @@
                 <a id="doc-viewer-external" href="#" target="_blank" rel="noopener" class="btn-secondary !py-1.5 !px-3">
                     <span class="material-symbols-outlined text-[18px]">open_in_new</span> Open in new tab
                 </a>
-                <button type="button" onclick="closeModal('modal-document-viewer')" class="nx-icon-btn" aria-label="Close preview">
+                <button type="button" data-on-click="closeModal('modal-document-viewer')" class="nx-icon-btn" aria-label="Close preview">
                     <span class="material-symbols-outlined">close</span>
                 </button>
             </div>
@@ -35,7 +35,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 function openModal(id) {
     if (window.NX && NX.openModal) return NX.openModal(id);
     var el = document.getElementById(id);

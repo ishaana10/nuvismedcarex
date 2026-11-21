@@ -13,9 +13,11 @@ if (!headers_sent()) {
     header("X-Content-Type-Options: nosniff");
     header("X-Frame-Options: SAMEORIGIN");
     header("X-XSS-Protection: 1; mode=block");
+    // Scripts run only from this site or from a block carrying this request's nonce; inline event
+    // handlers are refused outright (pages use data-on-click, see assets/js/actions.js).
     // Everything the app needs is served from this site. The only outside hosts left are Google's,
     // for the Google Drive picker on the Documents page (sign-in script, picker script and frames).
-    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://accounts.google.com; font-src 'self'; img-src 'self' data: blob: https://*.googleusercontent.com; connect-src 'self' https://*.googleapis.com https://accounts.google.com https://apis.google.com; frame-src 'self' https://accounts.google.com https://docs.google.com https://drive.google.com https://content.googleapis.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self';");
+    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-" . nxCspNonce() . "' https://accounts.google.com https://apis.google.com; script-src-attr 'none'; style-src 'self' 'unsafe-inline' https://accounts.google.com; font-src 'self'; img-src 'self' data: blob: https://*.googleusercontent.com; connect-src 'self' https://*.googleapis.com https://accounts.google.com https://apis.google.com; frame-src 'self' https://accounts.google.com https://docs.google.com https://drive.google.com https://content.googleapis.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self';");
     header("Referrer-Policy: strict-origin-when-cross-origin");
     // Once the site is served over https, tell browsers never to fall back to plain http.
     if ((!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off') || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https') {

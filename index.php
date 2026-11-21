@@ -491,7 +491,7 @@ $canChart = nxCan('encounters', 'edit') && nxIsClinician();
     </div>
 </div>
 
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 (function () {
     var offset = <?= count($activities) ?>, loading = false;
     var btn = document.getElementById('btn-load-more-activities');

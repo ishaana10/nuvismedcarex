@@ -300,7 +300,7 @@ $clinicDefaultPageSize = (int) nxSetting('default_pagination_limit', 10);
         <section class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5">
             <h2 class="text-base font-semibold text-slate-900">Password</h2>
             <p class="text-[13px] text-slate-500 mt-0.5 mb-3">At least 8 characters, with one capital letter and one number.</p>
-            <button type="button" onclick="openChangePasswordModal()" class="btn-secondary">Change password</button>
+            <button type="button" data-on-click="openChangePasswordModal()" class="btn-secondary">Change password</button>
         </section>
 
         <section class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5">
@@ -387,7 +387,7 @@ $clinicDefaultPageSize = (int) nxSetting('default_pagination_limit', 10);
     </div>
 <?php endif; ?>
 
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 (function () {
     // Preview a picked image straight away
     document.querySelectorAll('input[type=file][accept^="image"]').forEach(function (input) {

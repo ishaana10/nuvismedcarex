@@ -105,7 +105,7 @@ arsort($paid);
     </span>
     <span style="display:flex;gap:.5rem">
         <a href="actions/zreport_export.php?<?= $zQueryString ?>">Download CSV</a>
-        <button type="button" class="primary" onclick="window.print()">Print / Save as PDF</button>
+        <button type="button" class="primary" data-on-click="window.print()">Print / Save as PDF</button>
     </span>
 </div>
 
@@ -282,5 +282,6 @@ arsort($paid);
     </div>
 </div>
 
+<script src="assets/js/actions.js" defer></script>
 </body>
 </html>

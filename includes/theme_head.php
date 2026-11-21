@@ -29,7 +29,7 @@ if ($nxUserPrefs && function_exists('nxSetting')) {
     <link rel="icon" type="image/png" href="assets/images/nuvis_mark.png"/>
 
     <!-- Apply the chosen theme before first paint (no light flash in dark mode) -->
-    <script>
+    <script nonce="<?= nxCspNonce() ?>">
       (function () {
         var saved = <?= $nxUserPrefs ? json_encode([
             'theme' => $nxUserPrefs['theme'],

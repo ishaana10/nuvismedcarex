@@ -91,7 +91,7 @@ foreach ($invoices as $inv) {
         <p class="text-xs text-outline font-medium">Patient billing and invoice management</p>
     </div>
     <div class="flex items-center gap-2">
-        <button onclick="NX.openModal('createInvoiceModal')" class="px-4 py-2 bg-primary text-on-primary rounded-xl text-xs font-bold shadow-xs hover:bg-primary-hover transition flex items-center gap-1.5">
+        <button data-on-click="NX.openModal('createInvoiceModal')" class="px-4 py-2 bg-primary text-on-primary rounded-xl text-xs font-bold shadow-xs hover:bg-primary-hover transition flex items-center gap-1.5">
             <span class="material-symbols-outlined text-base">receipt_long</span>
             Create Invoice
         </button>
@@ -101,7 +101,7 @@ foreach ($invoices as $inv) {
 <?php if (!empty($_SESSION['flash_success'])): ?>
     <div class="mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-medium flex items-center justify-between">
         <span><?= htmlspecialchars($_SESSION['flash_success']) ?></span>
-        <button onclick="this.parentElement.remove()" class="text-emerald-600 font-bold">&times;</button>
+        <button data-on-click="this.parentElement.remove()" class="text-emerald-600 font-bold">&times;</button>
     </div>
     <?php unset($_SESSION['flash_success']); ?>
 <?php endif; ?>
@@ -109,7 +109,7 @@ foreach ($invoices as $inv) {
 <?php if (!empty($_SESSION['flash_error'])): ?>
     <div class="mb-4 p-3 bg-red-50 border border-red-200 text-red-800 rounded-xl text-xs font-medium flex items-center justify-between">
         <span><?= htmlspecialchars($_SESSION['flash_error']) ?></span>
-        <button onclick="this.parentElement.remove()" class="text-red-600 font-bold">&times;</button>
+        <button data-on-click="this.parentElement.remove()" class="text-red-600 font-bold">&times;</button>
     </div>
     <?php unset($_SESSION['flash_error']); ?>
 <?php endif; ?>
@@ -293,7 +293,7 @@ $nxSignaturesReady = \ClinicFlow\Services\InsuranceService::hasSignatureSupport(
             <span class="material-symbols-outlined text-primary text-base">verified</span>
             <span>Submitted Insurance Claims</span>
         </h3>
-        <button onclick="NX.openModal('createClaimModal')" class="px-3 py-1.5 bg-primary text-white rounded-xl text-xs font-bold hover:bg-primary-hover transition flex items-center gap-1">
+        <button data-on-click="NX.openModal('createClaimModal')" class="px-3 py-1.5 bg-primary text-white rounded-xl text-xs font-bold hover:bg-primary-hover transition flex items-center gap-1">
             <span class="material-symbols-outlined text-sm">add</span>
             <span>Submit Claim</span>
         </button>
@@ -582,7 +582,7 @@ $vcTone = [
     <div class="bg-surface-container-lowest rounded-3xl border border-outline-variant/30 shadow-2xl max-w-md w-full overflow-hidden">
         <div class="p-5 bg-slate-900 text-white flex items-center justify-between">
             <h3 class="font-bold text-sm">Submit New Insurance Claim</h3>
-            <button type="button" onclick="NX.closeModal('createClaimModal')" class="text-slate-400 hover:text-white">
+            <button type="button" data-on-click="NX.closeModal('createClaimModal')" class="text-slate-400 hover:text-white">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
@@ -675,14 +675,14 @@ $vcTone = [
             </div>
 
             <div class="flex items-center justify-end gap-2 pt-3 border-t border-outline-variant/20">
-                <button type="button" onclick="NX.closeModal('createClaimModal')" class="px-4 py-2 bg-surface-container rounded-xl font-semibold">Cancel</button>
+                <button type="button" data-on-click="NX.closeModal('createClaimModal')" class="px-4 py-2 bg-surface-container rounded-xl font-semibold">Cancel</button>
                 <button type="submit" class="px-5 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90">Submit claim</button>
             </div>
         </form>
     </div>
 </div>
 
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 // Picking the invoice decides the patient, so the claim can no longer be filed
 // against whoever happened to be first in the list.
 (function () {
@@ -1012,7 +1012,7 @@ $reconOff = abs($z['reconciliation']) >= 0.01;
                 <span class="material-symbols-outlined text-primary">receipt</span>
                 New Medical Invoice
             </h2>
-            <button onclick="NX.closeModal('createInvoiceModal')" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times;</button>
+            <button data-on-click="NX.closeModal('createInvoiceModal')" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times;</button>
         </div>
 
         <form action="actions/vms_create_invoice.php" method="POST" class="space-y-4">
@@ -1021,7 +1021,7 @@ $reconOff = abs($z['reconciliation']) >= 0.01;
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block font-bold text-outline mb-1">Select Patient</label>
-                    <select name="patient_id" onchange="autoFillPatient(this)" class="w-full px-3 py-2 border border-outline-variant/40 rounded-xl bg-surface focus:ring-1 focus:ring-primary">
+                    <select name="patient_id" data-on-change="autoFillPatient(this)" class="w-full px-3 py-2 border border-outline-variant/40 rounded-xl bg-surface focus:ring-1 focus:ring-primary">
                         <option value="">-- Select Patient --</option>
                         <?php foreach ($patientsList as $p): ?>
                             <option value="<?= htmlspecialchars($p['id']) ?>" data-name="<?= htmlspecialchars($p['first_name'] . ' ' . $p['last_name']) ?>" data-mrn="<?= htmlspecialchars($p['mrn']) ?>">
@@ -1064,7 +1064,7 @@ $reconOff = abs($z['reconciliation']) >= 0.01;
             <div>
                 <div class="flex items-center justify-between mb-2">
                     <label class="font-bold text-on-surface">Invoice Line Items</label>
-                    <button type="button" onclick="addInvoiceRow()" class="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-[11px] font-bold hover:bg-emerald-700 transition">
+                    <button type="button" data-on-click="addInvoiceRow()" class="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-[11px] font-bold hover:bg-emerald-700 transition">
                         + Add Custom Row
                     </button>
                 </div>
@@ -1082,7 +1082,7 @@ $reconOff = abs($z['reconciliation']) >= 0.01;
                         <tbody class="divide-y divide-outline-variant/20">
                             <tr>
                                 <td class="py-2 px-3 space-y-1">
-                                    <select onchange="onInventoryItemSelect(this)" class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-semibold text-xs text-primary bg-white">
+                                    <select data-on-change="onInventoryItemSelect(this)" class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-semibold text-xs text-primary bg-white">
                                         <option value="">-- Choose Inventory Stock Item (Optional) --</option>
                                         <?php foreach ($inventoryList as $invItem): ?>
                                             <option value="<?= htmlspecialchars($invItem['id']) ?>"
@@ -1096,13 +1096,13 @@ $reconOff = abs($z['reconciliation']) >= 0.01;
                                     <input type="text" name="item_name[]" value="Clinical Consultation & Examination" required placeholder="Item / Service Name" class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg text-xs font-medium">
                                 </td>
                                 <td class="py-2 px-2">
-                                    <input type="number" step="0.5" name="quantity[]" value="1" oninput="recalculateBillingInvoiceTotals()" required class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-mono">
+                                    <input type="number" step="0.5" name="quantity[]" value="1" data-on-input="recalculateBillingInvoiceTotals()" required class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-mono">
                                 </td>
                                 <td class="py-2 px-2">
-                                    <input type="number" step="0.01" name="unit_price[]" value="150.00" oninput="recalculateBillingInvoiceTotals()" required class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-mono">
+                                    <input type="number" step="0.01" name="unit_price[]" value="150.00" data-on-input="recalculateBillingInvoiceTotals()" required class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-mono">
                                 </td>
                                 <td class="py-2 px-2 text-center">
-                                    <button type="button" onclick="this.closest('tr').remove(); recalculateBillingInvoiceTotals();" class="text-red-500 font-bold">&times;</button>
+                                    <button type="button" data-on-click="this.closest('tr').remove(); recalculateBillingInvoiceTotals();" class="text-red-500 font-bold">&times;</button>
                                 </td>
                             </tr>
                         </tbody>
@@ -1115,7 +1115,7 @@ $reconOff = abs($z['reconciliation']) >= 0.01;
                 <div class="flex items-center justify-between text-xs">
                     <div class="flex items-center gap-2">
                         <span class="font-bold text-outline">Tax Rate:</span>
-                        <select id="billing_tax_rate_select" onchange="recalculateBillingInvoiceTotals()" class="px-2 py-0.5 border border-outline-variant/40 rounded-lg bg-white font-bold text-xs">
+                        <select id="billing_tax_rate_select" data-on-change="recalculateBillingInvoiceTotals()" class="px-2 py-0.5 border border-outline-variant/40 rounded-lg bg-white font-bold text-xs">
                             <option value="15.00" selected>15% (VAT / Tax)</option>
                             <option value="0.00">0% (Exempt)</option>
                             <option value="9.00">9%</option>
@@ -1154,7 +1154,7 @@ $reconOff = abs($z['reconciliation']) >= 0.01;
             </div>
 
             <div class="pt-3 border-t border-outline-variant/30 flex items-center justify-end gap-2">
-                <button type="button" onclick="NX.closeModal('createInvoiceModal')" class="px-4 py-2 bg-surface-container-high text-outline rounded-xl font-bold hover:bg-surface-container-highest transition">
+                <button type="button" data-on-click="NX.closeModal('createInvoiceModal')" class="px-4 py-2 bg-surface-container-high text-outline rounded-xl font-bold hover:bg-surface-container-highest transition">
                     Cancel
                 </button>
                 <button type="submit" class="px-5 py-2 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition flex items-center gap-1.5">
@@ -1166,7 +1166,7 @@ $reconOff = abs($z['reconciliation']) >= 0.01;
     </div>
 </div>
 
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 const inventoryList = <?= json_encode($inventoryList, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
 
 function autoFillPatient(select) {
@@ -1244,20 +1244,20 @@ function addInvoiceRow() {
 
     tr.innerHTML = `
         <td class="py-2 px-3 space-y-1">
-            <select onchange="onInventoryItemSelect(this)" class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-semibold text-xs text-primary bg-white">
+            <select data-on-change="onInventoryItemSelect(this)" class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-semibold text-xs text-primary bg-white">
                 ${invOptions}
             </select>
             <input type="hidden" name="inventory_id[]" value="">
             <input type="text" name="item_name[]" placeholder="Item / Service Name" required class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg text-xs font-medium">
         </td>
         <td class="py-2 px-2">
-            <input type="number" step="0.5" name="quantity[]" value="1" oninput="recalculateBillingInvoiceTotals()" required class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-mono">
+            <input type="number" step="0.5" name="quantity[]" value="1" data-on-input="recalculateBillingInvoiceTotals()" required class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-mono">
         </td>
         <td class="py-2 px-2">
-            <input type="number" step="0.01" name="unit_price[]" value="0.00" oninput="recalculateBillingInvoiceTotals()" required class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-mono">
+            <input type="number" step="0.01" name="unit_price[]" value="0.00" data-on-input="recalculateBillingInvoiceTotals()" required class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg font-mono">
         </td>
         <td class="py-2 px-2 text-center">
-            <button type="button" onclick="this.closest('tr').remove(); recalculateBillingInvoiceTotals();" class="text-red-500 font-bold">&times;</button>
+            <button type="button" data-on-click="this.closest('tr').remove(); recalculateBillingInvoiceTotals();" class="text-red-500 font-bold">&times;</button>
         </td>
     `;
     tbody.appendChild(tr);

@@ -135,7 +135,7 @@ $digitalStamp = $doctor['digital_stamp'] ?? '';
             <a href="patient_detail.php?id=<?= htmlspecialchars($patient['id']) ?>" class="text-xs font-semibold text-slate-600 hover:text-slate-900">&larr; Back to Patient Chart</a>
             <div class="flex gap-2">
                 <a href="admin.php" class="px-3 py-2 bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-200 transition">Customize Settings</a>
-                <button onclick="window.print()" class="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition flex items-center gap-1.5 shadow-sm">
+                <button data-on-click="window.print()" class="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition flex items-center gap-1.5 shadow-sm">
                     <span class="material-symbols-outlined text-sm">print</span> Print Official Certificate
                 </button>
             </div>
@@ -392,5 +392,6 @@ $digitalStamp = $doctor['digital_stamp'] ?? '';
 <?php endif; ?>
 </div>
 
+<script src="assets/js/actions.js" defer></script>
 </body>
 </html>

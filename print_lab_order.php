@@ -131,7 +131,7 @@ foreach ($items as $item) {
                 <input type="email" name="email" value="<?= htmlspecialchars($patient['email'] ?? '') ?>" placeholder="patient@example.com" required class="px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 focus:outline-none">
                 <button type="submit" class="px-3 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-700 transition">Email Request</button>
             </form>
-            <button onclick="window.print()" class="px-4 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition">Print Lab Request</button>
+            <button data-on-click="window.print()" class="px-4 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition">Print Lab Request</button>
         </div>
     </div>
 
@@ -363,5 +363,6 @@ foreach ($items as $item) {
     </div>
 </div>
 
+<script src="assets/js/actions.js" defer></script>
 </body>
 </html>

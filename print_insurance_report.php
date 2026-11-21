@@ -145,7 +145,7 @@ $basisLabel = $insFilters['date_basis'] === 'service' ? 'by date of service' : '
     </span>
     <span style="display:flex;gap:.5rem">
         <a href="actions/insurance_report_export.php?<?= $insQueryString ?>">Download CSV</a>
-        <button type="button" class="primary" onclick="window.print()">Print / Save as PDF</button>
+        <button type="button" class="primary" data-on-click="window.print()">Print / Save as PDF</button>
     </span>
 </div>
 
@@ -327,5 +327,6 @@ $basisLabel = $insFilters['date_basis'] === 'service' ? 'by date of service' : '
     </div>
 </div>
 
+<script src="assets/js/actions.js" defer></script>
 </body>
 </html>

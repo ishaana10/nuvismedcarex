@@ -223,7 +223,7 @@ $typeLabel = $docType === 'certificate' ? 'Medical certificate' : 'Prescription'
 </form>
 
 
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 (function () {
     var form = document.getElementById('ds-form'), frame = document.getElementById('ds-frame'),
         pane = document.getElementById('ds-pane'), busy = document.getElementById('ds-busy'),

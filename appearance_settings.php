@@ -137,7 +137,7 @@ $isPreset = isset(Appearance::ACCENTS[$cfg['accent']]);
     <?php endif; ?>
 </form>
 
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 (function () {
     var custom = document.getElementById('ap-custom');
     var btn = document.getElementById('ap-prev-btn'), link = document.getElementById('ap-prev-link');

@@ -32,7 +32,7 @@ $spValue = (string) ($spValue ?? '');
     <input type="hidden" name="<?= htmlspecialchars($spName) ?>" data-sig-value value="">
 </div>
 <?php if (empty($GLOBALS['nxSignaturePadScript'])): $GLOBALS['nxSignaturePadScript'] = true; ?>
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 (function () {
     function setup(pad) {
         if (pad.dataset.sigReady) return;
