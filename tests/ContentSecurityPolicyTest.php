@@ -78,6 +78,54 @@ final class ContentSecurityPolicyTest extends TestCase
         $this->assertSame([], $missing, 'Add these to ACTIONS in assets/js/actions.js: ' . implode(', ', array_keys($missing)));
     }
 
+    /** Emails are not web pages, so they keep inline styles. */
+    private const EMAIL_FILES = ['EmailService.php', 'send_email.php', 'test_email.php', 'MonitoringService.php'];
+
+    public function testNoInlineStyleAttributesRemainInPages(): void
+    {
+        foreach ($this->phpFiles() as $f) {
+            if (in_array(basename($f), self::EMAIL_FILES, true)) {
+                continue;
+            }
+            $this->assertSame(
+                0,
+                preg_match('/\sstyle\s*=\s*["\']/i', (string) file_get_contents($f)),
+                basename($f) . ' has a style="" attribute; use data-css="..." (see assets/js/actions.js)'
+            );
+            $this->assertSame(
+                0,
+                preg_match('/<style(?![^>]*\bnonce=)[\s>]/i', (string) file_get_contents($f)),
+                basename($f) . ' has a <style> block without the nonce'
+            );
+        }
+    }
+
+    public function testThePolicyAllowsNothingFromOtherSites(): void
+    {
+        $src = (string) file_get_contents(dirname(__DIR__) . '/includes/security.php');
+        preg_match('/^.*Content-Security-Policy:.*$/m', $src, $m);
+        $policy = $m[0] ?? '';
+        $this->assertNotSame('', $policy);
+        $this->assertStringNotContainsString('http', $policy, 'the browser may only talk to this site');
+        $this->assertStringNotContainsString('unsafe-inline', $policy);
+        $this->assertStringNotContainsString('unsafe-eval', $policy);
+        $this->assertStringContainsString("style-src-attr 'none'", $policy);
+    }
+
+    public function testPagesLoadNoScriptsStylesOrImagesFromOtherSites(): void
+    {
+        foreach ($this->phpFiles() as $f) {
+            if (in_array(basename($f), self::EMAIL_FILES, true)) {
+                continue;
+            }
+            $this->assertSame(
+                0,
+                preg_match('/<(?:script|link|img|iframe)\b[^>]*\b(?:src|href)\s*=\s*["\']https?:\/\//i', (string) file_get_contents($f)),
+                basename($f) . ' loads something from another website'
+            );
+        }
+    }
+
     public function testReceptionistHasNoAccessToDocuments(): void
     {
         $pdo = new PDO('sqlite::memory:');

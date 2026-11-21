@@ -23,7 +23,7 @@ $record = (new ConsentRecords($pdo, $tenantId))->find((string) ($_GET['id'] ?? '
 
 if (!$record) {
     http_response_code(404);
-    echo '<p style="font:14px system-ui;padding:2rem">That consent record was not found.</p>';
+    echo '<p data-css="font:14px system-ui;padding:2rem">That consent record was not found.</p>';
     exit;
 }
 
@@ -43,7 +43,7 @@ $signedAt = (string) ($record['signed_at'] ?: $record['created_at']);
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= htmlspecialchars($record['form_name'] . ' — ' . $patientName) ?></title>
-<style>
+<style nonce="<?= nxCspNonce() ?>">
     :root { --accent: <?= htmlspecialchars($accent) ?>; --ink: #0f172a; --muted: #64748b; --line: #e2e8f0; }
     * { box-sizing: border-box; }
     body {
@@ -102,7 +102,7 @@ $signedAt = (string) ($record['signed_at'] ?: $record['created_at']);
 
 <div class="toolbar">
     <a href="clinical_visit.php?patient_id=<?= urlencode((string) $record['patient_id']) ?><?= $record['visit_id'] ? '&visit_id=' . urlencode((string) $record['visit_id']) : '' ?>">&larr; Back to the encounter</a>
-    <span style="font-size:11px;color:var(--muted)">Print this, or save it as a PDF, to give the patient a copy.</span>
+    <span data-css="font-size:11px;color:var(--muted)">Print this, or save it as a PDF, to give the patient a copy.</span>
     <button type="button" class="primary" data-on-click="window.print()">Print / Save as PDF</button>
 </div>
 
@@ -150,7 +150,7 @@ $signedAt = (string) ($record['signed_at'] ?: $record['created_at']);
                     <h4><?= htmlspecialchars($label) ?></h4>
                 <?php continue; endif;
                 if ($type === 'paragraph'): ?>
-                    <p style="white-space:pre-line"><?= htmlspecialchars($label) ?></p>
+                    <p data-css="white-space:pre-line"><?= htmlspecialchars($label) ?></p>
                 <?php continue; endif;
                 if ($type === 'acknowledge' || $type === 'checkbox'): ?>
                     <div class="row tick">

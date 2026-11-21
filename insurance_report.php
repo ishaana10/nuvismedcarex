@@ -251,7 +251,7 @@ $statusTone = [
                         <span class="tabular font-medium text-slate-900"><?= $cur . number_format($bucket['claimed'], 2) ?></span>
                     </div>
                     <div class="mt-1.5 h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                        <div class="h-full rounded-full <?= $tone ?>" style="width: <?= number_format(max($share, $bucket['count'] ? 2 : 0), 2) ?>%"></div>
+                        <div class="h-full rounded-full <?= $tone ?>" data-css="width: <?= number_format(max($share, $bucket['count'] ? 2 : 0), 2) ?>%"></div>
                     </div>
                     <div class="text-[11px] text-slate-500 mt-1"><?= $bucket['count'] ?> claim<?= $bucket['count'] === 1 ? '' : 's' ?></div>
                 </li>
@@ -333,7 +333,7 @@ $statusTone = [
                                                   // tile behind it is white whatever the theme, or it disappears ?>
                                             <img src="<?= htmlspecialchars($sigImage) ?>" alt="Signature of <?= htmlspecialchars($sigBy ?: 'the member') ?>"
                                                  class="h-8 max-w-[140px] object-contain object-left rounded border border-slate-300 px-1"
-                                                 style="background:#ffffff">
+                                                 data-css="background:#ffffff">
                                             <?php if ($sigBy !== '' || $sigAt !== ''): ?>
                                                 <span class="block text-[10px] text-slate-500 mt-0.5">
                                                     <?= htmlspecialchars(implode(' · ', array_filter([$sigBy, $sigAt !== '' ? nxDate($sigAt) : '']))) ?>

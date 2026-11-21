@@ -29,7 +29,7 @@ $details = !empty($token) ? $verificationService->getVerificationDetails($pdo, $
     <meta name="referrer" content="no-referrer">
     <link rel="stylesheet" href="assets/css/fonts.css"/>
     <link rel="stylesheet" href="assets/css/tailwind-public.css"/>
-    <style>
+    <style nonce="<?= nxCspNonce() ?>">
         body { font-family: "IBM Plex Sans", system-ui, sans-serif; }
     </style>
 </head>

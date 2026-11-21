@@ -132,7 +132,7 @@ CSS;
             if ($cfg['show_encounter'] && $r['ref'] !== '') $out .= '<div class="muted">Encounter ' . $e($r['ref']) . '</div>';
             $out .= '</div>';
             if ($cfg['show_payments'] || $cfg['show_cashier']) {
-                $out .= '<div' . ($thermal ? '' : ' style="text-align:right"') . '><div class="rc-label">Payment</div>';
+                $out .= '<div' . ($thermal ? '' : ' data-css="text-align:right"') . '><div class="rc-label">Payment</div>';
                 if ($cfg['show_payments']) {
                     foreach ($d['payments'] as $pm) {
                         $out .= '<div>' . $e($pm['type']) . ' <span class="num rc-strong">' . $money($pm['amount']) . '</span></div>';
@@ -188,7 +188,7 @@ CSS;
                     $qrFallbackStyle = '';
                 } catch (\Throwable $qrErr) {
                     $qrImg = '';
-                    $qrFallbackStyle = ' style="display:block"';
+                    $qrFallbackStyle = ' data-css="display:block"';
                 }
                 $left .= '<div class="rc-qr">' . $qrImg
                     . '<div>Scan to verify this<br>fiscal invoice with FRCS'
@@ -204,7 +204,7 @@ CSS;
                 $right .= '</div>';
             }
             if ($left !== '' || $right !== '') {
-                $out .= '<footer class="rc-foot"><div style="display:flex;gap:12px;align-items:center">' . $left . '</div>' . $right . '</footer>';
+                $out .= '<footer class="rc-foot"><div data-css="display:flex;gap:12px;align-items:center">' . $left . '</div>' . $right . '</footer>';
             }
             if ($cfg['footer_note'] !== '') $out .= '<div class="rc-note">' . $e($cfg['footer_note']) . '</div>';
             $out .= '</div>';

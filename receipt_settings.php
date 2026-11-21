@@ -54,7 +54,7 @@ $dis = $canEdit ? '' : 'disabled';
                     <?php foreach (ReceiptSettings::ACCENTS as $hex => $name): ?>
                         <label class="relative cursor-pointer" title="<?= htmlspecialchars($name) ?>">
                             <input type="radio" name="accent_choice" value="<?= $hex ?>" class="peer sr-only" <?= strtoupper($rc['accent']) === $hex ? 'checked' : '' ?> <?= $dis ?>>
-                            <span class="block w-8 h-8 rounded-full ring-2 ring-offset-2 ring-transparent peer-checked:ring-slate-900 peer-focus-visible:ring-blue-500" style="background: <?= $hex ?>"></span>
+                            <span class="block w-8 h-8 rounded-full ring-2 ring-offset-2 ring-transparent peer-checked:ring-slate-900 peer-focus-visible:ring-blue-500" data-css="background: <?= $hex ?>"></span>
                             <span class="sr-only"><?= htmlspecialchars($name) ?></span>
                         </label>
                     <?php endforeach; ?>
@@ -176,7 +176,7 @@ $dis = $canEdit ? '' : 'disabled';
             <h2 class="text-[13px] font-semibold text-slate-700">Preview <span class="font-normal text-slate-500">· sample patient</span></h2>
             <span class="text-xs text-slate-500" id="pv-state" aria-live="polite"></span>
         </div>
-        <iframe id="rc-preview" title="Receipt preview" class="w-full h-[calc(100vh-150px)] min-h-[560px] rounded-2xl border border-slate-200 bg-[#e9edf2]"></iframe>
+        <iframe id="rc-preview" name="rc-preview" sandbox="allow-same-origin allow-scripts" title="Receipt preview" class="w-full h-[calc(100vh-150px)] min-h-[560px] rounded-2xl border border-slate-200 bg-[#e9edf2]"></iframe>
     </div>
 </form>
 
@@ -204,13 +204,16 @@ $dis = $canEdit ? '' : 'disabled';
         if (status) status.textContent = dirty ? 'Unsaved changes — the preview shows them' : 'All changes saved';
     }
     function render() {
-        var mine = ++seq;
+        // Load the preview as its own page inside the frame (it carries its own security policy),
+        // by posting the form there for a moment.
         state.textContent = 'Updating…';
-        fetch('print_receipt.php?preview=1', { method: 'POST', body: new FormData(form), credentials: 'same-origin' })
-            .then(function (r) { return r.text(); })
-            .then(function (html) { if (mine === seq) { frame.srcdoc = html; state.textContent = ''; } })
-            .catch(function () { state.textContent = 'Preview unavailable'; });
+        var a = form.getAttribute('action'), t = form.getAttribute('target');
+        form.setAttribute('action', 'print_receipt.php?preview=1'); form.setAttribute('target', 'rc-preview');
+        form.submit();
+        if (a === null) form.removeAttribute('action'); else form.setAttribute('action', a);
+        if (t === null) form.removeAttribute('target'); else form.setAttribute('target', t);
     }
+    frame.addEventListener('load', function () { state.textContent = ''; });
     function changed() { refresh(); clearTimeout(timer); timer = setTimeout(render, 250); }
 
     form.querySelectorAll('input[name=accent_choice]').forEach(function (r) {

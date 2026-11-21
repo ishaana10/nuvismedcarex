@@ -116,7 +116,7 @@ $digitalStamp = $doctor['digital_stamp'] ?? '';
     <title>Medical Certificate - <?= htmlspecialchars($patient['first_name'] . ' ' . $patient['last_name']) ?></title>
     <link rel="stylesheet" href="assets/css/fonts.css"/>
     <link rel="stylesheet" href="assets/css/tailwind-public.css"/>
-    <style>
+    <style nonce="<?= nxCspNonce() ?>">
         @media print {
             .no-print { display: none !important; }
             body { background: white; padding: 0; }
@@ -167,7 +167,7 @@ $digitalStamp = $doctor['digital_stamp'] ?? '';
         (string) ($cert['recommendations'] ?? ''),
     ])));
 ?>
-    <style>
+    <style nonce="<?= nxCspNonce() ?>">
         .cf { background:#fff; padding:28px 34px 26px; border:1px solid #cbd5e1; border-radius:6px; color:#1e293b; font-family: <?= $certFontStack ?>; }
         .cf-head { display:flex; align-items:center; gap:18px; }
         .cf-head .cf-mid { flex:1; text-align:center; min-width:0; }
@@ -192,10 +192,10 @@ $digitalStamp = $doctor['digital_stamp'] ?? '';
         .cf-wm { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:90px; font-weight:800; color:rgba(100,116,139,.08); transform:rotate(-24deg); pointer-events:none; }
         @media print { .cf { border:none; padding:0; } }
     </style>
-    <div class="cf" style="position:relative">
+    <div class="cf" data-css="position:relative">
         <?php if (!empty($certCfg['watermark'])): ?><div class="cf-wm"><?= htmlspecialchars($certCfg['watermark']) ?></div><?php endif; ?>
         <div class="cf-head">
-            <?php if ($certCaduceus): ?><img src="<?= htmlspecialchars($certCaduceus) ?>" alt="" style="width:78px;height:auto;flex:none"><?php endif; ?>
+            <?php if ($certCaduceus): ?><img src="<?= htmlspecialchars($certCaduceus) ?>" alt="" data-css="width:78px;height:auto;flex:none"><?php endif; ?>
             <div class="cf-mid">
                 <div class="cf-name"><?= htmlspecialchars($clinicName) ?></div>
                 <?php if ($fDocLine !== ''): ?><div class="cf-docline"><?= htmlspecialchars($fDocLine) ?></div><?php endif; ?>
@@ -204,7 +204,7 @@ $digitalStamp = $doctor['digital_stamp'] ?? '';
                     <div class="cf-consult-in"><?= htmlspecialchars($certCfg['consultation_in'] !== '' ? $certCfg['consultation_in'] : $certSubtitle) ?></div>
                 <?php endif; ?>
             </div>
-            <?php if ($certLogo): ?><img src="<?= htmlspecialchars($certLogo) ?>" alt="Clinic logo" style="width:<?= $certLogoW ?>px;height:auto;flex:none;object-fit:contain"><?php endif; ?>
+            <?php if ($certLogo): ?><img src="<?= htmlspecialchars($certLogo) ?>" alt="Clinic logo" data-css="width:<?= $certLogoW ?>px;height:auto;flex:none;object-fit:contain"><?php endif; ?>
         </div>
         <?php
             $fLeft = []; $fRight = [];
@@ -236,7 +236,7 @@ $digitalStamp = $doctor['digital_stamp'] ?? '';
         <?php endif; ?>
 
         <?php if (!empty($certCfg['show_dates'])): ?>
-        <div class="cf-line cf-small"><span>ii) Gives history of illness from:</span><span class="cf-fill" style="max-width:230px"><?= htmlspecialchars($fmtDate($cert['illness_from'] ?? '')) ?></span></div>
+        <div class="cf-line cf-small"><span>ii) Gives history of illness from:</span><span class="cf-fill" data-css="max-width:230px"><?= htmlspecialchars($fmtDate($cert['illness_from'] ?? '')) ?></span></div>
         <?php endif; ?>
         <div class="cf-two">
             <?php if (!empty($certCfg['show_dates'])): ?>
@@ -246,23 +246,23 @@ $digitalStamp = $doctor['digital_stamp'] ?? '';
             <div class="cf-line cf-small"><span>iv) Review</span><span class="cf-fill"><?= htmlspecialchars($fmtDate($cert['review_on'] ?? '')) ?></span></div>
             <?php endif; ?>
         </div>
-        <div class="cf-line cf-small"><span>Comments:</span><span class="cf-fill" style="font-size:16px"><?= htmlspecialchars($fComments) ?></span></div>
+        <div class="cf-line cf-small"><span>Comments:</span><span class="cf-fill" data-css="font-size:16px"><?= htmlspecialchars($fComments) ?></span></div>
 
         <div class="cf-sign">
             <div>
                 <?php if (!empty($certCfg['show_stamp']) && !empty($digitalStamp)): ?>
-                    <img src="<?= htmlspecialchars(nxMediaUrl($digitalStamp)) ?>" style="max-height:120px;max-width:200px;object-fit:contain" alt="Official Digital Stamp">
+                    <img src="<?= htmlspecialchars(nxMediaUrl($digitalStamp)) ?>" data-css="max-height:120px;max-width:200px;object-fit:contain" alt="Official Digital Stamp">
                 <?php endif; ?>
             </div>
-            <div style="width:300px;font-size:13px">
+            <div data-css="width:300px;font-size:13px">
                 <?php if (!empty($certCfg['show_signature']) && !empty($esignature)): ?>
-                    <img src="<?= htmlspecialchars(nxMediaUrl($esignature)) ?>" style="max-height:70px;max-width:220px;object-fit:contain;display:block;margin-bottom:-14px;position:relative" alt="E-Signature">
+                    <img src="<?= htmlspecialchars(nxMediaUrl($esignature)) ?>" data-css="max-height:70px;max-width:220px;object-fit:contain;display:block;margin-bottom:-14px;position:relative" alt="E-Signature">
                 <?php endif; ?>
-                <div style="border-bottom:1px solid #1e293b;padding-bottom:2px">Signature:</div>
-                <div style="margin-top:3px;font-weight:600"><?= htmlspecialchars((string) $cert['doctor_name']) ?></div>
-                <?php if (!empty($certCfg['show_license']) && $prcNo): ?><div style="font-size:11px;color:#64748b">Licence No: <?= htmlspecialchars($prcNo) ?></div><?php endif; ?>
+                <div data-css="border-bottom:1px solid #1e293b;padding-bottom:2px">Signature:</div>
+                <div data-css="margin-top:3px;font-weight:600"><?= htmlspecialchars((string) $cert['doctor_name']) ?></div>
+                <?php if (!empty($certCfg['show_license']) && $prcNo): ?><div data-css="font-size:11px;color:#64748b">Licence No: <?= htmlspecialchars($prcNo) ?></div><?php endif; ?>
                 <?php if (!empty($certCfg['show_consult_date'])): ?>
-                <div style="border-bottom:1px solid #1e293b;padding-bottom:2px;margin-top:10px">Date of Consult: <span style="font-weight:600"><?= htmlspecialchars($fmtDate($cert['issue_date'] ?? '')) ?></span></div>
+                <div data-css="border-bottom:1px solid #1e293b;padding-bottom:2px;margin-top:10px">Date of Consult: <span data-css="font-weight:600"><?= htmlspecialchars($fmtDate($cert['issue_date'] ?? '')) ?></span></div>
                 <?php endif; ?>
             </div>
         </div>
@@ -275,15 +275,15 @@ $digitalStamp = $doctor['digital_stamp'] ?? '';
     <div class="cert-box bg-white p-10 rounded-2xl shadow-xl border-2 border-slate-900 relative">
 
         <!-- Clinic Branding Header -->
-        <div class="pb-6 mb-8 flex items-center gap-4" style="border-bottom: 2px solid <?= htmlspecialchars($certAccent) ?>; font-family: <?= $certFontStack ?>;">
+        <div class="pb-6 mb-8 flex items-center gap-4" data-css="border-bottom: 2px solid <?= htmlspecialchars($certAccent) ?>; font-family: <?= $certFontStack ?>;">
             <?php if ($certCaduceus): ?>
-                <img src="<?= htmlspecialchars($certCaduceus) ?>" alt="" style="width: 64px; height: auto" class="object-contain shrink-0">
+                <img src="<?= htmlspecialchars($certCaduceus) ?>" alt="" data-css="width: 64px; height: auto" class="object-contain shrink-0">
             <?php endif; ?>
             <div class="text-center flex-1 min-w-0">
             <?php if ($certLogo): ?>
-                <img src="<?= htmlspecialchars($certLogo) ?>" alt="Clinic logo" style="width: <?= $certLogoW + 20 ?>px" class="object-contain mx-auto mb-2">
+                <img src="<?= htmlspecialchars($certLogo) ?>" alt="Clinic logo" data-css="width: <?= $certLogoW + 20 ?>px" class="object-contain mx-auto mb-2">
             <?php endif; ?>
-            <h1 class="text-3xl font-extrabold uppercase tracking-tight" style="color: <?= htmlspecialchars($certAccent) ?>"><?= htmlspecialchars($clinicName) ?></h1>
+            <h1 class="text-3xl font-extrabold uppercase tracking-tight" data-css="color: <?= htmlspecialchars($certAccent) ?>"><?= htmlspecialchars($clinicName) ?></h1>
             <?php if (!empty($certSubtitle)): ?><p class="text-sm font-semibold text-slate-700 mt-1"><?= htmlspecialchars($certSubtitle) ?></p><?php endif; ?>
             <?php
             $certContact = [];
@@ -293,7 +293,7 @@ $digitalStamp = $doctor['digital_stamp'] ?? '';
             if (!empty($certCfg['show_website']) && $clinicWebsite) $certContact[] = htmlspecialchars($clinicWebsite);
             if ($certContact): ?><p class="text-xs text-slate-500 mt-1"><?= implode(' • ', $certContact) ?></p><?php endif; ?>
             </div>
-            <?php if ($certCaduceus): ?><div style="width: 64px" class="shrink-0" aria-hidden="true"></div><?php endif; ?>
+            <?php if ($certCaduceus): ?><div data-css="width: 64px" class="shrink-0" aria-hidden="true"></div><?php endif; ?>
         </div>
 
         <!-- Document Title & Control No -->
@@ -379,7 +379,7 @@ $digitalStamp = $doctor['digital_stamp'] ?? '';
                     <img src="<?= htmlspecialchars(nxMediaUrl($esignature)) ?>" class="max-h-24 max-w-[220px] object-contain mx-auto -mb-4 relative z-10" alt="E-Signature">
                 <?php endif; ?>
 
-                <div class="border-b border-slate-900 pb-1 mb-2 font-serif text-lg font-bold italic" style="color: <?= htmlspecialchars($certAccent) ?>">
+                <div class="border-b border-slate-900 pb-1 mb-2 font-serif text-lg font-bold italic" data-css="color: <?= htmlspecialchars($certAccent) ?>">
                     <?= htmlspecialchars($cert['doctor_name']) ?>
                 </div>
                 <p class="font-bold text-slate-900 text-sm"><?= htmlspecialchars($cert['doctor_name']) ?>, M.D.</p>

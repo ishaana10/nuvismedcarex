@@ -68,5 +68,5 @@ if ($nxUserPrefs && function_exists('nxSetting')) {
     <!-- Utility classes: pre-built from tailwind.config.js (npm run build:css), no in-browser compiler -->
     <link rel="stylesheet" href="assets/css/tailwind.css?v=<?= $nxAssetVersion ?>"/>
 <?php if ($nxAccentCss !== ''): ?>
-    <style id="nx-clinic-accent"><?= $nxAccentCss /* built from a validated #RRGGBB, never user text */ ?></style>
+    <style nonce="<?= nxCspNonce() ?>" id="nx-clinic-accent"><?= $nxAccentCss /* built from a validated #RRGGBB, never user text */ ?></style>
 <?php endif; ?>

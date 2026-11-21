@@ -481,7 +481,7 @@ $tones = [
                                 <div class="text-[13px] text-slate-900"><?= htmlspecialchars($row['category']) ?></div>
                                 <?php if ($row['low'] > 0): ?><div class="text-[11px] text-amber-700"><?= $row['low'] ?> need reordering</div><?php endif; ?>
                                 <div class="mt-1.5 h-1.5 w-full max-w-[200px] rounded-full bg-slate-100 overflow-hidden">
-                                    <div class="h-full rounded-full bg-blue-600" style="width: <?= $maxVal > 0 ? round($row['retail_value'] / $maxVal * 100) : 0 ?>%"></div>
+                                    <div class="h-full rounded-full bg-blue-600" data-css="width: <?= $maxVal > 0 ? round($row['retail_value'] / $maxVal * 100) : 0 ?>%"></div>
                                 </div>
                             </td>
                             <td class="py-3 px-3 text-right text-[13px] text-slate-700 tabular"><?= number_format($row['items']) ?></td>

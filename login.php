@@ -38,7 +38,7 @@ $expired = isset($_GET['expired']);
         <div class="flex-1 flex items-center">
             <div class="w-full max-w-[400px] mx-auto py-10">
                 <div class="flex items-center justify-between mb-8">
-                    <img src="assets/images/NuvisMedcareX_banner.webp" alt="Nuvis Medcare X" style="margin-left:-18px" class="h-20 sm:h-24 w-auto shrink-0 object-contain mix-blend-multiply dark:mix-blend-normal dark:bg-white dark:rounded-xl dark:px-3 dark:py-1">
+                    <img src="assets/images/NuvisMedcareX_banner.webp" alt="Nuvis Medcare X" data-css="margin-left:-18px" class="h-20 sm:h-24 w-auto shrink-0 object-contain mix-blend-multiply dark:mix-blend-normal dark:bg-white dark:rounded-xl dark:px-3 dark:py-1">
                     <img src="assets/images/caduceus_logo.png" alt="" aria-hidden="true" width="401" height="459" class="h-14 sm:h-20 w-auto object-contain shrink ml-2 min-w-0">
                 </div>
                 <h1 class="text-[28px] leading-tight font-semibold tracking-tight text-slate-900">Sign in to your clinic</h1>
@@ -109,7 +109,7 @@ $expired = isset($_GET['expired']);
     <!-- Brand panel -->
     <aside class="hidden lg:block relative overflow-hidden bg-blue-900">
         <img src="assets/images/NuvisMedcareX_login_sidepanel.webp" alt="" class="absolute inset-0 w-full h-full object-cover object-top">
-        <div class="absolute inset-0" style="background: linear-gradient(180deg, rgb(10 29 63 / 0) 40%, rgb(10 29 63 / .88) 100%);"></div>
+        <div class="absolute inset-0" data-css="background: linear-gradient(180deg, rgb(10 29 63 / 0) 40%, rgb(10 29 63 / .88) 100%);"></div>
         <div class="absolute bottom-0 left-0 right-0 p-12 text-white max-w-xl">
             <p class="text-[26px] leading-snug font-semibold tracking-tight">Patient records, appointments, prescriptions and fiscal billing in one place.</p>
             <p class="mt-3 text-sm text-white/70">Built for clinics in Fiji and the Pacific, with FRCS VMS invoicing built in.</p>

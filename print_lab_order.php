@@ -107,7 +107,7 @@ foreach ($items as $item) {
     <title>Lab Request - <?= htmlspecialchars($patient['first_name'] . ' ' . $patient['last_name']) ?></title>
     <link rel="stylesheet" href="assets/css/fonts.css"/>
     <link rel="stylesheet" href="assets/css/tailwind-public.css"/>
-    <style>
+    <style nonce="<?= nxCspNonce() ?>">
         @media print {
             .no-print { display: none !important; }
             body { background: white; padding: 0; margin: 0; }

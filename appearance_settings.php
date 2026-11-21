@@ -42,7 +42,7 @@ $isPreset = isset(Appearance::ACCENTS[$cfg['accent']]);
                 <label class="cursor-pointer">
                     <input type="radio" name="accent_choice" value="<?= $hex ?>" class="sr-only peer" data-accent <?= $cfg['accent'] === $hex ? 'checked' : '' ?> <?= $dis ?>>
                     <span class="flex flex-col items-center gap-1.5 w-20 rounded-xl border border-slate-200 p-2 peer-checked:ring-2 peer-checked:ring-blue-600 peer-focus-visible:ring-2 peer-focus-visible:ring-blue-600">
-                        <span class="w-9 h-9 rounded-full border border-black/10" style="background: <?= $hex ?>"></span>
+                        <span class="w-9 h-9 rounded-full border border-black/10" data-css="background: <?= $hex ?>"></span>
                         <span class="text-[11px] font-medium text-slate-700 text-center leading-tight"><?= htmlspecialchars($name) ?></span>
                     </span>
                 </label>
@@ -55,8 +55,8 @@ $isPreset = isset(Appearance::ACCENTS[$cfg['accent']]);
         </div>
         <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 flex flex-wrap items-center gap-3" aria-label="Preview">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Preview</span>
-            <span id="ap-prev-btn" class="inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold text-white" style="background: <?= htmlspecialchars($cfg['accent']) ?>">Register patient</span>
-            <span id="ap-prev-link" class="text-sm font-semibold underline" style="color: <?= htmlspecialchars($cfg['accent']) ?>">Open schedule</span>
+            <span id="ap-prev-btn" class="inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold text-white" data-css="background: <?= htmlspecialchars($cfg['accent']) ?>">Register patient</span>
+            <span id="ap-prev-link" class="text-sm font-semibold underline" data-css="color: <?= htmlspecialchars($cfg['accent']) ?>">Open schedule</span>
         </div>
     </section>
 

@@ -55,7 +55,7 @@ if ($file['storage_provider'] === 'googledrive') {
             <head>
                 <meta charset="UTF-8">
                 <title><?= htmlspecialchars($file['original_name']) ?> - Document Viewer</title>
-                <style>
+                <style nonce="<?= nxCspNonce() ?>">
                     body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background-color: #0f172a; font-family: sans-serif; }
                     iframe { width: 100%; height: 100%; border: none; }
                 </style>

@@ -40,7 +40,6 @@
     flushRedisCache: 1,
     generateApiKeyPrompt: 1,
     initializeGitRepo: 1,
-    launchGoogleDrivePicker: 1,
     nxAlertAudience: 1,
     nxDismissDevAlert: 1,
     nxToggleInsuranceOther: 1,
@@ -240,6 +239,38 @@
       node = node.parentElement;
     }
   }
+
+  // ---- data-css: per-element styles ------------------------------------------------------------
+  // The policy refuses style="" attributes, so templates write data-css="width: 40%; color: #333"
+  // and the values are applied here through the style API (allowed). Anything that could fetch
+  // from another place (url(), @import, expression) is ignored.
+  var BAD_CSS = /url\s*\(|expression|@import|javascript:|behaviou?r/i;
+  function applyCss(el) {
+    var src = el.getAttribute('data-css');
+    if (!src || BAD_CSS.test(src)) return;
+    src.split(';').forEach(function (decl) {
+      var k = decl.indexOf(':');
+      if (k < 1) return;
+      var prop = decl.slice(0, k).trim().toLowerCase(), val = decl.slice(k + 1).trim(), pri = '';
+      if (!/^(--)?[a-z][a-z0-9-]*$/.test(prop) || !val) return;
+      if (/!\s*important$/i.test(val)) { val = val.replace(/!\s*important$/i, '').trim(); pri = 'important'; }
+      el.style.setProperty(prop, val, pri);
+    });
+  }
+  function applyCssTree(root) {
+    if (root.nodeType !== 1) return;
+    if (root.hasAttribute('data-css')) applyCss(root);
+    var list = root.querySelectorAll('[data-css]');
+    for (var i = 0; i < list.length; i++) applyCss(list[i]);
+  }
+  applyCssTree(document.documentElement);
+  document.addEventListener('DOMContentLoaded', function () { applyCssTree(document.documentElement); });
+  new MutationObserver(function (muts) {
+    muts.forEach(function (m) {
+      for (var i = 0; i < m.addedNodes.length; i++) applyCssTree(m.addedNodes[i]);
+      if (m.type === 'attributes') applyCss(m.target);
+    });
+  }).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-css'] });
 
   ['click', 'change', 'input', 'submit', 'keyup'].forEach(function (t) { document.addEventListener(t, handle, false); });
   document.addEventListener('error', handle, true);

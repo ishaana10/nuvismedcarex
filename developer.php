@@ -831,7 +831,7 @@ $fmtBytes = function ($b) {
                     <?php if ($monApp['disk_pct'] !== null): ?>
                     <div>
                         <div class="flex justify-between"><dt class="text-slate-500">Disk used</dt><dd class="font-bold <?= $monApp['disk_pct'] >= 90 ? 'text-rose-600' : 'text-slate-800' ?>"><?= $monApp['disk_pct'] ?>%</dd></div>
-                        <div class="h-1.5 rounded-full bg-slate-100 mt-1 overflow-hidden"><div class="h-full <?= $monApp['disk_pct'] >= 90 ? 'bg-rose-500' : 'bg-primary' ?>" style="width: <?= min(100, $monApp['disk_pct']) ?>%"></div></div>
+                        <div class="h-1.5 rounded-full bg-slate-100 mt-1 overflow-hidden"><div class="h-full <?= $monApp['disk_pct'] >= 90 ? 'bg-rose-500' : 'bg-primary' ?>" data-css="width: <?= min(100, $monApp['disk_pct']) ?>%"></div></div>
                         <div class="text-[10px] text-slate-400 mt-0.5"><?= $fmtBytes($monApp['disk_free']) ?> free of <?= $fmtBytes($monApp['disk_total']) ?></div>
                     </div>
                     <?php endif; ?>

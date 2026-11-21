@@ -157,7 +157,7 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
         </div>
         <!-- Storage Usage Progress Bar -->
         <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-1">
-            <div class="h-full rounded-full transition-all duration-500 <?= $storageUsage['percentage'] > 85 ? 'bg-red-500' : ($storageUsage['percentage'] > 60 ? 'bg-amber-500' : 'bg-primary') ?>" style="width: <?= max(2, $storageUsage['percentage']) ?>%"></div>
+            <div class="h-full rounded-full transition-all duration-500 <?= $storageUsage['percentage'] > 85 ? 'bg-red-500' : ($storageUsage['percentage'] > 60 ? 'bg-amber-500' : 'bg-primary') ?>" data-css="width: <?= max(2, $storageUsage['percentage']) ?>%"></div>
         </div>
     </div>
 
@@ -480,15 +480,6 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
                             <input id="gdrive_file_name" type="text" name="gdrive_file_name" placeholder="Blood panel, Oct 2026.pdf" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-medium text-on-surface">
                         </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <button type="button" id="btn-gdrive-picker" data-on-click="launchGoogleDrivePicker()" class="px-3 py-1.5 bg-surface-container border border-outline-variant/40 text-on-surface font-semibold text-xs rounded-xl hover:bg-surface-container-high transition flex items-center gap-1.5">
-                            <span class="material-symbols-outlined text-base">add_to_drive</span>
-                            <span>Pick from Google Drive</span>
-                        </button>
-                        <span id="gdrive-status-label" class="text-[10px] text-slate-500"></span>
-                    </div>
-                    <input type="hidden" id="gdrive_file_id" name="gdrive_file_id">
-                    <input type="hidden" id="gdrive_access_token" name="gdrive_access_token">
                 </div>
             </details>
 
@@ -515,7 +506,7 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
                     <span id="doc-upload-percentage" class="font-mono font-bold text-emerald-400">0%</span>
                 </div>
                 <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                    <div id="doc-upload-bar" class="h-full bg-emerald-500 rounded-full transition-all duration-200" style="width: 0%"></div>
+                    <div id="doc-upload-bar" class="h-full bg-emerald-500 rounded-full transition-all duration-200" data-css="width: 0%"></div>
                 </div>
                 <div id="doc-upload-console" class="font-mono text-[11px] text-slate-300 bg-slate-950 p-2 rounded-lg border border-slate-800 h-16 overflow-y-auto leading-relaxed">
                     [System Console] Upload initiated...
@@ -534,11 +525,8 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
 </div>
 
 <!-- Modal: Cloud API Settings -->
-<!-- Google API Loader and GIS Client SDKs -->
 
 <script nonce="<?= nxCspNonce() ?>">
-window.gdriveClientId = <?= json_encode($cloudSettings['cloud_googledrive_client_id'] ?? '') ?>;
-window.gdriveApiKey = <?= json_encode($cloudSettings['cloud_googledrive_api_key'] ?? '') ?>;
 </script>
 <script src="assets/js/uploads.js?v=<?= urlencode(AppVersion::get('commit')) ?>"></script>
 

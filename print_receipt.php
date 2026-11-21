@@ -57,7 +57,7 @@ if ($isPreview) {
     ?><!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Receipt preview</title>
-<style><?= nxReceiptCss($cfg) ?>
+<style nonce="<?= nxCspNonce() ?>"><?= nxReceiptCss($cfg) ?>
 body{margin:0;padding:20px 12px;background:#e9edf2;font-family:system-ui,sans-serif}
 .rc-screen-frame{box-shadow:0 8px 30px rgb(15 43 92 / .14);border-radius:6px;overflow:hidden;margin:0 auto;width:max-content;max-width:100%}
 .pv-err{max-width:520px;margin:0 auto 12px;padding:10px 12px;border-radius:8px;background:#fdf2f1;color:#962b1f;font-size:13px;border:1px solid #f7c4be}
@@ -167,7 +167,7 @@ $receiptNo = $cfg['number_prefix'] . $invoice['invoice_number'];
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($receiptNo . ' · ' . $clinic['name']) ?></title>
     <link rel="stylesheet" href="assets/css/fonts.css">
-    <style>
+    <style nonce="<?= nxCspNonce() ?>">
         <?= nxReceiptCss($cfg) ?>
         body { margin: 0; background: #e9edf2; font-family: "IBM Plex Sans", system-ui, sans-serif; color: #1b2430; }
         .bar { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; padding: 10px 16px; background: #fff; border-bottom: 1px solid #d6dde6; }
@@ -189,8 +189,8 @@ $receiptNo = $cfg['number_prefix'] . $invoice['invoice_number'];
 <body>
 <div class="bar no-print">
     <a href="billing.php">&larr; Billing</a>
-    <span class="meta"><?= htmlspecialchars(\ClinicFlow\Services\ReceiptSettings::PAPER[$cfg['paper']] ?? '') ?><?php if (nxCan('settings', 'view')): ?> · <a href="receipt_settings.php" style="border:0;padding:0;color:#164487">Change receipt design</a><?php endif; ?></span>
-    <span style="display:flex;gap:8px">
+    <span class="meta"><?= htmlspecialchars(\ClinicFlow\Services\ReceiptSettings::PAPER[$cfg['paper']] ?? '') ?><?php if (nxCan('settings', 'view')): ?> · <a href="receipt_settings.php" data-css="border:0;padding:0;color:#164487">Change receipt design</a><?php endif; ?></span>
+    <span data-css="display:flex;gap:8px">
         <button type="button" data-on-click="document.getElementById('email-dlg').showModal()">Email to patient</button>
         <button type="button" class="primary" data-on-click="window.print()">Print</button>
     </span>
@@ -205,8 +205,8 @@ $receiptNo = $cfg['number_prefix'] . $invoice['invoice_number'];
         <input id="rc-email" type="email" name="email" required value="<?= htmlspecialchars($invoice['patient_email'] ?? '') ?>" placeholder="name@example.com">
         <p>Receipt <?= htmlspecialchars($receiptNo) ?> will be sent straight away.</p>
         <div class="row">
-            <button type="button" data-on-click="this.closest('dialog').close()" style="font:inherit;padding:9px 14px;border-radius:9px;border:1px solid #d6dde6;background:#fff">Cancel</button>
-            <button type="submit" style="font:inherit;font-weight:600;padding:9px 14px;border-radius:9px;border:0;background:#164487;color:#fff">Send receipt</button>
+            <button type="button" data-on-click="this.closest('dialog').close()" data-css="font:inherit;padding:9px 14px;border-radius:9px;border:1px solid #d6dde6;background:#fff">Cancel</button>
+            <button type="submit" data-css="font:inherit;font-weight:600;padding:9px 14px;border-radius:9px;border:0;background:#164487;color:#fff">Send receipt</button>
         </div>
     </form>
 </dialog>

@@ -931,7 +931,7 @@ $reconOff = abs($z['reconciliation']) >= 0.01;
                             <span class="tabular font-medium text-slate-900"><?= $cur . number_format((float) $amount, 2) ?></span>
                         </div>
                         <div class="mt-1.5 h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                            <div class="h-full rounded-full <?= $type === 'Insurance / third party' ? 'bg-violet-500' : 'bg-blue-600' ?>" style="width: <?= number_format(max($share, 2), 2) ?>%"></div>
+                            <div class="h-full rounded-full <?= $type === 'Insurance / third party' ? 'bg-violet-500' : 'bg-blue-600' ?>" data-css="width: <?= number_format(max($share, 2), 2) ?>%"></div>
                         </div>
                     </li>
                 <?php endforeach;

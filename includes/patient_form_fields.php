@@ -71,14 +71,14 @@ if (!$pfIds) $pfIds = [['type' => '', 'number' => '']];
                 $t = (string) $row['type'];
                 $isOther = $t !== '' && !in_array($t, $idTypes, true); ?>
                 <div class="flex flex-wrap items-center gap-2" data-id-row>
-                    <select name="id_type[]" class="<?= $sel ?>" style="width:12rem;max-width:100%" data-id-type aria-label="ID type">
+                    <select name="id_type[]" class="<?= $sel ?>" data-css="width:12rem;max-width:100%" data-id-type aria-label="ID type">
                         <option value="">Choose type…</option>
                         <?php foreach ($idTypes as $opt): ?>
                             <option value="<?= htmlspecialchars($opt) ?>" <?= ($t === $opt || ($isOther && $opt === 'Other')) ? 'selected' : '' ?>><?= htmlspecialchars($opt) ?></option>
                         <?php endforeach; ?>
                     </select>
-                    <input type="text" name="id_other[]" value="<?= $isOther ? htmlspecialchars($t) : '' ?>" maxlength="60" placeholder="Name of this ID" aria-label="Name of this ID" data-id-other class="<?= $inp ?> <?= $isOther ? '' : 'hidden' ?>" style="width:11rem;max-width:100%">
-                    <input type="text" name="id_number[]" value="<?= htmlspecialchars((string) $row['number']) ?>" maxlength="60" placeholder="ID number" aria-label="ID number" class="<?= $inp ?> font-mono" style="flex:1 1 10rem;width:auto;min-width:0">
+                    <input type="text" name="id_other[]" value="<?= $isOther ? htmlspecialchars($t) : '' ?>" maxlength="60" placeholder="Name of this ID" aria-label="Name of this ID" data-id-other class="<?= $inp ?> <?= $isOther ? '' : 'hidden' ?>" data-css="width:11rem;max-width:100%">
+                    <input type="text" name="id_number[]" value="<?= htmlspecialchars((string) $row['number']) ?>" maxlength="60" placeholder="ID number" aria-label="ID number" class="<?= $inp ?> font-mono" data-css="flex:1 1 10rem;width:auto;min-width:0">
                     <button type="button" data-id-remove class="px-2 py-2 text-slate-400 hover:text-red-600" aria-label="Remove this ID"><span class="material-symbols-outlined text-[18px]">close</span></button>
                 </div>
             <?php endforeach; ?>

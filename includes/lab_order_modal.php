@@ -229,7 +229,7 @@ $labCategories = [
                         <span id="lab-upload-percentage" class="font-mono font-bold text-emerald-400">0%</span>
                     </div>
                     <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                        <div id="lab-upload-bar" class="h-full bg-emerald-500 rounded-full transition-all duration-200" style="width: 0%"></div>
+                        <div id="lab-upload-bar" class="h-full bg-emerald-500 rounded-full transition-all duration-200" data-css="width: 0%"></div>
                     </div>
                     <div id="lab-upload-console" class="font-mono text-[10px] text-slate-300 bg-slate-950 p-1.5 rounded border border-slate-800 h-12 overflow-y-auto leading-tight">
                         [Lab Console] Upload stream started...

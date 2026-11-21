@@ -97,7 +97,7 @@ $patientOwed = (float)($invoice['patient_owed'] ?? max(0, $grandTotal - $insuran
     <title>Commercial Invoice <?= htmlspecialchars($invoice['invoice_number']) ?> - <?= htmlspecialchars($clinicName) ?></title>
     <link rel="stylesheet" href="assets/css/fonts.css"/>
     <link rel="stylesheet" href="assets/css/tailwind-public.css"/>
-    <style>
+    <style nonce="<?= nxCspNonce() ?>">
         body { font-family: "IBM Plex Sans", system-ui, sans-serif; }
         @media print {
             .no-print { display: none !important; }

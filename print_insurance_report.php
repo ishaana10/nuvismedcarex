@@ -69,7 +69,7 @@ $basisLabel = $insFilters['date_basis'] === 'service' ? 'by date of service' : '
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= htmlspecialchars($insLayout['title'] . ' — ' . $clinic['name']) ?></title>
-<style>
+<style nonce="<?= nxCspNonce() ?>">
     :root { --accent: <?= htmlspecialchars($accent) ?>; --ink: #0f172a; --muted: #64748b; --line: #e2e8f0; }
     * { box-sizing: border-box; }
     body {
@@ -140,10 +140,10 @@ $basisLabel = $insFilters['date_basis'] === 'service' ? 'by date of service' : '
 
 <div class="toolbar">
     <a href="insurance_report.php?<?= $insQueryString ?>">&larr; Back to the report</a>
-    <span style="font-size:11px;color:var(--muted)">
+    <span data-css="font-size:11px;color:var(--muted)">
         Use your browser's print dialogue and choose “Save as PDF” to send this on.
     </span>
-    <span style="display:flex;gap:.5rem">
+    <span data-css="display:flex;gap:.5rem">
         <a href="actions/insurance_report_export.php?<?= $insQueryString ?>">Download CSV</a>
         <button type="button" class="primary" data-on-click="window.print()">Print / Save as PDF</button>
     </span>
