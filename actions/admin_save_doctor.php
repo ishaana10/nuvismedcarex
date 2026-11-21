@@ -90,8 +90,14 @@ if (!in_array($role, $assignable, true)) {
     exit;
 }
 
-$docId = 'doc-' . time();
-$passHash = password_hash($password !== '' ? $password : bin2hex(random_bytes(6)), PASSWORD_DEFAULT);
+if ($password !== '' && ($pwProblem = nxPasswordProblem($password)) !== null) {
+    setToast('Weak password', $pwProblem, 'error');
+    header('Location: ' . $back);
+    exit;
+}
+
+$docId = 'doc-' . bin2hex(random_bytes(6));
+$passHash = password_hash($password !== '' ? $password : bin2hex(random_bytes(12)), PASSWORD_DEFAULT);
 
 try {
     $stmt = $pdo->prepare("INSERT INTO doctors (id, tenant_id, name, specialty, email, password_hash, role, color, dot_color_class) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");

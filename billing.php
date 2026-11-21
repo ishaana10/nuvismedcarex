@@ -1238,7 +1238,7 @@ function addInvoiceRow() {
     if (Array.isArray(inventoryList)) {
         inventoryList.forEach(item => {
             const price = parseFloat(item.unit_price) || 0;
-            invOptions += `<option value="${item.id}" data-name="${item.name}" data-price="${price}">${item.name} ($${price.toFixed(2)})</option>`;
+            invOptions += `<option value="${nxEsc(item.id)}" data-name="${nxEsc(item.name)}" data-price="${price}">${nxEsc(item.name)} ($${price.toFixed(2)})</option>`;
         });
     }
 

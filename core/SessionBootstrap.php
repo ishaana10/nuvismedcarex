@@ -27,6 +27,8 @@ if (session_status() === PHP_SESSION_NONE) {
     // Refuse session IDs the server did not create (blocks session fixation).
     ini_set('session.use_strict_mode', '1');
     ini_set('session.use_only_cookies', '1');
+    // Keep file-based sessions at least as long as the inactivity timeout so PHP's cleanup does not cut them short or leave them lying around much longer.
+    ini_set('session.gc_maxlifetime', (string) max(1800, (int) ((getAppConfig()['sessionTimeout'] ?? 1800))));
     session_set_cookie_params([
         'lifetime' => 0,
         'path' => '/',

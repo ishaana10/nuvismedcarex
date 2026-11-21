@@ -214,8 +214,8 @@ class EncounterService {
 
         if (!empty($finalizeOptions['create_invoice'])) {
             $billingService = new BillingService($this->db);
-            $pStmt = $this->db->prepare("SELECT * FROM patients WHERE id = ?");
-            $pStmt->execute([$patientId]);
+            $pStmt = $this->db->prepare("SELECT * FROM patients WHERE id = ? AND tenant_id = ?");
+            $pStmt->execute([$patientId, $tenantId]);
             $patient = $pStmt->fetch(PDO::FETCH_ASSOC);
 
             if ($patient) {

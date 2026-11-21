@@ -2642,9 +2642,9 @@ function refreshGitStatus() {
         }
 
         if (d.success) {
-            consoleBox.innerHTML = `<span class="text-emerald-400 font-bold">✔ Git Repository Active</span>\nBranch: ${d.branch || 'main'}\n\n${d.status}`;
+            consoleBox.innerHTML = `<span class="text-emerald-400 font-bold">✔ Git Repository Active</span>\nBranch: ${escapeHtml(d.branch || 'main')}\n\n${escapeHtml(d.status)}`;
         } else {
-            consoleBox.innerHTML = `<span class="text-amber-400 font-bold">⚠ Git Repository Not Linked or Unreachable</span>\n\n${d.status || d.error || 'Repository not initialized.'}`;
+            consoleBox.innerHTML = `<span class="text-amber-400 font-bold">⚠ Git Repository Not Linked or Unreachable</span>\n\n${escapeHtml(d.status || d.error || 'Repository not initialized.')}`;
         }
     })
     .catch(err => {
@@ -2689,11 +2689,11 @@ function triggerGitPull() {
     .then(d => {
         if (d.success) {
             alert('Git pull completed successfully!');
-            consoleBox.innerHTML = `<span class="text-emerald-400 font-bold">✔ Git Pull Successful</span>\n\n${d.output}`;
+            consoleBox.innerHTML = `<span class="text-emerald-400 font-bold">✔ Git Pull Successful</span>\n\n${escapeHtml(d.output)}`;
             loadGitHistory();
         } else {
             alert('Git pull failed: ' + (d.error || 'Unknown error'));
-            consoleBox.innerHTML = `<span class="text-red-400 font-bold">❌ Git Pull Error</span>\n\n${d.error || 'Pull failed'}`;
+            consoleBox.innerHTML = `<span class="text-red-400 font-bold">❌ Git Pull Error</span>\n\n${escapeHtml(d.error || 'Pull failed')}`;
         }
     });
 }
@@ -2749,15 +2749,15 @@ function loadGitHistory() {
             list.innerHTML = d.commits.map(c => `
                 <div class="p-3 rounded-xl bg-surface-container-low border border-outline-variant/30 text-xs">
                     <div class="flex items-center justify-between mb-1">
-                        <span class="font-mono font-bold text-primary">${c.hash}</span>
-                        <span class="text-[10px] text-outline">${c.date}</span>
+                        <span class="font-mono font-bold text-primary">${escapeHtml(c.hash)}</span>
+                        <span class="text-[10px] text-outline">${escapeHtml(c.date)}</span>
                     </div>
-                    <p class="font-bold text-on-surface">${c.message}</p>
-                    <p class="text-[10px] text-slate-500 mt-0.5">Author: ${c.author}</p>
+                    <p class="font-bold text-on-surface">${escapeHtml(c.message)}</p>
+                    <p class="text-[10px] text-slate-500 mt-0.5">Author: ${escapeHtml(c.author)}</p>
                 </div>
             `).join('');
         } else {
-            list.innerHTML = `<p class="text-slate-500 italic p-3">${d.error || 'No commits found.'}</p>`;
+            list.innerHTML = `<p class="text-slate-500 italic p-3">${escapeHtml(d.error || 'No commits found.')}</p>`;
         }
     });
 }
@@ -2883,6 +2883,7 @@ function uploadVsdcCertificate(e) {
     const form = e.target;
     const formData = new FormData(form);
     formData.append('action', 'upload_certificate');
+    formData.append('csrf_token', <?= json_encode(getCsrfToken()) ?>);
 
     fetch('actions/vms_actions.php', {
         method: 'POST',

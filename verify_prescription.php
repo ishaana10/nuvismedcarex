@@ -9,6 +9,13 @@ use ClinicFlow\Services\PrescriptionVerificationService;
 $token = trim($_GET['token'] ?? '');
 $pdo = getDB();
 
+// Public page: slow down anyone trying token after token.
+if ($token !== '' && !nxThrottle('verify-ip:' . ($_SERVER['REMOTE_ADDR'] ?? 'x'), 40, 600)) {
+    http_response_code(429);
+    header('Retry-After: 600');
+    exit('Too many verification attempts from this connection. Please wait a few minutes and try again.');
+}
+
 $verificationService = new PrescriptionVerificationService();
 $details = !empty($token) ? $verificationService->getVerificationDetails($pdo, $token) : null;
 ?>
@@ -18,6 +25,8 @@ $details = !empty($token) ? $verificationService->getVerificationDetails($pdo, $
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prescription Verification | Nuvis Medcare X</title>
+    <meta name="robots" content="noindex,nofollow">
+    <meta name="referrer" content="no-referrer">
     <link rel="stylesheet" href="assets/css/fonts.css"/>
     <link rel="stylesheet" href="assets/css/tailwind-public.css"/>
     <style>

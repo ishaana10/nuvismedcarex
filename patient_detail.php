@@ -530,10 +530,10 @@ function openPastVisitModal(pv) {
     } catch(e) {}
 
     if (vitals && Object.keys(vitals).length > 0) {
-        if (vitals.blood_pressure) vitalsHtml += `<div><span class="text-[10px] text-slate-400 block font-sans font-semibold">BP</span><span>${vitals.blood_pressure}</span></div>`;
-        if (vitals.heart_rate) vitalsHtml += `<div><span class="text-[10px] text-slate-400 block font-sans font-semibold">HR</span><span>${vitals.heart_rate} bpm</span></div>`;
-        if (vitals.temperature) vitalsHtml += `<div><span class="text-[10px] text-slate-400 block font-sans font-semibold">Temp</span><span>${vitals.temperature} °F</span></div>`;
-        if (vitals.oxygen_sat) vitalsHtml += `<div><span class="text-[10px] text-slate-400 block font-sans font-semibold">SpO2</span><span>${vitals.oxygen_sat}%</span></div>`;
+        if (vitals.blood_pressure) vitalsHtml += `<div><span class="text-[10px] text-slate-400 block font-sans font-semibold">BP</span><span>${nxEsc(vitals.blood_pressure)}</span></div>`;
+        if (vitals.heart_rate) vitalsHtml += `<div><span class="text-[10px] text-slate-400 block font-sans font-semibold">HR</span><span>${nxEsc(vitals.heart_rate)} bpm</span></div>`;
+        if (vitals.temperature) vitalsHtml += `<div><span class="text-[10px] text-slate-400 block font-sans font-semibold">Temp</span><span>${nxEsc(vitals.temperature)} °F</span></div>`;
+        if (vitals.oxygen_sat) vitalsHtml += `<div><span class="text-[10px] text-slate-400 block font-sans font-semibold">SpO2</span><span>${nxEsc(vitals.oxygen_sat)}%</span></div>`;
     } else {
         vitalsHtml = '<p class="col-span-4 text-slate-400 font-sans italic text-xs">No vitals saved for this visit record.</p>';
     }
@@ -565,9 +565,9 @@ function openPastVisitModal(pv) {
         prescriptions.forEach(rx => {
             rxHtml += `
                 <div class="p-2.5 rounded-xl bg-white border border-slate-200">
-                    <p class="font-bold text-slate-800">${rx.medication_name || ''} <span class="text-primary font-mono">${rx.dosage || ''}</span></p>
-                    <p class="text-[11px] text-slate-500 mt-0.5">${rx.frequency || ''} • ${rx.duration || ''}</p>
-                    ${rx.instructions ? `<p class="text-[10px] text-slate-600 italic mt-0.5">${rx.instructions}</p>` : ''}
+                    <p class="font-bold text-slate-800">${nxEsc(rx.medication_name)} <span class="text-primary font-mono">${nxEsc(rx.dosage)}</span></p>
+                    <p class="text-[11px] text-slate-500 mt-0.5">${nxEsc(rx.frequency)} • ${nxEsc(rx.duration)}</p>
+                    ${rx.instructions ? `<p class="text-[10px] text-slate-600 italic mt-0.5">${nxEsc(rx.instructions)}</p>` : ''}
                 </div>
             `;
         });
@@ -585,7 +585,7 @@ function openPastVisitModal(pv) {
                         <span class="material-symbols-outlined text-sm">check_circle</span>
                         <span>Invoiced</span>
                     </button>
-                    <a href="print_invoice.php?id=${pv.invoice_id}" target="_blank" class="px-4 py-2 bg-emerald-600 text-white font-bold text-xs rounded-xl hover:bg-emerald-700 transition flex items-center gap-1.5 shadow-xs">
+                    <a href="print_invoice.php?id=${encodeURIComponent(pv.invoice_id)}" target="_blank" class="px-4 py-2 bg-emerald-600 text-white font-bold text-xs rounded-xl hover:bg-emerald-700 transition flex items-center gap-1.5 shadow-xs">
                         <span class="material-symbols-outlined text-sm">receipt</span>
                         <span>View Invoice</span>
                     </a>
@@ -821,7 +821,7 @@ function addPastInvoiceRow() {
         pastInventoryList.forEach(item => {
             const price = parseFloat(item.unit_price) || 0;
             const tax = item.vms_tax_code || 'A';
-            invOptions += `<option value="${item.id}" data-name="${item.name}" data-sku="${item.sku}" data-price="${price}" data-tax="${tax}">${item.name} ($${price.toFixed(2)})</option>`;
+            invOptions += `<option value="${nxEsc(item.id)}" data-name="${nxEsc(item.name)}" data-sku="${nxEsc(item.sku)}" data-price="${price}" data-tax="${nxEsc(tax)}">${nxEsc(item.name)} ($${price.toFixed(2)})</option>`;
         });
     }
 

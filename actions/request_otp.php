@@ -28,6 +28,14 @@ if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
     exit;
 }
 
+// Each request sends an email, so cap them per address and per connection
+// (otherwise this form can be used to flood someone's inbox or the clinic's mail quota).
+if (!nxThrottle('otp-mail:' . strtolower($email), 3, 900) || !nxThrottle('otp-ip:' . $clientIp, 10, 900)) {
+    setToast('Too Many Requests', 'Too many codes were requested. Please wait 15 minutes before asking again.', 'error');
+    header("Location: ../forgot_password.php");
+    exit;
+}
+
 $pdo = getDB();
 $stmt = $pdo->prepare("SELECT * FROM doctors WHERE LOWER(email) = LOWER(?) LIMIT 1");
 $stmt->execute([$email]);

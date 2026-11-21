@@ -40,8 +40,8 @@ class LocationService
     public function getLocation(string $id): ?array
     {
         try {
-            $stmt = $this->db->prepare("SELECT * FROM clinic_locations WHERE id = ? LIMIT 1");
-            $stmt->execute([$id]);
+            $stmt = $this->db->prepare("SELECT * FROM clinic_locations WHERE id = ? AND tenant_id = ? LIMIT 1");
+            $stmt->execute([$id, \ClinicFlow\Shared\TenantContext::getTenantId()]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             return $row ?: null;
         } catch (\Throwable $e) {

@@ -15,8 +15,13 @@ if (!headers_sent()) {
     header("X-XSS-Protection: 1; mode=block");
     // Everything the app needs is served from this site. The only outside hosts left are Google's,
     // for the Google Drive picker on the Documents page (sign-in script, picker script and frames).
-    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://accounts.google.com; font-src 'self'; img-src 'self' data: blob: https://*.googleusercontent.com; connect-src 'self' https://*.googleapis.com https://accounts.google.com https://apis.google.com; frame-src 'self' https://accounts.google.com https://docs.google.com https://drive.google.com https://content.googleapis.com; object-src 'none'; base-uri 'self';");
+    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://accounts.google.com; font-src 'self'; img-src 'self' data: blob: https://*.googleusercontent.com; connect-src 'self' https://*.googleapis.com https://accounts.google.com https://apis.google.com; frame-src 'self' https://accounts.google.com https://docs.google.com https://drive.google.com https://content.googleapis.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self';");
     header("Referrer-Policy: strict-origin-when-cross-origin");
+    // Once the site is served over https, tell browsers never to fall back to plain http.
+    if ((!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off') || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https') {
+        header("Strict-Transport-Security: max-age=31536000; includeSubDomains");
+    }
+    header("Cross-Origin-Opener-Policy: same-origin");
     // Dictation needs the microphone; nothing embedded here ever should.
     header("Permissions-Policy: microphone=(self)");
 }
@@ -69,6 +74,43 @@ function validateCsrfRequest(): void {
  * Keyed digest of a password-reset OTP, so the DB never holds usable codes.
  * 10 hex chars fits the existing password_resets.otp VARCHAR(10) column.
  */
+/** Why a password is not acceptable, or null when it is fine. One rule for every place a password is set. */
+function nxPasswordProblem(string $pw): ?string {
+    if (strlen($pw) < 10 || !preg_match('/[A-Z]/', $pw) || !preg_match('/[a-z]/', $pw) || !preg_match('/[0-9]/', $pw)) {
+        return 'Use at least 10 characters with a capital letter, a small letter and a number.';
+    }
+    if (strlen($pw) > 200) {
+        return 'That password is too long (200 characters at most).';
+    }
+    $plain = strtolower(preg_replace('/[^a-z]/i', '', $pw));
+    if (in_array($plain, ['password', 'passw', 'qwerty', 'welcome', 'letmein', 'admin', 'administrator', 'clinic', 'nuvis'], true)) {
+        return 'That password is too easy to guess. Choose something less common.';
+    }
+    return null;
+}
+
+/**
+ * Allow at most $max events per $seconds for a named bucket (for example one email
+ * address), counting this call. Stored in the database so clearing cookies does not reset it.
+ * Fails open if the table is unavailable, so a database hiccup never locks everyone out.
+ */
+function nxThrottle(string $bucket, int $max, int $seconds): bool {
+    try {
+        $pdo = getDB();
+        $cut = date('Y-m-d H:i:s', time() - $seconds);
+        $st = $pdo->prepare("SELECT COUNT(*) FROM login_attempts WHERE ip_address = 'throttle' AND email = ? AND attempted_at > ?");
+        $st->execute([$bucket, $cut]);
+        if ((int) $st->fetchColumn() >= $max) {
+            return false;
+        }
+        $pdo->prepare("INSERT INTO login_attempts (id, ip_address, email, attempted_at) VALUES (?, 'throttle', ?, ?)")
+            ->execute([\ClinicFlow\Utils\Uuid::uuidv7(), $bucket, date('Y-m-d H:i:s')]);
+    } catch (\Throwable $e) {
+        error_log('[throttle] ' . $e->getMessage());
+    }
+    return true;
+}
+
 function nxOtpDigest(string $otp): string {
     return substr(hash_hmac('sha256', 'pwreset|' . $otp, \ClinicFlow\Utils\Encryption::getKey()), 0, 10);
 }
@@ -118,8 +160,9 @@ function requireAuth(): void {
         exit;
     }
 
-    // Inactivity timeout check (2 hours = 7200s)
-    $maxInactivity = 7200;
+    // Signed out after this long without a request. 30 minutes by default (clinic PCs get left
+    // unattended); a clinic can change it with 'sessionTimeout' in config/config.php.
+    $maxInactivity = max(300, (int) (getAppConfig()['sessionTimeout'] ?? 1800));
     if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > $maxInactivity)) {
         session_unset();
         session_destroy();

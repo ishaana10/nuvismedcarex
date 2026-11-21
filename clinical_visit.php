@@ -1170,7 +1170,7 @@ function addFinalizeRow() {
         items.forEach(item => {
             const price = parseFloat(item.unit_price) || 0;
             const tax = item.vms_tax_code || 'A';
-            invOptions += `<option value="${item.id}" data-name="${item.name}" data-sku="${item.sku}" data-price="${price}" data-tax="${tax}">${item.name} ($${price.toFixed(2)})</option>`;
+            invOptions += `<option value="${nxEsc(item.id)}" data-name="${nxEsc(item.name)}" data-sku="${nxEsc(item.sku)}" data-price="${price}" data-tax="${nxEsc(tax)}">${nxEsc(item.name)} ($${price.toFixed(2)})</option>`;
         });
     }
 

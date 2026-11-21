@@ -230,7 +230,7 @@ class FileUploadService
 
         // Allowed extensions validation
         $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'csv', 'zip'];
-        if (!empty($extension) && !in_array($extension, $allowedExtensions, true)) {
+        if ($extension === "" || !in_array($extension, $allowedExtensions, true)) {
             throw new RuntimeException("Unsupported file type extension: .$extension");
         }
 
@@ -404,7 +404,7 @@ class FileUploadService
         $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
 
         $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'csv', 'zip'];
-        if (!empty($extension) && !in_array($extension, $allowedExtensions, true)) {
+        if ($extension === "" || !in_array($extension, $allowedExtensions, true)) {
             throw new RuntimeException("Unsupported file type extension: .$extension");
         }
 
@@ -533,7 +533,7 @@ class FileUploadService
         $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
 
         $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'csv', 'zip'];
-        if (!empty($extension) && !in_array($extension, $allowedExtensions, true)) {
+        if ($extension === "" || !in_array($extension, $allowedExtensions, true)) {
             throw new RuntimeException("Unsupported file type extension: .$extension");
         }
 
