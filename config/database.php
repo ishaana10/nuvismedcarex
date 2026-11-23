@@ -1,4 +1,12 @@
 <?php
+
+// Errors go to the server log, never to the browser (they can reveal paths, queries and keys).
+// Set NUVIS_DEBUG=1 on a development machine to see them on screen.
+if (getenv('NUVIS_DEBUG') !== '1') {
+    @ini_set('display_errors', '0');
+    @ini_set('display_startup_errors', '0');
+}
+
 /**
  * Database Configuration & Connection Manager
  * Dynamically loads credentials from config/config.php or environment variables

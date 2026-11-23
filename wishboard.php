@@ -62,7 +62,7 @@ function nx_wish_dt($v): string {
                 : 'Tell the Nuvis team what would make the system better. Track where each idea stands and when it\'s expected.' ?>
         </p>
     </div>
-    <button type="button" onclick="openModal('modal-new-wish')" class="btn-primary self-start md:self-auto">
+    <button type="button" data-on-click="openModal('modal-new-wish')" class="btn-primary self-start md:self-auto">
         <span class="material-symbols-outlined text-[20px]">add</span>
         <span><?= $isDeveloper ? 'Log a wish' : 'Submit a wish' ?></span>
     </button>
@@ -240,7 +240,7 @@ function nx_wish_dt($v): string {
                 <h3 class="font-semibold text-base text-slate-900">Submit a feature wish</h3>
                 <p class="text-xs text-slate-500 mt-0.5">Describe what you'd like and why it would help your clinic.</p>
             </div>
-            <button type="button" onclick="closeModal('modal-new-wish')" class="nx-icon-btn -mr-2 -mt-1" aria-label="Close"><span class="material-symbols-outlined">close</span></button>
+            <button type="button" data-on-click="closeModal('modal-new-wish')" class="nx-icon-btn -mr-2 -mt-1" aria-label="Close"><span class="material-symbols-outlined">close</span></button>
         </div>
         <form action="actions/wishboard_actions.php" method="POST" class="px-6 pb-6 space-y-4">
             <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
@@ -272,7 +272,7 @@ function nx_wish_dt($v): string {
                 </div>
             </div>
             <div class="flex items-center justify-end gap-2 pt-2">
-                <button type="button" onclick="closeModal('modal-new-wish')" class="btn-secondary">Cancel</button>
+                <button type="button" data-on-click="closeModal('modal-new-wish')" class="btn-secondary">Cancel</button>
                 <button type="submit" class="btn-primary">Submit wish</button>
             </div>
         </form>

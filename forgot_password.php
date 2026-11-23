@@ -103,7 +103,7 @@ $email = sanitizeInput($_GET['email'] ?? '');
     </main>
     <div class="text-xs text-slate-500">&copy; <?= date('Y') ?> Nuvis Technologies</div>
 </div>
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 (function () {
     var f = document.getElementById('reset-form');
     if (!f) return;

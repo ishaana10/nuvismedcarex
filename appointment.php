@@ -382,7 +382,7 @@ if ($action === 'edit' && !empty($editApptId)) {
 </div>
 
 
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 // Patient picker: searches this clinic's patients as you type, so it works with any number of patients.
 (function () {
     var q = document.getElementById('pp-q'), id = document.getElementById('pp-id'), list = document.getElementById('pp-list'), msg = document.getElementById('pp-msg');

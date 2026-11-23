@@ -52,13 +52,13 @@ if (!function_exists('nxRenderDevAlerts')) {
                         <?php endif; ?>
                     </div>
                     <button type="button" class="shrink-0 nx-icon-btn -mr-1 -mt-1 opacity-70 hover:opacity-100"
-                            title="Dismiss" onclick="nxDismissDevAlert('<?= htmlspecialchars($a['id']) ?>', this)">
+                            title="Dismiss" data-on-click="nxDismissDevAlert('<?= htmlspecialchars($a['id']) ?>', this)">
                         <span class="material-symbols-outlined text-[18px]">close</span>
                     </button>
                 </div>
             <?php endforeach; ?>
         </div>
-        <script>
+        <script nonce="<?= nxCspNonce() ?>">
         function nxDismissDevAlert(id, btn) {
             var banner = btn.closest('.nx-dev-alert');
             if (banner) banner.style.display = 'none';

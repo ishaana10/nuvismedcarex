@@ -106,7 +106,7 @@ $verificationUrl = $rxVerificationService->getVerificationUrl($verificationToken
     <title>Prescription - <?= htmlspecialchars($patient['first_name'] . ' ' . $patient['last_name']) ?></title>
     <link rel="stylesheet" href="assets/css/fonts.css"/>
     <link rel="stylesheet" href="assets/css/tailwind-public.css"/>
-    <style>
+    <style nonce="<?= nxCspNonce() ?>">
         @page { size: A4; margin: 10mm; }
         @media print {
             .no-print { display: none !important; }
@@ -136,21 +136,21 @@ $verificationUrl = $rxVerificationService->getVerificationUrl($verificationToken
                 <input type="email" name="email" value="<?= htmlspecialchars($patient['email'] ?? '') ?>" placeholder="patient@example.com" required class="px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 focus:outline-none">
                 <button type="submit" class="px-3 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-700 transition">Email Rx</button>
             </form>
-            <button onclick="window.print()" class="px-4 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition">Print Rx</button>
+            <button data-on-click="window.print()" class="px-4 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition">Print Rx</button>
         </div>
     </div>
 
 <?php endif; ?>
 
     <!-- Customized Clinic Header -->
-    <div class="pb-4 mb-6 flex justify-between items-start" style="border-bottom: 2px solid <?= htmlspecialchars($rxAccent) ?>; font-family: <?= $rxFontStack ?>;">
+    <div class="pb-4 mb-6 flex justify-between items-start" data-css="border-bottom: 2px solid <?= htmlspecialchars($rxAccent) ?>; font-family: <?= $rxFontStack ?>;">
         <div class="flex items-center gap-3 <?= $rxCfg['logo_align'] === 'center' ? 'mx-auto text-center flex-col' : '' ?>">
             <?php if ($rxLogo): ?>
-                <img src="<?= htmlspecialchars($rxLogo) ?>" alt="Clinic logo" style="width: <?= $rxLogoW ?>px" class="object-contain shrink-0">
+                <img src="<?= htmlspecialchars($rxLogo) ?>" alt="Clinic logo" data-css="width: <?= $rxLogoW ?>px" class="object-contain shrink-0">
             <?php endif; ?>
             <div>
-                <h1 class="text-2xl font-bold uppercase tracking-tight" style="color: <?= htmlspecialchars($rxAccent) ?>"><?= htmlspecialchars($clinicName) ?></h1>
-                <?php if (!empty($rxSubtitle)): ?><p class="text-xs font-medium" style="color: <?= htmlspecialchars($rxAccent) ?>"><?= htmlspecialchars($rxSubtitle) ?></p><?php endif; ?>
+                <h1 class="text-2xl font-bold uppercase tracking-tight" data-css="color: <?= htmlspecialchars($rxAccent) ?>"><?= htmlspecialchars($clinicName) ?></h1>
+                <?php if (!empty($rxSubtitle)): ?><p class="text-xs font-medium" data-css="color: <?= htmlspecialchars($rxAccent) ?>"><?= htmlspecialchars($rxSubtitle) ?></p><?php endif; ?>
                 <?php
                 $rxContact = [];
                 if (!empty($rxCfg['show_address']) && $clinicAddress) $rxContact[] = htmlspecialchars($clinicAddress);
@@ -161,7 +161,7 @@ $verificationUrl = $rxVerificationService->getVerificationUrl($verificationToken
             </div>
         </div>
         <div class="text-right shrink-0">
-            <?php if (!empty($rxCfg['show_rx_symbol'])): ?><span class="text-2xl font-serif font-bold" style="color: <?= htmlspecialchars($rxAccent) ?>">℞</span><?php endif; ?>
+            <?php if (!empty($rxCfg['show_rx_symbol'])): ?><span class="text-2xl font-serif font-bold" data-css="color: <?= htmlspecialchars($rxAccent) ?>">℞</span><?php endif; ?>
             <p class="text-xs text-slate-500 font-mono mt-1">Date: <?= date($rxDateFmt) ?></p>
         </div>
     </div>
@@ -202,14 +202,14 @@ $verificationUrl = $rxVerificationService->getVerificationUrl($verificationToken
     <div class="mb-5">
         <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200 pb-2 mb-3">Prescribed Medication Details</h2>
         <?php $rxDense = count($prescriptions) > 5; // more than 5 medicines: tighten further so it stays on one page ?>
-        <div style="display:flex;flex-direction:column;gap:<?= $rxDense ? '4px' : '8px' ?>">
+        <div data-css="display:flex;flex-direction:column;gap:<?= $rxDense ? '4px' : '8px' ?>">
             <?php foreach ($prescriptions as $index => $rx): ?>
-                <div class="rounded-lg bg-slate-50 border border-slate-200" style="break-inside:avoid;padding:<?= $rxDense ? '4px 10px' : '8px 12px' ?>">
+                <div class="rounded-lg bg-slate-50 border border-slate-200" data-css="break-inside:avoid;padding:<?= $rxDense ? '4px 10px' : '8px 12px' ?>">
                     <div class="flex justify-between items-baseline gap-3">
-                        <span class="font-bold text-slate-900" style="font-size:<?= $rxDense ? '12px' : '14px' ?>"><?= ($index + 1) ?>. <?= htmlspecialchars($rx['medication_name']) ?></span>
-                        <span class="font-mono font-bold text-blue-800 shrink-0" style="font-size:<?= $rxDense ? '11px' : '13px' ?>"><?= htmlspecialchars($rx['dosage']) ?></span>
+                        <span class="font-bold text-slate-900" data-css="font-size:<?= $rxDense ? '12px' : '14px' ?>"><?= ($index + 1) ?>. <?= htmlspecialchars($rx['medication_name']) ?></span>
+                        <span class="font-mono font-bold text-blue-800 shrink-0" data-css="font-size:<?= $rxDense ? '11px' : '13px' ?>"><?= htmlspecialchars($rx['dosage']) ?></span>
                     </div>
-                    <div class="text-slate-700" style="font-size:<?= $rxDense ? '10px' : '11px' ?>;margin-top:2px;display:flex;flex-wrap:wrap;column-gap:14px">
+                    <div class="text-slate-700" data-css="font-size:<?= $rxDense ? '10px' : '11px' ?>;margin-top:2px;display:flex;flex-wrap:wrap;column-gap:14px">
                         <span><strong>Frequency:</strong> <?= htmlspecialchars($rx['frequency']) ?></span>
                         <span><strong>Duration:</strong> <?= htmlspecialchars($rx['duration']) ?></span>
                         <?php if (!empty($rx['instructions'])): ?>
@@ -257,7 +257,7 @@ $verificationUrl = $rxVerificationService->getVerificationUrl($verificationToken
             <?php if (!empty($rxCfg['show_signature']) && !empty($attendingDoc['esignature'])): ?>
                 <img src="<?= htmlspecialchars(nxMediaUrl($attendingDoc['esignature'])) ?>" class="max-h-20 max-w-[200px] object-contain ml-auto -mb-3 relative z-10" alt="E-Signature">
             <?php endif; ?>
-            <div class="border-b border-slate-400 mb-1 pb-1 font-serif text-lg font-bold italic" style="color: <?= htmlspecialchars($rxAccent) ?>"><?= htmlspecialchars($attendingDoc['name']) ?></div>
+            <div class="border-b border-slate-400 mb-1 pb-1 font-serif text-lg font-bold italic" data-css="color: <?= htmlspecialchars($rxAccent) ?>"><?= htmlspecialchars($attendingDoc['name']) ?></div>
             <p class="font-bold text-slate-800"><?= htmlspecialchars($attendingDoc['name']) ?></p>
             <p class="text-slate-500"><?= htmlspecialchars($attendingDoc['specialty']) ?></p>
             <?php if (!empty($rxCfg['show_license'])): ?><p class="text-[10px] font-mono text-slate-500 mt-0.5">Medical Licence No: <?= htmlspecialchars($attendingDoc['prc_number'] ?? $settings['doc_prc_no'] ?? 'N/A') ?></p><?php endif; ?>
@@ -265,5 +265,6 @@ $verificationUrl = $rxVerificationService->getVerificationUrl($verificationToken
     </div>
 </div>
 
+<script src="assets/js/actions.js" defer></script>
 </body>
 </html>

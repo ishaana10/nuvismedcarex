@@ -91,51 +91,51 @@ $fmtBytes = function ($b) {
 
 <!-- Developer Child Tabs Navigation -->
 <div class="flex border-b border-outline-variant/30 mb-6 space-x-2 text-xs font-bold flex-wrap">
-    <button type="button" onclick="switchDevTab('git')" id="dev-tab-btn-git" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white">
+    <button type="button" data-on-click="switchDevTab('git')" id="dev-tab-btn-git" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 bg-primary text-white">
         <span class="material-symbols-outlined text-base">update</span>
         <span>Git Updates & Terminal</span>
     </button>
-    <button type="button" onclick="switchDevTab('tenants')" id="dev-tab-btn-tenants" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+    <button type="button" data-on-click="switchDevTab('tenants')" id="dev-tab-btn-tenants" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">apartment</span>
         <span>Multi-Tenancy Clinics</span>
     </button>
-    <button type="button" onclick="switchDevTab('vms')" id="dev-tab-btn-vms" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+    <button type="button" data-on-click="switchDevTab('vms')" id="dev-tab-btn-vms" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">point_of_sale</span>
         <span>VMS Fiscal Settings</span>
     </button>
-    <button type="button" onclick="switchDevTab('encryption')" id="dev-tab-btn-encryption" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+    <button type="button" data-on-click="switchDevTab('encryption')" id="dev-tab-btn-encryption" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">key</span>
         <span>Encryption</span>
     </button>
-    <button type="button" onclick="switchDevTab('cloud')" id="dev-tab-btn-cloud" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+    <button type="button" data-on-click="switchDevTab('cloud')" id="dev-tab-btn-cloud" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">cloud</span>
         <span>Cloud Storage & Drive</span>
     </button>
-    <button type="button" onclick="switchDevTab('lab')" id="dev-tab-btn-lab" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+    <button type="button" data-on-click="switchDevTab('lab')" id="dev-tab-btn-lab" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">science</span>
         <span>Lab Catalog & Customization</span>
     </button>
-    <button type="button" onclick="switchDevTab('pagination')" id="dev-tab-btn-pagination" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+    <button type="button" data-on-click="switchDevTab('pagination')" id="dev-tab-btn-pagination" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">format_list_numbered</span>
         <span>Pagination Settings</span>
     </button>
-    <button type="button" onclick="switchDevTab('rbac')" id="dev-tab-btn-rbac" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+    <button type="button" data-on-click="switchDevTab('rbac')" id="dev-tab-btn-rbac" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">admin_panel_settings</span>
         <span>Role Permissions & Access Control</span>
     </button>
-    <button type="button" onclick="switchDevTab('redis')" id="dev-tab-btn-redis" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+    <button type="button" data-on-click="switchDevTab('redis')" id="dev-tab-btn-redis" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">memory</span>
         <span>Redis Cache & Sessions</span>
     </button>
-    <button type="button" onclick="switchDevTab('logs')" id="dev-tab-btn-logs" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+    <button type="button" data-on-click="switchDevTab('logs')" id="dev-tab-btn-logs" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">bug_report</span>
         <span>Error Logs & Diagnostics</span>
     </button>
-    <button type="button" onclick="switchDevTab('integrations')" id="dev-tab-btn-integrations" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+    <button type="button" data-on-click="switchDevTab('integrations')" id="dev-tab-btn-integrations" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">api</span>
         <span>API Integration & Webhooks</span>
     </button>
-    <button type="button" onclick="switchDevTab('database')" id="dev-tab-btn-database" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+    <button type="button" data-on-click="switchDevTab('database')" id="dev-tab-btn-database" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">database</span>
         <span>Database &amp; Migrations</span>
         <?php
@@ -149,23 +149,23 @@ $fmtBytes = function ($b) {
             <span class="px-1.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-bold"><?= $nxPendingCount ?></span>
         <?php endif; ?>
     </button>
-    <button type="button" onclick="switchDevTab('vsdc')" id="dev-tab-btn-vsdc" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+    <button type="button" data-on-click="switchDevTab('vsdc')" id="dev-tab-btn-vsdc" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">verified</span>
         <span>FRCS VSDC & EFD Accreditation</span>
     </button>
-    <button type="button" onclick="switchDevTab('subscriptions')" id="dev-tab-btn-subscriptions" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+    <button type="button" data-on-click="switchDevTab('subscriptions')" id="dev-tab-btn-subscriptions" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">credit_card</span>
         <span>Subscriptions &amp; Payments</span>
     </button>
-    <button type="button" onclick="switchDevTab('alerts')" id="dev-tab-btn-alerts" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+    <button type="button" data-on-click="switchDevTab('alerts')" id="dev-tab-btn-alerts" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">campaign</span>
         <span>Broadcast Alerts</span>
     </button>
-    <button type="button" onclick="switchDevTab('erp')" id="dev-tab-btn-erp" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+    <button type="button" data-on-click="switchDevTab('erp')" id="dev-tab-btn-erp" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">sync_alt</span>
         <span>NuvisERPX Billing</span>
     </button>
-    <button type="button" onclick="switchDevTab('monitoring')" id="dev-tab-btn-monitoring" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+    <button type="button" data-on-click="switchDevTab('monitoring')" id="dev-tab-btn-monitoring" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">monitor_heart</span>
         <span>Monitoring<?php if (!empty($monIncidents)): ?> <span class="px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-bold"><?= count($monIncidents) ?></span><?php endif; ?></span>
     </button>
@@ -185,8 +185,8 @@ $fmtBytes = function ($b) {
                     <span>Continuous System Updates (1-Click Git Updater)</span>
                 </h2>
                 <div class="flex gap-2">
-                    <button type="button" onclick="switchGitSubTab('console')" id="btn-git-console" class="px-3 py-1 bg-primary text-white text-[11px] font-bold rounded-lg transition">Terminal Status</button>
-                    <button type="button" onclick="switchGitSubTab('history')" id="btn-git-history" class="px-3 py-1 bg-surface-container-high text-on-surface text-[11px] font-bold rounded-lg transition">Commit History</button>
+                    <button type="button" data-on-click="switchGitSubTab('console')" id="btn-git-console" class="px-3 py-1 bg-primary text-white text-[11px] font-bold rounded-lg transition">Terminal Status</button>
+                    <button type="button" data-on-click="switchGitSubTab('history')" id="btn-git-history" class="px-3 py-1 bg-surface-container-high text-on-surface text-[11px] font-bold rounded-lg transition">Commit History</button>
                 </div>
             </div>
 
@@ -218,17 +218,17 @@ $fmtBytes = function ($b) {
                 </div>
 
                 <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-outline-variant/20">
-                    <button type="button" onclick="saveGitSettings()" class="px-4 py-2 bg-surface-container-high text-on-surface text-xs font-semibold rounded-xl hover:bg-surface-variant transition flex items-center gap-1.5">
+                    <button type="button" data-on-click="saveGitSettings()" class="px-4 py-2 bg-surface-container-high text-on-surface text-xs font-semibold rounded-xl hover:bg-surface-variant transition flex items-center gap-1.5">
                         <span class="material-symbols-outlined text-sm">settings</span>
                         <span>Save Git Settings</span>
                     </button>
 
                     <div class="flex gap-2">
-                        <button type="button" onclick="refreshGitStatus()" class="px-4 py-2 bg-slate-200 text-slate-800 text-xs font-semibold rounded-xl hover:bg-slate-300 transition flex items-center gap-1.5">
+                        <button type="button" data-on-click="refreshGitStatus()" class="px-4 py-2 bg-slate-200 text-slate-800 text-xs font-semibold rounded-xl hover:bg-slate-300 transition flex items-center gap-1.5">
                             <span class="material-symbols-outlined text-sm">sync</span>
                             <span>Check Status</span>
                         </button>
-                        <button type="button" onclick="triggerGitPull()" class="px-5 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 transition shadow-xs flex items-center gap-1.5">
+                        <button type="button" data-on-click="triggerGitPull()" class="px-5 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 transition shadow-xs flex items-center gap-1.5">
                             <span class="material-symbols-outlined text-sm">download</span>
                             <span>Pull Updates from Git</span>
                         </button>
@@ -243,7 +243,7 @@ $fmtBytes = function ($b) {
                     </p>
                     <div class="flex gap-2">
                         <input type="text" id="git_remote_url" placeholder="https://github.com/username/repository.git" value="<?= htmlspecialchars($settings['git_remote_url'] ?? '') ?>" class="flex-1 bg-white px-3 py-2 rounded-xl border border-amber-300 text-xs font-mono">
-                        <button type="button" onclick="initializeGitRepo()" class="px-4 py-2 bg-amber-800 text-white font-bold rounded-xl text-xs hover:bg-amber-900 transition">
+                        <button type="button" data-on-click="initializeGitRepo()" class="px-4 py-2 bg-amber-800 text-white font-bold rounded-xl text-xs hover:bg-amber-900 transition">
                             Link & Sync
                         </button>
                     </div>
@@ -281,7 +281,7 @@ $fmtBytes = function ($b) {
                 <p class="text-xs text-outline font-medium mt-0.5">Upload official FRCS V-SDC client certificate issued by Fiji Revenue and Customs Service for mutual TLS (mTLS) authentication.</p>
             </div>
 
-            <form id="vsdcCertForm" onsubmit="uploadVsdcCertificate(event)" enctype="multipart/form-data" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <form id="vsdcCertForm" data-on-submit="uploadVsdcCertificate(event)" enctype="multipart/form-data" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                 <div class="md:col-span-2">
                     <label class="block font-bold text-slate-700 mb-1">PKCS#12 Certificate File (.pfx, .p12, .crt, .pem) <span class="text-red-500">*</span></label>
                     <input type="file" name="vms_cert_file" required accept=".pfx,.p12,.crt,.pem,.cer" class="w-full bg-slate-50 p-2.5 rounded-xl border border-slate-300 font-mono text-xs">
@@ -308,15 +308,15 @@ $fmtBytes = function ($b) {
                         <span>VSDC Submitter V3.0 Status: <?= !empty($certPath) ? '<span class="text-emerald-700 font-bold">Certificate Active & Installed</span>' : '<span class="text-amber-700 font-bold">No Accredited Certificate Uploaded</span>' ?></span>
                     </span>
                     <div class="flex items-center gap-1.5 flex-wrap">
-                        <button type="button" onclick="testSdcPing('test_sdc_ping')" class="px-2.5 py-1 bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1">
+                        <button type="button" data-on-click="testSdcPing('test_sdc_ping')" class="px-2.5 py-1 bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1">
                             <span class="material-symbols-outlined text-sm">speed</span>
                             <span>/api/v3/status</span>
                         </button>
-                        <button type="button" onclick="testSdcPing('get_environment')" class="px-2.5 py-1 bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1">
+                        <button type="button" data-on-click="testSdcPing('get_environment')" class="px-2.5 py-1 bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1">
                             <span class="material-symbols-outlined text-sm">dns</span>
                             <span>/api/v3/environment</span>
                         </button>
-                        <button type="button" onclick="testSdcPing('get_taxrates')" class="px-2.5 py-1 bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1">
+                        <button type="button" data-on-click="testSdcPing('get_taxrates')" class="px-2.5 py-1 bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1">
                             <span class="material-symbols-outlined text-sm">percent</span>
                             <span>/api/v3/taxrates</span>
                         </button>
@@ -433,7 +433,7 @@ $fmtBytes = function ($b) {
                     <p class="text-xs text-outline font-medium mt-0.5">Manage multi-tenant clinic instances, isolation profiles, and switch active clinic context. Active Context: <code class="text-primary font-bold font-mono"><?= htmlspecialchars($currentTenantId) ?></code></p>
                 </div>
 
-                <button type="button" onclick="openTenantModal()" class="px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-1.5">
+                <button type="button" data-on-click="openTenantModal()" class="px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-1.5">
                     <span class="material-symbols-outlined text-base">add_location_alt</span>
                     <span>Add New Clinic Tenant</span>
                 </button>
@@ -486,7 +486,7 @@ $fmtBytes = function ($b) {
                                     <span><?= $isCurrent ? 'Current Active Clinic' : 'Switch' ?></span>
                                 </button>
                             </form>
-                            <button type="button" onclick='openTenantModal(<?= htmlspecialchars(json_encode($tnt), ENT_QUOTES, "UTF-8") ?>)' class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition flex items-center gap-1">
+                            <button type="button" data-on-click='openTenantModal(<?= htmlspecialchars(json_encode($tnt), ENT_QUOTES, "UTF-8") ?>)' class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition flex items-center gap-1">
                                 <span class="material-symbols-outlined text-sm">edit</span>
                                 <span>Edit</span>
                             </button>
@@ -510,7 +510,7 @@ $fmtBytes = function ($b) {
                 <form method="GET" action="developer.php" class="flex items-end gap-2">
                     <div>
                         <label class="form-label">Tenant</label>
-                        <select name="subtenant" class="form-select" onchange="this.form.submit()">
+                        <select name="subtenant" class="form-select" data-on-change="this.form.submit()">
                             <?php foreach ($tenantsList as $tnt): ?>
                                 <option value="<?= htmlspecialchars($tnt['id']) ?>" <?= $tnt['id'] === $subTenantId ? 'selected' : '' ?>><?= htmlspecialchars($tnt['name']) ?></option>
                             <?php endforeach; ?>
@@ -597,7 +597,7 @@ $fmtBytes = function ($b) {
                     <div class="sm:col-span-2"><label class="form-label">Title</label><input type="text" name="title" required class="form-input" placeholder="e.g. Scheduled maintenance Sunday 2am"></div>
                     <div><label class="form-label">Severity</label><select name="severity" class="form-select"><?php foreach (\ClinicFlow\Services\DeveloperAlertService::SEVERITIES as $sv): ?><option value="<?= $sv ?>"><?= ucfirst($sv) ?></option><?php endforeach; ?></select></div>
                     <div><label class="form-label">Audience</label>
-                        <select name="audience" class="form-select" onchange="nxAlertAudience(this.value)">
+                        <select name="audience" class="form-select" data-on-change="nxAlertAudience(this.value)">
                             <option value="all">All clinics</option>
                             <option value="tenant">A specific clinic</option>
                             <option value="role">A specific role</option>
@@ -687,7 +687,7 @@ $fmtBytes = function ($b) {
                 <form method="GET" action="developer.php" class="flex items-end gap-2">
                     <div>
                         <label class="form-label">Tenant</label>
-                        <select name="erptenant" class="form-select" onchange="this.form.submit()">
+                        <select name="erptenant" class="form-select" data-on-change="this.form.submit()">
                             <?php foreach ($tenantsList as $tnt): ?>
                                 <option value="<?= htmlspecialchars($tnt['id']) ?>" <?= $tnt['id'] === $erpInvoiceTenant ? 'selected' : '' ?>><?= htmlspecialchars($tnt['name']) ?><?= empty($tnt['nuvis_erp_client_id']) ? ' (no ERP client id)' : '' ?></option>
                             <?php endforeach; ?>
@@ -720,7 +720,7 @@ $fmtBytes = function ($b) {
                                 <td class="px-3 py-2.5 whitespace-nowrap text-slate-500"><?= $inv['reconciled_at'] ? htmlspecialchars(date('d M Y', strtotime($inv['reconciled_at']))) : '—' ?></td>
                                 <td class="px-3 py-2.5 whitespace-nowrap text-right">
                                     <?php if (!in_array($inv['status'], ['paid','void'], true)): ?>
-                                        <form action="actions/erp_actions.php" method="POST" class="inline" onsubmit="return confirm('Mark this invoice paid/reconciled? This records a payment and reactivates the subscription.');">
+                                        <form action="actions/erp_actions.php" method="POST" class="inline" data-on-submit="return confirm('Mark this invoice paid/reconciled? This records a payment and reactivates the subscription.');">
                                             <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
                                             <input type="hidden" name="action" value="set_invoice_status">
                                             <input type="hidden" name="invoice_id" value="<?= htmlspecialchars($inv['id']) ?>">
@@ -831,7 +831,7 @@ $fmtBytes = function ($b) {
                     <?php if ($monApp['disk_pct'] !== null): ?>
                     <div>
                         <div class="flex justify-between"><dt class="text-slate-500">Disk used</dt><dd class="font-bold <?= $monApp['disk_pct'] >= 90 ? 'text-rose-600' : 'text-slate-800' ?>"><?= $monApp['disk_pct'] ?>%</dd></div>
-                        <div class="h-1.5 rounded-full bg-slate-100 mt-1 overflow-hidden"><div class="h-full <?= $monApp['disk_pct'] >= 90 ? 'bg-rose-500' : 'bg-primary' ?>" style="width: <?= min(100, $monApp['disk_pct']) ?>%"></div></div>
+                        <div class="h-1.5 rounded-full bg-slate-100 mt-1 overflow-hidden"><div class="h-full <?= $monApp['disk_pct'] >= 90 ? 'bg-rose-500' : 'bg-primary' ?>" data-css="width: <?= min(100, $monApp['disk_pct']) ?>%"></div></div>
                         <div class="text-[10px] text-slate-400 mt-0.5"><?= $fmtBytes($monApp['disk_free']) ?> free of <?= $fmtBytes($monApp['disk_total']) ?></div>
                     </div>
                     <?php endif; ?>
@@ -1056,16 +1056,16 @@ $fmtBytes = function ($b) {
             </ol>
 
             <div class="flex flex-wrap items-center gap-2">
-                <button type="button" onclick="encGenerateKey()" class="btn-secondary">Generate a key</button>
+                <button type="button" data-on-click="encGenerateKey()" class="btn-secondary">Generate a key</button>
                 <input id="enc-key-out" type="text" readonly placeholder="Press Generate. Created in this browser, never sent to the server." class="form-input font-mono text-xs flex-1 min-w-[260px]" aria-label="Generated key">
-                <button type="button" onclick="encCopyKey()" class="btn-secondary">Copy</button>
+                <button type="button" data-on-click="encCopyKey()" class="btn-secondary">Copy</button>
             </div>
         </div>
 
         <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-4">
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <h2 class="text-xs font-bold text-primary uppercase tracking-wider">Where each value stands</h2>
-                <button type="button" onclick="encLoad()" class="btn-secondary">Refresh</button>
+                <button type="button" data-on-click="encLoad()" class="btn-secondary">Refresh</button>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
@@ -1077,8 +1077,8 @@ $fmtBytes = function ($b) {
             </div>
             <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="enc-plain" class="rounded"> Also encrypt notes that were saved without encryption</label>
             <div class="flex flex-wrap items-center gap-2">
-                <button type="button" id="enc-dry" onclick="encRun(true)" class="btn-secondary">Preview (changes nothing)</button>
-                <button type="button" id="enc-go" onclick="encRun(false)" class="btn-primary">Re-encrypt now</button>
+                <button type="button" id="enc-dry" data-on-click="encRun(true)" class="btn-secondary">Preview (changes nothing)</button>
+                <button type="button" id="enc-go" data-on-click="encRun(false)" class="btn-primary">Re-encrypt now</button>
             </div>
             <p id="enc-result" class="text-sm text-on-surface" role="status" aria-live="polite"></p>
         </div>
@@ -1581,7 +1581,7 @@ $fmtBytes = function ($b) {
                         </p>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button type="button" onclick="testDrive('<?= $driveKey ?>')" id="drive-test-btn-<?= $driveKey ?>"
+                        <button type="button" data-on-click="testDrive('<?= $driveKey ?>')" id="drive-test-btn-<?= $driveKey ?>"
                                 class="px-3 py-1.5 bg-surface-container border border-outline-variant/40 text-on-surface rounded-xl text-xs font-semibold hover:bg-surface-container-high transition flex items-center gap-1.5"
                                 <?= $hasCreds ? '' : 'disabled' ?>>
                             <span class="material-symbols-outlined text-base">network_check</span>
@@ -1609,7 +1609,7 @@ $fmtBytes = function ($b) {
                                 </button>
                             </form>
                         <?php endif; ?>
-                        <button type="button" onclick="toggleDrive('<?= $driveKey ?>')" id="drive-toggle-<?= $driveKey ?>"
+                        <button type="button" data-on-click="toggleDrive('<?= $driveKey ?>')" id="drive-toggle-<?= $driveKey ?>"
                                 class="nx-icon-btn" aria-expanded="false" aria-controls="drive-body-<?= $driveKey ?>" title="Credentials">
                             <span class="material-symbols-outlined text-[20px]">tune</span>
                         </button>
@@ -1653,7 +1653,7 @@ $fmtBytes = function ($b) {
                             <?php endforeach; ?>
                         </div>
                         <div class="flex items-center justify-end gap-2 pt-3 border-t border-outline-variant/20">
-                            <button type="button" onclick="toggleDrive('<?= $driveKey ?>')" class="px-4 py-2 bg-surface-container rounded-xl text-xs font-semibold text-on-surface">Close</button>
+                            <button type="button" data-on-click="toggleDrive('<?= $driveKey ?>')" class="px-4 py-2 bg-surface-container rounded-xl text-xs font-semibold text-on-surface">Close</button>
                             <button type="submit" class="px-5 py-2 bg-primary text-white text-xs font-semibold rounded-xl hover:bg-primary/90 transition flex items-center gap-1.5">
                                 <span class="material-symbols-outlined text-base">save</span>
                                 <span>Save credentials</span>
@@ -1678,11 +1678,11 @@ $fmtBytes = function ($b) {
                 </div>
 
                 <div class="flex items-center gap-2">
-                    <button type="button" onclick="fetchRedisDiagnostics()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition flex items-center gap-1">
+                    <button type="button" data-on-click="fetchRedisDiagnostics()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition flex items-center gap-1">
                         <span class="material-symbols-outlined text-sm">refresh</span>
                         <span>Refresh Metrics</span>
                     </button>
-                    <button type="button" onclick="testRedisPing()" class="px-3.5 py-1.5 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary/90 transition shadow-xs flex items-center gap-1">
+                    <button type="button" data-on-click="testRedisPing()" class="px-3.5 py-1.5 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary/90 transition shadow-xs flex items-center gap-1">
                         <span class="material-symbols-outlined text-sm">speed</span>
                         <span>Test Latency (Benchmark)</span>
                     </button>
@@ -1746,11 +1746,11 @@ $fmtBytes = function ($b) {
                     </div>
 
                     <div class="flex gap-2">
-                        <button type="button" onclick="triggerStartRedisDaemon()" class="px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1 shadow-xs">
+                        <button type="button" data-on-click="triggerStartRedisDaemon()" class="px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1 shadow-xs">
                             <span class="material-symbols-outlined text-sm">power_settings_new</span>
                             <span>Start A2 Hosting Redis Daemon (~/.redis.on)</span>
                         </button>
-                        <button type="button" onclick="flushRedisCache()" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition flex items-center gap-1 shadow-xs">
+                        <button type="button" data-on-click="flushRedisCache()" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition flex items-center gap-1 shadow-xs">
                             <span class="material-symbols-outlined text-sm">cleaning_services</span>
                             <span>Flush Nuvis Cache</span>
                         </button>
@@ -1794,18 +1794,18 @@ $fmtBytes = function ($b) {
             </div>
 
             <div class="flex items-center gap-2 flex-wrap">
-                <select id="dev-log-type-filter" onchange="fetchDeveloperErrorLogs()" class="bg-surface-container-low px-3 py-1.5 rounded-xl border border-outline-variant/40 font-bold text-xs">
+                <select id="dev-log-type-filter" data-on-change="fetchDeveloperErrorLogs()" class="bg-surface-container-low px-3 py-1.5 rounded-xl border border-outline-variant/40 font-bold text-xs">
                     <option value="">All Errors (PHP & JS & Audit)</option>
                     <option value="PHP">PHP Server Errors</option>
                     <option value="JS">JavaScript Browser Errors</option>
                     <option value="AUDIT">Audit Activity Logs</option>
                 </select>
 
-                <button type="button" onclick="fetchDeveloperErrorLogs()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition flex items-center gap-1">
+                <button type="button" data-on-click="fetchDeveloperErrorLogs()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition flex items-center gap-1">
                     <span class="material-symbols-outlined text-sm">refresh</span>
                     <span>Refresh Logs</span>
                 </button>
-                <button type="button" onclick="clearDeveloperErrorLogs()" class="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-800 text-xs font-bold rounded-xl transition flex items-center gap-1">
+                <button type="button" data-on-click="clearDeveloperErrorLogs()" class="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-800 text-xs font-bold rounded-xl transition flex items-center gap-1">
                     <span class="material-symbols-outlined text-sm">delete_sweep</span>
                     <span>Clear Logs</span>
                 </button>
@@ -1844,7 +1844,7 @@ $fmtBytes = function ($b) {
                     <p class="text-xs text-outline font-medium mt-0.5">Subscribe external laboratory, billing, insurance, or pharmacy systems to real-time clinic events.</p>
                 </div>
 
-                <button type="button" onclick="openWebhookModal()" class="px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary/90 transition shadow-xs flex items-center gap-1.5 shrink-0">
+                <button type="button" data-on-click="openWebhookModal()" class="px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary/90 transition shadow-xs flex items-center gap-1.5 shrink-0">
                     <span class="material-symbols-outlined text-base">add_link</span>
                     <span>New Webhook Subscription</span>
                 </button>
@@ -1886,11 +1886,11 @@ $fmtBytes = function ($b) {
                                     </td>
                                     <td class="py-3 px-4 text-right">
                                         <div class="inline-flex items-center gap-2">
-                                            <button type="button" onclick="testWebhookEndpoint('<?= htmlspecialchars($sub['target_url']) ?>', '<?= htmlspecialchars($sub['event_type']) ?>')" class="px-2.5 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-xs font-semibold transition flex items-center gap-1">
+                                            <button type="button" data-on-click="testWebhookEndpoint('<?= htmlspecialchars($sub['target_url']) ?>', '<?= htmlspecialchars($sub['event_type']) ?>')" class="px-2.5 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-xs font-semibold transition flex items-center gap-1">
                                                 <span class="material-symbols-outlined text-sm">send</span>
                                                 <span>Test Dispatch</span>
                                             </button>
-                                            <button type="button" onclick="deleteWebhookSubscription('<?= htmlspecialchars($sub['id']) ?>')" class="p-1 text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Delete Webhook">
+                                            <button type="button" data-on-click="deleteWebhookSubscription('<?= htmlspecialchars($sub['id']) ?>')" class="p-1 text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Delete Webhook">
                                                 <span class="material-symbols-outlined text-base">delete</span>
                                             </button>
                                         </div>
@@ -1967,7 +1967,7 @@ $fmtBytes = function ($b) {
                     <p class="text-xs text-outline font-medium mt-0.5">Generate scoped API keys for external medical applications, REST APIs, or FHIR data pipelines.</p>
                 </div>
 
-                <button type="button" onclick="generateApiKeyPrompt()" class="px-4 py-2 bg-emerald-700 text-white text-xs font-bold rounded-xl hover:bg-emerald-800 transition shadow-xs flex items-center gap-1.5 shrink-0">
+                <button type="button" data-on-click="generateApiKeyPrompt()" class="px-4 py-2 bg-emerald-700 text-white text-xs font-bold rounded-xl hover:bg-emerald-800 transition shadow-xs flex items-center gap-1.5 shrink-0">
                     <span class="material-symbols-outlined text-base">key_visualizer</span>
                     <span>Generate API Key</span>
                 </button>
@@ -2004,7 +2004,7 @@ $fmtBytes = function ($b) {
                                         <?= htmlspecialchars($keyRow['created_at']) ?>
                                     </td>
                                     <td class="py-3 px-4 text-right">
-                                        <button type="button" onclick="revokeApiKey('<?= htmlspecialchars($keyRow['id']) ?>', '<?= htmlspecialchars(addslashes($keyRow['app_name'])) ?>')" class="px-2.5 py-1 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-lg text-xs font-semibold transition flex items-center gap-1 ml-auto">
+                                        <button type="button" data-on-click="revokeApiKey('<?= htmlspecialchars($keyRow['id']) ?>', '<?= htmlspecialchars(addslashes($keyRow['app_name'])) ?>')" class="px-2.5 py-1 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-lg text-xs font-semibold transition flex items-center gap-1 ml-auto">
                                             <span class="material-symbols-outlined text-sm">block</span>
                                             <span>Revoke Key</span>
                                         </button>
@@ -2026,12 +2026,12 @@ $fmtBytes = function ($b) {
                 <span class="material-symbols-outlined text-primary text-base">webhook</span>
                 <span>Configure Webhook Subscription</span>
             </h3>
-            <button type="button" onclick="closeWebhookModal()" class="text-slate-400 hover:text-white text-lg">
+            <button type="button" data-on-click="closeWebhookModal()" class="text-slate-400 hover:text-white text-lg">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
 
-        <form id="webhookForm" onsubmit="submitWebhookForm(event)" class="p-6 space-y-4 text-xs">
+        <form id="webhookForm" data-on-submit="submitWebhookForm(event)" class="p-6 space-y-4 text-xs">
             <div>
                 <label class="block font-bold text-slate-700 mb-1">Integrating Application Name <span class="text-red-500">*</span></label>
                 <input type="text" name="app_name" required placeholder="e.g. Suva Central Lab System" class="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-300 font-bold">
@@ -2060,7 +2060,7 @@ $fmtBytes = function ($b) {
             </div>
 
             <div class="flex items-center justify-between pt-3 border-t border-slate-200">
-                <button type="button" onclick="closeWebhookModal()" class="px-4 py-2 bg-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-300 transition">
+                <button type="button" data-on-click="closeWebhookModal()" class="px-4 py-2 bg-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-300 transition">
                     Cancel
                 </button>
                 <button type="submit" class="px-5 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-1.5">
@@ -2080,7 +2080,7 @@ $fmtBytes = function ($b) {
                 <span class="material-symbols-outlined text-primary text-base">apartment</span>
                 <span>Clinic Tenant Profile</span>
             </h3>
-            <button type="button" onclick="closeTenantModal()" class="text-slate-400 hover:text-white text-lg">
+            <button type="button" data-on-click="closeTenantModal()" class="text-slate-400 hover:text-white text-lg">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
@@ -2221,7 +2221,7 @@ $fmtBytes = function ($b) {
             </div>
 
             <div class="flex items-center justify-between pt-3 border-t border-slate-200">
-                <button type="button" onclick="closeTenantModal()" class="px-4 py-2 bg-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-300 transition">
+                <button type="button" data-on-click="closeTenantModal()" class="px-4 py-2 bg-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-300 transition">
                     Cancel
                 </button>
                 <button type="submit" class="px-5 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-1.5">
@@ -2233,7 +2233,7 @@ $fmtBytes = function ($b) {
     </div>
 </div>
 
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 function openTenantModal(tnt = null) {
     const modal = document.getElementById('tenantModal');
     if (!modal) return;
@@ -2394,7 +2394,7 @@ function fetchRedisDiagnostics() {
                 statusCard.innerHTML = `
                     <div class="space-y-1">
                         <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span><span class="text-amber-800">Socket Present (Config Disabled)</span></div>
-                        <button type="button" onclick="toggleRedisConfig(true)" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold shadow-xs">Enable Redis in Config</button>
+                        <button type="button" data-on-click="toggleRedisConfig(true)" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold shadow-xs">Enable Redis in Config</button>
                     </div>`;
             } else {
                 statusCard.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span><span class="text-amber-800">Socket Offline (~/.redis.on required)</span>`;
@@ -2642,9 +2642,9 @@ function refreshGitStatus() {
         }
 
         if (d.success) {
-            consoleBox.innerHTML = `<span class="text-emerald-400 font-bold">✔ Git Repository Active</span>\nBranch: ${d.branch || 'main'}\n\n${d.status}`;
+            consoleBox.innerHTML = `<span class="text-emerald-400 font-bold">✔ Git Repository Active</span>\nBranch: ${escapeHtml(d.branch || 'main')}\n\n${escapeHtml(d.status)}`;
         } else {
-            consoleBox.innerHTML = `<span class="text-amber-400 font-bold">⚠ Git Repository Not Linked or Unreachable</span>\n\n${d.status || d.error || 'Repository not initialized.'}`;
+            consoleBox.innerHTML = `<span class="text-amber-400 font-bold">⚠ Git Repository Not Linked or Unreachable</span>\n\n${escapeHtml(d.status || d.error || 'Repository not initialized.')}`;
         }
     })
     .catch(err => {
@@ -2689,11 +2689,11 @@ function triggerGitPull() {
     .then(d => {
         if (d.success) {
             alert('Git pull completed successfully!');
-            consoleBox.innerHTML = `<span class="text-emerald-400 font-bold">✔ Git Pull Successful</span>\n\n${d.output}`;
+            consoleBox.innerHTML = `<span class="text-emerald-400 font-bold">✔ Git Pull Successful</span>\n\n${escapeHtml(d.output)}`;
             loadGitHistory();
         } else {
             alert('Git pull failed: ' + (d.error || 'Unknown error'));
-            consoleBox.innerHTML = `<span class="text-red-400 font-bold">❌ Git Pull Error</span>\n\n${d.error || 'Pull failed'}`;
+            consoleBox.innerHTML = `<span class="text-red-400 font-bold">❌ Git Pull Error</span>\n\n${escapeHtml(d.error || 'Pull failed')}`;
         }
     });
 }
@@ -2749,15 +2749,15 @@ function loadGitHistory() {
             list.innerHTML = d.commits.map(c => `
                 <div class="p-3 rounded-xl bg-surface-container-low border border-outline-variant/30 text-xs">
                     <div class="flex items-center justify-between mb-1">
-                        <span class="font-mono font-bold text-primary">${c.hash}</span>
-                        <span class="text-[10px] text-outline">${c.date}</span>
+                        <span class="font-mono font-bold text-primary">${escapeHtml(c.hash)}</span>
+                        <span class="text-[10px] text-outline">${escapeHtml(c.date)}</span>
                     </div>
-                    <p class="font-bold text-on-surface">${c.message}</p>
-                    <p class="text-[10px] text-slate-500 mt-0.5">Author: ${c.author}</p>
+                    <p class="font-bold text-on-surface">${escapeHtml(c.message)}</p>
+                    <p class="text-[10px] text-slate-500 mt-0.5">Author: ${escapeHtml(c.author)}</p>
                 </div>
             `).join('');
         } else {
-            list.innerHTML = `<p class="text-slate-500 italic p-3">${d.error || 'No commits found.'}</p>`;
+            list.innerHTML = `<p class="text-slate-500 italic p-3">${escapeHtml(d.error || 'No commits found.')}</p>`;
         }
     });
 }
@@ -2883,6 +2883,7 @@ function uploadVsdcCertificate(e) {
     const form = e.target;
     const formData = new FormData(form);
     formData.append('action', 'upload_certificate');
+    formData.append('csrf_token', <?= json_encode(getCsrfToken()) ?>);
 
     fetch('actions/vms_actions.php', {
         method: 'POST',

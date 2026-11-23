@@ -58,7 +58,7 @@ foreach (AccessControl::MODULES as $key => $m) {
 }
 ?>
 
-<style>
+<style nonce="<?= nxCspNonce() ?>">
     .g-wrap{display:grid;grid-template-columns:minmax(0,1fr);gap:24px;align-items:start}
     @media (min-width:1024px){.g-wrap{grid-template-columns:260px minmax(0,1fr)}}
     .g-toc{position:sticky;top:84px;max-height:calc(100vh - 110px);overflow:auto;padding:6px 0}
@@ -115,13 +115,13 @@ foreach (AccessControl::MODULES as $key => $m) {
     }
 </style>
 
-<div id="guide-top" class="mb-5 flex flex-wrap items-start justify-between gap-3" style="scroll-margin-top:84px">
+<div id="guide-top" class="mb-5 flex flex-wrap items-start justify-between gap-3" data-css="scroll-margin-top:84px">
     <div>
         <h1 class="nx-page-title">User guide</h1>
         <p class="nx-page-sub">How to use Nuvis Medcare X, step by step. Search it, or pick a topic on the left.</p>
     </div>
     <div class="g-tools flex items-center gap-2">
-        <button type="button" class="btn-secondary" onclick="window.print()"><span class="material-symbols-outlined text-[18px]">print</span>Print or save as PDF</button>
+        <button type="button" class="btn-secondary" data-on-click="window.print()"><span class="material-symbols-outlined text-[18px]">print</span>Print or save as PDF</button>
     </div>
 </div>
 
@@ -195,7 +195,7 @@ foreach (AccessControl::MODULES as $key => $m) {
     </main>
 </div>
 
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 (function () {
     var input = document.getElementById('guide-search');
     var cards = [].slice.call(document.querySelectorAll('[data-guide-section]'));

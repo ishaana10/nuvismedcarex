@@ -97,7 +97,7 @@ $patientOwed = (float)($invoice['patient_owed'] ?? max(0, $grandTotal - $insuran
     <title>Commercial Invoice <?= htmlspecialchars($invoice['invoice_number']) ?> - <?= htmlspecialchars($clinicName) ?></title>
     <link rel="stylesheet" href="assets/css/fonts.css"/>
     <link rel="stylesheet" href="assets/css/tailwind-public.css"/>
-    <style>
+    <style nonce="<?= nxCspNonce() ?>">
         body { font-family: "IBM Plex Sans", system-ui, sans-serif; }
         @media print {
             .no-print { display: none !important; }
@@ -115,7 +115,7 @@ $patientOwed = (float)($invoice['patient_owed'] ?? max(0, $grandTotal - $insuran
         <a href="billing.php" class="text-xs font-bold text-slate-600 hover:text-slate-900 transition flex items-center gap-1">
             &larr; Back to Billing
         </a>
-        <button onclick="window.print()" class="px-5 py-2.5 bg-blue-700 text-white text-xs font-bold rounded-xl hover:bg-blue-800 transition shadow-xs flex items-center gap-2">
+        <button data-on-click="window.print()" class="px-5 py-2.5 bg-blue-700 text-white text-xs font-bold rounded-xl hover:bg-blue-800 transition shadow-xs flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
             Print Commercial Invoice
         </button>
@@ -267,5 +267,6 @@ $patientOwed = (float)($invoice['patient_owed'] ?? max(0, $grandTotal - $insuran
 
 </div>
 
+<script src="assets/js/actions.js" defer></script>
 </body>
 </html>

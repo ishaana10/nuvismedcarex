@@ -7,6 +7,21 @@ if (!defined('NU_ROOT')) {
 
 require_once NU_ROOT . '/config/database.php';
 
+/**
+ * One random value per request. The Content-Security-Policy only runs script blocks that carry it,
+ * so injected markup cannot execute even if some output were ever left unescaped.
+ */
+if (!function_exists('nxCspNonce')) {
+    function nxCspNonce(): string
+    {
+        static $nonce = null;
+        if ($nonce === null) {
+            $nonce = rtrim(strtr(base64_encode(random_bytes(18)), '+/', '-_'), '=');
+        }
+        return $nonce;
+    }
+}
+
 // Clinic-local time: "today", greetings and timestamps follow the clinic, not the server.
 // Override with 'timezone' in config/config.php or the APP_TIMEZONE environment variable.
 if (!defined('NU_TIMEZONE_SET')) {
@@ -27,6 +42,8 @@ if (session_status() === PHP_SESSION_NONE) {
     // Refuse session IDs the server did not create (blocks session fixation).
     ini_set('session.use_strict_mode', '1');
     ini_set('session.use_only_cookies', '1');
+    // Keep file-based sessions at least as long as the inactivity timeout so PHP's cleanup does not cut them short or leave them lying around much longer.
+    ini_set('session.gc_maxlifetime', (string) max(1800, (int) ((getAppConfig()['sessionTimeout'] ?? 1800))));
     session_set_cookie_params([
         'lifetime' => 0,
         'path' => '/',

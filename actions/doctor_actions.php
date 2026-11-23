@@ -15,6 +15,14 @@ if (!isset($_SESSION['authenticated']) || $_SESSION['authenticated'] !== true) {
 require_once __DIR__ . '/../includes/security.php';
 $currentUserRole = nxCurrentRole();
 
+/** True only when the upload really is an image (raster, or a plain SVG document) and is small enough. */
+function nxIsRealImageUpload(array $f): bool {
+    if (($f['size'] ?? 0) > 2 * 1024 * 1024 || !is_uploaded_file($f['tmp_name'] ?? '')) return false;
+    if (@getimagesize($f['tmp_name']) !== false) return true;
+    $head = (string)@file_get_contents($f['tmp_name'], false, null, 0, 4096);
+    return stripos($head, '<svg') !== false && strtolower(pathinfo($f['name'] ?? '', PATHINFO_EXTENSION)) === 'svg';
+}
+
 $pdo = getDB();
 $action = $_POST['action'] ?? $_GET['action'] ?? 'save';
 $tenantIdCtx = \ClinicFlow\Shared\TenantContext::getTenantId();
@@ -79,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($action === 'save' || $action === 
     $avatar = trim($_POST['avatar'] ?? '');
 
     // Handle Profile Image Upload
-    if (isset($_FILES['avatar_file']) && $_FILES['avatar_file']['error'] === UPLOAD_ERR_OK) {
+    if (isset($_FILES['avatar_file']) && $_FILES['avatar_file']['error'] === UPLOAD_ERR_OK && nxIsRealImageUpload($_FILES['avatar_file'])) {
         $tmpName = $_FILES['avatar_file']['tmp_name'];
         $origName = $_FILES['avatar_file']['name'];
         $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION)) ?: 'png';
@@ -88,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($action === 'save' || $action === 
         }
         $avatarDir = __DIR__ . '/../uploads/avatars/';
         if (!file_exists($avatarDir)) {
-            @mkdir($avatarDir, 0777, true);
+            @mkdir($avatarDir, 0755, true);
         }
         $filename = 'avatar_' . preg_replace('/[^a-zA-Z0-9_-]/', '', $docId) . '_' . time() . '.' . $ext;
         $targetPath = $avatarDir . $filename;
@@ -105,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($action === 'save' || $action === 
 
     // Handle E-Signature upload / string / file save
     $esignature = $_POST['existing_esignature'] ?? '';
-    if (isset($_FILES['esignature_file']) && $_FILES['esignature_file']['error'] === UPLOAD_ERR_OK) {
+    if (isset($_FILES['esignature_file']) && $_FILES['esignature_file']['error'] === UPLOAD_ERR_OK && nxIsRealImageUpload($_FILES['esignature_file'])) {
         $tmpName = $_FILES['esignature_file']['tmp_name'];
         $origName = $_FILES['esignature_file']['name'];
         $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION)) ?: 'png';
@@ -114,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($action === 'save' || $action === 
         }
         $sigDir = __DIR__ . '/../uploads/signatures/';
         if (!file_exists($sigDir)) {
-            @mkdir($sigDir, 0777, true);
+            @mkdir($sigDir, 0755, true);
         }
         $filename = 'sig_' . preg_replace('/[^a-zA-Z0-9_-]/', '', $docId) . '_' . time() . '.' . $ext;
         $targetPath = $sigDir . $filename;
@@ -131,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($action === 'save' || $action === 
 
     // Handle Digital Stamp upload / string / file save
     $digitalStamp = $_POST['existing_digital_stamp'] ?? '';
-    if (isset($_FILES['stamp_file']) && $_FILES['stamp_file']['error'] === UPLOAD_ERR_OK) {
+    if (isset($_FILES['stamp_file']) && $_FILES['stamp_file']['error'] === UPLOAD_ERR_OK && nxIsRealImageUpload($_FILES['stamp_file'])) {
         $tmpName = $_FILES['stamp_file']['tmp_name'];
         $origName = $_FILES['stamp_file']['name'];
         $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION)) ?: 'png';
@@ -140,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($action === 'save' || $action === 
         }
         $stampDir = __DIR__ . '/../uploads/stamps/';
         if (!file_exists($stampDir)) {
-            @mkdir($stampDir, 0777, true);
+            @mkdir($stampDir, 0755, true);
         }
         $filename = 'stamp_' . preg_replace('/[^a-zA-Z0-9_-]/', '', $docId) . '_' . time() . '.' . $ext;
         $targetPath = $stampDir . $filename;
@@ -169,8 +177,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($action === 'save' || $action === 
 
         $passwordHash = $existingDoc['password_hash'];
         if (!empty($password)) {
-            if (strlen($password) < 8 || !preg_match('/[A-Z]/', $password) || !preg_match('/[0-9]/', $password)) {
-                setToast("Weak Password", "Password must be at least 8 characters long and contain at least one uppercase letter and one number.", "error");
+            if (($pwProblem = nxPasswordProblem($password)) !== null) {
+                setToast("Weak Password", $pwProblem, "error");
                 header("Location: ../admin.php?tab=users");
                 exit;
             }
@@ -186,10 +194,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($action === 'save' || $action === 
         // like this is how accounts get taken over before the person ever signs in).
         $initialPassword = (string) $password;
         if ($initialPassword === '') {
-            $bounce('Password required', 'Set an initial password for the new account (8+ characters, with a capital letter and a number).');
+            $bounce('Password required', 'Set an initial password for the new account (10+ characters, with a capital letter, a small letter and a number).');
         }
-        if (strlen($initialPassword) < 8 || !preg_match('/[A-Z]/', $initialPassword) || !preg_match('/[0-9]/', $initialPassword)) {
-            setToast("Weak Password", "Password must be at least 8 characters long and contain at least one uppercase letter and one number.", "error");
+        if (($pwProblem = nxPasswordProblem($initialPassword)) !== null) {
+            setToast("Weak Password", $pwProblem, "error");
             header("Location: ../admin.php?tab=users");
             exit;
         }

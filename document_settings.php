@@ -41,7 +41,7 @@ $typeLabel = $docType === 'certificate' ? 'Medical certificate' : 'Prescription'
     <?php endforeach; ?>
 </div>
 
-<style>
+<style nonce="<?= nxCspNonce() ?>">
     @media (min-width:1280px){ .ds-grid{grid-template-columns:minmax(0,1fr) minmax(0,600px)} }
     .ds-pane{overflow:hidden;background:#eef2f7;border-radius:0 0 16px 16px;position:relative}
     .ds-pane iframe{border:0;display:block;width:820px;background:#eef2f7;transform-origin:top left}
@@ -149,7 +149,7 @@ $typeLabel = $docType === 'certificate' ? 'Medical certificate' : 'Prescription'
                     <?php foreach (DocumentTemplateSettings::ACCENTS as $hex => $name): ?>
                         <label class="relative cursor-pointer" title="<?= htmlspecialchars($name) ?>">
                             <input type="radio" name="accent" value="<?= $hex ?>" class="peer sr-only" <?= strtoupper($cfg['accent']) === $hex ? 'checked' : '' ?> <?= $dis ?>>
-                            <span class="w-8 h-8 rounded-full ring-2 ring-offset-2 ring-transparent peer-checked:ring-slate-900 inline-block" style="background: <?= $hex ?>"></span>
+                            <span class="w-8 h-8 rounded-full ring-2 ring-offset-2 ring-transparent peer-checked:ring-slate-900 inline-block" data-css="background: <?= $hex ?>"></span>
                         </label>
                     <?php endforeach; ?>
                 </div>
@@ -208,13 +208,13 @@ $typeLabel = $docType === 'certificate' ? 'Medical certificate' : 'Prescription'
             <div class="px-4 py-2.5 border-b border-slate-200 flex items-center justify-between gap-3">
                 <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Live preview: <?= htmlspecialchars($typeLabel) ?></span>
                 <label class="text-[11px] text-slate-500 inline-flex items-center gap-1.5 cursor-pointer">
-                    <input type="checkbox" id="ds-child" class="rounded border-slate-300"> Child patient (under 15)
+                    <input type="checkbox" id="ds-child" name="sample_child" value="1" class="rounded border-slate-300"> Child patient (under 15)
                 </label>
             </div>
             <div class="ds-scroll">
                 <div class="ds-pane" id="ds-pane">
                     <span class="ds-busy" id="ds-busy" role="status">Updating…</span>
-                    <iframe id="ds-frame" title="Live preview of the <?= htmlspecialchars(strtolower($typeLabel)) ?>" sandbox="allow-same-origin" height="900"></iframe>
+                    <iframe id="ds-frame" name="ds-frame" title="Live preview of the <?= htmlspecialchars(strtolower($typeLabel)) ?>" sandbox="allow-same-origin allow-scripts" height="900"></iframe>
                 </div>
             </div>
         </div>
@@ -223,7 +223,7 @@ $typeLabel = $docType === 'certificate' ? 'Medical certificate' : 'Prescription'
 </form>
 
 
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 (function () {
     var form = document.getElementById('ds-form'), frame = document.getElementById('ds-frame'),
         pane = document.getElementById('ds-pane'), busy = document.getElementById('ds-busy'),
@@ -242,15 +242,14 @@ $typeLabel = $docType === 'certificate' ? 'Medical certificate' : 'Prescription'
     window.addEventListener('resize', fit);
 
     function refresh() {
-        var mine = ++seq, fd = new FormData(form);
-        fd.set('sample_child', child && child.checked ? '1' : '');
         busy.classList.add('on');
-        fetch('document_preview.php', { method: 'POST', body: fd, credentials: 'same-origin' })
-            .then(function (r) { return r.ok ? r.text() : Promise.reject(r.status); })
-            .then(function (html) { if (mine === seq) { frame.srcdoc = html; } })
-            .catch(function () { /* keep the last good preview */ })
-            .then(function () { if (mine === seq) busy.classList.remove('on'); });
+        var a = form.getAttribute('action'), t = form.getAttribute('target');
+        form.setAttribute('action', 'document_preview.php'); form.setAttribute('target', 'ds-frame');
+        form.submit();
+        if (a === null) form.removeAttribute('action'); else form.setAttribute('action', a);
+        if (t === null) form.removeAttribute('target'); else form.setAttribute('target', t);
     }
+    frame.addEventListener('load', function () { busy.classList.remove('on'); });
     function later() { clearTimeout(timer); timer = setTimeout(refresh, 350); }
 
     form.addEventListener('input', later);

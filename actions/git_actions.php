@@ -16,9 +16,21 @@ if (empty($_SESSION['authenticated'])) {
 }
 
 $userRole = $_SESSION['user_role'] ?? $_SESSION['role'] ?? 'Doctor';
-if (!in_array($userRole, ['Administrator', 'Developer'])) {
-    echo json_encode(['success' => false, 'error' => 'Access denied: Administrator or Developer role required']);
+// Running git on the server is a developer task, never a clinic administrator's.
+if ($userRole !== 'Developer') {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'error' => 'Access denied: Developer role required']);
     exit();
+}
+
+/** A remote must look like a real git address; a leading dash would be read by git as an option. */
+function nxValidGitRemote(string $u): bool
+{
+    return (bool) preg_match('#^(https://[A-Za-z0-9._~:@%/\-]+|ssh://[A-Za-z0-9._~:@%/\-]+|git@[A-Za-z0-9.\-]+:[A-Za-z0-9._~/\-]+)$#', $u);
+}
+function nxValidGitBranch(string $b): bool
+{
+    return (bool) preg_match('#^[A-Za-z0-9][A-Za-z0-9._/\-]{0,99}$#', $b) && !str_contains($b, '..');
 }
 
 $pdo = getDB();
@@ -66,7 +78,7 @@ try {
 
             $remoteUrlCheck = runGitCmd($gitPath, $gitRepoDir, 'config --get remote.origin.url');
             if ($remoteUrlCheck && stripos($remoteUrlCheck, 'fatal:') === false) {
-                $gitRemoteUrl = trim($remoteUrlCheck);
+                $gitRemoteUrl = preg_replace('#//[^/@\s]+@#', '//***@', trim($remoteUrlCheck)); // never echo an access token
             }
         } else {
             $status = "fatal: not a git repository (or any of the parent directories): .git";
@@ -121,6 +133,10 @@ try {
             echo json_encode(['success' => false, 'error' => 'Remote repository URL is required.']);
             exit();
         }
+        if (!nxValidGitRemote($repoUrl)) {
+            echo json_encode(['success' => false, 'error' => 'That does not look like a git address (use https://, ssh:// or git@host:path).']);
+            exit();
+        }
 
         // Initialize repository if needed
         $output = runGitCmd($gitPath, $gitRepoDir, 'init');
@@ -144,6 +160,10 @@ try {
 
         if (!isGitRepoRobust($gitPath, $gitRepoDir)) {
             echo json_encode(['success' => false, 'error' => 'Directory is not a valid Git repository. Please initialize repository link first.']);
+            exit();
+        }
+        if (!nxValidGitBranch($branch)) {
+            echo json_encode(['success' => false, 'error' => 'That is not a valid branch name.']);
             exit();
         }
 

@@ -27,6 +27,7 @@ $action = $_GET['action'] ?? ($_POST['action'] ?? '');
 
 try {
     if ($action === 'upload_certificate') {
+        validateCsrfRequest();   // a state-changing upload must carry the page's token
         $passphrase = trim($_POST['vms_cert_passphrase'] ?? '');
 
         if (!isset($_FILES['vms_cert_file']) || $_FILES['vms_cert_file']['error'] !== UPLOAD_ERR_OK) {

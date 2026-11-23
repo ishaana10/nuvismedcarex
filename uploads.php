@@ -121,7 +121,7 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
             </a>
         <?php endif; ?>
 
-        <button type="button" onclick="openModal('modal-upload-document')" class="px-5 py-2.5 bg-primary text-white font-bold text-xs rounded-xl hover:bg-primary/90 transition shadow-md shadow-primary/20 flex items-center gap-2">
+        <button type="button" data-on-click="openModal('modal-upload-document')" class="px-5 py-2.5 bg-primary text-white font-bold text-xs rounded-xl hover:bg-primary/90 transition shadow-md shadow-primary/20 flex items-center gap-2">
             <span class="material-symbols-outlined text-base">add</span>
             <span>Upload Document</span>
         </button>
@@ -157,7 +157,7 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
         </div>
         <!-- Storage Usage Progress Bar -->
         <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-1">
-            <div class="h-full rounded-full transition-all duration-500 <?= $storageUsage['percentage'] > 85 ? 'bg-red-500' : ($storageUsage['percentage'] > 60 ? 'bg-amber-500' : 'bg-primary') ?>" style="width: <?= max(2, $storageUsage['percentage']) ?>%"></div>
+            <div class="h-full rounded-full transition-all duration-500 <?= $storageUsage['percentage'] > 85 ? 'bg-red-500' : ($storageUsage['percentage'] > 60 ? 'bg-amber-500' : 'bg-primary') ?>" data-css="width: <?= max(2, $storageUsage['percentage']) ?>%"></div>
         </div>
     </div>
 
@@ -256,7 +256,7 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
         <div class="p-12 text-center text-outline text-xs">
             <span class="material-symbols-outlined text-4xl text-slate-300 mb-2">cloud_off</span>
             <p class="font-medium text-slate-500">No documents found matching your filter criteria.</p>
-            <button type="button" onclick="openModal('modal-upload-document')" class="mt-3 px-4 py-2 bg-primary text-white font-bold rounded-xl text-xs inline-flex items-center gap-1 shadow-xs">
+            <button type="button" data-on-click="openModal('modal-upload-document')" class="mt-3 px-4 py-2 bg-primary text-white font-bold rounded-xl text-xs inline-flex items-center gap-1 shadow-xs">
                 <span class="material-symbols-outlined text-sm">add</span> Upload First Document
             </button>
         </div>
@@ -333,7 +333,7 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
 
                             <td class="p-3.5 text-right">
                                 <div class="flex items-center justify-end gap-2">
-                                    <button type="button" onclick="openDocumentViewer('<?= htmlspecialchars($file['id']) ?>', '<?= htmlspecialchars(addslashes($file['original_name'])) ?>')" class="px-2.5 py-1 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary/90 flex items-center gap-1 shadow-xs">
+                                    <button type="button" data-on-click="openDocumentViewer('<?= htmlspecialchars($file['id']) ?>', '<?= htmlspecialchars(addslashes($file['original_name'])) ?>')" class="px-2.5 py-1 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary/90 flex items-center gap-1 shadow-xs">
                                         <span class="material-symbols-outlined text-sm">visibility</span> View Document
                                     </button>
 
@@ -363,7 +363,7 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
                 <span class="material-symbols-outlined text-primary text-xl">cloud_upload</span>
                 <h3 class="font-bold text-sm">Upload or Link Document</h3>
             </div>
-            <button type="button" onclick="closeModal('modal-upload-document')" class="text-slate-400 hover:text-white">
+            <button type="button" data-on-click="closeModal('modal-upload-document')" class="text-slate-400 hover:text-white">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
@@ -480,19 +480,10 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
                             <input id="gdrive_file_name" type="text" name="gdrive_file_name" placeholder="Blood panel, Oct 2026.pdf" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-medium text-on-surface">
                         </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <button type="button" id="btn-gdrive-picker" onclick="launchGoogleDrivePicker()" class="px-3 py-1.5 bg-surface-container border border-outline-variant/40 text-on-surface font-semibold text-xs rounded-xl hover:bg-surface-container-high transition flex items-center gap-1.5">
-                            <span class="material-symbols-outlined text-base">add_to_drive</span>
-                            <span>Pick from Google Drive</span>
-                        </button>
-                        <span id="gdrive-status-label" class="text-[10px] text-slate-500"></span>
-                    </div>
-                    <input type="hidden" id="gdrive_file_id" name="gdrive_file_id">
-                    <input type="hidden" id="gdrive_access_token" name="gdrive_access_token">
                 </div>
             </details>
 
-            <script>
+            <script nonce="<?= nxCspNonce() ?>">
             // Linking instead of uploading: the file chooser is no longer required
             (function () {
                 const form = document.getElementById('doc-upload-form');
@@ -515,7 +506,7 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
                     <span id="doc-upload-percentage" class="font-mono font-bold text-emerald-400">0%</span>
                 </div>
                 <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                    <div id="doc-upload-bar" class="h-full bg-emerald-500 rounded-full transition-all duration-200" style="width: 0%"></div>
+                    <div id="doc-upload-bar" class="h-full bg-emerald-500 rounded-full transition-all duration-200" data-css="width: 0%"></div>
                 </div>
                 <div id="doc-upload-console" class="font-mono text-[11px] text-slate-300 bg-slate-950 p-2 rounded-lg border border-slate-800 h-16 overflow-y-auto leading-relaxed">
                     [System Console] Upload initiated...
@@ -523,7 +514,7 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
             </div>
 
             <div class="flex items-center justify-end gap-2 pt-3 border-t border-outline-variant/20">
-                <button type="button" onclick="closeModal('modal-upload-document')" class="px-4 py-2 bg-surface-container hover:bg-surface-container-high rounded-xl font-semibold text-on-surface">Cancel</button>
+                <button type="button" data-on-click="closeModal('modal-upload-document')" class="px-4 py-2 bg-surface-container hover:bg-surface-container-high rounded-xl font-semibold text-on-surface">Cancel</button>
                 <button type="submit" id="btn-doc-submit" class="px-5 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 shadow-xs flex items-center gap-1.5">
                     <span class="material-symbols-outlined text-base">cloud_upload</span>
                     <span>Submit & Save Document</span>
@@ -534,11 +525,8 @@ $paginatedFiles = array_slice($filesList, $pagination['offset'], $pagination['li
 </div>
 
 <!-- Modal: Cloud API Settings -->
-<!-- Google API Loader and GIS Client SDKs -->
 
-<script>
-window.gdriveClientId = <?= json_encode($cloudSettings['cloud_googledrive_client_id'] ?? '') ?>;
-window.gdriveApiKey = <?= json_encode($cloudSettings['cloud_googledrive_api_key'] ?? '') ?>;
+<script nonce="<?= nxCspNonce() ?>">
 </script>
 <script src="assets/js/uploads.js?v=<?= urlencode(AppVersion::get('commit')) ?>"></script>
 

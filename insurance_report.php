@@ -57,7 +57,7 @@ $statusTone = [
             <span>Print / PDF</span>
         </a>
         <?php if ($canEditLayout): ?>
-            <button type="button" onclick="NX.openModal('modal-insurance-layout')" class="btn-primary">
+            <button type="button" data-on-click="NX.openModal('modal-insurance-layout')" class="btn-primary">
                 <span class="material-symbols-outlined text-[18px]">tune</span>
                 <span>Customise layout</span>
             </button>
@@ -251,7 +251,7 @@ $statusTone = [
                         <span class="tabular font-medium text-slate-900"><?= $cur . number_format($bucket['claimed'], 2) ?></span>
                     </div>
                     <div class="mt-1.5 h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                        <div class="h-full rounded-full <?= $tone ?>" style="width: <?= number_format(max($share, $bucket['count'] ? 2 : 0), 2) ?>%"></div>
+                        <div class="h-full rounded-full <?= $tone ?>" data-css="width: <?= number_format(max($share, $bucket['count'] ? 2 : 0), 2) ?>%"></div>
                     </div>
                     <div class="text-[11px] text-slate-500 mt-1"><?= $bucket['count'] ?> claim<?= $bucket['count'] === 1 ? '' : 's' ?></div>
                 </li>
@@ -279,7 +279,7 @@ $statusTone = [
             </p>
         </div>
         <?php if ($canEditLayout): ?>
-            <button type="button" onclick="NX.openModal('modal-insurance-layout')" class="text-[12px] font-medium text-blue-700 hover:underline">Choose columns</button>
+            <button type="button" data-on-click="NX.openModal('modal-insurance-layout')" class="text-[12px] font-medium text-blue-700 hover:underline">Choose columns</button>
         <?php endif; ?>
     </div>
 
@@ -333,7 +333,7 @@ $statusTone = [
                                                   // tile behind it is white whatever the theme, or it disappears ?>
                                             <img src="<?= htmlspecialchars($sigImage) ?>" alt="Signature of <?= htmlspecialchars($sigBy ?: 'the member') ?>"
                                                  class="h-8 max-w-[140px] object-contain object-left rounded border border-slate-300 px-1"
-                                                 style="background:#ffffff">
+                                                 data-css="background:#ffffff">
                                             <?php if ($sigBy !== '' || $sigAt !== ''): ?>
                                                 <span class="block text-[10px] text-slate-500 mt-0.5">
                                                     <?= htmlspecialchars(implode(' · ', array_filter([$sigBy, $sigAt !== '' ? nxDate($sigAt) : '']))) ?>
@@ -426,7 +426,7 @@ $statusTone = [
                     Saved for <?= htmlspecialchars(nxClinicName()) ?>. Each provider can have its own columns and wording.
                 </p>
             </div>
-            <button type="button" onclick="NX.closeModal('modal-insurance-layout')" class="nx-icon-btn" aria-label="Close">
+            <button type="button" data-on-click="NX.closeModal('modal-insurance-layout')" class="nx-icon-btn" aria-label="Close">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
@@ -580,7 +580,7 @@ $statusTone = [
                     <span class="text-[11px] text-slate-400">Changes apply to CSV and printed output too.</span>
                 <?php endif; ?>
                 <div class="flex items-center gap-2 ml-auto">
-                    <button type="button" onclick="NX.closeModal('modal-insurance-layout')" class="btn-secondary">Cancel</button>
+                    <button type="button" data-on-click="NX.closeModal('modal-insurance-layout')" class="btn-secondary">Cancel</button>
                     <button type="submit" name="action" value="save" class="btn-primary">Save layout</button>
                 </div>
             </div>
@@ -588,7 +588,7 @@ $statusTone = [
     </div>
 </div>
 
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 (function () {
     var list = document.getElementById('lay-columns');
     if (!list) return;

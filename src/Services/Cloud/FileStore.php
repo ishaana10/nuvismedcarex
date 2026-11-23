@@ -146,8 +146,8 @@ final class FileStore
         $patient = null;
         if (!empty($f['patient_id'])) {
             try {
-                $ps = $db->prepare("SELECT mrn, first_name, last_name FROM patients WHERE id = ? LIMIT 1");
-                $ps->execute([$f['patient_id']]);
+                $ps = $db->prepare("SELECT mrn, first_name, last_name FROM patients WHERE id = ? AND tenant_id = ? LIMIT 1");
+                $ps->execute([$f['patient_id'], $f['tenant_id'] ?? '']);
                 $patient = $ps->fetch(PDO::FETCH_ASSOC) ?: null;
             } catch (\Throwable $e) {
                 // the folder simply loses the patient segment

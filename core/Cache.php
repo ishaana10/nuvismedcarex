@@ -113,7 +113,7 @@ class NuCache
             if ($value === false) {
                 return $default;
             }
-            $decoded = @unserialize($value);
+            $decoded = @unserialize($value, ['allowed_classes' => false]);
             return $decoded === false && $value !== serialize(false)
                 ? $value
                 : $decoded;

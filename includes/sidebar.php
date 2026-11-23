@@ -68,7 +68,7 @@ $renderNav = function (bool $mobile) use ($nxGrouped, $activePage, $nxCounts, $n
 </aside>
 
 <!-- Mobile drawer -->
-<div id="mobileBackdrop" onclick="toggleMobileSidebar()" class="mobile-backdrop fixed inset-0 bg-slate-950/50 backdrop-blur-xs z-[60] hidden md:hidden"></div>
+<div id="mobileBackdrop" data-on-click="toggleMobileSidebar()" class="mobile-backdrop fixed inset-0 bg-slate-950/50 backdrop-blur-xs z-[60] hidden md:hidden"></div>
 <aside id="mobileSidebar" class="mobile-sidebar nx-rail fixed top-0 left-0 bottom-0 !h-full w-[284px] z-[70] -translate-x-full transition-transform duration-300 ease-out md:hidden flex-col shadow-2xl" aria-label="Main navigation">
     <div class="nx-rail-brand flex items-center gap-3 px-4 shrink-0">
         <img src="<?= htmlspecialchars($nxClinicLogo) ?>" alt="" class="w-9 h-9 rounded-lg object-contain bg-white p-0.5">
@@ -76,7 +76,7 @@ $renderNav = function (bool $mobile) use ($nxGrouped, $activePage, $nxCounts, $n
             <div class="text-[13px] font-semibold text-white truncate"><?= htmlspecialchars($nxClinic) ?></div>
             <div class="text-[11px] text-white/50">Nuvis Medcare X</div>
         </div>
-        <button type="button" onclick="toggleMobileSidebar()" class="p-2 -mr-2 rounded-lg text-white/70 hover:text-white hover:bg-white/10" aria-label="Close navigation">
+        <button type="button" data-on-click="toggleMobileSidebar()" class="p-2 -mr-2 rounded-lg text-white/70 hover:text-white hover:bg-white/10" aria-label="Close navigation">
             <span class="material-symbols-outlined">close</span>
         </button>
     </div>
@@ -91,7 +91,7 @@ $renderNav = function (bool $mobile) use ($nxGrouped, $activePage, $nxCounts, $n
     </nav>
     <div class="shrink-0 border-t border-white/10 p-2 space-y-0.5">
         <?php if (nxCan('appointments', 'edit')): ?><a href="appointment.php?action=book" class="nx-rail-link"><span class="material-symbols-outlined">calendar_add_on</span><span>Book appointment</span></a><?php endif; ?>
-        <button type="button" onclick="toggleMobileSidebar(); openChangePasswordModal();" class="nx-rail-link w-[calc(100%-1rem)]"><span class="material-symbols-outlined">key</span><span>Change password</span></button>
+        <button type="button" data-on-click="toggleMobileSidebar(); openChangePasswordModal();" class="nx-rail-link w-[calc(100%-1rem)]"><span class="material-symbols-outlined">key</span><span>Change password</span></button>
         <a href="actions/logout.php" class="nx-rail-link"><span class="material-symbols-outlined">logout</span><span>Sign out</span></a>
     </div>
 </aside>
@@ -114,12 +114,12 @@ if (count($nxTabs) < 4) {   // fewer modules for this role: top up from the rest
             <span><?= htmlspecialchars($t['label']) ?></span>
         </a>
     <?php endforeach; ?>
-    <button type="button" class="nx-bottomnav-item" onclick="toggleMobileSidebar()" aria-label="Open full menu">
+    <button type="button" class="nx-bottomnav-item" data-on-click="toggleMobileSidebar()" aria-label="Open full menu">
         <span class="material-symbols-outlined">menu</span><span>More</span>
     </button>
 </nav>
 
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 function toggleMobileSidebar() {
     var sidebar = document.getElementById('mobileSidebar');
     var backdrop = document.getElementById('mobileBackdrop');

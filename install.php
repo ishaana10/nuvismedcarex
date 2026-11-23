@@ -322,7 +322,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <span class="material-symbols-outlined text-base">tune</span>
                             <span>4. Additional Custom Developer Fields (Extensible Key-Value Settings)</span>
                         </h2>
-                        <button type="button" onclick="addCustomField()" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] rounded-lg transition flex items-center gap-1">
+                        <button type="button" data-on-click="addCustomField()" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] rounded-lg transition flex items-center gap-1">
                             <span class="material-symbols-outlined text-sm">add</span>
                             <span>Add Field</span>
                         </button>
@@ -345,7 +345,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             </form>
 
-            <script>
+            <script nonce="<?= nxCspNonce() ?>">
                 function addCustomField() {
                     const container = document.getElementById('custom-fields-container');
                     const div = document.createElement('div');
@@ -361,5 +361,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 </div>
 
+<script src="assets/js/actions.js" defer></script>
 </body>
 </html>

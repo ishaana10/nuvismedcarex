@@ -37,8 +37,8 @@ if ($newPassword !== $confirmPassword) {
     exit;
 }
 
-if (strlen($newPassword) < 8 || !preg_match('/[A-Z]/', $newPassword) || !preg_match('/[0-9]/', $newPassword)) {
-    setToast('Weak Password', 'New password must be at least 8 characters long and contain at least one uppercase letter and one number.', 'error');
+if (($pwProblem = nxPasswordProblem($newPassword)) !== null) {
+    setToast('Weak Password', $pwProblem, 'error');
     header("Location: " . $redirectUrl);
     exit;
 }

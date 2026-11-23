@@ -81,13 +81,13 @@ $csrfToken = getCsrfToken();
         <p class="nx-page-sub">Stock levels, batches and restocking for <?= htmlspecialchars(nxClinicName()) ?></p>
     </div>
     <div class="flex items-center gap-2">
-        <button onclick="openModal('modal-audit-logs')" class="px-3.5 py-2 bg-surface-container border border-outline-variant/40 text-on-surface hover:bg-surface-container-high rounded-xl text-xs font-semibold transition flex items-center gap-1.5 shadow-xs">
+        <button data-on-click="openModal('modal-audit-logs')" class="px-3.5 py-2 bg-surface-container border border-outline-variant/40 text-on-surface hover:bg-surface-container-high rounded-xl text-xs font-semibold transition flex items-center gap-1.5 shadow-xs">
             <span class="material-symbols-outlined text-base">history</span>
             <span>Movement History</span>
         </button>
 
         <?php if ($isAdminOrDev): ?>
-            <button onclick="openModal('modal-add-item')" class="px-3.5 py-2 bg-primary text-white hover:bg-primary/90 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 shadow-xs">
+            <button data-on-click="openModal('modal-add-item')" class="px-3.5 py-2 bg-primary text-white hover:bg-primary/90 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 shadow-xs">
                 <span class="material-symbols-outlined text-base">add_box</span>
                 <span>Add Inventory Item</span>
             </button>
@@ -151,7 +151,7 @@ $csrfToken = getCsrfToken();
         </div>
 
         <div>
-            <select name="category" onchange="this.form.submit()" class="w-full bg-surface-container-low px-3 py-2 rounded-xl text-xs border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none font-medium">
+            <select name="category" data-on-change="this.form.submit()" class="w-full bg-surface-container-low px-3 py-2 rounded-xl text-xs border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none font-medium">
                 <option value="">All Categories</option>
                 <?php foreach ($categories as $cat): ?>
                     <option value="<?= htmlspecialchars($cat) ?>" <?= $categoryFilter === $cat ? 'selected' : '' ?>>
@@ -162,7 +162,7 @@ $csrfToken = getCsrfToken();
         </div>
 
         <div class="flex items-center gap-2">
-            <select name="status" onchange="this.form.submit()" class="w-full bg-surface-container-low px-3 py-2 rounded-xl text-xs border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none font-medium">
+            <select name="status" data-on-change="this.form.submit()" class="w-full bg-surface-container-low px-3 py-2 rounded-xl text-xs border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none font-medium">
                 <option value="">All Stock Status</option>
                 <option value="In Stock" <?= $statusFilter === 'In Stock' ? 'selected' : '' ?>>In Stock</option>
                 <option value="Low Stock" <?= $statusFilter === 'Low Stock' ? 'selected' : '' ?>>Low Stock</option>
@@ -297,13 +297,13 @@ $csrfToken = getCsrfToken();
                                     </form>
 
                                     <!-- Detailed Restock Button -->
-                                    <button onclick='openDetailedRestockModal(<?= json_encode($item, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)' title="Detailed Restock Entry" class="p-1.5 bg-surface-container hover:bg-surface-container-high text-on-surface rounded-lg text-xs font-semibold transition">
+                                    <button data-on-click='openDetailedRestockModal(<?= json_encode($item, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)' title="Detailed Restock Entry" class="p-1.5 bg-surface-container hover:bg-surface-container-high text-on-surface rounded-lg text-xs font-semibold transition">
                                         <span class="material-symbols-outlined text-base">edit_note</span>
                                     </button>
 
                                     <?php if ($isAdminOrDev): ?>
                                         <!-- Edit Item Button -->
-                                        <button onclick='openEditModal(<?= json_encode($item, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)' title="Edit Inventory Item" class="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition">
+                                        <button data-on-click='openEditModal(<?= json_encode($item, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)' title="Edit Inventory Item" class="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition">
                                             <span class="material-symbols-outlined text-base">edit</span>
                                         </button>
 
@@ -407,7 +407,7 @@ $tones = [
                                 </td>
                                 <td class="py-3 px-5 text-right whitespace-nowrap">
                                     <?php if ($isAdminOrDev): ?>
-                                        <button type="button" onclick='openDetailedRestockModal(<?= htmlspecialchars(json_encode($item), ENT_QUOTES) ?>)' class="btn-secondary !py-1.5 !px-3 !text-[12px]">Restock</button>
+                                        <button type="button" data-on-click='openDetailedRestockModal(<?= htmlspecialchars(json_encode($item), ENT_QUOTES) ?>)' class="btn-secondary !py-1.5 !px-3 !text-[12px]">Restock</button>
                                     <?php endif; ?>
                                 </td>
                             </tr>
@@ -481,7 +481,7 @@ $tones = [
                                 <div class="text-[13px] text-slate-900"><?= htmlspecialchars($row['category']) ?></div>
                                 <?php if ($row['low'] > 0): ?><div class="text-[11px] text-amber-700"><?= $row['low'] ?> need reordering</div><?php endif; ?>
                                 <div class="mt-1.5 h-1.5 w-full max-w-[200px] rounded-full bg-slate-100 overflow-hidden">
-                                    <div class="h-full rounded-full bg-blue-600" style="width: <?= $maxVal > 0 ? round($row['retail_value'] / $maxVal * 100) : 0 ?>%"></div>
+                                    <div class="h-full rounded-full bg-blue-600" data-css="width: <?= $maxVal > 0 ? round($row['retail_value'] / $maxVal * 100) : 0 ?>%"></div>
                                 </div>
                             </td>
                             <td class="py-3 px-3 text-right text-[13px] text-slate-700 tabular"><?= number_format($row['items']) ?></td>
@@ -573,7 +573,7 @@ $tones = [
                 <h3 class="text-base font-bold text-on-surface">Add New Inventory Item</h3>
                 <p class="text-xs text-outline">Enter product details, pricing, stock levels, and custom fields</p>
             </div>
-            <button onclick="closeModal('modal-add-item')" class="text-outline hover:text-on-surface p-1">
+            <button data-on-click="closeModal('modal-add-item')" class="text-outline hover:text-on-surface p-1">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
@@ -657,7 +657,7 @@ $tones = [
             <?= nxRenderInventoryFields($customFieldsDef, [], 'add') ?>
 
             <div class="flex items-center justify-end gap-2 border-t border-outline-variant/30 pt-4">
-                <button type="button" onclick="closeModal('modal-add-item')" class="px-4 py-2 bg-surface-container hover:bg-surface-container-high rounded-xl text-xs font-semibold text-on-surface">Cancel</button>
+                <button type="button" data-on-click="closeModal('modal-add-item')" class="px-4 py-2 bg-surface-container hover:bg-surface-container-high rounded-xl text-xs font-semibold text-on-surface">Cancel</button>
                 <button type="submit" class="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-xl text-xs font-semibold">Create Item</button>
             </div>
         </form>
@@ -672,7 +672,7 @@ $tones = [
                 <h3 class="text-base font-bold text-on-surface">Edit Inventory Item</h3>
                 <p class="text-xs text-outline">Modify details, reorder threshold, and pricing</p>
             </div>
-            <button onclick="closeModal('modal-edit-item')" class="text-outline hover:text-on-surface p-1">
+            <button data-on-click="closeModal('modal-edit-item')" class="text-outline hover:text-on-surface p-1">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
@@ -748,7 +748,7 @@ $tones = [
             <?= nxRenderInventoryFields($customFieldsDef, [], 'edit') ?>
 
             <div class="flex items-center justify-end gap-2 border-t border-outline-variant/30 pt-4">
-                <button type="button" onclick="closeModal('modal-edit-item')" class="px-4 py-2 bg-surface-container hover:bg-surface-container-high rounded-xl text-xs font-semibold text-on-surface">Cancel</button>
+                <button type="button" data-on-click="closeModal('modal-edit-item')" class="px-4 py-2 bg-surface-container hover:bg-surface-container-high rounded-xl text-xs font-semibold text-on-surface">Cancel</button>
                 <button type="submit" class="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-xl text-xs font-semibold">Save Changes</button>
             </div>
         </form>
@@ -764,7 +764,7 @@ $tones = [
                 <h3 class="text-base font-bold text-on-surface">Detailed Restock Entry</h3>
                 <p class="text-xs text-outline" id="restock-item-title">Log supplier, batch, unit cost, and restock quantity</p>
             </div>
-            <button onclick="closeModal('modal-detailed-restock')" class="text-outline hover:text-on-surface p-1">
+            <button data-on-click="closeModal('modal-detailed-restock')" class="text-outline hover:text-on-surface p-1">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
@@ -806,7 +806,7 @@ $tones = [
             </div>
 
             <div class="flex items-center justify-end gap-2 border-t border-outline-variant/30 pt-4">
-                <button type="button" onclick="closeModal('modal-detailed-restock')" class="px-4 py-2 bg-surface-container hover:bg-surface-container-high rounded-xl text-xs font-semibold text-on-surface">Cancel</button>
+                <button type="button" data-on-click="closeModal('modal-detailed-restock')" class="px-4 py-2 bg-surface-container hover:bg-surface-container-high rounded-xl text-xs font-semibold text-on-surface">Cancel</button>
                 <button type="submit" class="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-xl text-xs font-semibold">Submit Restock Entry</button>
             </div>
         </form>
@@ -821,7 +821,7 @@ $tones = [
                 <h3 class="text-base font-bold text-on-surface">Stock Movement & Restock Audit History</h3>
                 <p class="text-xs text-outline">Complete audit trail of all inventory restocks, adjustments, and initial entries</p>
             </div>
-            <button onclick="closeModal('modal-audit-logs')" class="text-outline hover:text-on-surface p-1">
+            <button data-on-click="closeModal('modal-audit-logs')" class="text-outline hover:text-on-surface p-1">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
@@ -881,12 +881,12 @@ $tones = [
             </table>
         </div>
         <div class="p-4 border-t border-outline-variant/30 text-right shrink-0">
-            <button onclick="closeModal('modal-audit-logs')" class="px-4 py-2 bg-surface-container hover:bg-surface-container-high rounded-xl text-xs font-semibold text-on-surface">Close Audit History</button>
+            <button data-on-click="closeModal('modal-audit-logs')" class="px-4 py-2 bg-surface-container hover:bg-surface-container-high rounded-xl text-xs font-semibold text-on-surface">Close Audit History</button>
         </div>
     </div>
 </div>
 
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 function openModal(id) {
     document.getElementById(id).classList.remove('hidden');
 }

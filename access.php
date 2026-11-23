@@ -195,7 +195,7 @@ $csrf = htmlspecialchars(getCsrfToken());
                                         <input type="hidden" name="action" value="assign_role">
                                         <input type="hidden" name="user_id" value="<?= htmlspecialchars($u['id']) ?>">
                                         <label class="sr-only" for="role-<?= htmlspecialchars($u['id']) ?>">Role for <?= htmlspecialchars($u['name']) ?></label>
-                                        <select id="role-<?= htmlspecialchars($u['id']) ?>" name="role" onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()" class="h-9 w-full rounded-lg border-slate-200 bg-white text-[13px] py-0 pl-2.5 pr-8 focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500">
+                                        <select id="role-<?= htmlspecialchars($u['id']) ?>" name="role" data-on-change="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()" class="h-9 w-full rounded-lg border-slate-200 bg-white text-[13px] py-0 pl-2.5 pr-8 focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500">
                                             <?php foreach ($assignableRoles as $r): ?>
                                                 <option value="<?= htmlspecialchars($r) ?>" <?= $r === $uRole ? 'selected' : '' ?>><?= htmlspecialchars($r) ?></option>
                                             <?php endforeach; ?>
@@ -282,7 +282,7 @@ $csrf = htmlspecialchars(getCsrfToken());
 </aside>
 </div>
 
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 (function () {
     var tones = <?= json_encode($levelTone) ?>;
     var form = document.getElementById('access-form');

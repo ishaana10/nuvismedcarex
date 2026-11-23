@@ -138,7 +138,7 @@ if (empty($patientId)) {
             <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Clinical Encounters</h1>
             <p class="text-xs text-slate-500 font-medium">Manage active clinical visits, review patient encounters, and document SOAP notes</p>
         </div>
-        <button type="button" onclick="document.getElementById('startEncounterModal').classList.remove('hidden')" class="btn-primary">
+        <button type="button" data-on-click="document.getElementById('startEncounterModal').classList.remove('hidden')" class="btn-primary">
             <span class="material-symbols-outlined text-base">add_notes</span>
             <span>Start New Encounter</span>
         </button>
@@ -290,7 +290,7 @@ if (empty($patientId)) {
                     <span class="material-symbols-outlined text-primary text-xl">add_notes</span>
                     <span>Start New Clinical Encounter</span>
                 </h3>
-                <button type="button" onclick="document.getElementById('startEncounterModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-700">
+                <button type="button" data-on-click="document.getElementById('startEncounterModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-700">
                     <span class="material-symbols-outlined">close</span>
                 </button>
             </div>
@@ -317,7 +317,7 @@ if (empty($patientId)) {
                 </div>
 
                 <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-                    <button type="button" onclick="document.getElementById('startEncounterModal').classList.add('hidden')" class="px-4 py-2 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition">
+                    <button type="button" data-on-click="document.getElementById('startEncounterModal').classList.add('hidden')" class="px-4 py-2 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition">
                         Cancel
                     </button>
                     <button type="submit" class="px-5 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition shadow-xs flex items-center gap-1.5">
@@ -455,7 +455,7 @@ include __DIR__ . '/includes/header.php';
         </div>
 
         <div class="flex flex-wrap items-center gap-2.5">
-            <button type="button" onclick="document.getElementById('issueMedCertModal').classList.remove('hidden')" class="btn-secondary text-xs py-2 px-3">
+            <button type="button" data-on-click="document.getElementById('issueMedCertModal').classList.remove('hidden')" class="btn-secondary text-xs py-2 px-3">
                 <span class="material-symbols-outlined text-base">workspace_premium</span>
                 <span>Med Cert</span>
             </button>
@@ -463,7 +463,7 @@ include __DIR__ . '/includes/header.php';
                 <span class="material-symbols-outlined text-base">print</span>
                 <span>Print Prescription</span>
             </a>
-            <button type="button" onclick="document.getElementById('finalizeModal').classList.remove('hidden')" class="btn-primary text-xs py-2 px-4">
+            <button type="button" data-on-click="document.getElementById('finalizeModal').classList.remove('hidden')" class="btn-primary text-xs py-2 px-4">
                 <span class="material-symbols-outlined text-base">check_circle</span>
                 <span>Finish Visit / Invoice</span>
             </button>
@@ -634,7 +634,7 @@ include __DIR__ . '/includes/header.php';
                         </div>
 
                         <div class="flex items-center gap-1.5 shrink-0">
-                            <button type="button" onclick='openEditRxModal(<?= htmlspecialchars(json_encode($rx), ENT_QUOTES, "UTF-8") ?>)' class="p-1 text-slate-600 hover:text-primary hover:bg-slate-200 rounded-md transition" title="Edit Medication">
+                            <button type="button" data-on-click='openEditRxModal(<?= htmlspecialchars(json_encode($rx), ENT_QUOTES, "UTF-8") ?>)' class="p-1 text-slate-600 hover:text-primary hover:bg-slate-200 rounded-md transition" title="Edit Medication">
                                 <span class="material-symbols-outlined text-base">edit</span>
                             </button>
                             <a href="actions/encounter_save.php?csrf_token=<?= urlencode(getCsrfToken()) ?>&action=delete_rx&rx_id=<?= htmlspecialchars($rx['id']) ?>&patient_id=<?= htmlspecialchars($patient['id']) ?>&visit_id=<?= htmlspecialchars($visitId) ?>" data-nx-confirm="Remove this medication line?" class="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-md transition" title="Delete Medication">
@@ -646,7 +646,7 @@ include __DIR__ . '/includes/header.php';
             </div>
 
             <div class="pt-3 border-t border-outline-variant/20">
-                <button type="button" onclick="openAddRxModal()" class="w-full py-2.5 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-1.5">
+                <button type="button" data-on-click="openAddRxModal()" class="w-full py-2.5 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-1.5">
                     <span class="material-symbols-outlined text-base">add</span>
                     <span>Add Medication Line</span>
                 </button>
@@ -660,7 +660,7 @@ include __DIR__ . '/includes/header.php';
                     <span class="material-symbols-outlined text-primary text-base">science</span>
                     <span>Lab & Diagnostic Orders</span>
                 </h3>
-                <button type="button" onclick="openModal('modal-add-lab-order')" class="px-2.5 py-1 bg-primary text-white text-xs font-semibold rounded-lg hover:bg-primary/90 flex items-center gap-1">
+                <button type="button" data-on-click="openModal('modal-add-lab-order')" class="px-2.5 py-1 bg-primary text-white text-xs font-semibold rounded-lg hover:bg-primary/90 flex items-center gap-1">
                     <span class="material-symbols-outlined text-sm">add</span>
                     <span>Order Test</span>
                 </button>
@@ -680,11 +680,11 @@ include __DIR__ . '/includes/header.php';
                                     <span class="px-2 py-0.5 rounded-full text-[10px] font-bold <?= $lo['status'] === 'Completed' ? ($lo['is_abnormal'] ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800') : 'bg-amber-100 text-amber-800' ?>">
                                         <?= e($lo['status']) ?> <?= !empty($lo['is_abnormal']) ? '(Abnormal)' : '' ?>
                                     </span>
-                                    <button type="button" onclick='openEditLabModal(<?= htmlspecialchars(json_encode($lo), ENT_QUOTES) ?>)' class="px-2 py-1 bg-primary text-white hover:bg-primary/90 rounded-lg text-[11px] font-bold flex items-center gap-1 transition">
+                                    <button type="button" data-on-click='openEditLabModal(<?= htmlspecialchars(json_encode($lo), ENT_QUOTES) ?>)' class="px-2 py-1 bg-primary text-white hover:bg-primary/90 rounded-lg text-[11px] font-bold flex items-center gap-1 transition">
                                         <span class="material-symbols-outlined text-xs">edit</span> View / Edit
                                     </button>
                                     <?php if (!empty($lo['result_file_id'])): ?>
-                                        <button type="button" onclick="openDocumentViewer('<?= htmlspecialchars($lo['result_file_id']) ?>', '<?= htmlspecialchars(addslashes($lo['test_name'] ?? 'Lab Result')) ?>')" class="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[11px] font-bold flex items-center gap-1 transition shadow-2xs">
+                                        <button type="button" data-on-click="openDocumentViewer('<?= htmlspecialchars($lo['result_file_id']) ?>', '<?= htmlspecialchars(addslashes($lo['test_name'] ?? 'Lab Result')) ?>')" class="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[11px] font-bold flex items-center gap-1 transition shadow-2xs">
                                             <span class="material-symbols-outlined text-xs">attach_file</span> View Result File
                                         </button>
                                     <?php elseif (!empty($lo['result_file_path'])): ?>
@@ -835,7 +835,7 @@ include __DIR__ . '/includes/header.php';
                 <?php if ($consentOutstanding): ?>
                     <div class="space-y-1.5">
                         <?php foreach ($consentOutstanding as $form): ?>
-                            <button type="button" onclick="openConsentForm('<?= htmlspecialchars((string) $form['id'], ENT_QUOTES) ?>')"
+                            <button type="button" data-on-click="openConsentForm('<?= htmlspecialchars((string) $form['id'], ENT_QUOTES) ?>')"
                                     class="w-full text-left p-3 rounded-xl border border-dashed border-outline-variant/60 hover:border-primary hover:bg-primary/5 transition text-xs flex items-center gap-2">
                                 <span class="material-symbols-outlined text-base text-outline">draw</span>
                                 <span class="min-w-0 flex-1">
@@ -882,7 +882,7 @@ include __DIR__ . '/includes/header.php';
                 <span class="material-symbols-outlined text-emerald-600">task_alt</span>
                 <span>Finalize Encounter & Issue Invoice</span>
             </h3>
-            <button type="button" onclick="document.getElementById('finalizeModal').classList.add('hidden')" class="text-outline hover:text-on-surface">
+            <button type="button" data-on-click="document.getElementById('finalizeModal').classList.add('hidden')" class="text-outline hover:text-on-surface">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
@@ -900,7 +900,7 @@ include __DIR__ . '/includes/header.php';
 
             <div class="p-3 bg-surface-container-low rounded-xl border border-outline-variant/30 space-y-3">
                 <label class="flex items-center gap-2 font-bold text-slate-800 cursor-pointer">
-                    <input type="checkbox" name="create_invoice_on_finalize" value="1" id="create_inv_chk" onchange="toggleFinalizeInvoiceFields()" checked class="rounded border-slate-300 text-primary focus:ring-primary">
+                    <input type="checkbox" name="create_invoice_on_finalize" value="1" id="create_inv_chk" data-on-change="toggleFinalizeInvoiceFields()" checked class="rounded border-slate-300 text-primary focus:ring-primary">
                     <span>Generate Itemized Medical Invoice Now</span>
                 </label>
 
@@ -928,7 +928,7 @@ include __DIR__ . '/includes/header.php';
                     <div>
                         <div class="flex items-center justify-between mb-1.5">
                             <label class="font-bold text-on-surface">Invoice Line Items</label>
-                            <button type="button" onclick="addFinalizeRow()" class="px-2 py-0.5 bg-emerald-600 text-white rounded-lg text-[10px] font-bold hover:bg-emerald-700 transition">
+                            <button type="button" data-on-click="addFinalizeRow()" class="px-2 py-0.5 bg-emerald-600 text-white rounded-lg text-[10px] font-bold hover:bg-emerald-700 transition">
                                 + Add Line Item
                             </button>
                         </div>
@@ -946,7 +946,7 @@ include __DIR__ . '/includes/header.php';
                                 <tbody class="divide-y divide-outline-variant/20 text-xs">
                                     <tr>
                                         <td class="py-1.5 px-2 space-y-1">
-                                            <select onchange="onFinalizeInventorySelect(this)" class="w-full px-1.5 py-1 border border-outline-variant/40 rounded-lg font-semibold text-[11px] text-primary bg-white">
+                                            <select data-on-change="onFinalizeInventorySelect(this)" class="w-full px-1.5 py-1 border border-outline-variant/40 rounded-lg font-semibold text-[11px] text-primary bg-white">
                                                 <option value="">-- Choose Inventory Stock Item (Optional) --</option>
                                                 <?php foreach ($inventoryList as $invItem): ?>
                                                     <option value="<?= htmlspecialchars($invItem['id']) ?>"
@@ -962,13 +962,13 @@ include __DIR__ . '/includes/header.php';
                                             <input type="text" name="item_name[]" value="Clinical Consultation & Examination" required placeholder="Item / Service Name" class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg text-xs font-medium">
                                         </td>
                                         <td class="py-1.5 px-1">
-                                            <input type="number" step="0.5" name="quantity[]" value="1" oninput="recalculateFinalizeInvoiceTotals()" required class="w-full px-1.5 py-1 border border-outline-variant/40 rounded-lg font-mono">
+                                            <input type="number" step="0.5" name="quantity[]" value="1" data-on-input="recalculateFinalizeInvoiceTotals()" required class="w-full px-1.5 py-1 border border-outline-variant/40 rounded-lg font-mono">
                                         </td>
                                         <td class="py-1.5 px-1">
-                                            <input type="number" step="0.01" name="unit_price[]" value="150.00" oninput="recalculateFinalizeInvoiceTotals()" required class="w-full px-1.5 py-1 border border-outline-variant/40 rounded-lg font-mono">
+                                            <input type="number" step="0.01" name="unit_price[]" value="150.00" data-on-input="recalculateFinalizeInvoiceTotals()" required class="w-full px-1.5 py-1 border border-outline-variant/40 rounded-lg font-mono">
                                         </td>
                                         <td class="py-1.5 px-1 text-center">
-                                            <button type="button" onclick="this.closest('tr').remove(); recalculateFinalizeInvoiceTotals();" class="text-red-500 font-bold">&times;</button>
+                                            <button type="button" data-on-click="this.closest('tr').remove(); recalculateFinalizeInvoiceTotals();" class="text-red-500 font-bold">&times;</button>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -981,7 +981,7 @@ include __DIR__ . '/includes/header.php';
                         <div class="flex items-center justify-between text-xs">
                             <div class="flex items-center gap-2">
                                 <span class="font-bold text-outline">Tax Rate:</span>
-                                <select id="finalize_tax_rate_select" onchange="recalculateFinalizeInvoiceTotals()" class="px-2 py-0.5 border border-outline-variant/40 rounded-lg bg-white font-bold text-xs">
+                                <select id="finalize_tax_rate_select" data-on-change="recalculateFinalizeInvoiceTotals()" class="px-2 py-0.5 border border-outline-variant/40 rounded-lg bg-white font-bold text-xs">
                                     <option value="15.00" selected>15% (VAT / Tax)</option>
                                     <option value="0.00">0% (Exempt)</option>
                                     <option value="9.00">9%</option>
@@ -1012,7 +1012,7 @@ include __DIR__ . '/includes/header.php';
                         </div>
                         <div>
                             <label class="block font-bold text-outline mb-1" for="finalize_insurance_covered">Insurance Portion (<?= htmlspecialchars(nxCurrencySymbol()) ?>)</label>
-                            <input type="number" step="0.01" min="0" name="insurance_covered" id="finalize_insurance_covered" value="0.00" oninput="onFinalizeInsuranceChange()" class="w-full px-2.5 py-1.5 border border-outline-variant/40 rounded-xl font-mono font-bold bg-white">
+                            <input type="number" step="0.01" min="0" name="insurance_covered" id="finalize_insurance_covered" value="0.00" data-on-input="onFinalizeInsuranceChange()" class="w-full px-2.5 py-1.5 border border-outline-variant/40 rounded-xl font-mono font-bold bg-white">
                             <p class="mt-1 text-[11px] text-outline">Leave at 0 if the patient is paying the whole bill.</p>
                         </div>
                     </div>
@@ -1076,7 +1076,7 @@ include __DIR__ . '/includes/header.php';
             </div>
 
             <div class="flex items-center justify-end gap-3 pt-2">
-                <button type="button" onclick="document.getElementById('finalizeModal').classList.add('hidden')" class="px-4 py-2 bg-surface-container-high text-on-surface font-semibold rounded-xl hover:bg-surface-variant transition">
+                <button type="button" data-on-click="document.getElementById('finalizeModal').classList.add('hidden')" class="px-4 py-2 bg-surface-container-high text-on-surface font-semibold rounded-xl hover:bg-surface-variant transition">
                     Cancel
                 </button>
                 <button type="submit" class="px-5 py-2 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition shadow-xs flex items-center gap-1.5">
@@ -1088,7 +1088,7 @@ include __DIR__ . '/includes/header.php';
     </div>
 </div>
 
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 window.inventoryList = <?= json_encode($inventoryList, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
 const inventoryList = window.inventoryList;
 
@@ -1170,26 +1170,26 @@ function addFinalizeRow() {
         items.forEach(item => {
             const price = parseFloat(item.unit_price) || 0;
             const tax = item.vms_tax_code || 'A';
-            invOptions += `<option value="${item.id}" data-name="${item.name}" data-sku="${item.sku}" data-price="${price}" data-tax="${tax}">${item.name} ($${price.toFixed(2)})</option>`;
+            invOptions += `<option value="${nxEsc(item.id)}" data-name="${nxEsc(item.name)}" data-sku="${nxEsc(item.sku)}" data-price="${price}" data-tax="${nxEsc(tax)}">${nxEsc(item.name)} ($${price.toFixed(2)})</option>`;
         });
     }
 
     tr.innerHTML = `
         <td class="py-1.5 px-2 space-y-1">
-            <select onchange="onFinalizeInventorySelect(this)" class="w-full px-1.5 py-1 border border-outline-variant/40 rounded-lg font-semibold text-[11px] text-primary bg-white">
+            <select data-on-change="onFinalizeInventorySelect(this)" class="w-full px-1.5 py-1 border border-outline-variant/40 rounded-lg font-semibold text-[11px] text-primary bg-white">
                 ${invOptions}
             </select>
             <input type="hidden" name="inventory_id[]" value="">
             <input type="text" name="item_name[]" placeholder="Item / Service Name" required class="w-full px-2 py-1 border border-outline-variant/40 rounded-lg text-xs font-medium">
         </td>
         <td class="py-1.5 px-1">
-            <input type="number" step="0.5" name="quantity[]" value="1" oninput="recalculateFinalizeInvoiceTotals()" required class="w-full px-1.5 py-1 border border-outline-variant/40 rounded-lg font-mono">
+            <input type="number" step="0.5" name="quantity[]" value="1" data-on-input="recalculateFinalizeInvoiceTotals()" required class="w-full px-1.5 py-1 border border-outline-variant/40 rounded-lg font-mono">
         </td>
         <td class="py-1.5 px-1">
-            <input type="number" step="0.01" name="unit_price[]" value="0.00" oninput="recalculateFinalizeInvoiceTotals()" required class="w-full px-1.5 py-1 border border-outline-variant/40 rounded-lg font-mono">
+            <input type="number" step="0.01" name="unit_price[]" value="0.00" data-on-input="recalculateFinalizeInvoiceTotals()" required class="w-full px-1.5 py-1 border border-outline-variant/40 rounded-lg font-mono">
         </td>
         <td class="py-1.5 px-1 text-center">
-            <button type="button" onclick="this.closest('tr').remove(); recalculateFinalizeInvoiceTotals();" class="text-red-500 font-bold">&times;</button>
+            <button type="button" data-on-click="this.closest('tr').remove(); recalculateFinalizeInvoiceTotals();" class="text-red-500 font-bold">&times;</button>
         </td>
     `;
     tbody.appendChild(tr);
@@ -1197,7 +1197,7 @@ function addFinalizeRow() {
 }
 </script>
 
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 function toggleFinalizeInvoiceFields() {
     const chk = document.getElementById('create_inv_chk');
     const fields = document.getElementById('finalize_invoice_fields');
@@ -1217,7 +1217,7 @@ function toggleFinalizeInvoiceFields() {
                 <span class="material-symbols-outlined text-blue-600 text-base">add_circle</span>
                 <span>Add Prescription Line</span>
             </h3>
-            <button type="button" onclick="closeAddRxModal()" class="text-slate-400 hover:text-slate-700">
+            <button type="button" data-on-click="closeAddRxModal()" class="text-slate-400 hover:text-slate-700">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
@@ -1269,7 +1269,7 @@ function toggleFinalizeInvoiceFields() {
             </div>
 
             <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
-                <button type="button" onclick="closeAddRxModal()" class="px-4 py-2 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition">
+                <button type="button" data-on-click="closeAddRxModal()" class="px-4 py-2 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition">
                     Cancel
                 </button>
                 <button type="submit" class="px-5 py-2 bg-blue-700 text-white font-bold rounded-xl hover:bg-blue-800 transition shadow-xs flex items-center gap-1.5">
@@ -1289,7 +1289,7 @@ function toggleFinalizeInvoiceFields() {
                 <span class="material-symbols-outlined text-primary text-base">edit_note</span>
                 <span>Edit Prescription Line</span>
             </h3>
-            <button type="button" onclick="closeEditRxModal()" class="text-slate-400 hover:text-slate-700">
+            <button type="button" data-on-click="closeEditRxModal()" class="text-slate-400 hover:text-slate-700">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
@@ -1328,7 +1328,7 @@ function toggleFinalizeInvoiceFields() {
             </div>
 
             <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
-                <button type="button" onclick="closeEditRxModal()" class="px-4 py-2 bg-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-300 transition">
+                <button type="button" data-on-click="closeEditRxModal()" class="px-4 py-2 bg-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-300 transition">
                     Cancel
                 </button>
                 <button type="submit" class="px-5 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-1.5">
@@ -1348,7 +1348,7 @@ function toggleFinalizeInvoiceFields() {
                 <span class="material-symbols-outlined text-blue-600">receipt_long</span>
                 <span>Create Invoice for Current Encounter</span>
             </h3>
-            <button type="button" onclick="document.getElementById('createInvoiceModal').classList.add('hidden')" class="text-outline hover:text-on-surface">
+            <button type="button" data-on-click="document.getElementById('createInvoiceModal').classList.add('hidden')" class="text-outline hover:text-on-surface">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
@@ -1372,11 +1372,11 @@ function toggleFinalizeInvoiceFields() {
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">Total Amount ($)</label>
-                    <input type="number" step="0.01" min="0" name="amount" id="inv_amount" value="150.00" oninput="calculateInvoiceOwed()" required class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-mono font-bold text-on-surface">
+                    <input type="number" step="0.01" min="0" name="amount" id="inv_amount" value="150.00" data-on-input="calculateInvoiceOwed()" required class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-mono font-bold text-on-surface">
                 </div>
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">Insurance ($)</label>
-                    <input type="number" step="0.01" min="0" name="insurance_covered" id="inv_insurance" value="100.00" oninput="calculateInvoiceOwed()" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-mono font-bold text-on-surface">
+                    <input type="number" step="0.01" min="0" name="insurance_covered" id="inv_insurance" value="100.00" data-on-input="calculateInvoiceOwed()" class="w-full bg-surface-container-low px-3 py-2 rounded-xl border border-outline-variant/40 font-mono font-bold text-on-surface">
                 </div>
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">Patient Owed ($)</label>
@@ -1396,7 +1396,7 @@ function toggleFinalizeInvoiceFields() {
             </div>
 
             <div class="flex items-center justify-end gap-3 pt-4 border-t border-outline-variant/20">
-                <button type="button" onclick="document.getElementById('createInvoiceModal').classList.add('hidden')" class="px-4 py-2 bg-surface-container-high text-on-surface font-semibold rounded-xl hover:bg-surface-variant transition">
+                <button type="button" data-on-click="document.getElementById('createInvoiceModal').classList.add('hidden')" class="px-4 py-2 bg-surface-container-high text-on-surface font-semibold rounded-xl hover:bg-surface-variant transition">
                     Cancel
                 </button>
                 <button type="submit" class="px-5 py-2 bg-blue-700 text-white font-bold rounded-xl hover:bg-blue-800 transition shadow-xs flex items-center gap-2">
@@ -1408,7 +1408,7 @@ function toggleFinalizeInvoiceFields() {
     </div>
 </div>
 
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 function calculateInvoiceOwed() {
     const amount = parseFloat(document.getElementById('inv_amount').value) || 0;
     const ins = parseFloat(document.getElementById('inv_insurance').value) || 0;
@@ -1453,7 +1453,7 @@ $clinicSettings = $settings;
                 <span class="material-symbols-outlined text-emerald-600">workspace_premium</span>
                 <span>Issue Medical Certificate</span>
             </h3>
-            <button type="button" onclick="document.getElementById('issueMedCertModal').classList.add('hidden')" class="text-outline hover:text-on-surface">
+            <button type="button" data-on-click="document.getElementById('issueMedCertModal').classList.add('hidden')" class="text-outline hover:text-on-surface">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
@@ -1508,7 +1508,7 @@ $clinicSettings = $settings;
             </div>
 
             <div class="flex items-center justify-end gap-3 pt-4 border-t border-outline-variant/20">
-                <button type="button" onclick="document.getElementById('issueMedCertModal').classList.add('hidden')" class="px-4 py-2 bg-surface-container-high text-on-surface font-semibold rounded-xl hover:bg-surface-variant transition">
+                <button type="button" data-on-click="document.getElementById('issueMedCertModal').classList.add('hidden')" class="px-4 py-2 bg-surface-container-high text-on-surface font-semibold rounded-xl hover:bg-surface-variant transition">
                     Cancel
                 </button>
                 <button type="submit" class="px-5 py-2 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition shadow-xs flex items-center gap-2">
@@ -1536,7 +1536,7 @@ $clinicSettings = $settings;
                             &middot; <?= htmlspecialchars(nxDate(date('Y-m-d'))) ?>
                         </p>
                     </div>
-                    <button type="button" onclick="NX.closeModal('consent-modal-<?= htmlspecialchars((string) $cForm['id'], ENT_QUOTES) ?>')" class="nx-icon-btn" aria-label="Close">
+                    <button type="button" data-on-click="NX.closeModal('consent-modal-<?= htmlspecialchars((string) $cForm['id'], ENT_QUOTES) ?>')" class="nx-icon-btn" aria-label="Close">
                         <span class="material-symbols-outlined">close</span>
                     </button>
                 </div>
@@ -1599,7 +1599,7 @@ $clinicSettings = $settings;
                     </div>
 
                     <div class="flex items-center justify-end gap-2 pt-3 border-t border-outline-variant/20">
-                        <button type="button" onclick="NX.closeModal('consent-modal-<?= htmlspecialchars((string) $cForm['id'], ENT_QUOTES) ?>')" class="btn-secondary">Cancel</button>
+                        <button type="button" data-on-click="NX.closeModal('consent-modal-<?= htmlspecialchars((string) $cForm['id'], ENT_QUOTES) ?>')" class="btn-secondary">Cancel</button>
                         <button type="submit" class="btn-primary">
                             <span class="material-symbols-outlined text-[18px]">draw</span>
                             <span>Save consent</span>
@@ -1610,7 +1610,7 @@ $clinicSettings = $settings;
         </div>
     <?php endforeach; ?>
 
-    <script>
+    <script nonce="<?= nxCspNonce() ?>">
     function openConsentForm(id) {
         NX.openModal('consent-modal-' + id);
         if (window.nxSetupSignaturePads) window.nxSetupSignaturePads();
@@ -1620,7 +1620,7 @@ $clinicSettings = $settings;
 
 <?php require_once __DIR__ . '/includes/lab_order_modal.php'; ?>
 <?php if ($voiceOn): ?>
-<script>window.NX_VOICE = <?= json_encode(['enabled' => true, 'lang' => nxPrefs()['voice_lang'] ?? 'en-US', 'words' => (string) (nxPrefs()['voice_words'] ?? ''), 'drugs' => array_slice(array_values(array_unique(array_map(fn($i) => (string) ($i['name'] ?? ''), $inventoryList))), 0, 1500)], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;</script>
+<script nonce="<?= nxCspNonce() ?>">window.NX_VOICE = <?= json_encode(['enabled' => true, 'lang' => nxPrefs()['voice_lang'] ?? 'en-US', 'words' => (string) (nxPrefs()['voice_words'] ?? ''), 'drugs' => array_slice(array_values(array_unique(array_map(fn($i) => (string) ($i['name'] ?? ''), $inventoryList))), 0, 1500)], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;</script>
 <script src="assets/js/voice.js?v=<?= htmlspecialchars((string) ($nxAssetVersion ?? '1'), ENT_QUOTES) ?>" defer></script>
 <?php endif; ?>
 <?php include __DIR__ . '/includes/footer.php'; ?>

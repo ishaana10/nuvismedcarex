@@ -11,6 +11,10 @@
  *  - Modals: Esc / backdrop click to close, focus on open
  *  - Double-submit protection on forms
  */
+/** Escape text before it is placed in markup built as a string. */
+function nxEsc(v) {
+    return String(v === null || v === undefined ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
 function nxCanChart() { var c = (window.NX_CONTEXT || {}).can || {}; return (c.charts | 0) >= 1; }
 
 (function () {

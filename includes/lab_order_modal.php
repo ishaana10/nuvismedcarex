@@ -56,7 +56,7 @@ $labCategories = [
                 <span class="material-symbols-outlined text-primary text-xl">science</span>
                 <h3 class="font-bold text-sm">Order Lab Tests & Diagnostics</h3>
             </div>
-            <button type="button" onclick="closeModal('modal-add-lab-order')" class="text-slate-400 hover:text-white">
+            <button type="button" data-on-click="closeModal('modal-add-lab-order')" class="text-slate-400 hover:text-white">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
@@ -97,7 +97,7 @@ $labCategories = [
             <div>
                 <div class="flex items-center justify-between mb-2">
                     <span class="font-bold text-slate-800 text-xs uppercase tracking-wider">Additional / Custom Tests</span>
-                    <button type="button" onclick="addCustomLabRow('add-lab-custom-container')" class="px-2.5 py-1 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg font-bold text-[11px] flex items-center gap-1 transition">
+                    <button type="button" data-on-click="addCustomLabRow('add-lab-custom-container')" class="px-2.5 py-1 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg font-bold text-[11px] flex items-center gap-1 transition">
                         <span class="material-symbols-outlined text-xs">add</span> Add Custom Test
                     </button>
                 </div>
@@ -110,7 +110,7 @@ $labCategories = [
             </div>
 
             <div class="flex items-center justify-end gap-2 pt-3 border-t border-outline-variant/20 shrink-0">
-                <button type="button" onclick="closeModal('modal-add-lab-order')" class="px-4 py-2 bg-surface-container hover:bg-surface-container-high rounded-xl font-semibold text-on-surface">Cancel</button>
+                <button type="button" data-on-click="closeModal('modal-add-lab-order')" class="px-4 py-2 bg-surface-container hover:bg-surface-container-high rounded-xl font-semibold text-on-surface">Cancel</button>
                 <button type="submit" class="px-5 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 shadow-xs flex items-center gap-1.5">
                     <span class="material-symbols-outlined text-base">send</span>
                     <span>Submit Order</span>
@@ -128,7 +128,7 @@ $labCategories = [
                 <span class="material-symbols-outlined text-primary text-xl">science</span>
                 <h3 class="font-bold text-sm">View & Edit Lab Request / Attach Results</h3>
             </div>
-            <button type="button" onclick="closeModal('modal-edit-lab-order')" class="text-slate-400 hover:text-white">
+            <button type="button" data-on-click="closeModal('modal-edit-lab-order')" class="text-slate-400 hover:text-white">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
@@ -186,7 +186,7 @@ $labCategories = [
             <div>
                 <div class="flex items-center justify-between mb-2">
                     <span class="font-bold text-slate-800 text-xs uppercase tracking-wider">Additional / Custom Tests</span>
-                    <button type="button" onclick="addCustomLabRow('edit-lab-custom-container')" class="px-2.5 py-1 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg font-bold text-[11px] flex items-center gap-1 transition">
+                    <button type="button" data-on-click="addCustomLabRow('edit-lab-custom-container')" class="px-2.5 py-1 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg font-bold text-[11px] flex items-center gap-1 transition">
                         <span class="material-symbols-outlined text-xs">add</span> Add Custom Test
                     </button>
                 </div>
@@ -229,7 +229,7 @@ $labCategories = [
                         <span id="lab-upload-percentage" class="font-mono font-bold text-emerald-400">0%</span>
                     </div>
                     <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                        <div id="lab-upload-bar" class="h-full bg-emerald-500 rounded-full transition-all duration-200" style="width: 0%"></div>
+                        <div id="lab-upload-bar" class="h-full bg-emerald-500 rounded-full transition-all duration-200" data-css="width: 0%"></div>
                     </div>
                     <div id="lab-upload-console" class="font-mono text-[10px] text-slate-300 bg-slate-950 p-1.5 rounded border border-slate-800 h-12 overflow-y-auto leading-tight">
                         [Lab Console] Upload stream started...
@@ -240,7 +240,7 @@ $labCategories = [
             </div>
 
             <div class="flex items-center justify-end gap-2 pt-3 border-t border-outline-variant/20 shrink-0">
-                <button type="button" onclick="closeModal('modal-edit-lab-order')" class="px-4 py-2 bg-surface-container hover:bg-surface-container-high rounded-xl font-semibold text-on-surface">Cancel</button>
+                <button type="button" data-on-click="closeModal('modal-edit-lab-order')" class="px-4 py-2 bg-surface-container hover:bg-surface-container-high rounded-xl font-semibold text-on-surface">Cancel</button>
                 <button type="submit" class="px-5 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 shadow-xs flex items-center gap-1.5">
                     <span class="material-symbols-outlined text-base">save</span>
                     <span>Save Changes & Results</span>
@@ -250,7 +250,7 @@ $labCategories = [
     </div>
 </div>
 
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 let customLabRowIndex = 0;
 
 function addCustomLabRow(containerId, testName = '', category = 'General', instructions = '') {
@@ -274,7 +274,7 @@ function addCustomLabRow(containerId, testName = '', category = 'General', instr
         </div>
         <div class="md:col-span-3 flex items-center gap-1">
             <input type="text" name="items[${customLabRowIndex}][instructions]" value="${escapeHtml(instructions)}" placeholder="Instructions" class="w-full bg-white px-2 py-1 rounded-lg border border-outline-variant/40 text-xs">
-            <button type="button" onclick="this.closest('div.grid').remove()" class="text-rose-600 hover:text-rose-800 p-1">
+            <button type="button" data-on-click="this.closest('div.grid').remove()" class="text-rose-600 hover:text-rose-800 p-1">
                 <span class="material-symbols-outlined text-base">delete</span>
             </button>
         </div>

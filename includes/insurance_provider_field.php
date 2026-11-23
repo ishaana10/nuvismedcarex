@@ -28,7 +28,7 @@ foreach ($ipList as $ipName) {
 }
 ?>
 <select name="insurance_provider" id="<?= htmlspecialchars($ipId) ?>" class="<?= $ipClass ?>"
-        onchange="nxToggleInsuranceOther(this)">
+        data-on-change="nxToggleInsuranceOther(this)">
     <option value="" <?= $ipValue === '' ? 'selected' : '' ?>>Self pay / no insurance</option>
     <?php foreach ($ipList as $ipName): ?>
         <option value="<?= htmlspecialchars($ipName) ?>" <?= strcasecmp($ipName, $ipValue) === 0 ? 'selected' : '' ?>>
@@ -55,7 +55,7 @@ foreach ($ipList as $ipName) {
     </p>
 <?php endif; ?>
 <?php if (empty($GLOBALS['nxInsuranceFieldScript'])): $GLOBALS['nxInsuranceFieldScript'] = true; ?>
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 function nxToggleInsuranceOther(select) {
     var other = document.getElementById(select.id + '-other');
     if (!other) return;

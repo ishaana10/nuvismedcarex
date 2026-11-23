@@ -29,7 +29,7 @@ if ($nxUserPrefs && function_exists('nxSetting')) {
     <link rel="icon" type="image/png" href="assets/images/nuvis_mark.png"/>
 
     <!-- Apply the chosen theme before first paint (no light flash in dark mode) -->
-    <script>
+    <script nonce="<?= nxCspNonce() ?>">
       (function () {
         var saved = <?= $nxUserPrefs ? json_encode([
             'theme' => $nxUserPrefs['theme'],
@@ -68,5 +68,5 @@ if ($nxUserPrefs && function_exists('nxSetting')) {
     <!-- Utility classes: pre-built from tailwind.config.js (npm run build:css), no in-browser compiler -->
     <link rel="stylesheet" href="assets/css/tailwind.css?v=<?= $nxAssetVersion ?>"/>
 <?php if ($nxAccentCss !== ''): ?>
-    <style id="nx-clinic-accent"><?= $nxAccentCss /* built from a validated #RRGGBB, never user text */ ?></style>
+    <style nonce="<?= nxCspNonce() ?>" id="nx-clinic-accent"><?= $nxAccentCss /* built from a validated #RRGGBB, never user text */ ?></style>
 <?php endif; ?>

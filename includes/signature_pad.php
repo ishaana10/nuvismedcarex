@@ -23,8 +23,8 @@ $spValue = (string) ($spValue ?? '');
             <span class="text-[11px] text-emerald-800">Already signed. Sign again below to replace it.</span>
         </div>
     <?php endif; ?>
-    <div class="relative rounded-xl border border-dashed border-outline-variant/60 bg-white overflow-hidden" style="touch-action: none;">
-        <canvas data-sig-canvas height="120" class="w-full block cursor-crosshair" style="height:120px"></canvas>
+    <div class="relative rounded-xl border border-dashed border-outline-variant/60 bg-white overflow-hidden" data-css="touch-action: none;">
+        <canvas data-sig-canvas height="120" class="w-full block cursor-crosshair" data-css="height:120px"></canvas>
         <span data-sig-placeholder class="absolute inset-0 flex items-center justify-center text-[11px] text-slate-400 pointer-events-none">
             <?= htmlspecialchars($spHint) ?>
         </span>
@@ -32,7 +32,7 @@ $spValue = (string) ($spValue ?? '');
     <input type="hidden" name="<?= htmlspecialchars($spName) ?>" data-sig-value value="">
 </div>
 <?php if (empty($GLOBALS['nxSignaturePadScript'])): $GLOBALS['nxSignaturePadScript'] = true; ?>
-<script>
+<script nonce="<?= nxCspNonce() ?>">
 (function () {
     function setup(pad) {
         if (pad.dataset.sigReady) return;
