@@ -36,7 +36,9 @@ if ($action === 'switch_tenant') {
 }
 
 if ($action === 'save_tenant') {
-    requireRole(['Developer', 'Administrator']);
+    // A clinic's plan, price, status and storage are the platform owner's to set. A clinic
+    // administrator must never be able to change them, nor any other clinic's record.
+    requireRole(['Developer']);
 
     $id = trim($_POST['tenant_id'] ?? '');
     $name = trim($_POST['name'] ?? '');

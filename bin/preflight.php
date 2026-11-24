@@ -130,8 +130,15 @@ if (getenv('DB_HOST') && getenv('DB_NAME')) {
             if (!$c) { out('FAIL', "$t has no tenant_id column"); continue; }
             ($c['IS_NULLABLE'] === 'YES') ? out('WARN', "$t.tenant_id is nullable") : out('PASS', "$t.tenant_id NOT NULL");
         }
-        $orph = (int)$pdo->query("SELECT COUNT(*) FROM patients WHERE tenant_id IS NULL OR tenant_id = ''")->fetchColumn();
-        $orph ? out('FAIL', "$orph patients without a tenant") : out('PASS', 'No tenantless patients');
+        // Rows with no clinic are visible to every clinic in places, so none may exist.
+        $orphTotal = 0;
+        foreach (['doctors', 'patients', 'appointments', 'prescriptions', 'vitals', 'soap_notes', 'invoices', 'invoice_items', 'inventory', 'medical_certificates', 'lab_orders', 'uploaded_files', 'audit_logs'] as $t) {
+            try {
+                $c = (int)$pdo->query("SELECT COUNT(*) FROM $t WHERE tenant_id IS NULL OR tenant_id = ''")->fetchColumn();
+                if ($c) { out('FAIL', "$c row(s) in $t have no clinic"); $orphTotal += $c; }
+            } catch (Throwable $e) { /* table not installed */ }
+        }
+        if (!$orphTotal) out('PASS', 'No rows without a clinic');
         $mfa = (int)$pdo->query("SELECT COUNT(*) FROM doctors WHERE is_active = 1 AND role IN ('Administrator','Developer') AND (mfa_enabled IS NULL OR mfa_enabled = 0)")->fetchColumn();
         $mfa ? out('WARN', "$mfa admin/developer account(s) without MFA") : out('PASS', 'All admin/developer accounts have MFA');
     } catch (Throwable $e) {

@@ -368,8 +368,8 @@ $vitals = $vitalsStmt->fetch() ?: [
 ];
 
 // Fetch SOAP notes
-$soapStmt = $pdo->prepare("SELECT * FROM soap_notes WHERE patient_id = ? ORDER BY updated_at DESC LIMIT 1");
-$soapStmt->execute([$patientId]);
+$soapStmt = $pdo->prepare("SELECT * FROM soap_notes WHERE patient_id = ? AND tenant_id = ? ORDER BY updated_at DESC LIMIT 1");
+$soapStmt->execute([$patientId, $currentTenantId]);
 $rawSoap = $soapStmt->fetch();
 
 if ($rawSoap) {
@@ -406,13 +406,13 @@ $labOrderService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\
 $patientLabOrders = $labOrderService->getOrdersByPatient($patientId);
 
 // Fetch Prescriptions for THIS encounter only (visit_id)
-$rxStmt = $pdo->prepare("SELECT * FROM prescriptions WHERE patient_id = ? AND visit_id = ? ORDER BY created_at ASC");
-$rxStmt->execute([$patientId, $visitId]);
+$rxStmt = $pdo->prepare("SELECT * FROM prescriptions WHERE patient_id = ? AND tenant_id = ? AND visit_id = ? ORDER BY created_at ASC");
+$rxStmt->execute([$patientId, $currentTenantId, $visitId]);
 $prescriptions = $rxStmt->fetchAll();
 
 // Fetch Historical Prescriptions for Patient History (excluding current encounter visit_id)
-$historicalRxStmt = $pdo->prepare("SELECT * FROM prescriptions WHERE patient_id = ? AND (visit_id IS NULL OR visit_id != ?) ORDER BY created_at DESC");
-$historicalRxStmt->execute([$patientId, $visitId]);
+$historicalRxStmt = $pdo->prepare("SELECT * FROM prescriptions WHERE patient_id = ? AND tenant_id = ? AND (visit_id IS NULL OR visit_id != ?) ORDER BY created_at DESC");
+$historicalRxStmt->execute([$patientId, $currentTenantId, $visitId]);
 $historicalPrescriptions = $historicalRxStmt->fetchAll();
 
 $pageTitle = "Clinical Encounter - " . htmlspecialchars($patient['first_name'] . ' ' . $patient['last_name']);

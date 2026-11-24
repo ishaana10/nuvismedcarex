@@ -25,9 +25,7 @@ if (!function_exists('getPaginationParams')) {
             // The clinic's default, unless this person chose their own in Settings
             if ($pdo !== null) {
                 try {
-                    $stmt = $pdo->prepare("SELECT setting_value FROM clinic_settings WHERE setting_key = 'default_pagination_limit'");
-                    $stmt->execute();
-                    $dbVal = $stmt->fetchColumn();
+                    $dbVal = function_exists('nxSetting') ? nxSetting('default_pagination_limit') : null;
                     if ($dbVal && in_array((int) $dbVal, $allowedLimits, true)) {
                         $defaultLimit = (int) $dbVal;
                     }

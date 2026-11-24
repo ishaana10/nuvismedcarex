@@ -56,8 +56,8 @@ $paginationPV = getPaginationParams(5, [5, 10, 25], $pdo);
 $paginatedPastVisits = array_slice($pastVisits, $paginationPV['offset'], $paginationPV['limit']);
 
 // Fetch appointments
-$aptStmt = $pdo->prepare("SELECT * FROM appointments WHERE patient_id = ? ORDER BY appointment_date DESC");
-$aptStmt->execute([$patientId]);
+$aptStmt = $pdo->prepare("SELECT * FROM appointments WHERE patient_id = ? AND tenant_id = ? ORDER BY appointment_date DESC");
+$aptStmt->execute([$patientId, \ClinicFlow\Shared\TenantContext::getTenantId()]);
 $patientAppts = $aptStmt->fetchAll();
 
 // Fetch Lab Orders
@@ -69,8 +69,8 @@ $paginationLab = getPaginationParams(5, [5, 10, 25], $pdo);
 $paginatedLabOrders = array_slice($patientLabOrders, $paginationLab['offset'], $paginationLab['limit']);
 
 // Fetch Medical Certificates
-$mcStmt = $pdo->prepare("SELECT * FROM medical_certificates WHERE patient_id = ? ORDER BY issue_date DESC, created_at DESC");
-$mcStmt->execute([$patientId]);
+$mcStmt = $pdo->prepare("SELECT * FROM medical_certificates WHERE patient_id = ? AND tenant_id = ? ORDER BY issue_date DESC, created_at DESC");
+$mcStmt->execute([$patientId, \ClinicFlow\Shared\TenantContext::getTenantId()]);
 $medCerts = $mcStmt->fetchAll();
 
 $totalMedCertsCount = count($medCerts);

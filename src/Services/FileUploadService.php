@@ -172,7 +172,9 @@ class FileUploadService
                 if (array_key_exists($rawKey, $settings)) {
                     $settings[$rawKey] = $r['setting_value'];
                 }
-            } elseif (array_key_exists($key, $settings) && empty($settings[$key])) {
+            } elseif ($tenantId === 'default-clinic' && array_key_exists($key, $settings) && empty($settings[$key])) {
+                // Installations from before per-clinic keys stored the first clinic's drive login
+                // un-prefixed. Only that clinic may inherit it, never another clinic's secrets.
                 $settings[$key] = $r['setting_value'];
             }
         }

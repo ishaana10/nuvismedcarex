@@ -32,7 +32,7 @@ try {
     $tsStmt = $pdo->prepare($tsQuery);
 
     foreach ($settings as $key => $val) {
-        $stmt->execute([$key, (string)$val]);
+        if ($tenantId === 'default-clinic') { $stmt->execute([$key, (string)$val]); } // the shared row is the original clinic's default
         try {
             $tsStmt->execute(['ts-' . $tenantId . '-' . $key, $tenantId, $key, (string)$val]);
         } catch (\Throwable $te) {}
