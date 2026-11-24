@@ -22,8 +22,8 @@ class BillingAndReportingTest extends TestCase {
 
         // Seed sample invoice
         $this->pdo->exec("
-            INSERT INTO invoices (id, tenant_id, invoice_number, patient_id, patient_name, patient_mrn, service_date, due_date, amount, status, insurance_covered, patient_owed, total_tax, is_fiscalized)
-            VALUES ('inv-101', 'default-clinic', 'INV-101', 'pat-1', 'John Doe', 'MRN-1', '2025-01-15', '2025-02-15', 200.00, 'Paid', 50.00, 150.00, 22.50, 1)
+            INSERT INTO invoices (id, tenant_id, invoice_number, patient_id, patient_name, patient_mrn, service_date, due_date, amount, status, insurance_covered, patient_owed, total_tax)
+            VALUES ('inv-101', 'default-clinic', 'INV-101', 'pat-1', 'John Doe', 'MRN-1', '2025-01-15', '2025-02-15', 200.00, 'Paid', 50.00, 150.00, 22.50)
         ");
         $this->pdo->exec("INSERT INTO patients (id, tenant_id, mrn, first_name, last_name, dob, age, gender, registration_date) VALUES ('pat-1', 'default-clinic', 'MRN-1', 'John', 'Doe', '1990-01-01', 34, 'Male', '2025-01-01')");
     }
@@ -35,7 +35,6 @@ class BillingAndReportingTest extends TestCase {
         $this->assertEquals(1, $summary['total_invoices']);
         $this->assertEquals(200.00, $summary['gross_revenue']);
         $this->assertEquals(50.00, $summary['insurance_covered']);
-        $this->assertEquals(1, $summary['fiscalized_count']);
     }
 
     public function testInsuranceService(): void {

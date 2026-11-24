@@ -30,7 +30,7 @@ fwrite($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
 $row = static fn(array $cells) => fputcsv($out, $cells);
 $money = static fn($v) => number_format((float) $v, 2, '.', '');
 
-$row([$clinic['name'] . ' — ' . ($z['is_range'] ? 'Fiscal summary' : 'Daily Z-Report')]);
+$row([$clinic['name'] . ' — ' . ($z['is_range'] ? 'Summary' : 'Daily Z-Report')]);
 if ($z['is_range']) {
     $row(['Period', $z['from'], 'to', $z['to']]);
 } else {
@@ -40,7 +40,7 @@ if (($clinic['tin'] ?? '') !== '') {
     $row(['Seller TIN', $clinic['tin']]);
 }
 if (($clinic['address'] ?? '') !== '') {
-    $row(['Business location', nxSetting('vms_business_location', $clinic['address'])]);
+    $row(['Business location', $clinic['address']]);
 }
 $row(['Currency', $cur]);
 $row(['Generated', date('Y-m-d H:i')]);
@@ -55,8 +55,6 @@ $row(['VAT component', '', $money($z['total_vat'])]);
 $row(['Net of VAT', '', $money($z['net_sales'])]);
 $row(['Billed to insurers', '', $money($z['insurance_covered'])]);
 $row(['Paid by patients', '', $money($z['patient_share'])]);
-$row(['Fiscalised invoices', $z['fiscalised_count']]);
-$row(['Not yet fiscalised', $z['unfiscalised_count']]);
 if ($z['first_invoice'] !== '') {
     $row(['Invoice range', $z['first_invoice'], $z['last_invoice']]);
 }

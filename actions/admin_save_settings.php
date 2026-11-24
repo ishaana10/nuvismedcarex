@@ -49,18 +49,6 @@ if (array_key_exists('default_pagination_limit', $_POST)) {
     $settings['default_pagination_limit'] = (int) $_POST['default_pagination_limit'];
 }
 
-// VMS Fiscal Settings (if submitted)
-if (isset($_POST['vms_seller_tin']) && nxCurrentRole() === 'Developer') { // VMS is Developer-only this release
-    $settings['vms_enabled']           = isset($_POST['vms_enabled']) ? '1' : '0';
-    $settings['vms_seller_tin']        = trim($_POST['vms_seller_tin']);
-    $settings['vms_pos_number']        = trim($_POST['vms_pos_number']);
-    $settings['vms_business_location'] = trim($_POST['vms_business_location']);
-    $settings['vms_sdc_url']           = trim($_POST['vms_sdc_url']);
-    $settings['vms_tax_rate_a']        = trim($_POST['vms_tax_rate_a'] ?? '15.00');
-    $settings['vms_tax_rate_e']        = trim($_POST['vms_tax_rate_e'] ?? '0.00');
-    $settings['vms_tax_rate_f']        = trim($_POST['vms_tax_rate_f'] ?? '0.00');
-    $settings['vms_tax_rate_p']        = trim($_POST['vms_tax_rate_p'] ?? '0.25');
-}
 
 // Email: this clinic's own mailbox
 if (isset($_POST['section']) && $_POST['section'] === 'email') {

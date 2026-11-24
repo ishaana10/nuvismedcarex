@@ -73,8 +73,8 @@ class BillingService {
         $patientOwed = Money::fromFloat($patientOwedFloat);
 
         $stmt = $this->db->prepare(
-            "INSERT INTO invoices (id, tenant_id, invoice_number, patient_id, patient_name, patient_mrn, service_date, due_date, amount, status, insurance_covered, patient_owed, services, invoice_type, transaction_type, seller_tin, business_location, cashier) " .
-            "VALUES (:id, :tid, :inv_num, :pid, :pname, :pmrn, :sdate, :ddate, :amt, :status, :ins, :owed, :services, :inv_type, :txn_type, :tin, :loc, :cashier)"
+            "INSERT INTO invoices (id, tenant_id, invoice_number, patient_id, patient_name, patient_mrn, service_date, due_date, amount, status, insurance_covered, patient_owed, services, invoice_type, transaction_type, cashier) " .
+            "VALUES (:id, :tid, :inv_num, :pid, :pname, :pmrn, :sdate, :ddate, :amt, :status, :ins, :owed, :services, :inv_type, :txn_type, :cashier)"
         );
 
         [$invNumber] = DocumentNumbers::issue($this->db, $tenantId, 'invoices', 'invoice_number', 'INV-' . date('Y') . '-', 4, function (string $invNumber) use ($stmt, $id, $tenantId, $data, $totalMoney, $insuranceCovered, $patientOwed) {
@@ -94,8 +94,6 @@ class BillingService {
             'services' => json_encode($data['services'] ?? []),
             'inv_type' => $data['invoice_type'] ?? 'Normal',
             'txn_type' => $data['transaction_type'] ?? 'Sale',
-            'tin' => $data['seller_tin'] ?? '502579006',
-            'loc' => $data['business_location'] ?? 'Suva Central Clinic',
             'cashier' => $_SESSION['user_name'] ?? 'Admin'
         ]);
         });

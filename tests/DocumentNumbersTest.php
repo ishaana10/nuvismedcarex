@@ -99,7 +99,7 @@ final class DocumentNumbersTest extends TestCase
 
     public function testNothingStillIssuesRandomNumbers(): void
     {
-        foreach (['actions/patient_add.php', 'src/Services/BillingService.php', 'actions/vms_create_invoice.php', 'includes/encounter_invoice.php'] as $f) {
+        foreach (['actions/patient_add.php', 'src/Services/BillingService.php', 'actions/create_invoice.php', 'includes/encounter_invoice.php'] as $f) {
             $this->assertDoesNotMatchRegularExpression('/rand\(\s*\d+\s*,\s*\d+\s*\)/', (string) file_get_contents(dirname(__DIR__) . '/' . $f), "$f issues random numbers");
         }
     }

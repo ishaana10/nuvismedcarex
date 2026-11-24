@@ -1,6 +1,6 @@
 <?php
 /**
- * Printable Z-Report (FRCS daily fiscal summary, or a range summary). Laid out
+ * Printable Z-Report (daily summary, or a range summary). Laid out
  * for A4 so the browser's "Save as PDF" gives a file that can be filed or sent
  * to an accountant; it also prints cleanly on a receipt roll.
  */
@@ -24,11 +24,10 @@ $settings = nxSettings();
 $cur = nxCurrencySymbol();
 $z = $zReportData;
 
-$sellerTin = (string) ($settings['vms_seller_tin'] ?? $clinic['tin']);
-$businessLocation = (string) ($settings['vms_business_location'] ?? $clinic['address']);
-$posNumber = (string) ($settings['vms_pos_number'] ?? '');
+$sellerTin = (string) $clinic['tin'];
+$businessLocation = (string) $clinic['address'];
 $accent = preg_match('/^#[0-9a-fA-F]{6}$/', (string) ($settings['clinic_accent'] ?? '')) ? (string) $settings['clinic_accent'] : '#0F2B5C';
-$title = $z['is_range'] ? 'Fiscal summary report' : 'Daily summary (Z-Report)';
+$title = $z['is_range'] ? 'Summary report' : 'Daily summary (Z-Report)';
 $reconOff = abs($z['reconciliation']) >= 0.01;
 $paid = array_filter($z['by_payment'], static fn($amt) => abs((float) $amt) >= 0.01);
 arsort($paid);
@@ -121,7 +120,6 @@ arsort($paid);
             <?php endif; ?>
             <div class="meta">
                 <?= $sellerTin !== '' ? 'TIN ' . htmlspecialchars($sellerTin) : 'TIN not set' ?>
-                <?= $posNumber !== '' ? ' · POS ' . htmlspecialchars($posNumber) : '' ?>
             </div>
         </div>
         <div class="right">
@@ -154,11 +152,6 @@ arsort($paid);
             <div class="k">VAT</div>
             <div class="v"><?= $cur . number_format($z['total_vat'], 2) ?></div>
             <div class="n">Collected on these invoices</div>
-        </div>
-        <div class="card">
-            <div class="k">Fiscalised</div>
-            <div class="v"><?= $z['fiscalised_count'] ?> / <?= $z['total_invoices'] ?></div>
-            <div class="n"><?= $z['unfiscalised_count'] ? $z['unfiscalised_count'] . ' not yet signed' : 'All signed' ?></div>
         </div>
     </div>
 
@@ -262,13 +255,6 @@ arsort($paid);
         </p>
     <?php endif; ?>
 
-    <?php if ($z['unfiscalised_count'] > 0): ?>
-        <p class="flag">
-            <?= $z['unfiscalised_count'] ?> invoice<?= $z['unfiscalised_count'] === 1 ? '' : 's' ?>
-            in this period <?= $z['unfiscalised_count'] === 1 ? 'has' : 'have' ?> no FRCS signature yet.
-        </p>
-    <?php endif; ?>
-
     <div class="sign">
         <div>Prepared by — <?= htmlspecialchars($_SESSION['user_name'] ?? '') ?></div>
         <div>Checked by and clinic stamp</div>
@@ -278,7 +264,7 @@ arsort($paid);
 
     <div class="foot">
         <span><?= htmlspecialchars($clinic['name']) ?> · <?= htmlspecialchars($title) ?></span>
-        <span>FRCS VMS fiscal summary · Nuvis Medcare X</span>
+        <span>Nuvis Medcare X</span>
     </div>
 </div>
 

@@ -215,7 +215,7 @@ $csrfToken = getCsrfToken();
                                     <div>
                                         <?= htmlspecialchars($item['name']) ?>
                                         <span class="block text-[10px] font-mono text-outline font-normal">
-                                            SKU: <?= htmlspecialchars($item['sku']) ?> | VMS Tax: <span class="font-bold text-primary"><?= htmlspecialchars($item['vms_tax_code'] ?? 'A') ?></span>
+                                            SKU: <?= htmlspecialchars($item['sku']) ?> | Tax: <span class="font-bold text-primary"><?= htmlspecialchars($item['tax_code'] ?? 'A') ?></span>
                                         </span>
                                         <?php
                                         // The extra fields this clinic chose to record (Administration → Inventory)
@@ -612,8 +612,8 @@ $tones = [
                     <?php endif; ?>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-on-surface mb-1">VMS Tax Label</label>
-                    <select name="vms_tax_code" class="w-full bg-surface-container-low px-3 py-2 rounded-xl text-xs border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none">
+                    <label class="block text-xs font-semibold text-on-surface mb-1">Tax label</label>
+                    <select name="tax_code" class="w-full bg-surface-container-low px-3 py-2 rounded-xl text-xs border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none">
                         <option value="A">A - Standard VAT (15%)</option>
                         <option value="E">E - Exempt (0%)</option>
                         <option value="F">F - Zero Rated (0%)</option>
@@ -709,8 +709,8 @@ $tones = [
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-on-surface mb-1">VMS Tax Label</label>
-                    <select name="vms_tax_code" id="edit-vms-tax-code" class="w-full bg-surface-container-low px-3 py-2 rounded-xl text-xs border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none">
+                    <label class="block text-xs font-semibold text-on-surface mb-1">Tax label</label>
+                    <select name="tax_code" id="edit-tax-code" class="w-full bg-surface-container-low px-3 py-2 rounded-xl text-xs border border-outline-variant/40 focus:border-primary focus:bg-white focus:outline-none">
                         <option value="A">A - Standard VAT (15%)</option>
                         <option value="E">E - Exempt (0%)</option>
                         <option value="F">F - Zero Rated (0%)</option>
@@ -914,7 +914,7 @@ function openEditModal(item) {
     document.getElementById('edit-sku').value = item.sku;
     selectValue('edit-category', item.category);
     selectValue('edit-unit', item.unit);
-    selectValue('edit-vms-tax-code', item.vms_tax_code || 'A');
+    selectValue('edit-tax-code', item.tax_code || 'A');
     document.getElementById('edit-min-threshold').value = item.min_threshold;
     document.getElementById('edit-cost-price').value = item.cost_price || 0.00;
     document.getElementById('edit-unit-price').value = item.unit_price || 0.00;

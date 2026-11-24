@@ -34,7 +34,7 @@ $stmt->execute([$invoiceId, $invoiceId, $currentTenantId]);
 $invoice = $stmt->fetch();
 
 // No "latest invoice" fallback: a wrong link must not print a different
-// patient's invoice (and fiscal document).
+// patient's invoice.
 if (!$invoice) {
     die("Invoice record not found.");
 }

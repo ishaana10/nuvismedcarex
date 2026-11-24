@@ -111,8 +111,8 @@ $expired = isset($_GET['expired']);
         <img src="assets/images/NuvisMedcareX_login_sidepanel.webp" alt="" class="absolute inset-0 w-full h-full object-cover object-top">
         <div class="absolute inset-0" data-css="background: linear-gradient(180deg, rgb(10 29 63 / 0) 40%, rgb(10 29 63 / .88) 100%);"></div>
         <div class="absolute bottom-0 left-0 right-0 p-12 text-white max-w-xl">
-            <p class="text-[26px] leading-snug font-semibold tracking-tight">Patient records, appointments, prescriptions and fiscal billing in one place.</p>
-            <p class="mt-3 text-sm text-white/70">Built for clinics in Fiji and the Pacific, with FRCS VMS invoicing built in.</p>
+            <p class="text-[26px] leading-snug font-semibold tracking-tight">Patient records, appointments, prescriptions and billing in one place.</p>
+            <p class="mt-3 text-sm text-white/70">Built for clinics in Fiji and the Pacific.</p>
         </div>
     </aside>
 </div>

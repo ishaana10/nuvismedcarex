@@ -76,7 +76,6 @@
     switchGitSubTab: 1,
     testDrive: 1,
     testRedisPing: 1,
-    testSdcPing: 1,
     testWebhookEndpoint: 1,
     toggleDrive: 1,
     toggleFinalizeInvoiceFields: 1,
@@ -85,7 +84,6 @@
     toggleRedisConfig: 1,
     triggerGitPull: 1,
     triggerStartRedisDaemon: 1,
-    uploadVsdcCertificate: 1,
     viewCardDetails: 1
   };
   // Members that may be read or called on this / event / a looked-up element / classList.

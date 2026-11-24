@@ -63,7 +63,6 @@ final class ReceiptSettings
         'Sign-off' => [
             'show_signature' => ['Signature', true],
             'show_stamp'     => ['Clinic stamp', true],
-            'show_qr'        => ['FRCS verification QR code (fiscalised invoices)', true],
         ],
     ];
 

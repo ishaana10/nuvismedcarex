@@ -13,7 +13,7 @@ if (!function_exists('nxNavItems')) {
             ['id' => 'patients',       'label' => 'Patients',           'icon' => 'groups',                'url' => 'patients.php',       'group' => 'Clinic',     'keywords' => 'records charts directory'],
             ['id' => 'calendar',       'label' => 'Appointments',       'icon' => 'calendar_month',        'url' => 'appointment.php',    'group' => 'Clinic',     'keywords' => 'schedule booking calendar'],
             ['id' => 'clinical-visit', 'label' => 'Clinical encounter', 'icon' => 'stethoscope',           'url' => 'clinical_visit.php', 'group' => 'Clinic',     'keywords' => 'visit soap vitals prescription notes'],
-            ['id' => 'billing',        'label' => 'Billing',            'icon' => 'receipt_long',          'url' => 'billing.php',        'group' => 'Operations', 'keywords' => 'invoices payments vms fiscal financials'],
+            ['id' => 'billing',        'label' => 'Billing',            'icon' => 'receipt_long',          'url' => 'billing.php',        'group' => 'Operations', 'keywords' => 'invoices payments  financials'],
             ['id' => 'inventory',      'label' => 'Inventory',          'icon' => 'inventory_2',           'url' => 'inventory.php',      'group' => 'Operations', 'keywords' => 'stock pharmacy medicine batch expiry'],
             ['id' => 'uploads',        'label' => 'Documents',          'icon' => 'folder_open',           'url' => 'uploads.php',        'group' => 'Operations', 'keywords' => 'upload files lab results scans'],
             ['id' => 'wishboard',      'label' => 'Wish board',         'icon' => 'lightbulb',             'url' => 'wishboard.php',      'group' => 'System',     'keywords' => 'feature request idea roadmap suggestion wish'],

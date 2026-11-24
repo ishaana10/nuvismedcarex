@@ -4,14 +4,14 @@ require_once __DIR__ . '/../includes/autoloader.php';
 require_once __DIR__ . '/../config/database.php';
 
 use ClinicFlow\Shared\Container;
-use ClinicFlow\Services\VMSService;
+use ClinicFlow\Services\TaxService;
 use ClinicFlow\Shared\Logger;
 
 // CSRF check
 validateCsrfRequest();
 
 $pdo = getDB();
-$vmsService = Container::getInstance()->get(VMSService::class);
+$taxService = Container::getInstance()->get(TaxService::class);
 $logger = Container::getInstance()->get(Logger::class);
 
 $patientId = trim($_POST['patient_id'] ?? '');
@@ -21,10 +21,7 @@ $dueDate = trim($_POST['due_date'] ?? date('Y-m-d', strtotime('+30 days')));
 
 $invoiceType = trim($_POST['invoice_type'] ?? 'Normal'); // Normal, Advance, Proforma, Copy, Training
 $transactionType = trim($_POST['transaction_type'] ?? 'Sale'); // Sale, Refund
-$buyerTin = trim($_POST['buyer_tin'] ?? '');
-$buyerCostCenter = trim($_POST['buyer_cost_center'] ?? '');
 $refNo = trim($_POST['ref_no'] ?? '');
-$refTime = trim($_POST['ref_time'] ?? '');
 
 $inventoryIds = $_POST['inventory_id'] ?? [];
 $itemNames = $_POST['item_name'] ?? [];
@@ -62,7 +59,7 @@ try {
         $gtin = trim($gtins[$i] ?? '');
 
         $lineTotal = round($qty * $price, 2);
-        $taxCalc = $vmsService->calculateItemTax($lineTotal, $label);
+        $taxCalc = $taxService->calculateItemTax($lineTotal, $label);
 
         $totalAmount += $lineTotal;
         $totalTax += round($taxCalc['tax_amount'], 2);
@@ -110,7 +107,7 @@ try {
                     $prevStock,
                     $newStock,
                     'Invoice Sale',
-                    'Deducted via VMS Fiscal Invoice: ' . $invoiceNumber,
+                    'Deducted via invoice: ' . $invoiceNumber,
                     $_SESSION['user_name'] ?? 'Admin'
                 ]);
             }
@@ -138,13 +135,6 @@ try {
     $patientOwed = max(0.00, $totalAmount - $totalPaid);
     $servicesJson = json_encode(array_column($itemsToInsert, 'name'));
 
-    // Get VMS Clinic Settings
-    $stmtSettings = $pdo->query("SELECT setting_key, setting_value FROM clinic_settings WHERE setting_key LIKE 'vms_%'");
-    $settings = $stmtSettings->fetchAll(PDO::FETCH_KEY_PAIR);
-
-    $sellerTin = $settings['vms_seller_tin'] ?? '502579006';
-    $businessLoc = $settings['vms_business_location'] ?? 'Suva Central Clinic, 2 Woodstand Road, Suva';
-    $posNum = $settings['vms_pos_number'] ?? 'ASDF238/1.2';
     $cashierName = $_SESSION['user_name'] ?? 'Admin';
 
     $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
@@ -152,24 +142,21 @@ try {
         INSERT INTO invoices (
             id, tenant_id, invoice_number, patient_id, patient_name, patient_mrn, service_date, due_date,
             amount, status, insurance_covered, patient_owed, services,
-            invoice_type, transaction_type, seller_tin, business_location, cashier,
-            buyer_tin, buyer_cost_center, pos_number, pos_time, ref_no, ref_time,
+            invoice_type, transaction_type, cashier, ref_no,
             total_tax, payment_methods
         ) VALUES (
             ?, ?, ?, ?, ?, ?, ?, ?,
             ?, ?, 0.00, ?, ?,
-            ?, ?, ?, ?, ?,
-            ?, ?, ?, ?, ?, ?,
+            ?, ?, ?, ?,
             ?, ?
         )
     ");
 
-    [$invoiceNumber] = \ClinicFlow\Services\DocumentNumbers::issue($pdo, $tenantId, 'invoices', 'invoice_number', 'INV-' . date('Y') . '-', 4, function (string $invoiceNumber) use ($stmtInv, $invoiceId, $tenantId, $patientId, $patientName, $patientMrn, $dueDate, $totalAmount, $status, $patientOwed, $servicesJson, $invoiceType, $transactionType, $sellerTin, $businessLoc, $cashierName, $buyerTin, $buyerCostCenter, $posNum, $refNo, $refTime, $totalTax, $paymentMethods) {
+    [$invoiceNumber] = \ClinicFlow\Services\DocumentNumbers::issue($pdo, $tenantId, 'invoices', 'invoice_number', 'INV-' . date('Y') . '-', 4, function (string $invoiceNumber) use ($stmtInv, $invoiceId, $tenantId, $patientId, $patientName, $patientMrn, $dueDate, $totalAmount, $status, $patientOwed, $servicesJson, $invoiceType, $transactionType, $cashierName, $refNo, $totalTax, $paymentMethods) {
     $stmtInv->execute([
         $invoiceId, $tenantId, $invoiceNumber, $patientId, $patientName, $patientMrn, date('Y-m-d'), $dueDate,
         $totalAmount, $status, $patientOwed, $servicesJson,
-        $invoiceType, $transactionType, $sellerTin, $businessLoc, $cashierName,
-        $buyerTin, $buyerCostCenter, $posNum, date('Y-m-d H:i:s'), $refNo, $refTime,
+        $invoiceType, $transactionType, $cashierName, $refNo,
         $totalTax, json_encode($paymentMethods)
     ]);
     });
@@ -215,7 +202,7 @@ try {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    $logger->error("Failed to create VMS invoice: " . $e->getMessage());
+    $logger->error("Failed to create invoice: " . $e->getMessage());
     $_SESSION['flash_error'] = "Failed to create invoice.";
 }
 

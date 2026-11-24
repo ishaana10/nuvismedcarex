@@ -13,25 +13,25 @@ class RbacService {
     private array $rolePermissions = [
         'System Admin' => [
             'view_patients', 'create_patient', 'edit_patient', 'delete_patient',
-            'view_billing', 'create_invoice', 'process_payment', 'vms_fiscalize',
+            'view_billing', 'create_invoice', 'process_payment',
             'view_inventory', 'manage_inventory', 'restock_inventory',
             'manage_settings', 'view_audit_logs', 'manage_users'
         ],
         'Developer' => [
             'view_patients', 'create_patient', 'edit_patient', 'delete_patient',
-            'view_billing', 'create_invoice', 'process_payment', 'vms_fiscalize',
+            'view_billing', 'create_invoice', 'process_payment',
             'view_inventory', 'manage_inventory', 'restock_inventory',
             'manage_settings', 'view_audit_logs', 'manage_users', 'switch_tenant'
         ],
         'Clinic Admin' => [
             'view_patients', 'create_patient', 'edit_patient',
-            'view_billing', 'create_invoice', 'process_payment', 'vms_fiscalize',
+            'view_billing', 'create_invoice', 'process_payment',
             'view_inventory', 'manage_inventory', 'restock_inventory',
             'manage_settings', 'view_audit_logs', 'manage_users'
         ],
         'Administrator' => [
             'view_patients', 'create_patient', 'edit_patient',
-            'view_billing', 'create_invoice', 'process_payment', 'vms_fiscalize',
+            'view_billing', 'create_invoice', 'process_payment',
             'view_inventory', 'manage_inventory', 'restock_inventory',
             'manage_settings', 'view_audit_logs', 'manage_users'
         ],
@@ -100,7 +100,6 @@ class RbacService {
         }
 
         return [
-            'vms_fiscalization' => true,
             'inventory_module' => true,
             'telehealth' => false,
             'lab_orders' => true,

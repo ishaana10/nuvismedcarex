@@ -60,8 +60,8 @@ if (!function_exists('nxAccess')) {
         'actions/send_email.php'          => ['encounters', 'view'],
         // Billing
         'actions/billing_pay.php'         => ['billing', 'edit'],
-        'actions/vms_create_invoice.php'  => ['billing', 'edit'],
-        'actions/vms_cancel_invoice.php'  => ['developer', 'full'], // FRCS VMS is Developer-only this release
+        'actions/create_invoice.php'      => ['billing', 'edit'],
+        'actions/cancel_invoice.php'      => ['developer', 'full'], // invoices are corrected with a refund and a new invoice; cancelling is Developer-only
         'actions/insurance_claim_save.php' => ['billing', 'edit', ['delete_claim' => 'full']],
         'actions/insurance_report_save.php'   => ['billing', 'edit'],
         'actions/insurance_report_export.php' => ['billing', 'view'],
@@ -89,9 +89,7 @@ if (!function_exists('nxAccess')) {
         'actions/consent_form_save.php'   => ['settings', 'edit'],
         'actions/consent_record_save.php' => ['encounters', 'edit', ['withdraw' => 'full']],
         'print_consent.php'               => ['encounters', 'view'],
-        'actions/vms_save_settings.php'   => ['developer', 'full'], // FRCS VMS is Developer-only this release
-        'actions/vms_actions.php'         => ['developer', 'full'],
-        'api/vms.php'                     => ['developer', 'full'],
+        'actions/tax_save_settings.php'   => ['developer', 'full'],
         // Drive credentials moved to Developer → Document storage
         'actions/cloud_storage_settings.php' => ['developer', 'full'],
         'actions/cloud_oauth.php'         => ['developer', 'full'],

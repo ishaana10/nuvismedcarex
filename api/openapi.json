@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "ClinicFlow Medcare SaaS API",
-    "description": "Multi-Tenant Clinical EHR, Billing & VMS Phase 3 OpenAPI Specification",
+    "description": "Multi-Tenant Clinical EHR, Billing OpenAPI Specification",
     "version": "2.1.0"
   },
   "servers": [

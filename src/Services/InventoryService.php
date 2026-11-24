@@ -250,8 +250,8 @@ class InventoryService {
         $sku = $data['sku'] ?? ('SKU-' . rand(10000, 99999));
 
         $stmt = $this->db->prepare(
-            "INSERT INTO inventory (id, tenant_id, name, sku, category, current_stock, min_threshold, unit, status, last_restocked, cost_price, unit_price, batch_number, expiry_date, is_active, vms_tax_code, custom_fields) " .
-            "VALUES (:id, :tid, :name, :sku, :category, :stock, :min_threshold, :unit, :status, :last_restocked, :cost_price, :unit_price, :batch_number, :expiry_date, 1, :vms_tax_code, :custom_fields)"
+            "INSERT INTO inventory (id, tenant_id, name, sku, category, current_stock, min_threshold, unit, status, last_restocked, cost_price, unit_price, batch_number, expiry_date, is_active, tax_code, custom_fields) " .
+            "VALUES (:id, :tid, :name, :sku, :category, :stock, :min_threshold, :unit, :status, :last_restocked, :cost_price, :unit_price, :batch_number, :expiry_date, 1, :tax_code, :custom_fields)"
         );
 
         $stock = (int)($data['current_stock'] ?? 0);
@@ -273,7 +273,7 @@ class InventoryService {
             'unit_price' => (float)($data['unit_price'] ?? 0.0),
             'batch_number' => $data['batch_number'] ?? null,
             'expiry_date' => $data['expiry_date'] ?? null,
-            'vms_tax_code' => $data['vms_tax_code'] ?? 'A',
+            'tax_code' => $data['tax_code'] ?? 'A',
             'custom_fields' => isset($data['custom_fields']) ? json_encode($data['custom_fields']) : null
         ]);
 
@@ -373,7 +373,7 @@ class InventoryService {
         $currentStock = (int)$item['current_stock'];
         $status = $currentStock > $minThreshold ? 'In Stock' : ($currentStock > 0 ? 'Low Stock' : 'Out of Stock');
 
-        $sql = "UPDATE inventory SET name = :name, sku = :sku, category = :cat, min_threshold = :min_thresh, unit = :unit, status = :status, cost_price = :cost, unit_price = :unit_price, batch_number = :batch, expiry_date = :expiry, vms_tax_code = :vms, custom_fields = :fields WHERE id = :id AND tenant_id = :tid";
+        $sql = "UPDATE inventory SET name = :name, sku = :sku, category = :cat, min_threshold = :min_thresh, unit = :unit, status = :status, cost_price = :cost, unit_price = :unit_price, batch_number = :batch, expiry_date = :expiry, tax_code = :tax, custom_fields = :fields WHERE id = :id AND tenant_id = :tid";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
@@ -387,7 +387,7 @@ class InventoryService {
             'unit_price' => (float)($data['unit_price'] ?? $item['unit_price']),
             'batch' => $data['batch_number'] ?? $item['batch_number'],
             'expiry' => !empty($data['expiry_date']) ? $data['expiry_date'] : null,
-            'vms' => $data['vms_tax_code'] ?? $item['vms_tax_code'],
+            'tax' => $data['tax_code'] ?? $item['tax_code'],
             'fields' => isset($data['custom_fields']) ? (is_array($data['custom_fields']) ? json_encode($data['custom_fields']) : $data['custom_fields']) : $item['custom_fields'],
             'id' => $id,
             'tid' => $tenantId

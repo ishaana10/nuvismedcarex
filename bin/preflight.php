@@ -124,7 +124,7 @@ if (getenv('DB_HOST') && getenv('DB_NAME')) {
         }
         if (!$n) out('PASS', 'No default/weak passwords on active accounts');
         // tenant_id must be NOT NULL/no silent default on clinical tables.
-        foreach (['patients', 'prescriptions', 'vitals', 'invoices', 'invoice_items', 'vms_logs', 'soap_notes'] as $t) {
+        foreach (['patients', 'prescriptions', 'vitals', 'invoices', 'invoice_items', 'soap_notes'] as $t) {
             $q = $pdo->prepare("SELECT IS_NULLABLE, COLUMN_DEFAULT FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = 'tenant_id'");
             $q->execute([$t]); $c = $q->fetch(PDO::FETCH_ASSOC);
             if (!$c) { out('FAIL', "$t has no tenant_id column"); continue; }

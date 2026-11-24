@@ -8,9 +8,9 @@
  * $zFrom, $zTo, $zReportData, $zPeriodLabel, $zQueryString, $zPresets.
  */
 
-use ClinicFlow\Services\VMSService;
+use ClinicFlow\Services\TaxService;
 
-$zService = new VMSService($pdo);
+$zService = new TaxService($pdo);
 
 /** Period presets: key => [label, from, to] */
 $zPresets = [
@@ -48,14 +48,14 @@ if ($zFrom !== null && $zTo !== null && $zFrom > $zTo) {
 
 // A single day is reported as the daily Z-Report rather than a range
 if ($zFrom !== null && $zTo !== null && $zFrom !== $zTo) {
-    $zReportData = $zService->getDailyFiscalReport($zSelectedDate, $zFrom, $zTo, $currentTenantId);
+    $zReportData = $zService->getDailySummary($zSelectedDate, $zFrom, $zTo, $currentTenantId);
     $zPeriodLabel = nxDate($zFrom) . ' – ' . nxDate($zTo);
 } else {
     if ($zFrom !== null && $zTo !== null) {
         $zSelectedDate = $zFrom;
     }
     $zFrom = $zTo = null;
-    $zReportData = $zService->getDailyFiscalReport($zSelectedDate, null, null, $currentTenantId);
+    $zReportData = $zService->getDailySummary($zSelectedDate, null, null, $currentTenantId);
     $zPeriodLabel = nxDate($zSelectedDate);
 }
 

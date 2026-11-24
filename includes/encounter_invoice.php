@@ -24,7 +24,7 @@ if (!function_exists('nxCreateEncounterInvoice')) {
     function nxCreateEncounterInvoice(PDO $pdo, array $patient, string $visitId, array $post): array
     {
         $container = Container::getInstance();
-        $vmsService = $container->get(\ClinicFlow\Services\VMSService::class);
+        $taxService = $container->get(\ClinicFlow\Services\TaxService::class);
         $inventoryService = $container->get(\ClinicFlow\Services\InventoryService::class);
         $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 
@@ -56,7 +56,7 @@ if (!function_exists('nxCreateEncounterInvoice')) {
             $totalAmount += $lineTotal;
 
             $taxLabel = $taxLabels[$idx] ?? 'A';
-            $taxCalc = $vmsService->calculateItemTax($lineTotal, $taxLabel);
+            $taxCalc = $taxService->calculateItemTax($lineTotal, $taxLabel);
             $totalTax += round($taxCalc['tax_amount'], 2);
 
             $invItemId = $inventoryIds[$idx] ?? null;

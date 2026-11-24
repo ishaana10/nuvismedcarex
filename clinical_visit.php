@@ -343,7 +343,7 @@ if (empty($visitId)) {
 }
 
 // Fetch active inventory items for invoice line items
-$inventoryStmt = $pdo->prepare("SELECT id, name, sku, current_stock, unit_price, vms_tax_code FROM inventory WHERE tenant_id = ? AND is_active = 1 ORDER BY name ASC");
+$inventoryStmt = $pdo->prepare("SELECT id, name, sku, current_stock, unit_price, tax_code FROM inventory WHERE tenant_id = ? AND is_active = 1 ORDER BY name ASC");
 $inventoryStmt->execute([$currentTenantId]);
 $inventoryList = $inventoryStmt->fetchAll() ?: [];
 
@@ -953,7 +953,7 @@ include __DIR__ . '/includes/header.php';
                                                             data-name="<?= htmlspecialchars($invItem['name']) ?>"
                                                             data-sku="<?= htmlspecialchars($invItem['sku']) ?>"
                                                             data-price="<?= htmlspecialchars($invItem['unit_price']) ?>"
-                                                            data-tax="<?= htmlspecialchars($invItem['vms_tax_code'] ?: 'A') ?>">
+                                                            data-tax="<?= htmlspecialchars($invItem['tax_code'] ?: 'A') ?>">
                                                         <?= htmlspecialchars($invItem['name']) ?> ($<?= number_format($invItem['unit_price'], 2) ?>)
                                                     </option>
                                                 <?php endforeach; ?>
@@ -1169,7 +1169,7 @@ function addFinalizeRow() {
     if (Array.isArray(items)) {
         items.forEach(item => {
             const price = parseFloat(item.unit_price) || 0;
-            const tax = item.vms_tax_code || 'A';
+            const tax = item.tax_code || 'A';
             invOptions += `<option value="${nxEsc(item.id)}" data-name="${nxEsc(item.name)}" data-sku="${nxEsc(item.sku)}" data-price="${price}" data-tax="${nxEsc(tax)}">${nxEsc(item.name)} ($${price.toFixed(2)})</option>`;
         });
     }

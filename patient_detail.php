@@ -33,15 +33,15 @@ $pageTitle = htmlspecialchars($patient['first_name'] . ' ' . $patient['last_name
 $activePage = "patients";
 include __DIR__ . '/includes/header.php';
 
-// Fetch active inventory items for VMS invoice creation in past encounters
+// Fetch active inventory items for invoice creation in past encounters
 $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
-$inventoryStmt = $pdo->prepare("SELECT id, name, sku, current_stock, unit_price, vms_tax_code FROM inventory WHERE tenant_id = ? AND is_active = 1 ORDER BY name ASC");
+$inventoryStmt = $pdo->prepare("SELECT id, name, sku, current_stock, unit_price, tax_code FROM inventory WHERE tenant_id = ? AND is_active = 1 ORDER BY name ASC");
 $inventoryStmt->execute([$currentTenantId]);
 $inventoryList = $inventoryStmt->fetchAll();
 
 // Fetch past visits with linked invoice statuses
 $pvStmt = $pdo->prepare("
-    SELECT pv.*, i.id as invoice_id, i.invoice_number, i.status as invoice_status, i.amount as invoice_amount, i.patient_owed as invoice_patient_owed, i.is_fiscalized
+    SELECT pv.*, i.id as invoice_id, i.invoice_number, i.status as invoice_status, i.amount as invoice_amount, i.patient_owed as invoice_patient_owed
     FROM past_visits pv
     LEFT JOIN invoices i ON (pv.visit_id = i.ref_no OR pv.visit_id = i.id OR (i.patient_id = pv.patient_id AND i.service_date = pv.visit_date)) AND i.tenant_id = pv.tenant_id
     WHERE pv.patient_id = ? AND pv.tenant_id = ?
@@ -686,7 +686,7 @@ function closePastVisitModal() {
                                                     data-name="<?= htmlspecialchars($invItem['name']) ?>"
                                                     data-sku="<?= htmlspecialchars($invItem['sku']) ?>"
                                                     data-price="<?= htmlspecialchars($invItem['unit_price']) ?>"
-                                                    data-tax="<?= htmlspecialchars($invItem['vms_tax_code'] ?: 'A') ?>">
+                                                    data-tax="<?= htmlspecialchars($invItem['tax_code'] ?: 'A') ?>">
                                                 <?= htmlspecialchars($invItem['name']) ?> ($<?= number_format($invItem['unit_price'], 2) ?>)
                                             </option>
                                         <?php endforeach; ?>
@@ -820,7 +820,7 @@ function addPastInvoiceRow() {
     if (Array.isArray(pastInventoryList)) {
         pastInventoryList.forEach(item => {
             const price = parseFloat(item.unit_price) || 0;
-            const tax = item.vms_tax_code || 'A';
+            const tax = item.tax_code || 'A';
             invOptions += `<option value="${nxEsc(item.id)}" data-name="${nxEsc(item.name)}" data-sku="${nxEsc(item.sku)}" data-price="${price}" data-tax="${nxEsc(tax)}">${nxEsc(item.name)} ($${price.toFixed(2)})</option>`;
         });
     }

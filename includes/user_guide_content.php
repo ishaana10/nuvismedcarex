@@ -258,10 +258,10 @@ HTML,
 <tr><td>Prescription</td><td>Encounter → Prescription</td><td>Shows the prescriber, signature, stamp and a QR code anyone can scan to check it is genuine.</td></tr>
 <tr><td>Medical certificate</td><td>Patient chart or encounter</td><td>Classic or Clinic form layout.</td></tr>
 <tr><td>Lab requisition</td><td>The lab order</td><td>Sent with the patient or the sample.</td></tr>
-<tr><td>Invoice</td><td>Billing → invoice</td><td>Includes fiscal details and a QR code when the invoice was fiscalised.</td></tr>
+<tr><td>Invoice</td><td>Billing → invoice</td><td>Itemised, with VAT shown per tax label.</td></tr>
 <tr><td>Receipt</td><td>Billing → invoice</td><td>Can be emailed to the patient.</td></tr>
 <tr><td>Consent form</td><td>Consent forms</td><td>Signed copy for the patient file.</td></tr>
-<tr><td>Z-report</td><td>Billing → Z-report</td><td>Daily or period fiscal summary.</td></tr>
+<tr><td>Z-report</td><td>Billing → Z-report</td><td>Daily or period summary.</td></tr>
 </tbody></table>
 <h4>Emailing</h4>
 <p>Where you see an email box on a preview, check the patient's address and press the mail button. The message is sent from your clinic's own mail account and a record is kept in the audit trail. If it fails, the reason is shown in plain words and your administrator can fix the mail settings (see <a href="#admin-email">Email</a>).</p>
@@ -301,13 +301,13 @@ HTML,
 <p><strong>Transaction type</strong> is either <em>Sale (+)</em> or <em>Refund (−)</em>. A refund reverses an earlier sale; use it rather than deleting.</p>
 <h4>Receipts</h4>
 <p>Open the invoice to print a receipt, or email it to the patient from the same screen.</p>
-<h4>Fiscal (VAT) invoicing</h4>
-<p>Where your clinic is set up for the Fiji Revenue and Customs Service fiscal system, invoices are fiscalised with the correct tax labels: A (15% VAT), E (exempt), F (zero-rated) and P (0.25% levy). Cancelling a fiscalised invoice is restricted to the Developer role in this release; ask your administrator to arrange it.</p>
+<h4>VAT on invoices</h4>
+<p>Prices include VAT. Each line carries a tax label: A (15% VAT), E (exempt), F (zero-rated) or P (0.25% levy). Cancelling an invoice is restricted to the Developer role in this release; ask your administrator to arrange it.</p>
 <h4>Insurance claims</h4>
 <p>On the <strong>Insurance claims</strong> tab press <strong>Submit Claim</strong>, choose the invoice and provider, enter the policy number and claim amount, and add notes. Claims can be <strong>approved</strong> or <strong>rejected</strong>, edited, and signed off. See <a href="#insurance">Insurance</a>.</p>
 <h4>Z-report</h4>
 <p>Choose <em>Single day</em> or a <em>From–To</em> period and press <strong>Show report</strong>. It totals invoices and refunds by type, VAT by tax label and how the money was paid. Download it as CSV or print it.</p>
-<div class="g-warn"><strong>Never delete to correct.</strong> A wrong invoice is corrected with a refund and a new invoice so the books and the fiscal record agree.</div>
+<div class="g-warn"><strong>Never delete to correct.</strong> A wrong invoice is corrected with a refund and a new invoice so the books stay accurate.</div>
 HTML,
 ],
 
@@ -516,8 +516,6 @@ HTML,
 <dt>FEFO</dt><dd>First-expired, first-out: stock that expires soonest is used first.</dd>
 <dt>Batch</dt><dd>One delivery of an item, with its own batch number and expiry date.</dd>
 <dt>VAT / tax label</dt><dd>A: 15% VAT. E: exempt. F: zero-rated. P: 0.25% levy.</dd>
-<dt>FRCS / VMS</dt><dd>The Fiji Revenue and Customs Service and its VAT Monitoring System, which fiscalises invoices.</dd>
-<dt>Fiscalised invoice</dt><dd>An invoice registered with the tax system, carrying its fiscal details and QR code.</dd>
 <dt>Z-report</dt><dd>A summary of sales, refunds and VAT for a day or period.</dd>
 <dt>Proforma</dt><dd>A quote; not a sale.</dd>
 <dt>Refund (−)</dt><dd>A transaction that reverses an earlier sale.</dd>

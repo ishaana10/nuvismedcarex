@@ -23,18 +23,18 @@ final class SecurityHardeningTest extends TestCase
         $this->assertNotSame(nxOtpDigest('654321'), nxOtpDigest('654322'));
     }
 
-    public function testFiscalVmsEntryPointsAreDeveloperOnly(): void
+    public function testInvoiceCancelAndTaxRateEntryPointsAreDeveloperOnly(): void
     {
         $src = (string) file_get_contents(__DIR__ . '/../includes/access.php');
-        foreach (['actions/vms_cancel_invoice.php', 'actions/vms_save_settings.php', 'actions/vms_actions.php', 'api/vms.php'] as $script) {
+        foreach (['actions/cancel_invoice.php', 'actions/tax_save_settings.php'] as $script) {
             $this->assertMatchesRegularExpression(
                 "#'" . preg_quote($script, '#') . "'\s*=>\s*\['developer', 'full'\]#",
                 $src,
-                "$script must require the developer module (FRCS VMS is Developer-only this release)"
+                "$script must require the developer module (Developer-only this release)"
             );
         }
         // Creating an ordinary invoice stays a normal billing permission.
-        $this->assertMatchesRegularExpression("#'actions/vms_create_invoice.php'\s*=>\s*\['billing', 'edit'\]#", $src);
+        $this->assertMatchesRegularExpression("#'actions/create_invoice.php'\s*=>\s*\['billing', 'edit'\]#", $src);
     }
 
     public function testDeveloperControlEndpointsRequireCsrfForMutations(): void

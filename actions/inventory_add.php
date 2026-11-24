@@ -56,7 +56,7 @@ try {
         'unit_price' => (float)($_POST['unit_price'] ?? 0.00),
         'batch_number' => trim($_POST['batch_number'] ?? ''),
         'expiry_date' => !empty($_POST['expiry_date']) ? $_POST['expiry_date'] : null,
-        'vms_tax_code' => trim($_POST['vms_tax_code'] ?? 'A'),
+        'tax_code' => trim($_POST['tax_code'] ?? 'A'),
         // Only the fields this clinic defined, with values that match their type
         'custom_fields' => \ClinicFlow\Services\InventorySetup::valuesFromRequest(
             $inventoryService->getInventorySettings()['custom_fields_def'],

@@ -6,16 +6,15 @@ validateCsrfRequest();
 
 $pdo = getDB();
 
+$rate = static function (string $key, float $default): float {
+    $v = (float) ($_POST[$key] ?? $default);
+    return max(0.0, min(100.0, $v));
+};
 $settings = [
-    'vms_enabled' => isset($_POST['vms_enabled']) ? '1' : '0',
-    'vms_seller_tin' => trim($_POST['vms_seller_tin'] ?? '502579006'),
-    'vms_business_location' => trim($_POST['vms_business_location'] ?? 'Suva Central Clinic, 2 Woodstand Road, Suva'),
-    'vms_pos_number' => trim($_POST['vms_pos_number'] ?? 'ASDF238/1.2'),
-    'vms_sdc_url' => trim($_POST['vms_sdc_url'] ?? 'https://tap.sandbox.vms.frcs.org.fj'),
-    'vms_tax_rate_a' => (float)($_POST['vms_tax_rate_a'] ?? 15.00),
-    'vms_tax_rate_e' => (float)($_POST['vms_tax_rate_e'] ?? 0.00),
-    'vms_tax_rate_f' => (float)($_POST['vms_tax_rate_f'] ?? 0.00),
-    'vms_tax_rate_p' => (float)($_POST['vms_tax_rate_p'] ?? 0.25)
+    'tax_rate_a' => $rate('tax_rate_a', 15.00),
+    'tax_rate_e' => $rate('tax_rate_e', 0.00),
+    'tax_rate_f' => $rate('tax_rate_f', 0.00),
+    'tax_rate_p' => $rate('tax_rate_p', 0.25),
 ];
 
 try {
@@ -42,9 +41,9 @@ try {
     require_once __DIR__ . '/../core/Cache.php';
     \NuCache::getInstance()->invalidateSystemSettings();
 
-    $_SESSION['flash_success'] = "VMS / EFD Configuration updated successfully!";
+    $_SESSION['flash_success'] = "Tax rates saved.";
 } catch (Exception $e) {
-    $_SESSION['flash_error'] = "Failed to update VMS settings: " . $e->getMessage();
+    $_SESSION['flash_error'] = "Failed to save tax rates: " . $e->getMessage();
 }
 
 header("Location: ../billing.php?tab=settings");

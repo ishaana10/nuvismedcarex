@@ -30,14 +30,14 @@ executeAutoSchemaMigrations($pdo);
 echo "Seeding default tenant data...\n";
 
 // Clear existing tables
-$tables = ['user_tenants', 'tenant_settings', 'doctors', 'patients', 'appointments', 'queue', 'vitals', 'soap_notes', 'prescriptions', 'past_visits', 'activities', 'invoices', 'invoice_items', 'vms_logs', 'inventory', 'inventory_logs', 'medical_certificates', 'audit_logs', 'tenants'];
+$tables = ['user_tenants', 'tenant_settings', 'doctors', 'patients', 'appointments', 'queue', 'vitals', 'soap_notes', 'prescriptions', 'past_visits', 'activities', 'invoices', 'invoice_items', 'inventory', 'inventory_logs', 'medical_certificates', 'audit_logs', 'tenants'];
 foreach ($tables as $t) {
     $pdo->exec("DELETE FROM $t");
 }
 
 // Seed Primary Default Tenant
 $defaultTenantId = 'default-clinic';
-$tenantStmt = $pdo->prepare("INSERT INTO tenants (id, name, code, status, plan, address, phone, email, timezone, locale, currency, branding, vms_credentials, feature_flags, custom_fields, billing_info) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+$tenantStmt = $pdo->prepare("INSERT INTO tenants (id, name, code, status, plan, address, phone, email, timezone, locale, currency, branding, feature_flags, custom_fields, billing_info) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 $tenantStmt->execute([
     $defaultTenantId,
     'Nuvis Medico Healthcare',
@@ -51,13 +51,7 @@ $tenantStmt->execute([
     'en_FJ',
     'FJD',
     json_encode(['primary_color' => '#0f2b5c', 'logo_url' => 'assets/images/nuvis_medico_logo.png']),
-    json_encode([
-        'vms_enabled' => true,
-        'seller_tin' => '502579006',
-        'location' => 'Suva Central Clinic, 2 Woodstand Road, Suva',
-        'pos_number' => 'CF-POS-V3/1.0'
-    ]),
-    json_encode(['vms_fiscalization' => true, 'inventory_module' => true, 'telehealth' => false]),
+    json_encode(['inventory_module' => true, 'telehealth' => false]),
     json_encode(['tax_region' => 'Fiji Central']),
     json_encode(['payment_terms' => 'Net 30 Days'])
 ]);
@@ -107,15 +101,10 @@ $defaultSettings = [
     'receipt_thank_you_msg' => 'Thank you for your payment. Your account balance for this invoice is cleared.',
     'doc_prc_no' => 'PRC-0098412',
     'doc_ptr_no' => 'PTR-8842109',
-    'vms_enabled' => '1',
-    'vms_seller_tin' => '502579006',
-    'vms_business_location' => 'Suva Central Clinic, 2 Woodstand Road, Suva',
-    'vms_pos_number' => 'ASDF238/1.2',
-    'vms_sdc_url' => 'https://tap.sandbox.vms.frcs.org.fj',
-    'vms_tax_rate_a' => '15.00',
-    'vms_tax_rate_e' => '0.00',
-    'vms_tax_rate_f' => '0.00',
-    'vms_tax_rate_p' => '0.25'
+    'tax_rate_a' => '15.00',
+    'tax_rate_e' => '0.00',
+    'tax_rate_f' => '0.00',
+    'tax_rate_p' => '0.25'
 ];
 $stmt = $pdo->prepare("INSERT INTO tenant_settings (id, tenant_id, setting_key, setting_value) VALUES (?, ?, ?, ?)");
 $sIdx = 1;
@@ -193,10 +182,10 @@ foreach ($prescriptions as $rx) {
 
 // Invoices
 $invoices = [
-    ['inv-1', $defaultTenantId, 'INV-2023-8821', 'pat-2', 'Rajesh Prasad', '#48291', '2023-10-24', '2023-11-24', 250.00, 'Pending', 200.00, 50.00, json_encode(['Follow-up Consultation']), 'Normal', 'Sale', '502579006', 'Suva Central Clinic, 2 Woodstand Road, Suva', 'Admin', null, null, 'ASDF238/1.2', '2023-10-24 09:15:00', null, null, 1, '7AF234D9-E377B30A-150493', '2023-10-24 09:15:02', '143027/150493NS', 'https://tap.sandbox.vms.frcs.org.fj/verify?id=7AF234D9-E377B30A-150493', 'MEYCIQDx812...SIG', 32.61, json_encode([['type' => 'Cash', 'amount' => 50.00]])],
-    ['inv-2', $defaultTenantId, 'INV-2023-8819', 'pat-3', 'Litiana Tuilagi', '#55102', '2023-10-24', '2023-11-24', 320.00, 'Pending', 270.00, 50.00, json_encode(['Specialist Consultation']), 'Normal', 'Sale', '502579006', 'Suva Central Clinic, 2 Woodstand Road, Suva', 'Admin', null, null, 'ASDF238/1.2', '2023-10-24 09:45:00', null, null, 1, '7AF234D9-E377B30A-150494', '2023-10-24 09:45:02', '143028/150494NS', 'https://tap.sandbox.vms.frcs.org.fj/verify?id=7AF234D9-E377B30A-150494', 'MEYCIQDx813...SIG', 41.74, json_encode([['type' => 'Card', 'amount' => 50.00]])]
+    ['inv-1', $defaultTenantId, 'INV-2023-8821', 'pat-2', 'Rajesh Prasad', '#48291', '2023-10-24', '2023-11-24', 250.00, 'Pending', 200.00, 50.00, json_encode(['Follow-up Consultation']), 'Normal', 'Sale', 'Admin', null, 32.61, json_encode([['type' => 'Cash', 'amount' => 50.00]])],
+    ['inv-2', $defaultTenantId, 'INV-2023-8819', 'pat-3', 'Litiana Tuilagi', '#55102', '2023-10-24', '2023-11-24', 320.00, 'Pending', 270.00, 50.00, json_encode(['Specialist Consultation']), 'Normal', 'Sale', 'Admin', null, 41.74, json_encode([['type' => 'Card', 'amount' => 50.00]])]
 ];
-$stmt = $pdo->prepare("INSERT INTO invoices (id, tenant_id, invoice_number, patient_id, patient_name, patient_mrn, service_date, due_date, amount, status, insurance_covered, patient_owed, services, invoice_type, transaction_type, seller_tin, business_location, cashier, buyer_tin, buyer_cost_center, pos_number, pos_time, ref_no, ref_time, is_fiscalized, sdc_invoice_no, sdc_time, invoice_counter, verification_url, digital_signature, total_tax, payment_methods) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+$stmt = $pdo->prepare("INSERT INTO invoices (id, tenant_id, invoice_number, patient_id, patient_name, patient_mrn, service_date, due_date, amount, status, insurance_covered, patient_owed, services, invoice_type, transaction_type, cashier, ref_no, total_tax, payment_methods) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 foreach ($invoices as $inv) {
     $stmt->execute($inv);
 }

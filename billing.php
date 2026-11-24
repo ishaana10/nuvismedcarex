@@ -5,20 +5,7 @@ require_once __DIR__ . '/includes/autoloader.php';
 require_once __DIR__ . '/includes/pagination.php';
 include __DIR__ . '/includes/header.php';
 
-use ClinicFlow\Services\VMSService;
-
-$vmsService = new VMSService($pdo);
-$nxShowVms = (nxCurrentRole() === 'Developer'); // FRCS VMS UI is Developer-only this release
-
 $currentTenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
-
-// VMS settings belong to the clinic, so read them through nxSettings() rather
-// than the installation-wide table, which held one clinic's values for all.
-$vmsSettings = array_filter(
-    nxSettings(),
-    static fn($k) => str_starts_with((string) $k, 'vms_'),
-    ARRAY_FILTER_USE_KEY
-);
 
 // Fetch all patients for dropdown selection (Tenant Scoped)
 $patientsStmt = $pdo->prepare("SELECT id, first_name, last_name, mrn, phone, insurance_provider, insurance_policy_number FROM patients WHERE tenant_id = ? ORDER BY first_name ASC");
@@ -26,7 +13,7 @@ $patientsStmt->execute([$currentTenantId]);
 $patientsList = $patientsStmt->fetchAll();
 
 // Fetch active inventory items for invoice line items (Tenant Scoped)
-$inventoryStmt = $pdo->prepare("SELECT id, name, sku, current_stock, unit_price, vms_tax_code FROM inventory WHERE tenant_id = ? AND is_active = 1 ORDER BY name ASC");
+$inventoryStmt = $pdo->prepare("SELECT id, name, sku, current_stock, unit_price, tax_code FROM inventory WHERE tenant_id = ? AND is_active = 1 ORDER BY name ASC");
 $inventoryStmt->execute([$currentTenantId]);
 $inventoryList = $inventoryStmt->fetchAll();
 
@@ -114,7 +101,7 @@ foreach ($invoices as $inv) {
     <?php unset($_SESSION['flash_error']); ?>
 <?php endif; ?>
 
-<!-- Financial & VMS Summary Cards -->
+<!-- Financial summary cards -->
 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
     <div class="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/30 flex items-center justify-between shadow-xs">
         <div>
@@ -153,7 +140,7 @@ foreach ($invoices as $inv) {
         <div>
             <p class="text-[11px] font-bold text-outline uppercase tracking-wider">Total VAT Collected</p>
             <h3 class="text-2xl font-bold text-blue-600 mt-1">$<?= number_format($totalVat, 2) ?></h3>
-            <p class="text-[11px] text-outline mt-1">FRCS 15% VAT component</p>
+            <p class="text-[11px] text-outline mt-1">VAT component</p>
         </div>
         <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
             <span class="material-symbols-outlined text-2xl">account_balance</span>
@@ -823,7 +810,7 @@ $reconOff = abs($z['reconciliation']) >= 0.01;
 
 <div class="mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
     <h2 class="text-[15px] font-semibold text-slate-900">
-        <?= $z['is_range'] ? 'Fiscal summary' : 'Daily Z-Report' ?>
+        <?= $z['is_range'] ? 'Summary' : 'Daily Z-Report' ?>
     </h2>
     <span class="text-[13px] text-slate-500"><?= htmlspecialchars($zPeriodLabel) ?></span>
     <?php if ($hasRows): ?>
@@ -846,15 +833,13 @@ $reconOff = abs($z['reconciliation']) >= 0.01;
 <?php else: ?>
 
 <!-- Headline figures ------------------------------------------------------- -->
-<div class="grid grid-cols-2 <?= $nxShowVms ? 'lg:grid-cols-4' : 'lg:grid-cols-3' ?> gap-4 mb-6">
+<div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
     <?php
     $zCards = [
         ['label' => 'Turnover', 'value' => $cur . number_format($z['total_sales'] - $z['total_refunds'], 2), 'note' => $z['sales_count'] . ' sales, ' . $z['refund_count'] . ' refunds', 'icon' => 'point_of_sale', 'tone' => 'bg-blue-50 text-blue-700'],
         ['label' => 'Net of VAT', 'value' => $cur . number_format($z['net_sales'], 2), 'note' => 'VAT ' . $cur . number_format($z['total_vat'], 2), 'icon' => 'account_balance', 'tone' => 'bg-emerald-50 text-emerald-700'],
         ['label' => 'Paid by patients', 'value' => $cur . number_format($z['patient_share'], 2), 'note' => $z['insurance_covered'] > 0 ? $cur . number_format($z['insurance_covered'], 2) . ' billed to insurers' : 'No insurance on these invoices', 'icon' => 'payments', 'tone' => 'bg-slate-100 text-slate-600'],
-        ['label' => 'Fiscalised', 'value' => $z['fiscalised_count'] . ' / ' . $z['total_invoices'], 'note' => $z['unfiscalised_count'] ? $z['unfiscalised_count'] . ' not sent to FRCS' : 'All invoices signed', 'icon' => $z['unfiscalised_count'] ? 'gpp_maybe' : 'verified_user', 'tone' => $z['unfiscalised_count'] ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700', 'warn' => $z['unfiscalised_count'] > 0],
     ];
-    if (!$nxShowVms) { array_pop($zCards); } // drop the Fiscalised tile
     foreach ($zCards as $c): ?>
         <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
             <div class="flex items-start justify-between gap-2">
@@ -874,7 +859,7 @@ $reconOff = abs($z['reconciliation']) >= 0.01;
     <div class="xl:col-span-2 bg-white border border-slate-200 rounded-2xl shadow-2xs overflow-hidden">
         <div class="px-4 py-3 border-b border-slate-100">
             <h3 class="text-[13px] font-semibold text-slate-900">By invoice and transaction type</h3>
-            <p class="text-[11px] text-slate-500 mt-0.5">The breakdown FRCS expects on a Z-Report</p>
+            <p class="text-[11px] text-slate-500 mt-0.5">VAT split by tax label</p>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-[13px]">
@@ -989,17 +974,6 @@ $reconOff = abs($z['reconciliation']) >= 0.01;
 </div>
 <?php endif; ?>
 
-<?php if ($nxShowVms && $z['unfiscalised_count'] > 0): ?>
-    <p class="mb-6 text-[12px] text-amber-900 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-start gap-2">
-        <span class="material-symbols-outlined text-[18px]">gpp_maybe</span>
-        <span>
-            <?= $z['unfiscalised_count'] ?> invoice<?= $z['unfiscalised_count'] === 1 ? ' has' : 's have' ?>
-            no FRCS signature yet, so <?= $z['unfiscalised_count'] === 1 ? 'it is' : 'they are' ?> included in these
-            totals but not yet reported to the revenue service.
-        </span>
-    </p>
-<?php endif; ?>
-
 <?php endif; // has rows ?>
 
 <?php endif; ?>
@@ -1015,7 +989,7 @@ $reconOff = abs($z['reconciliation']) >= 0.01;
             <button data-on-click="NX.closeModal('createInvoiceModal')" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times;</button>
         </div>
 
-        <form action="actions/vms_create_invoice.php" method="POST" class="space-y-4">
+        <form action="actions/create_invoice.php" method="POST" class="space-y-4">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>">
 
             <div class="grid grid-cols-2 gap-3">
