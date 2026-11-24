@@ -35,7 +35,7 @@ final class AccessControl
         'appointments' => ['label' => 'Appointments & queue', 'help' => 'Booking, check-in and the waiting list'],
         'charts'       => ['label' => 'Patient charts',       'help' => 'Medical history, past visits, results and clinical notes'],
         'encounters'   => ['label' => 'Clinical encounters',  'help' => 'Visit notes, vitals, prescriptions, lab orders, certificates'],
-        'billing'      => ['label' => 'Billing',              'help' => 'Invoices, payments, receipts, insurance claims, VMS'],
+        'billing'      => ['label' => 'Billing',              'help' => 'Invoices, payments, receipts, insurance claims'],
         'inventory'    => ['label' => 'Inventory',            'help' => 'Stock, restocking and batches'],
         'documents'    => ['label' => 'Documents',            'help' => 'Uploaded files, scans and lab reports'],
         'settings'     => ['label' => 'Clinic settings',      'help' => 'Branding, receipts, email and integrations'],

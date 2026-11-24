@@ -13,7 +13,6 @@ CREATE TABLE IF NOT EXISTS tenants (
     locale VARCHAR(10) DEFAULT 'en_FJ',
     currency VARCHAR(10) DEFAULT 'FJD',
     branding TEXT,
-    vms_credentials TEXT,
     feature_flags TEXT,
     custom_fields TEXT,
     billing_info TEXT,
@@ -281,26 +280,11 @@ CREATE TABLE IF NOT EXISTS invoices (
     patient_owed DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     services TEXT,
 
-    -- VMS Phase 3 Specification Fields
     invoice_type VARCHAR(20) NOT NULL DEFAULT 'Normal',
     transaction_type VARCHAR(20) NOT NULL DEFAULT 'Sale',
-    seller_tin VARCHAR(50) DEFAULT '502579006',
-    business_location VARCHAR(255) DEFAULT 'Suva Central Clinic, 2 Woodstand Road, Suva',
     cashier VARCHAR(100) DEFAULT 'Admin',
-    buyer_tin VARCHAR(50),
-    buyer_cost_center VARCHAR(100),
-    pos_number VARCHAR(50) DEFAULT 'CF-POS-V3/1.0',
-    pos_time VARCHAR(50),
     ref_no VARCHAR(100),
-    ref_time VARCHAR(50),
 
-    -- SDC Fiscalization Response Data
-    is_fiscalized TINYINT(1) DEFAULT 0,
-    sdc_invoice_no VARCHAR(100),
-    sdc_time VARCHAR(50),
-    invoice_counter VARCHAR(100),
-    verification_url TEXT,
-    digital_signature TEXT,
     total_tax DECIMAL(10,2) DEFAULT 0.00,
     payment_methods TEXT,
 
@@ -311,7 +295,6 @@ CREATE TABLE IF NOT EXISTS invoices (
 
 CREATE INDEX idx_invoices_tenant_mrn ON invoices(tenant_id, patient_mrn);
 CREATE INDEX idx_invoices_tenant_status ON invoices(tenant_id, status);
-CREATE INDEX idx_invoices_tenant_fiscalized ON invoices(tenant_id, is_fiscalized);
 CREATE INDEX idx_invoices_tenant_type ON invoices(tenant_id, invoice_type, transaction_type);
 
 CREATE TABLE IF NOT EXISTS invoice_items (
@@ -333,20 +316,6 @@ CREATE TABLE IF NOT EXISTS invoice_items (
 
 CREATE INDEX idx_invoice_items_tenant_inv ON invoice_items(tenant_id, invoice_id);
 
-CREATE TABLE IF NOT EXISTS vms_logs (
-    id VARCHAR(50) PRIMARY KEY,
-    tenant_id VARCHAR(50) NOT NULL,
-    invoice_id VARCHAR(50),
-    event_type VARCHAR(50) NOT NULL,
-    request_payload TEXT,
-    response_payload TEXT,
-    status_code INT DEFAULT 200,
-    error_message TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
-);
-
-CREATE INDEX idx_vms_logs_tenant_inv ON vms_logs(tenant_id, invoice_id);
 
 CREATE TABLE IF NOT EXISTS inventory (
     id VARCHAR(50) PRIMARY KEY,
@@ -364,7 +333,7 @@ CREATE TABLE IF NOT EXISTS inventory (
     batch_number VARCHAR(100),
     expiry_date DATE,
     is_active TINYINT(1) DEFAULT 1,
-    vms_tax_code VARCHAR(10) DEFAULT 'A',
+    tax_code VARCHAR(10) DEFAULT 'A',
     custom_fields TEXT,
     FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
     CONSTRAINT uk_tenant_sku UNIQUE (tenant_id, sku)

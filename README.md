@@ -1,4 +1,4 @@
-# Nuvis Medcare X - Industrial Multi-Tenant EHR & VMS Platform
+# Nuvis Medcare X - Industrial Multi-Tenant EHR Platform
 
 **Current Version:** shown in the app footer and in `version.json` (stamped automatically on release)
 **Target Environment:** PHP 8.1+ (PDO / MySQL 8.0+) / optional Redis 6.0+ / Composer. Node is only needed on a developer machine to rebuild the stylesheet; the server needs none.
@@ -7,14 +7,14 @@
 
 ## 📋 Overview
 
-**Nuvis Medcare X** is an enterprise-grade, multi-tenant Electronic Health Records (EHR) and VAT Monitoring System (VMS) platform. Built with a modular, layered PSR-4 domain-driven architecture, it delivers end-to-end clinical workflow management, FRCS Fiji Phase 3 fiscal billing, FEFO inventory tracking, multi-tenant isolation, real-time notifications, cloud document integrations, and extensive security compliance.
+**Nuvis Medcare X** is an enterprise-grade, multi-tenant Electronic Health Records (EHR) and billing platform. Built with a modular, layered PSR-4 domain-driven architecture, it delivers end-to-end clinical workflow management, VAT-aware billing, FEFO inventory tracking, multi-tenant isolation, real-time notifications, cloud document integrations, and extensive security compliance.
 
 ---
 
 ## 🚀 Core Features & Architectural Capabilities
 
 ### 1. Multi-Tenancy & Request-Scoped Isolation
-- **Non-Nullable Schema Scoping:** All core database entities (`patients`, `appointments`, `clinical_visits`, `vitals`, `invoices`, `inventory`, `inventory_logs`, `lab_orders`, `uploaded_files`, `audit_logs`, `vms_transactions`, `tenant_settings`) strictly include `tenant_id` foreign keys to enforce tenant boundary isolation.
+- **Non-Nullable Schema Scoping:** All core database entities (`patients`, `appointments`, `clinical_visits`, `vitals`, `invoices`, `inventory`, `inventory_logs`, `lab_orders`, `uploaded_files`, `audit_logs`, `tenant_settings`) strictly include `tenant_id` foreign keys to enforce tenant boundary isolation.
 - **Request-Scoped Context Resolver (`src/Shared/TenantContext.php`):** Resolves the active clinic and **fails closed**:
   1. A signed-in user's clinic comes from the server-side session and nothing else. The `X-Tenant-ID` header is ignored, so a client can no longer pick its own clinic.
   2. Before sign-in (login page, public verification links) the clinic comes from the host subdomain (e.g. `clinic1.domain.com`) or the fallback `default-clinic`.
@@ -29,16 +29,14 @@ src/
 ├── Infrastructure/  # Repositories (PatientRepository, InvoiceRepository, InventoryRepository, AuditRepository)
 ├── Application/     # Use Cases & Application Services (TenantService, RbacService)
 ├── Http/            # Middleware (AuthMiddleware, TenantContextMiddleware) & Route Handlers
-├── Services/        # Domain Services (VMSService, EncounterService, FileUploadService, EmailService, WebhookService)
+├── Services/        # Domain Services (TaxService, EncounterService, FileUploadService, EmailService, WebhookService)
 └── Shared/          # System Kernel, Container DI, Database PDO helper, & TenantContext
 ```
 
-### 3. FRCS Fiji VMS Phase 3 Fiscalization Engine
-- **SDC Integration & mTLS Compliance (`src/Services/VMSService.php`):** Certified integration with Fiji Revenue and Customs Service (FRCS) SDC API v3:
-  - **Tax Labels:** Label A (15% VAT), Label E (Exempt 0%), Label F (Zero-rated 0%), Label P (0.25% Levy).
-  - **Invoice Types:** Normal Sales, Advance Invoices, Proforma Invoices, Copy Invoices, Training Invoices, and Refund Transactions.
-  - **Digital Certificates:** Supports PKCS#12 (`.pfx` / `.p12`) and X.509 client certificates with OpenSSL passphrase encryption for mTLS authentication.
-  - **Fiscal Deliverables:** QR code verification generation, SDC counters, Buyer TIN validation, Z-Report / Daily Fiscal Summaries (`print_zreport.php`), and fiscalized printouts (`print_invoice.php`, `print_receipt.php`).
+### 3. VAT and Invoicing
+- **Tax labels (`src/Services/TaxService.php`):** Label A (15% VAT), Label E (exempt 0%), Label F (zero-rated 0%), Label P (0.25% levy). Prices include tax and rates are set per clinic.
+- **Invoice types:** Normal sales, advance, proforma, copy and training invoices, and refund transactions, with cancellation invoices that point back at the original.
+- **Reports:** Z-Report / daily summary with VAT by tax label (`print_zreport.php`), printable invoices and receipts (`print_invoice.php`, `print_receipt.php`).
 
 ### 4. FEFO Inventory & Point of Sale (POS) Invoicing
 - **First-Expired-First-Out Batch Management:** Tracks inventory items by lot/batch numbers and expiration dates, automatically reserving and deducting stock based on FEFO hierarchy.
@@ -60,7 +58,7 @@ src/
 
 ### 8. Email Dispatcher & Security RBAC
 - **Tenant-Scoped SMTP (`EmailService.php`):** Custom SMTP server configuration per tenant with STARTTLS/SSL, fallback to PHP `mail()`, live connection diagnostics (`actions/test_email.php`), and audit logging (`email_logs`).
-- **Role-Based Access Control (RBAC):** Granular user permissions (`can_manage_inventory`, `can_view_all_patients_in_clinic`, `can_fiscalize`, `can_manage_tenants`).
+- **Role-Based Access Control (RBAC):** Granular user permissions (`can_manage_inventory`, `can_view_all_patients_in_clinic`, `can_manage_tenants`).
 - **Two-Factor Authentication (MFA / OTP):** Supports One-Time Passwords via email for password resets and login verification.
 - **Client & Server JS/PHP Diagnostics:** Automatic capture and persistence of PHP exceptions and JavaScript runtime errors (`window.onerror`) into `system_error_logs`.
 
@@ -128,7 +126,7 @@ If Drive disconnects about a week after you connect it ("access was revoked or e
 
 ## 🧪 Testing & Quality Assurance
 
-Run the automated PHPUnit test suite covering Domain Entities, Repositories, Services, VMS Fiscalization, Lab Orders, File Storage, and Security:
+Run the automated PHPUnit test suite covering Domain Entities, Repositories, Services, Tax and Invoicing, Lab Orders, File Storage, and Security:
 
 ```bash
 ./vendor/bin/phpunit tests
@@ -144,7 +142,6 @@ Tenant isolation, request hardening, encryption migration, QR codes and tenant a
 ### **Security hardening, a faster and phone-friendly interface, and per-clinic appearance** - *November 2026*
 - **Fixed: one clinic could read and change another's data.** Any signed-in request could name a clinic in the `X-Tenant-ID` header and be served that clinic's records. The header is now ignored for signed-in users, the session decides, and the resolver fails closed. Every action and print page was checked for a `tenant_id` condition, and the gaps found were closed.
 - **Hardened sign-in and public endpoints:** `install.php` and `database/seed.php` are locked after set-up (seed could previously wipe the database), password-reset codes are stored hashed and rate-limited, the session cookie is `Secure` behind a proxy, uploads are validated by content, internal folders and dumps return 404, and developer endpoints (git, Redis, integrations, encryption) require a CSRF token.
-- **VMS fiscalisation is Developer-only for this release.** The Fiscalised tile and warnings are hidden from clinic roles and its endpoints refuse them.
 - **Vitals no longer invent normal values.** A missing measurement is stored as empty instead of 120/80, 72 bpm and so on.
 - **`app_key` and the Developer-only re-encryption tool:** notes and vitals are encrypted with a key you create and hold. The tool previews, re-encrypts safely (every value is read back before it is written), and can be re-run. `bin/preflight.php` warns until it is done.
 - **QR codes are generated on your own server** (`src/Utils/QrCode.php`, no third-party service, no Composer package, no GD). Prescriptions and receipts get an SVG; emails get an inline PNG that Gmail and Outlook display.
@@ -233,9 +230,8 @@ Tenant isolation, request hardening, encryption migration, QR codes and tenant a
 - **Fixed: claim references were not unique.** Claims were identified by the first eight characters of their id, but ids are UUIDv7, whose leading characters are a timestamp — every claim raised the same week shared them. References are now built from the month plus the random tail of the id, and the claims list and the report agree.
 - **Fixed: the Z-Report counted insured invoices as cash.** With no itemised payments recorded, the full invoice total was added to the cash line even when an insurer covered most of it. Insurance is now a payment line of its own, and the payment breakdown is shown against turnover with any difference flagged.
 - **Fixed: refunds were added to the takings instead of subtracted**, so a day with a refund never balanced. Refund invoices now count against the payment lines, as they do against turnover.
-- **Z-Report, rebuilt**: invoice counts and the invoice-number range, turnover and the figure net of VAT, what patients paid against what was billed to insurers, how many invoices still have no FRCS signature, VAT split by tax label (A, E, F, P) from the invoice line items, and a CSV download. The printable version is laid out for A4 with the clinic header, logo, totals and a signature block.
+- **Z-Report, rebuilt**: invoice counts and the invoice-number range, turnover and the figure net of VAT, what patients paid against what was billed to insurers, VAT split by tax label (A, E, F, P) from the invoice line items, and a CSV download. The printable version is laid out for A4 with the clinic header, logo, totals and a signature block.
 - **Fixed: the period buttons never looked selected.** The active preset carried both `bg-white` and `bg-primary`, so the highlight depended on stylesheet order. Dates typed into the filter are validated too — a malformed one used to report on 1 January 1970.
-- **Fixed: Billing read VMS settings from the installation-wide table**, so one clinic's tax numbers were shown to every clinic. It now reads the active clinic's settings.
 - **Layering**: overlays, menus, the command palette and toasts now take their z-index from one documented scale rather than hand-picked numbers, dialogs opened on top of another are raised above it, and the page behind a dialog no longer scrolls away under it.
 
 ### **Cross-clinic leak, insurance on receipts, inventory alerts and reports** - *October 2026*
@@ -277,7 +273,7 @@ Tenant isolation, request hardening, encryption migration, QR codes and tenant a
 - **Enforced in three places:** the menu hides areas a role can't open, pages check on load, and `nxGuardRequest()` checks every action endpoint and print page, so posting directly to an endpoint is blocked too. Administrator and Developer keep full control of Staff & access, so a clinic can't lock itself out.
 - **Role changes apply immediately:** the signed-in user's role and active status are re-read each request, so a changed role takes effect on the next page load and a deactivated account is signed out at once.
 - **Receipt design per clinic (Administration → Receipts):** paper size (A4, Letter, 80 mm and 58 mm rolls), accent colour, text size, date format, logo and placement, wording (title, receipt-number prefix, thank-you message, footer note), currency symbol, copies per print, and 18 toggles for what is printed — all with a live preview beside the form.
-- **Fixes:** receipt settings had no save endpoint, so the design could not be stored; the settings sanitiser warned on every preview when "copies per print" was absent; the FRCS verification QR came from an external service with no fallback, so an offline front desk printed a broken image — the receipt now prints the verification link as text instead.
+- **Fixes:** receipt settings had no save endpoint, so the design could not be stored; the settings sanitiser warned on every preview when "copies per print" was absent.
 
 ### **UI refresh** - *October 2026*
 - **New app shell:** collapsible navy sidebar with grouped navigation and live counts (patients waiting, appointments left today), a slimmer top bar, profile menu holding the clinician/clinic switchers, skip-to-content link.
@@ -308,7 +304,6 @@ Tenant isolation, request hardening, encryption migration, QR codes and tenant a
 - **Session SessionBootstrap Standardization:** Enforced `SessionBootstrap::init()` across all action scripts and entry points, registering `NuRedisSessionHandler` with graceful file fallback.
 
 ### **v2.1.15 – v2.1.19** (Builds 15 - 19) - *October 2026*
-- **FRCS SDC Accreditation & Certs:** Integrated PKCS#12 / X.509 client certificate management (`uploads/vms/`) with OpenSSL passphrase validation for mTLS SDC API communication.
 - **Extended Vitals & Encounter Finalization:** Added `heart_rhythm`, `respiratory_rate`, `oxygen_sat`, and `sugar` fields to clinical encounter views and vitals schema.
 
 ### **v2.1.10 – v2.1.14** (Builds 10 - 14) - *October 2026*
@@ -349,7 +344,7 @@ Tenant isolation, request hardening, encryption migration, QR codes and tenant a
 ├── tests/                    # Automated PHPUnit test suite
 ├── print_invoice.php         # Commercial printable invoice view
 ├── print_prescription.php    # Printable doctor prescription with digital e-signatures
-├── print_zreport.php         # Printable Daily Fiscal Z-Report
+├── print_zreport.php         # Printable daily Z-Report
 └── version.json              # Version release metadata
 ```
 

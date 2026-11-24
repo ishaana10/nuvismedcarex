@@ -74,16 +74,16 @@ if (!$patient) {
 $visitId = $_GET['visit_id'] ?? '';
 
 if (!empty($visitId)) {
-    $rxStmt = $pdo->prepare("SELECT * FROM prescriptions WHERE patient_id = ? AND visit_id = ? ORDER BY created_at ASC");
-    $rxStmt->execute([$patient['id'], $visitId]);
+    $rxStmt = $pdo->prepare("SELECT * FROM prescriptions WHERE patient_id = ? AND tenant_id = ? AND visit_id = ? ORDER BY created_at ASC");
+    $rxStmt->execute([$patient['id'], $currentTenantId, $visitId]);
 } else {
-    $rxStmt = $pdo->prepare("SELECT * FROM prescriptions WHERE patient_id = ? ORDER BY created_at ASC");
-    $rxStmt->execute([$patient['id']]);
+    $rxStmt = $pdo->prepare("SELECT * FROM prescriptions WHERE patient_id = ? AND tenant_id = ? ORDER BY created_at ASC");
+    $rxStmt->execute([$patient['id'], $currentTenantId]);
 }
 $prescriptions = $rxStmt->fetchAll();
 
-$soapStmt = $pdo->prepare("SELECT * FROM soap_notes WHERE patient_id = ? ORDER BY updated_at DESC LIMIT 1");
-$soapStmt->execute([$patient['id']]);
+$soapStmt = $pdo->prepare("SELECT * FROM soap_notes WHERE patient_id = ? AND tenant_id = ? ORDER BY updated_at DESC LIMIT 1");
+$soapStmt->execute([$patient['id'], $currentTenantId]);
 $soap = $soapStmt->fetch();
 $assessmentCodes = json_decode($soap['assessment_codes'] ?? '[]', true) ?: [];
 

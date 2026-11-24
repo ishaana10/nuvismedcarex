@@ -35,7 +35,6 @@ class FinancialReportService {
             'insurance_covered' => 0.0,
             'patient_owed' => 0.0,
             'total_tax' => 0.0,
-            'fiscalized_count' => 0,
             'by_payment_method' => [],
             'by_status' => []
         ];
@@ -50,10 +49,6 @@ class FinancialReportService {
             $summary['insurance_covered'] += $ins;
             $summary['patient_owed'] += $owed;
             $summary['total_tax'] += $tax;
-
-            if (!empty($inv['is_fiscalized'])) {
-                $summary['fiscalized_count']++;
-            }
 
             $status = $inv['status'] ?? 'Pending';
             $summary['by_status'][$status] = ($summary['by_status'][$status] ?? 0) + 1;

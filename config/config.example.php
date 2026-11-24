@@ -14,17 +14,20 @@ return [
     'timezone'  => 'Pacific/Fiji', // clinic-local time used for "today", schedules and timestamps
 
     // ─── Redis Configuration ──────────────────────────────────────────────────
+    // Optional. Redis makes sign-in sessions and rate limiting faster. Nothing here needs to
+    // change when the site moves to another domain or hosting account: the socket is found
+    // from the account's own home folder, and the host's Redis is started on its own.
     'redis' => [
-        'enabled'     => true,                                  // set false to disable completely
-        'scheme'      => 'unix',                                // 'unix' or 'tcp'
-        'path'        => '/home/ictfjcom/.redis/redis.sock',    // your real socket path
-        'host'        => '127.0.0.1',                           // only if using TCP
-        'port'        => 6379,                                  // only if using TCP
-        'password'    => null,                                  // usually null on shared host
-        'database'    => 0,                                     // 0-15
-        'prefix'      => 'nuvis:',                              // important for multi-site safety
+        'enabled'     => 'auto',       // 'auto' (default), true (always try) or false (never)
+        'scheme'      => 'unix',       // 'unix' (shared hosting) or 'tcp'
+        'path'        => '',           // leave blank to use <home>/.redis/redis.sock
+        'host'        => '127.0.0.1',  // only if using TCP
+        'port'        => 6379,         // only if using TCP
+        'password'    => null,         // usually null on shared hosting
+        'database'    => 0,            // 0-15
+        'prefix'      => 'nuvis:',     // the app adds its own name, so several Nuvis apps can share one Redis
         'timeout'     => 2.5,
-        'default_ttl' => 300,                                   // default TTL in seconds (5 min)
+        'default_ttl' => 300,          // default cache lifetime in seconds
     ],
 
     // REQUIRED in production: the secret that encrypts clinical notes and vitals at rest.

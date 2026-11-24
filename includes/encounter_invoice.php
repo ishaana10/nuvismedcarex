@@ -24,7 +24,7 @@ if (!function_exists('nxCreateEncounterInvoice')) {
     function nxCreateEncounterInvoice(PDO $pdo, array $patient, string $visitId, array $post): array
     {
         $container = Container::getInstance();
-        $vmsService = $container->get(\ClinicFlow\Services\VMSService::class);
+        $taxService = $container->get(\ClinicFlow\Services\TaxService::class);
         $inventoryService = $container->get(\ClinicFlow\Services\InventoryService::class);
         $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 
@@ -40,7 +40,6 @@ if (!function_exists('nxCreateEncounterInvoice')) {
         $taxLabels = (array) ($post['tax_label'] ?? ['A']);
 
         $invoiceId = 'inv-' . uniqid();
-        $invNumber = 'INV-' . date('Ymd') . '-' . rand(1000, 9999);
 
         $totalAmount = 0.00;
         $totalTax = 0.00;
@@ -57,7 +56,7 @@ if (!function_exists('nxCreateEncounterInvoice')) {
             $totalAmount += $lineTotal;
 
             $taxLabel = $taxLabels[$idx] ?? 'A';
-            $taxCalc = $vmsService->calculateItemTax($lineTotal, $taxLabel);
+            $taxCalc = $taxService->calculateItemTax($lineTotal, $taxLabel);
             $totalTax += round($taxCalc['tax_amount'], 2);
 
             $invItemId = $inventoryIds[$idx] ?? null;
@@ -93,13 +92,15 @@ if (!function_exists('nxCreateEncounterInvoice')) {
         $insuranceCovered = min($insuranceCovered, $totalAmount);
         $patientOwed = round(max(0.00, $totalAmount - $insuranceCovered), 2);
 
-        $pdo->prepare("
+        $invStmt = $pdo->prepare("
             INSERT INTO invoices (
                 id, tenant_id, ref_no, invoice_number, patient_id, patient_name, patient_mrn, service_date, due_date,
                 amount, status, insurance_covered, patient_owed, services, invoice_type, transaction_type,
                 total_tax, payment_methods
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Paid', ?, ?, ?, ?, ?, ?, ?)
-        ")->execute([
+        ");
+        [$invNumber] = \ClinicFlow\Services\DocumentNumbers::issue($pdo, $tenantId, 'invoices', 'invoice_number', 'INV-' . date('Ymd') . '-', 4, function (string $invNumber) use ($invStmt, $invoiceId, $tenantId, $visitId, $patient, $totalAmount, $insuranceCovered, $patientOwed, $items, $invoiceType, $transactionType, $totalTax, $paymentType) {
+        $invStmt->execute([
             $invoiceId,
             $tenantId,
             $visitId,
@@ -119,6 +120,7 @@ if (!function_exists('nxCreateEncounterInvoice')) {
             // Only the patient's share was handed over at the desk
             json_encode([['type' => $paymentType, 'amount' => $patientOwed]]),
         ]);
+        });
 
         $itemStmt = $pdo->prepare("
             INSERT INTO invoice_items (id, tenant_id, invoice_id, name, gtin, unit_price, quantity, total_price, tax_label, tax_rate, tax_amount)

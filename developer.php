@@ -99,9 +99,9 @@ $fmtBytes = function ($b) {
         <span class="material-symbols-outlined text-base">apartment</span>
         <span>Multi-Tenancy Clinics</span>
     </button>
-    <button type="button" data-on-click="switchDevTab('vms')" id="dev-tab-btn-vms" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
+    <button type="button" data-on-click="switchDevTab('tax')" id="dev-tab-btn-tax" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">point_of_sale</span>
-        <span>VMS Fiscal Settings</span>
+        <span>Tax Rates</span>
     </button>
     <button type="button" data-on-click="switchDevTab('encryption')" id="dev-tab-btn-encryption" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">key</span>
@@ -148,10 +148,6 @@ $fmtBytes = function ($b) {
         if ($nxPendingCount > 0): ?>
             <span class="px-1.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-bold"><?= $nxPendingCount ?></span>
         <?php endif; ?>
-    </button>
-    <button type="button" data-on-click="switchDevTab('vsdc')" id="dev-tab-btn-vsdc" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
-        <span class="material-symbols-outlined text-base">verified</span>
-        <span>FRCS VSDC & EFD Accreditation</span>
     </button>
     <button type="button" data-on-click="switchDevTab('subscriptions')" id="dev-tab-btn-subscriptions" class="px-4 py-2.5 rounded-t-xl transition flex items-center gap-1.5 text-on-surface-variant hover:bg-surface-container-high">
         <span class="material-symbols-outlined text-base">credit_card</span>
@@ -258,168 +254,6 @@ $fmtBytes = function ($b) {
             </div>
         </div>
     </div> <!-- End dev-panel-git -->
-
-    <!-- 5. FRCS VSDC & EFD Accreditation Module -->
-    <div id="dev-panel-vsdc" class="hidden space-y-6">
-        <?php
-        $certPath = $settings['vms_cert_file_path'] ?? '';
-        $certDetails = json_decode($settings['vms_cert_details'] ?? '{}', true) ?: [];
-        $vmsLogs = [];
-        try {
-            $logStmt = $pdo->prepare("SELECT * FROM vms_logs WHERE tenant_id = ? OR tenant_id = 'default-clinic' ORDER BY created_at DESC LIMIT 15");
-            $logStmt->execute([$currentTenantId]);
-            $vmsLogs = $logStmt->fetchAll();
-        } catch (\Throwable $e) {}
-        ?>
-        <!-- Section 1: Digital Certificate (.pfx / .p12 / .pem) Upload & Key Store Inspector -->
-        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-6">
-            <div class="border-b border-outline-variant/20 pb-4">
-                <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
-                    <span class="material-symbols-outlined text-base">verified</span>
-                    <span>1. FRCS Accredited VSDC Digital Certificate (.pfx / .p12 / .pem) Upload</span>
-                </h2>
-                <p class="text-xs text-outline font-medium mt-0.5">Upload official FRCS V-SDC client certificate issued by Fiji Revenue and Customs Service for mutual TLS (mTLS) authentication.</p>
-            </div>
-
-            <form id="vsdcCertForm" data-on-submit="uploadVsdcCertificate(event)" enctype="multipart/form-data" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                <div class="md:col-span-2">
-                    <label class="block font-bold text-slate-700 mb-1">PKCS#12 Certificate File (.pfx, .p12, .crt, .pem) <span class="text-red-500">*</span></label>
-                    <input type="file" name="vms_cert_file" required accept=".pfx,.p12,.crt,.pem,.cer" class="w-full bg-slate-50 p-2.5 rounded-xl border border-slate-300 font-mono text-xs">
-                </div>
-
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Certificate Private Key Passphrase <span class="text-red-500">*</span></label>
-                    <input type="password" name="vms_cert_passphrase" placeholder="FRCS Certificate Passphrase" class="w-full bg-slate-50 px-3.5 py-2.5 rounded-xl border border-slate-300 font-mono font-medium">
-                </div>
-
-                <div class="flex items-end">
-                    <button type="submit" class="w-full py-2.5 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition shadow-xs flex items-center justify-center gap-2">
-                        <span class="material-symbols-outlined text-base">upload_file</span>
-                        <span>Upload & Validate Certificate</span>
-                    </button>
-                </div>
-            </form>
-
-            <!-- Certificate Inspector & V3.0 Submitter Test Controls Box -->
-            <div class="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/30 space-y-2 text-xs">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <span class="font-bold text-on-surface flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-base text-emerald-600">workspace_premium</span>
-                        <span>VSDC Submitter V3.0 Status: <?= !empty($certPath) ? '<span class="text-emerald-700 font-bold">Certificate Active & Installed</span>' : '<span class="text-amber-700 font-bold">No Accredited Certificate Uploaded</span>' ?></span>
-                    </span>
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                        <button type="button" data-on-click="testSdcPing('test_sdc_ping')" class="px-2.5 py-1 bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1">
-                            <span class="material-symbols-outlined text-sm">speed</span>
-                            <span>/api/v3/status</span>
-                        </button>
-                        <button type="button" data-on-click="testSdcPing('get_environment')" class="px-2.5 py-1 bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1">
-                            <span class="material-symbols-outlined text-sm">dns</span>
-                            <span>/api/v3/environment</span>
-                        </button>
-                        <button type="button" data-on-click="testSdcPing('get_taxrates')" class="px-2.5 py-1 bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1">
-                            <span class="material-symbols-outlined text-sm">percent</span>
-                            <span>/api/v3/taxrates</span>
-                        </button>
-                    </div>
-                </div>
-
-                <?php if (!empty($certDetails)): ?>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 pt-2 border-t border-outline-variant/20 font-mono text-[11px] text-slate-600">
-                        <div><span class="text-slate-400">Subject:</span> <?= htmlspecialchars($certDetails['subject'] ?? 'N/A') ?></div>
-                        <div><span class="text-slate-400">Issuer:</span> <?= htmlspecialchars($certDetails['issuer'] ?? 'N/A') ?></div>
-                        <div><span class="text-slate-400">Valid From:</span> <?= htmlspecialchars($certDetails['valid_from'] ?? 'N/A') ?></div>
-                        <div><span class="text-slate-400">Valid To:</span> <?= htmlspecialchars($certDetails['valid_to'] ?? 'N/A') ?></div>
-                    </div>
-                <?php endif; ?>
-
-                <div id="sdc-ping-console" class="font-mono text-xs bg-slate-950 text-amber-300 p-3 rounded-xl border border-slate-800 max-h-36 overflow-y-auto leading-relaxed space-y-1 shadow-inner hidden mt-2"></div>
-            </div>
-        </div>
-
-        <!-- Section 2: FRCS EFD Accreditation Checklist Matrix -->
-        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-5">
-            <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
-                <span class="material-symbols-outlined text-base">fact_check</span>
-                <span>2. FRCS EFD Accreditation Requirements Checklist Matrix</span>
-            </h2>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                <div class="p-3 bg-surface-container-low rounded-xl border border-outline-variant/30 flex items-start gap-2.5">
-                    <span class="material-symbols-outlined text-emerald-600 text-lg">check_circle</span>
-                    <div>
-                        <p class="font-bold text-on-surface">SDC Request/Response Schema Compliance</p>
-                        <p class="text-[11px] text-outline mt-0.5">Supports VMS Phase 3 specification JSON structures with 4-decimal tax precision.</p>
-                    </div>
-                </div>
-
-                <div class="p-3 bg-surface-container-low rounded-xl border border-outline-variant/30 flex items-start gap-2.5">
-                    <span class="material-symbols-outlined text-emerald-600 text-lg">check_circle</span>
-                    <div>
-                        <p class="font-bold text-on-surface">Fiji VAT Tax Labels (A, E, F, P)</p>
-                        <p class="text-[11px] text-outline mt-0.5">Applies standard VAT (15%), Exempt (0%), Zero-rated (0%), and Special Tax (0.25%).</p>
-                    </div>
-                </div>
-
-                <div class="p-3 bg-surface-container-low rounded-xl border border-outline-variant/30 flex items-start gap-2.5">
-                    <span class="material-symbols-outlined text-emerald-600 text-lg">check_circle</span>
-                    <div>
-                        <p class="font-bold text-on-surface">Cancellation Rules (Section 10.2)</p>
-                        <p class="text-[11px] text-outline mt-0.5">Automatically sets Buyer TIN equal to Seller TIN on refund and cancellation invoices.</p>
-                    </div>
-                </div>
-
-                <div class="p-3 bg-surface-container-low rounded-xl border border-outline-variant/30 flex items-start gap-2.5">
-                    <span class="material-symbols-outlined text-emerald-600 text-lg">check_circle</span>
-                    <div>
-                        <p class="font-bold text-on-surface">Daily Fiscal Summary (Z-Report)</p>
-                        <p class="text-[11px] text-outline mt-0.5">Generates PDF reports breakdown by transaction type and payment methods.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Section 3: FRCS Audit Trail Log Payload Inspector -->
-        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-5">
-            <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
-                <span class="material-symbols-outlined text-base">data_object</span>
-                <span>3. FRCS V-SDC Raw Payload Audit Trail Log</span>
-            </h2>
-
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-xs border border-outline-variant/30 rounded-xl overflow-hidden">
-                    <thead class="bg-surface-container text-outline uppercase font-semibold text-[10px]">
-                        <tr>
-                            <th class="py-2.5 px-3">Timestamp</th>
-                            <th class="py-2.5 px-3">Invoice Ref</th>
-                            <th class="py-2.5 px-3">Event Type</th>
-                            <th class="py-2.5 px-3">Payload Inspector</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-outline-variant/20 font-mono text-[11px]">
-                        <?php if (empty($vmsLogs)): ?>
-                            <tr>
-                                <td colspan="4" class="py-6 text-center text-slate-400 italic font-sans">No V-SDC audit log entries recorded.</td>
-                            </tr>
-                        <?php else: ?>
-                            <?php foreach ($vmsLogs as $vl): ?>
-                                <tr class="hover:bg-surface-container-low/50 transition">
-                                    <td class="py-2.5 px-3 text-slate-500 whitespace-nowrap"><?= htmlspecialchars($vl['created_at']) ?></td>
-                                    <td class="py-2.5 px-3 font-bold text-primary"><?= htmlspecialchars($vl['invoice_id'] ?? 'N/A') ?></td>
-                                    <td class="py-2.5 px-3 font-bold text-on-surface"><?= htmlspecialchars($vl['event_type']) ?></td>
-                                    <td class="py-2.5 px-3">
-                                        <details class="cursor-pointer">
-                                            <summary class="text-slate-600 underline text-[10px] font-sans">View Payload JSON</summary>
-                                            <pre class="mt-1 p-2 bg-slate-950 text-emerald-400 rounded text-[10px] overflow-x-auto whitespace-pre-wrap"><?= htmlspecialchars($vl['request_payload'] ?: $vl['response_payload']) ?></pre>
-                                        </details>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div> <!-- End dev-panel-vsdc -->
 
     <!-- Multi-Tenancy Clinics Panel -->
     <div id="dev-panel-tenants" class="hidden space-y-6">
@@ -1084,72 +918,42 @@ $fmtBytes = function ($b) {
         </div>
     </div> <!-- End dev-panel-encryption -->
 
-    <!-- VMS Fiscal Settings Panel -->
-    <div id="dev-panel-vms" class="hidden space-y-6">
-        <form action="actions/admin_save_settings.php" method="POST" class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-5">
+    <!-- Tax rates panel -->
+    <div id="dev-panel-tax" class="hidden space-y-6">
+        <form action="actions/tax_save_settings.php" method="POST" class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-5">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>">
             <h2 class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
-                <span class="material-symbols-outlined text-base">point_of_sale</span>
-                <span>FRCS VAT Monitoring System (VMS Phase 3) Configuration</span>
+                <span class="material-symbols-outlined text-base">percent</span>
+                <span>Tax label rates (%)</span>
             </h2>
-
-            <div class="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                <input type="checkbox" id="vms_enabled_dev" name="vms_enabled" value="1" <?= ($settings['vms_enabled'] ?? '1') === '1' ? 'checked' : '' ?> class="w-4 h-4 text-primary rounded focus:ring-primary">
-                <label for="vms_enabled_dev" class="font-bold text-on-surface text-xs">Enable FRCS VMS Fiscalization for all created invoices</label>
-            </div>
-
+            <p class="text-xs text-outline">Prices include tax. Each invoice line uses the rate of its tax label (A, E, F or P).</p>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Taxpayer Seller TIN <span class="text-red-500">*</span></label>
-                    <input type="text" name="vms_seller_tin" value="<?= htmlspecialchars($settings['vms_seller_tin'] ?? '502579006') ?>" required class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-mono font-bold">
-                </div>
-
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Accredited POS Number <span class="text-red-500">*</span></label>
-                    <input type="text" name="vms_pos_number" value="<?= htmlspecialchars($settings['vms_pos_number'] ?? 'ASDF238/1.2') ?>" required class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-mono font-bold">
-                </div>
-
-                <div class="md:col-span-2">
-                    <label class="block font-bold text-slate-700 mb-1">Business Location Address <span class="text-red-500">*</span></label>
-                    <input type="text" name="vms_business_location" value="<?= htmlspecialchars($settings['vms_business_location'] ?? 'Suva Central Clinic, 2 Woodstand Road, Suva') ?>" required class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-medium">
-                </div>
-
-                <div class="md:col-span-2">
-                    <label class="block font-bold text-slate-700 mb-1">SDC / VMS Sandbox API Base URL <span class="text-red-500">*</span></label>
-                    <input type="url" name="vms_sdc_url" value="<?= htmlspecialchars($settings['vms_sdc_url'] ?? 'https://tap.sandbox.vms.frcs.org.fj') ?>" required class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-mono font-medium">
-                </div>
-            </div>
-
-            <hr class="border-outline-variant/20">
-
-            <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">VMS Tax Label Rates (%)</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">Label A (Standard VAT %)</label>
-                    <input type="number" step="0.01" name="vms_tax_rate_a" value="<?= htmlspecialchars($settings['vms_tax_rate_a'] ?? '15.00') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-mono font-bold">
+                    <label class="block font-bold text-slate-700 mb-1">Label A (standard VAT %)</label>
+                    <input type="number" step="0.01" min="0" max="100" name="tax_rate_a" value="<?= htmlspecialchars($settings['tax_rate_a'] ?? '15.00') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 focus:border-primary focus:ring-0 outline-none">
                 </div>
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Label E (Exempt %)</label>
-                    <input type="number" step="0.01" name="vms_tax_rate_e" value="<?= htmlspecialchars($settings['vms_tax_rate_e'] ?? '0.00') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-mono font-bold">
+                    <label class="block font-bold text-slate-700 mb-1">Label E (exempt %)</label>
+                    <input type="number" step="0.01" min="0" max="100" name="tax_rate_e" value="<?= htmlspecialchars($settings['tax_rate_e'] ?? '0.00') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 focus:border-primary focus:ring-0 outline-none">
                 </div>
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Label F (Zero-Rated %)</label>
-                    <input type="number" step="0.01" name="vms_tax_rate_f" value="<?= htmlspecialchars($settings['vms_tax_rate_f'] ?? '0.00') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-mono font-bold">
+                    <label class="block font-bold text-slate-700 mb-1">Label F (zero-rated %)</label>
+                    <input type="number" step="0.01" min="0" max="100" name="tax_rate_f" value="<?= htmlspecialchars($settings['tax_rate_f'] ?? '0.00') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 focus:border-primary focus:ring-0 outline-none">
                 </div>
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Label P (Special Tax %)</label>
-                    <input type="number" step="0.01" name="vms_tax_rate_p" value="<?= htmlspecialchars($settings['vms_tax_rate_p'] ?? '0.25') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 font-mono font-bold">
+                    <label class="block font-bold text-slate-700 mb-1">Label P (special %)</label>
+                    <input type="number" step="0.01" min="0" max="100" name="tax_rate_p" value="<?= htmlspecialchars($settings['tax_rate_p'] ?? '0.25') ?>" class="w-full bg-surface-container-low px-3.5 py-2.5 rounded-xl border border-outline-variant/40 focus:border-primary focus:ring-0 outline-none">
                 </div>
             </div>
 
             <div class="flex justify-end pt-3">
                 <button type="submit" class="px-6 py-2.5 bg-primary text-white text-xs font-semibold rounded-xl hover:bg-primary/90 transition shadow-sm flex items-center gap-2">
                     <span class="material-symbols-outlined text-base">save</span>
-                    <span>Save VMS Fiscal Settings</span>
+                    <span>Save tax rates</span>
                 </button>
             </div>
         </form>
-    </div> <!-- End dev-panel-vms -->
+    </div> <!-- End dev-panel-tax -->
 
     <!-- 2. Role Permissions & User Access Level Matrix Module -->
     <div id="dev-panel-rbac" class="hidden space-y-6">
@@ -1699,6 +1503,7 @@ $fmtBytes = function ($b) {
                         <span class="text-slate-600">Checking connection...</span>
                     </div>
                     <p id="redis-card-scheme" class="text-[10px] text-slate-500 font-mono mt-0.5">Scheme: unix socket</p>
+                    <p id="redis-card-reason" class="text-[11px] text-slate-600 mt-1 leading-snug"></p>
                 </div>
 
                 <!-- Card 2: Server Memory & Version -->
@@ -1712,14 +1517,14 @@ $fmtBytes = function ($b) {
                 <div class="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/30 space-y-1">
                     <p class="text-[11px] font-bold text-outline uppercase tracking-wider">Cached App Objects</p>
                     <div id="redis-card-keys" class="text-xl font-bold text-primary mt-1">0</div>
-                    <p class="text-[10px] text-slate-500 font-mono mt-0.5">Prefix: nuvis:*</p>
+                    <p data-redis-prefix="*" class="text-[10px] text-slate-500 font-mono mt-0.5">Prefix: nuvis:*</p>
                 </div>
 
                 <!-- Card 4: Active Sessions -->
                 <div class="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/30 space-y-1">
                     <p class="text-[11px] font-bold text-outline uppercase tracking-wider">Redis Active Sessions</p>
                     <div id="redis-card-sessions" class="text-xl font-bold text-emerald-600 mt-1">0</div>
-                    <p class="text-[10px] text-slate-500 font-mono mt-0.5">Prefix: nuvis:sess:*</p>
+                    <p data-redis-prefix="sess:*" class="text-[10px] text-slate-500 font-mono mt-0.5">Prefix: nuvis:sess:*</p>
                 </div>
             </div>
 
@@ -1741,7 +1546,7 @@ $fmtBytes = function ($b) {
                             <span>A2 Hosting Turbo Max Redis Daemon Initialization</span>
                         </h3>
                         <p class="text-[11px] text-slate-500 mt-0.5">
-                            Socket Path: <code id="redis-socket-path-display" class="bg-white px-1.5 py-0.5 rounded font-mono border border-slate-200 text-slate-800">/home/ictfjcom/.redis/redis.sock</code>
+                            Socket Path: <code id="redis-socket-path-display" class="bg-white px-1.5 py-0.5 rounded font-mono border border-slate-200 text-slate-800">looking…</code>
                         </p>
                     </div>
 
@@ -1752,7 +1557,7 @@ $fmtBytes = function ($b) {
                         </button>
                         <button type="button" data-on-click="flushRedisCache()" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition flex items-center gap-1 shadow-xs">
                             <span class="material-symbols-outlined text-sm">cleaning_services</span>
-                            <span>Flush Nuvis Cache</span>
+                            <span>Clear cache (keeps sign-ins)</span>
                         </button>
                     </div>
                 </div>
@@ -2043,7 +1848,7 @@ $fmtBytes = function ($b) {
                     <option value="PATIENT_REGISTERED">PATIENT_REGISTERED (New Patient Created)</option>
                     <option value="APPOINTMENT_BOOKED">APPOINTMENT_BOOKED (New Appointment Scheduled)</option>
                     <option value="ENCOUNTER_FINALIZED">ENCOUNTER_FINALIZED (Clinical Visit Finalized)</option>
-                    <option value="INVOICE_CREATED">INVOICE_CREATED (VMS / Medical Invoice Issued)</option>
+                    <option value="INVOICE_CREATED">INVOICE_CREATED (invoice issued)</option>
                     <option value="LAB_ORDER_SUBMITTED">LAB_ORDER_SUBMITTED (Laboratory Requisition Created)</option>
                     <option value="*">* (All System Events)</option>
                 </select>
@@ -2350,7 +2155,7 @@ async function encRun(dry) {
 }
 
 function switchDevTab(tab) {
-    const panels = ['git', 'tenants', 'vms', 'encryption', 'cloud', 'database', 'lab', 'pagination', 'rbac', 'redis', 'logs', 'integrations', 'vsdc', 'subscriptions', 'alerts', 'erp', 'monitoring'];
+    const panels = ['git', 'tenants', 'tax', 'encryption', 'cloud', 'database', 'lab', 'pagination', 'rbac', 'redis', 'logs', 'integrations', 'subscriptions', 'alerts', 'erp', 'monitoring'];
     panels.forEach(p => {
         const el = document.getElementById('dev-panel-' + p);
         if (el) el.classList.add('hidden');
@@ -2383,21 +2188,25 @@ function fetchRedisDiagnostics() {
     .then(d => {
         if (d.success) {
             const socketDisplay = document.getElementById('redis-socket-path-display');
-            if (socketDisplay) socketDisplay.textContent = d.socket_path || '/home/ictfjcom/.redis/redis.sock';
+            if (socketDisplay) socketDisplay.textContent = d.socket_path || '(not found yet)';
 
             const schemeEl = document.getElementById('redis-card-scheme');
             if (schemeEl) schemeEl.textContent = 'Scheme: ' + (d.scheme || 'unix socket');
 
+            document.querySelectorAll('[data-redis-prefix]').forEach(el => { el.textContent = 'Prefix: ' + (d.prefix || '') + el.getAttribute('data-redis-prefix'); });
+            const reasonEl = document.getElementById('redis-card-reason');
+            if (reasonEl) reasonEl.textContent = d.reason || '';
+
             if (d.is_connected) {
-                statusCard.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span><span class="text-emerald-700">Connected & Operational</span>`;
-            } else if (d.socket_exists) {
+                statusCard.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span><span class="text-emerald-700">Connected & working</span>`;
+            } else if (d.mode === 'off') {
                 statusCard.innerHTML = `
                     <div class="space-y-1">
-                        <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span><span class="text-amber-800">Socket Present (Config Disabled)</span></div>
-                        <button type="button" data-on-click="toggleRedisConfig(true)" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold shadow-xs">Enable Redis in Config</button>
+                        <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span><span class="text-amber-800">Switched off</span></div>
+                        <button type="button" data-on-click="toggleRedisConfig(true)" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold shadow-xs">Turn Redis on</button>
                     </div>`;
             } else {
-                statusCard.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span><span class="text-amber-800">Socket Offline (~/.redis.on required)</span>`;
+                statusCard.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span><span class="text-amber-800">Not connected (the site works without it)</span>`;
             }
 
             document.getElementById('redis-card-memory').textContent = d.used_memory || '--';
@@ -2416,7 +2225,7 @@ function fetchRedisDiagnostics() {
                         </tr>
                     `).join('');
                 } else {
-                    tbody.innerHTML = `<tr><td colspan="3" class="py-6 text-center text-slate-400 font-sans italic">No active keys currently cached under nuvis:* prefix.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="3" class="py-6 text-center text-slate-400 font-sans italic">Nothing is cached right now. (Sign-in sessions are not listed.)</td></tr>`;
                 }
             }
         }
@@ -2874,53 +2683,6 @@ function revokeApiKey(id, appName) {
             window.location.reload();
         } else {
             alert('Failed to revoke API Key: ' + (d.error || 'Unknown error'));
-        }
-    });
-}
-
-function uploadVsdcCertificate(e) {
-    e.preventDefault();
-    const form = e.target;
-    const formData = new FormData(form);
-    formData.append('action', 'upload_certificate');
-    formData.append('csrf_token', <?= json_encode(getCsrfToken()) ?>);
-
-    fetch('actions/vms_actions.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(r => r.json())
-    .then(d => {
-        if (d.success) {
-            alert('✔ ' + d.message);
-            window.location.reload();
-        } else {
-            alert('❌ Certificate Upload Failed: ' + (d.error || 'Unknown error'));
-        }
-    });
-}
-
-function testSdcPing(actionType = 'test_sdc_ping') {
-    const consoleBox = document.getElementById('sdc-ping-console');
-    if (consoleBox) {
-        consoleBox.classList.remove('hidden');
-        consoleBox.innerHTML = '<p class="text-amber-300 animate-pulse">Executing FRCS VSDC Submitter V3.0 Test (' + actionType + ')...</p>';
-    }
-
-    fetch('actions/vms_actions.php?action=' + encodeURIComponent(actionType))
-    .then(r => r.json())
-    .then(d => {
-        if (consoleBox) {
-            let logHtml = '';
-            if (d.logs && d.logs.length > 0) {
-                logHtml = d.logs.map(l => `<div class="p-0.5 border-b border-slate-900">${escapeHtml(l)}</div>`).join('');
-            }
-            if (d.success) {
-                logHtml += `<div class="p-1 text-emerald-400 font-bold mt-1">✔ ${escapeHtml(d.message)}</div>`;
-            } else {
-                logHtml += `<div class="p-1 text-rose-400 font-bold mt-1">❌ ${escapeHtml(d.error || 'Ping Failed')}</div>`;
-            }
-            consoleBox.innerHTML = logHtml;
         }
     });
 }

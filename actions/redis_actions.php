@@ -25,18 +25,14 @@ $action = $_GET['action'] ?? ($jsonInput['action'] ?? ($_POST['action'] ?? ''));
 nxRequireCsrfForMutations($action, ['get_redis_status', 'test_redis_ping']);
 
 try {
+    require_once __DIR__ . '/../core/RedisConnector.php';
     $cache = \NuCache::getInstance();
     $cfg = getAppConfig()['redis'] ?? [];
-    $socketPath = $cfg['path'] ?? '/home/ictfjcom/.redis/redis.sock';
-    $socketExists = file_exists($socketPath);
+    $info = \NuRedisConnector::describe($cfg);
+    $socketPath = $info['socket_found'] ?? (\NuRedisConnector::socketCandidates($cfg)[0] ?? '');
+    $socketExists = $info['socket_found'] !== null;
 
     if ($action === 'get_redis_status') {
-        // Auto-touch ~/.redis.on flag on status check to trigger A2 Hosting daemon if offline
-        $homeDir = getenv('HOME') ?: '/home/ictfjcom';
-        @touch($homeDir . '/.redis.on');
-        @touch('/home/ictfjcom/.redis.on');
-
-        $socketExists = file_exists($socketPath);
         $isConnected = $cache->isEnabled();
         $client = $cache->client();
 
@@ -49,28 +45,26 @@ try {
 
         if ($isConnected && $client) {
             try {
-                $info = $client->info();
-                $redisVersion = $info['redis_version'] ?? 'Unknown';
-                $usedMemory = $info['used_memory_human'] ?? 'Unknown';
-                $connectedClients = (int)($info['connected_clients'] ?? 1);
+                $server = $client->info();
+                $redisVersion = $server['redis_version'] ?? 'Unknown';
+                $usedMemory = $server['used_memory_human'] ?? 'Unknown';
+                $connectedClients = (int)($server['connected_clients'] ?? 1);
 
-                $prefix = $cfg['prefix'] ?? 'nuvis:';
-                $allKeys = $client->keys($prefix . '*');
+                $prefix = $cache->prefix();
+                $allKeys = $cache->listKeys(2000);
+                $sessionKeys = array_filter($allKeys, fn($k) => str_contains($k, 'sess:') && !str_contains($k, 'sess:lock:'));
+                $activeSessionsCount = count($sessionKeys);
 
-                if (is_array($allKeys)) {
-                    $cachedKeysCount = count($allKeys);
-                    $sessionKeys = array_filter($allKeys, fn($k) => str_contains($k, 'sess:'));
-                    $activeSessionsCount = count($sessionKeys);
-
-                    foreach (array_slice($allKeys, 0, 15) as $k) {
-                        $ttl = $client->ttl($k);
-                        $shortKey = str_replace($prefix, '', $k);
-                        $keysList[] = [
-                            'key' => $shortKey,
-                            'full_key' => $k,
-                            'ttl' => $ttl > 0 ? $ttl . 's' : ($ttl === -1 ? 'No expiry' : 'Expired')
-                        ];
-                    }
+                // Show cache keys, not sessions (a session key is a login credential)
+                $shown = array_filter($allKeys, fn($k) => !str_contains($k, 'sess:'));
+                $cachedKeysCount = count($shown);
+                foreach (array_slice(array_values($shown), 0, 15) as $k) {
+                    $ttl = $client->ttl($k);
+                    $keysList[] = [
+                        'key' => str_replace($prefix, '', $k),
+                        'full_key' => $k,
+                        'ttl' => $ttl > 0 ? $ttl . 's' : ($ttl === -1 ? 'No expiry' : 'Expired')
+                    ];
                 }
             } catch (\Throwable $e) {
                 error_log('[Redis Status Action] Error: ' . $e->getMessage());
@@ -80,9 +74,16 @@ try {
         echo json_encode([
             'success' => true,
             'redis_extension' => extension_loaded('redis'),
-            'config_enabled' => !empty($cfg['enabled']),
+            'config_enabled' => $info['mode'] !== 'off',
+            'mode' => $info['mode'],
             'is_connected' => $isConnected,
-            'scheme' => $cfg['scheme'] ?? 'unix',
+            'via' => $info['via'],
+            'reason' => $cache->reason(),
+            'home_dir' => $info['home'],
+            'flag_file' => $info['flag_file'],
+            'flag_exists' => $info['flag_exists'],
+            'sockets_checked' => $info['socket_checked'],
+            'scheme' => $info['via'] ?: ($cfg['scheme'] ?? 'unix'),
             'socket_path' => $socketPath,
             'socket_exists' => $socketExists,
             'redis_version' => $redisVersion,
@@ -91,6 +92,7 @@ try {
             'cached_keys_count' => $cachedKeysCount,
             'active_sessions_count' => $activeSessionsCount,
             'keys_sample' => $keysList,
+            'prefix' => $cache->prefix(),
             'timestamp' => date('Y-m-d H:i:s')
         ]);
         exit();
@@ -100,7 +102,7 @@ try {
         if (!$cache->isEnabled()) {
             echo json_encode([
                 'success' => false,
-                'error' => 'Redis is not connected or daemon is offline. Click "Start A2 Hosting Redis Daemon" below to initialize.'
+                'error' => 'Redis is not connected: ' . $cache->reason()
             ]);
             exit();
         }
@@ -119,7 +121,7 @@ try {
             echo json_encode([
                 'success' => true,
                 'latency_ms' => $latencyMs,
-                'message' => "SET/GET/DEL benchmark completed in {$latencyMs} ms. Cache reads and writes are 100% operational!"
+                'message' => "SET/GET/DEL benchmark completed in {$latencyMs} ms. Cache reads and writes are working."
             ]);
         } else {
             echo json_encode([
@@ -131,53 +133,39 @@ try {
     }
 
     if ($action === 'start_redis_daemon') {
-        $homeDir = getenv('HOME') ?: '/home/ictfjcom';
-        @touch($homeDir . '/.redis.on');
-        @touch('/home/ictfjcom/.redis.on');
+        // Ask the host for the daemon and give it a few seconds. Redis is switched to 'auto'
+        // (not forced on), so it keeps working wherever the site is moved.
+        $asked = \NuRedisConnector::requestDaemon();
+        $sock = \NuRedisConnector::waitForSocket($cfg, $asked === 'created' ? 3.0 : 0.5);
 
-        // Automatically enable Redis in config file
-        $configLocal = __DIR__ . '/../config/config.local.php';
-        $configMain = __DIR__ . '/../config/config.php';
-        $targetFile = file_exists($configLocal) ? $configLocal : (file_exists($configMain) ? $configMain : $configLocal);
-
-        $currConfig = getAppConfig();
-        $currConfig['redis']['enabled'] = true;
-        $content = "<?php\nreturn " . var_export($currConfig, true) . ";\n";
-        @file_put_contents($targetFile, $content);
-
+        if (\NuRedisConnector::mode($cfg) === 'off') {
+            nxWriteRedisMode('auto');
+        }
         \NuCache::resetInstance();
         $cache = \NuCache::getInstance();
 
-        $exists = file_exists($socketPath);
-        $isConnected = $cache->isEnabled();
-
         echo json_encode([
-            'success' => true,
-            'socket_exists' => $exists,
-            'is_connected' => $isConnected,
-            'message' => 'Created ~/.redis.on flag on disk and ENABLED Redis in config. A2 Hosting background process will launch the Redis daemon and generate ' . $socketPath . '.'
+            'success' => $asked !== 'failed',
+            'socket_exists' => $sock !== null,
+            'is_connected' => $cache->isEnabled(),
+            'message' => $asked === 'failed'
+                ? 'Could not create the ~/.redis.on file: the home folder was not found or is not writable.'
+                : ($cache->isEnabled()
+                    ? 'Redis is running and connected.'
+                    : 'Asked the host to start Redis. It can take a minute, so check again shortly. (' . $cache->reason() . ')')
         ]);
         exit();
     }
 
     if ($action === 'toggle_redis_config') {
         $enable = !empty($jsonInput['enable']);
-        $configLocal = __DIR__ . '/../config/config.local.php';
-        $configMain = __DIR__ . '/../config/config.php';
-        $targetFile = file_exists($configLocal) ? $configLocal : (file_exists($configMain) ? $configMain : $configLocal);
-
-        $currConfig = getAppConfig();
-        $currConfig['redis']['enabled'] = $enable;
-
-        $content = "<?php\nreturn " . var_export($currConfig, true) . ";\n";
-        @file_put_contents($targetFile, $content);
-
+        nxWriteRedisMode($enable ? 'auto' : false);
         \NuCache::resetInstance();
 
         echo json_encode([
             'success' => true,
             'enabled' => $enable,
-            'message' => 'Redis configuration ' . ($enable ? 'ENABLED' : 'DISABLED') . ' successfully.'
+            'message' => 'Redis ' . ($enable ? 'turned on (automatic)' : 'turned off') . '.'
         ]);
         exit();
     }
@@ -186,7 +174,7 @@ try {
         $flushed = $cache->flush();
         echo json_encode([
             'success' => $flushed,
-            'message' => $flushed ? 'All application cache keys under nuvis:* successfully flushed.' : 'Cache flush attempted.'
+            'message' => $flushed ? 'Cached data cleared. People stay signed in.' : 'Redis is not connected, so there was nothing to clear.'
         ]);
         exit();
     }
@@ -194,4 +182,24 @@ try {
     echo json_encode(['success' => false, 'error' => 'Invalid action specified']);
 } catch (\Throwable $e) {
     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+}
+
+/**
+ * Change only the Redis on/off setting in the local config file. Other settings, including
+ * passwords, are left exactly as they are (an older version rewrote the whole file).
+ */
+function nxWriteRedisMode(string|bool $mode): void
+{
+    $dir = __DIR__ . '/../config/';
+    $file = file_exists($dir . 'config.local.php') ? $dir . 'config.local.php' : $dir . 'config.php';
+    if (!is_file($file) || !is_writable($file)) {
+        throw new \RuntimeException('The configuration file is missing or not writable.');
+    }
+    $php = \NuRedisConnector::setModeInConfigText((string) file_get_contents($file), $mode);
+    if (@file_put_contents($file, $php, LOCK_EX) === false) {
+        throw new \RuntimeException('Could not save the configuration file.');
+    }
+    if (function_exists('opcache_invalidate')) {
+        @opcache_invalidate($file, true);
+    }
 }

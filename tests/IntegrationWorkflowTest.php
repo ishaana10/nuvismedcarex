@@ -6,7 +6,7 @@ use PHPUnit\Framework\TestCase;
 use PDO;
 use ClinicFlow\Services\EncounterService;
 use ClinicFlow\Services\BillingService;
-use ClinicFlow\Services\VMSService;
+use ClinicFlow\Services\TaxService;
 use ClinicFlow\Services\MigrationRunner;
 
 class IntegrationWorkflowTest extends TestCase {
@@ -29,7 +29,7 @@ class IntegrationWorkflowTest extends TestCase {
     public function testClinicalVisitToBillingFlow(): void {
         $encounter = new EncounterService($this->pdo);
         $billing = new BillingService($this->pdo);
-        $vms = new VMSService($this->pdo);
+        $tax = new TaxService($this->pdo);
 
         // 1. Clinical Visit
         $visit = $encounter->saveEncounter('pat-1', [
@@ -56,8 +56,8 @@ class IntegrationWorkflowTest extends TestCase {
 
         $this->assertNotEmpty($invoice['id']);
 
-        // 3. VMS Fiscalization Calculation
-        $itemTax = $vms->calculateItemTax(150.00, 'A');
+        // 3. Tax calculation
+        $itemTax = $tax->calculateItemTax(150.00, 'A');
         $this->assertEquals(15.00, $itemTax['tax_rate']);
         $this->assertGreaterThan(0.0, $itemTax['tax_amount']);
 

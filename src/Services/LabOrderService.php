@@ -238,7 +238,8 @@ class LabOrderService {
         $stmt->execute(['tid' => $tenantId]);
         $val = $stmt->fetchColumn();
 
-        if (!$val) {
+        // The shared row is the original clinic's catalog; other clinics start from the built-in list.
+        if (!$val && $tenantId === 'default-clinic') {
             $stmt = $this->db->prepare("SELECT setting_value FROM clinic_settings WHERE setting_key = 'lab_catalog' LIMIT 1");
             $stmt->execute();
             $val = $stmt->fetchColumn();
@@ -283,13 +284,15 @@ class LabOrderService {
         $tenantId = $tenantId ?? TenantContext::getTenantId();
         $json = json_encode($catalog, JSON_PRETTY_PRINT);
 
-        // Save in clinic_settings
         $driver = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME);
+        // The shared row is only the original clinic's catalog: another clinic saving must not change it
         $querySettings = ($driver === 'sqlite')
             ? "INSERT INTO clinic_settings (setting_key, setting_value) VALUES ('lab_catalog', :val) ON CONFLICT(setting_key) DO UPDATE SET setting_value = :val"
             : "INSERT INTO clinic_settings (setting_key, setting_value) VALUES ('lab_catalog', :val) ON DUPLICATE KEY UPDATE setting_value = :val";
-        $stmt = $this->db->prepare($querySettings);
-        $stmt->execute(['val' => $json]);
+        if ($tenantId === 'default-clinic') {
+            $stmt = $this->db->prepare($querySettings);
+            $stmt->execute(['val' => $json]);
+        }
 
         // Also save in tenant_settings if tenant_id present
         if ($tenantId) {

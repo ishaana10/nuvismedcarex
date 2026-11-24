@@ -31,7 +31,7 @@ final class ClinicSettings
         'clinic_dea', 'clinic_npi', 'clinic_logo', 'clinic_website', 'clinic_accent',
         'doc_prc_no', 'doc_ptr_no',
         'rx_*', 'invoice_*', 'receipt_*', 'cert_*', 'lab_catalog', 'insurance_*',
-        'vms_*', 'inventory_*', 'access_*', 'sse_notifications_enabled',
+        'tax_rate_*', 'default_pagination_limit', 'inventory_*', 'access_*', 'sse_notifications_enabled',
         // How this clinic wants the app to look for its staff (AppearanceSettings)
         'ui_*',
         // Each clinic sends patient email from its own mailbox
@@ -196,7 +196,7 @@ final class ClinicSettings
             'license'  => (string) ($own['doc_prc_no'] ?? $s['doc_prc_no'] ?? ''),
             'dea'      => (string) ($own['clinic_dea'] ?? $s['clinic_dea'] ?? ''),
             'npi'      => (string) ($own['clinic_npi'] ?? $s['clinic_npi'] ?? ''),
-            'tin'      => (string) ($own['vms_seller_tin'] ?? $own['invoice_tax_id'] ?? $s['vms_seller_tin'] ?? $s['invoice_tax_id'] ?? ''),
+            'tin'      => (string) ($own['invoice_tax_id'] ?? $s['invoice_tax_id'] ?? ''),
             'currency' => (string) ($tenant['currency'] ?? 'FJD'),
         ];
     }

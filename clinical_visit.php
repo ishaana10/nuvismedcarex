@@ -343,7 +343,7 @@ if (empty($visitId)) {
 }
 
 // Fetch active inventory items for invoice line items
-$inventoryStmt = $pdo->prepare("SELECT id, name, sku, current_stock, unit_price, vms_tax_code FROM inventory WHERE tenant_id = ? AND is_active = 1 ORDER BY name ASC");
+$inventoryStmt = $pdo->prepare("SELECT id, name, sku, current_stock, unit_price, tax_code FROM inventory WHERE tenant_id = ? AND is_active = 1 ORDER BY name ASC");
 $inventoryStmt->execute([$currentTenantId]);
 $inventoryList = $inventoryStmt->fetchAll() ?: [];
 
@@ -368,8 +368,8 @@ $vitals = $vitalsStmt->fetch() ?: [
 ];
 
 // Fetch SOAP notes
-$soapStmt = $pdo->prepare("SELECT * FROM soap_notes WHERE patient_id = ? ORDER BY updated_at DESC LIMIT 1");
-$soapStmt->execute([$patientId]);
+$soapStmt = $pdo->prepare("SELECT * FROM soap_notes WHERE patient_id = ? AND tenant_id = ? ORDER BY updated_at DESC LIMIT 1");
+$soapStmt->execute([$patientId, $currentTenantId]);
 $rawSoap = $soapStmt->fetch();
 
 if ($rawSoap) {
@@ -406,13 +406,13 @@ $labOrderService = \ClinicFlow\Shared\Container::getInstance()->get(\ClinicFlow\
 $patientLabOrders = $labOrderService->getOrdersByPatient($patientId);
 
 // Fetch Prescriptions for THIS encounter only (visit_id)
-$rxStmt = $pdo->prepare("SELECT * FROM prescriptions WHERE patient_id = ? AND visit_id = ? ORDER BY created_at ASC");
-$rxStmt->execute([$patientId, $visitId]);
+$rxStmt = $pdo->prepare("SELECT * FROM prescriptions WHERE patient_id = ? AND tenant_id = ? AND visit_id = ? ORDER BY created_at ASC");
+$rxStmt->execute([$patientId, $currentTenantId, $visitId]);
 $prescriptions = $rxStmt->fetchAll();
 
 // Fetch Historical Prescriptions for Patient History (excluding current encounter visit_id)
-$historicalRxStmt = $pdo->prepare("SELECT * FROM prescriptions WHERE patient_id = ? AND (visit_id IS NULL OR visit_id != ?) ORDER BY created_at DESC");
-$historicalRxStmt->execute([$patientId, $visitId]);
+$historicalRxStmt = $pdo->prepare("SELECT * FROM prescriptions WHERE patient_id = ? AND tenant_id = ? AND (visit_id IS NULL OR visit_id != ?) ORDER BY created_at DESC");
+$historicalRxStmt->execute([$patientId, $currentTenantId, $visitId]);
 $historicalPrescriptions = $historicalRxStmt->fetchAll();
 
 $pageTitle = "Clinical Encounter - " . htmlspecialchars($patient['first_name'] . ' ' . $patient['last_name']);
@@ -953,7 +953,7 @@ include __DIR__ . '/includes/header.php';
                                                             data-name="<?= htmlspecialchars($invItem['name']) ?>"
                                                             data-sku="<?= htmlspecialchars($invItem['sku']) ?>"
                                                             data-price="<?= htmlspecialchars($invItem['unit_price']) ?>"
-                                                            data-tax="<?= htmlspecialchars($invItem['vms_tax_code'] ?: 'A') ?>">
+                                                            data-tax="<?= htmlspecialchars($invItem['tax_code'] ?: 'A') ?>">
                                                         <?= htmlspecialchars($invItem['name']) ?> ($<?= number_format($invItem['unit_price'], 2) ?>)
                                                     </option>
                                                 <?php endforeach; ?>
@@ -1169,7 +1169,7 @@ function addFinalizeRow() {
     if (Array.isArray(items)) {
         items.forEach(item => {
             const price = parseFloat(item.unit_price) || 0;
-            const tax = item.vms_tax_code || 'A';
+            const tax = item.tax_code || 'A';
             invOptions += `<option value="${nxEsc(item.id)}" data-name="${nxEsc(item.name)}" data-sku="${nxEsc(item.sku)}" data-price="${price}" data-tax="${nxEsc(tax)}">${nxEsc(item.name)} ($${price.toFixed(2)})</option>`;
         });
     }

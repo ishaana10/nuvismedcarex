@@ -65,6 +65,13 @@ if (empty($firstName) || empty($lastName) || empty($dob)) {
 }
 
 // Calculate age automatically
+$problem = \ClinicFlow\Services\PatientIntake::firstProblem($_POST);
+if ($problem !== null) {
+    setToast('Check the details', $problem, 'error');
+    header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '../patients.php'));
+    exit;
+}
+
 $age = date_diff(date_create($dob), date_create('today'))->y;
 
 // Check existing record

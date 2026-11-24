@@ -34,7 +34,6 @@ class InventoryAndRbacTest extends TestCase {
 
         $this->assertTrue($rbac->hasPermission('Developer', 'view_patients'));
         $this->assertFalse($rbac->hasPermission('Nurse', 'delete_patient'));
-        $this->assertTrue($rbac->isFeatureEnabled('vms_fiscalization'));
     }
 
     public function testInventoryBatchService(): void {

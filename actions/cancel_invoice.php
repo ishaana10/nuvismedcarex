@@ -3,7 +3,7 @@ require_once __DIR__ . '/../includes/security.php';
 require_once __DIR__ . '/../includes/autoloader.php';
 require_once __DIR__ . '/../config/database.php';
 
-use ClinicFlow\Services\VMSService;
+use ClinicFlow\Services\TaxService;
 
 validateCsrfRequest();
 
@@ -16,12 +16,12 @@ if (empty($invoiceId)) {
 
 try {
     $pdo = getDB();
-    $vmsService = new VMSService($pdo);
+    $taxService = new TaxService($pdo);
 
     $cashierName = $_SESSION['user_name'] ?? 'Admin';
-    $cancelInvoiceId = $vmsService->cancelInvoice($invoiceId, $cashierName);
+    $cancelInvoiceId = $taxService->cancelInvoice($invoiceId, $cashierName);
 
-    $_SESSION['flash_success'] = "Invoice successfully cancelled and fiscalized cancellation document generated!";
+    $_SESSION['flash_success'] = "Invoice cancelled. A matching cancellation invoice was created.";
 } catch (Exception $e) {
     $_SESSION['flash_error'] = "Cancellation failed: " . $e->getMessage();
 }

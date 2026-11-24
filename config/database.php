@@ -37,9 +37,10 @@ function getAppConfig(): array {
             'db_user'   => getenv('DB_USER')   ?: 'root',
             'db_pass'   => getenv('DB_PASS')   ?: '',
             'redis'     => [
-                'enabled'     => getenv('REDIS_ENABLED') !== false ? filter_var(getenv('REDIS_ENABLED'), FILTER_VALIDATE_BOOLEAN) : (file_exists(getenv('REDIS_PATH') ?: '/home/ictfjcom/.redis/redis.sock') || file_exists((getenv('HOME') ?: '/home/ictfjcom') . '/.redis.on')),
+                // true / false / 'auto' (default: use Redis whenever one is found or can be started)
+                'enabled'     => getenv('REDIS_ENABLED') !== false ? filter_var(getenv('REDIS_ENABLED'), FILTER_VALIDATE_BOOLEAN) : 'auto',
                 'scheme'      => getenv('REDIS_SCHEME') ?: 'unix',
-                'path'        => getenv('REDIS_PATH')   ?: '/home/ictfjcom/.redis/redis.sock',
+                'path'        => getenv('REDIS_PATH')   ?: '',   // blank = find <home>/.redis/redis.sock by itself
                 'host'        => getenv('REDIS_HOST')   ?: '127.0.0.1',
                 'port'        => (int)(getenv('REDIS_PORT') ?: 6379),
                 'password'    => getenv('REDIS_PASS')   ?: null,
@@ -53,9 +54,9 @@ function getAppConfig(): array {
 
     if (!isset($config['redis'])) {
         $config['redis'] = [
-            'enabled'     => file_exists('/home/ictfjcom/.redis/redis.sock') || file_exists((getenv('HOME') ?: '/home/ictfjcom') . '/.redis.on'),
+            'enabled'     => 'auto',
             'scheme'      => 'unix',
-            'path'        => '/home/ictfjcom/.redis/redis.sock',
+            'path'        => '',
             'host'        => '127.0.0.1',
             'port'        => 6379,
             'password'    => null,
@@ -322,7 +323,7 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
             'batch_number' => 'VARCHAR(100)',
             'expiry_date' => 'DATE',
             'is_active' => 'INTEGER DEFAULT 1',
-            'vms_tax_code' => "VARCHAR(10) DEFAULT 'A'",
+            'tax_code' => "VARCHAR(10) DEFAULT 'A'",
             'custom_fields' => 'TEXT'
         ];
 
@@ -428,7 +429,7 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
     } catch (Throwable $te) {}
 
     // Ensure tenant_id column exists on all business tables in MySQL
-    $tenantTables = ['doctors', 'patients', 'appointments', 'queue', 'vitals', 'soap_notes', 'prescriptions', 'past_visits', 'activities', 'invoices', 'invoice_items', 'inventory', 'inventory_logs', 'medical_certificates', 'audit_logs', 'vms_logs', 'user_tenants', 'tenant_settings', 'uploaded_files'];
+    $tenantTables = ['doctors', 'patients', 'appointments', 'queue', 'vitals', 'soap_notes', 'prescriptions', 'past_visits', 'activities', 'invoices', 'invoice_items', 'inventory', 'inventory_logs', 'medical_certificates', 'audit_logs', 'user_tenants', 'tenant_settings', 'uploaded_files'];
     foreach ($tenantTables as $tTable) {
         try {
             $tCols = [];
@@ -460,21 +461,8 @@ function ensureDoctorColumnsExist(PDO $pdo): void {
             $newInvoiceCols = [
                 'invoice_type' => "VARCHAR(20) NOT NULL DEFAULT 'Normal'",
                 'transaction_type' => "VARCHAR(20) NOT NULL DEFAULT 'Sale'",
-                'seller_tin' => "VARCHAR(50) DEFAULT '502579006'",
-                'business_location' => "VARCHAR(255) DEFAULT 'Suva Central Clinic, 2 Woodstand Road, Suva'",
                 'cashier' => "VARCHAR(100) DEFAULT 'Admin'",
-                'buyer_tin' => 'VARCHAR(50)',
-                'buyer_cost_center' => 'VARCHAR(100)',
-                'pos_number' => "VARCHAR(50) DEFAULT 'CF-POS-V3/1.0'",
-                'pos_time' => 'VARCHAR(50)',
                 'ref_no' => 'VARCHAR(100)',
-                'ref_time' => 'VARCHAR(50)',
-                'is_fiscalized' => 'TINYINT(1) DEFAULT 0',
-                'sdc_invoice_no' => 'VARCHAR(100)',
-                'sdc_time' => 'VARCHAR(50)',
-                'invoice_counter' => 'VARCHAR(100)',
-                'verification_url' => 'TEXT',
-                'digital_signature' => 'TEXT',
                 'total_tax' => 'DECIMAL(10,2) DEFAULT 0.00',
                 'payment_methods' => 'TEXT'
             ];

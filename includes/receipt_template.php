@@ -56,9 +56,6 @@ if (!function_exists('nxReceiptCss')) {
 .rc-sign img{max-height:52px;max-width:170px;object-fit:contain;display:block;margin-left:auto}
 .rc-sign .line{border-top:1px solid #8a96a6;margin-top:4px;padding-top:3px;font-weight:600}
 .rc-stamp{max-height:84px;max-width:120px;object-fit:contain;opacity:.9}
-.rc-qr{display:flex;gap:10px;align-items:center;font-size:.78em}
-.rc-qr img{width:84px;height:84px}
-.rc-qr-fallback{display:none;word-break:break-all;font-size:.9em;margin-top:2px}
 .rc-note{margin-top:14px;padding-top:10px;border-top:1px dashed #c7d0db;font-size:.8em;color:#5b6878;white-space:pre-line}
 .rc-copy{font-size:.75em;font-weight:600;letter-spacing:.02em;color:var(--accent);text-align:right;margin-bottom:6px}
 .rc-cut{border:0;border-top:1px dashed #8a96a6;margin:18px 0}
@@ -179,21 +176,6 @@ CSS;
 
             // Sign-off
             $left = '';
-            if ($cfg['show_qr'] && !empty($r['verification_url'])) {
-                // The QR code is generated here on the server (no external service, works
-                // offline). If it cannot be drawn the receipt still carries the link as text.
-                $url = (string) $r['verification_url'];
-                try {
-                    $qrImg = '<img src="' . $e(\ClinicFlow\Utils\QrCode::svgDataUri($url, 168)) . '" alt="">';
-                    $qrFallbackStyle = '';
-                } catch (\Throwable $qrErr) {
-                    $qrImg = '';
-                    $qrFallbackStyle = ' data-css="display:block"';
-                }
-                $left .= '<div class="rc-qr">' . $qrImg
-                    . '<div>Scan to verify this<br>fiscal invoice with FRCS'
-                    . '<span class="rc-qr-fallback"' . $qrFallbackStyle . '>' . $e($url) . '</span></div></div>';
-            }
             if ($cfg['show_stamp'] && $s['stamp'] !== '') $left .= '<img class="rc-stamp" src="' . $e(nxMediaUrl($s['stamp'])) . '" alt="Clinic stamp">';
             $right = '';
             if ($cfg['show_signature']) {
@@ -222,7 +204,7 @@ CSS;
             'receipt' => [
                 'number' => '2026-0142', 'invoice_number' => 'INV-2026-0142', 'paid_at' => time(),
                 'service_date' => date('Y-m-d'), 'ref' => 'ENC-88213', 'cashier' => 'Front desk',
-                'tin' => $clinic['tin'] ?? '', 'verification_url' => 'https://vms.frcs.org.fj/verify?sample=1',
+                'tin' => $clinic['tin'] ?? '',
             ],
             'patient' => ['name' => 'Mereani Waqa', 'mrn' => 'MRN-104233'],
             'items' => [

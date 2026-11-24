@@ -322,18 +322,18 @@ try {
     }
 
     if ($action === 'start_redis_daemon') {
-        $homeDir = getenv('HOME') ?: '/home/ictfjcom';
-        @touch($homeDir . '/.redis.on');
-        @touch('/home/ictfjcom/.redis.on');
-
-        $socketPath = '/home/ictfjcom/.redis/redis.sock';
-        $socketExists = file_exists($socketPath);
+        require_once __DIR__ . '/../core/RedisConnector.php';
+        $rcfg = getAppConfig()['redis'] ?? [];
+        $asked = \NuRedisConnector::requestDaemon();
+        $sock = \NuRedisConnector::waitForSocket($rcfg, $asked === 'created' ? 3.0 : 0.5);
 
         echo json_encode([
-            'success' => true,
-            'message' => 'Created ~/.redis.on flag for A2 Hosting Redis daemon auto-start.',
-            'socket_path' => $socketPath,
-            'socket_exists' => $socketExists
+            'success' => $asked !== 'failed',
+            'message' => $asked === 'failed'
+                ? 'Could not create the ~/.redis.on file (home folder not found or not writable).'
+                : ($sock ? 'Redis is running.' : 'Asked the host to start Redis. It can take a minute; check again shortly.'),
+            'socket_path' => $sock ?? (\NuRedisConnector::socketCandidates($rcfg)[0] ?? ''),
+            'socket_exists' => $sock !== null
         ]);
         exit();
     }
