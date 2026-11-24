@@ -1699,6 +1699,7 @@ $fmtBytes = function ($b) {
                         <span class="text-slate-600">Checking connection...</span>
                     </div>
                     <p id="redis-card-scheme" class="text-[10px] text-slate-500 font-mono mt-0.5">Scheme: unix socket</p>
+                    <p id="redis-card-reason" class="text-[11px] text-slate-600 mt-1 leading-snug"></p>
                 </div>
 
                 <!-- Card 2: Server Memory & Version -->
@@ -1712,14 +1713,14 @@ $fmtBytes = function ($b) {
                 <div class="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/30 space-y-1">
                     <p class="text-[11px] font-bold text-outline uppercase tracking-wider">Cached App Objects</p>
                     <div id="redis-card-keys" class="text-xl font-bold text-primary mt-1">0</div>
-                    <p class="text-[10px] text-slate-500 font-mono mt-0.5">Prefix: nuvis:*</p>
+                    <p data-redis-prefix="*" class="text-[10px] text-slate-500 font-mono mt-0.5">Prefix: nuvis:*</p>
                 </div>
 
                 <!-- Card 4: Active Sessions -->
                 <div class="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/30 space-y-1">
                     <p class="text-[11px] font-bold text-outline uppercase tracking-wider">Redis Active Sessions</p>
                     <div id="redis-card-sessions" class="text-xl font-bold text-emerald-600 mt-1">0</div>
-                    <p class="text-[10px] text-slate-500 font-mono mt-0.5">Prefix: nuvis:sess:*</p>
+                    <p data-redis-prefix="sess:*" class="text-[10px] text-slate-500 font-mono mt-0.5">Prefix: nuvis:sess:*</p>
                 </div>
             </div>
 
@@ -1741,7 +1742,7 @@ $fmtBytes = function ($b) {
                             <span>A2 Hosting Turbo Max Redis Daemon Initialization</span>
                         </h3>
                         <p class="text-[11px] text-slate-500 mt-0.5">
-                            Socket Path: <code id="redis-socket-path-display" class="bg-white px-1.5 py-0.5 rounded font-mono border border-slate-200 text-slate-800">/home/ictfjcom/.redis/redis.sock</code>
+                            Socket Path: <code id="redis-socket-path-display" class="bg-white px-1.5 py-0.5 rounded font-mono border border-slate-200 text-slate-800">looking…</code>
                         </p>
                     </div>
 
@@ -1752,7 +1753,7 @@ $fmtBytes = function ($b) {
                         </button>
                         <button type="button" data-on-click="flushRedisCache()" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition flex items-center gap-1 shadow-xs">
                             <span class="material-symbols-outlined text-sm">cleaning_services</span>
-                            <span>Flush Nuvis Cache</span>
+                            <span>Clear cache (keeps sign-ins)</span>
                         </button>
                     </div>
                 </div>
@@ -2383,21 +2384,25 @@ function fetchRedisDiagnostics() {
     .then(d => {
         if (d.success) {
             const socketDisplay = document.getElementById('redis-socket-path-display');
-            if (socketDisplay) socketDisplay.textContent = d.socket_path || '/home/ictfjcom/.redis/redis.sock';
+            if (socketDisplay) socketDisplay.textContent = d.socket_path || '(not found yet)';
 
             const schemeEl = document.getElementById('redis-card-scheme');
             if (schemeEl) schemeEl.textContent = 'Scheme: ' + (d.scheme || 'unix socket');
 
+            document.querySelectorAll('[data-redis-prefix]').forEach(el => { el.textContent = 'Prefix: ' + (d.prefix || '') + el.getAttribute('data-redis-prefix'); });
+            const reasonEl = document.getElementById('redis-card-reason');
+            if (reasonEl) reasonEl.textContent = d.reason || '';
+
             if (d.is_connected) {
-                statusCard.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span><span class="text-emerald-700">Connected & Operational</span>`;
-            } else if (d.socket_exists) {
+                statusCard.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span><span class="text-emerald-700">Connected & working</span>`;
+            } else if (d.mode === 'off') {
                 statusCard.innerHTML = `
                     <div class="space-y-1">
-                        <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span><span class="text-amber-800">Socket Present (Config Disabled)</span></div>
-                        <button type="button" data-on-click="toggleRedisConfig(true)" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold shadow-xs">Enable Redis in Config</button>
+                        <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span><span class="text-amber-800">Switched off</span></div>
+                        <button type="button" data-on-click="toggleRedisConfig(true)" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold shadow-xs">Turn Redis on</button>
                     </div>`;
             } else {
-                statusCard.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span><span class="text-amber-800">Socket Offline (~/.redis.on required)</span>`;
+                statusCard.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span><span class="text-amber-800">Not connected (the site works without it)</span>`;
             }
 
             document.getElementById('redis-card-memory').textContent = d.used_memory || '--';
@@ -2416,7 +2421,7 @@ function fetchRedisDiagnostics() {
                         </tr>
                     `).join('');
                 } else {
-                    tbody.innerHTML = `<tr><td colspan="3" class="py-6 text-center text-slate-400 font-sans italic">No active keys currently cached under nuvis:* prefix.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="3" class="py-6 text-center text-slate-400 font-sans italic">Nothing is cached right now. (Sign-in sessions are not listed.)</td></tr>`;
                 }
             }
         }

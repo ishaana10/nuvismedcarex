@@ -96,6 +96,15 @@ function nxPasswordProblem(string $pw): ?string {
  * Fails open if the table is unavailable, so a database hiccup never locks everyone out.
  */
 function nxThrottle(string $bucket, int $max, int $seconds): bool {
+    // Fast path: one atomic counter in Redis, no database writes. Falls through to the database
+    // table when Redis is not available, so the limit holds either way.
+    if (class_exists('NuCache', false) || is_file(__DIR__ . '/../core/Cache.php')) {
+        require_once __DIR__ . '/../core/Cache.php';
+        $hits = \NuCache::getInstance()->hit($bucket, $seconds);
+        if ($hits !== null) {
+            return $hits <= $max;
+        }
+    }
     try {
         $pdo = getDB();
         $cut = date('Y-m-d H:i:s', time() - $seconds);

@@ -22,61 +22,33 @@ class NuCache
             $cfg = $appConfig['redis'] ?? [];
         }
 
-        if (empty($cfg['enabled'])) {
-            return;
+        require_once __DIR__ . '/RedisConnector.php';
+        $this->prefix     = (string) ($cfg['prefix'] ?? 'nuvis:');
+        // Several Nuvis apps may share one Redis: give this app its own corner so one can never
+        // read, or clear, another's keys.
+        if (!str_contains($this->prefix, 'medcare')) {
+            $this->prefix .= 'medcare:';
         }
+        $this->defaultTtl = (int) ($cfg['default_ttl'] ?? 300);
 
-        if (!extension_loaded('redis')) {
-            error_log('[NuCache] phpredis extension not loaded');
-            return;
+        $this->redis = \NuRedisConnector::connect($cfg);
+        $this->enabled = $this->redis !== null;
+        if (!$this->enabled) {
+            // One quiet line in the log; the Developer panel shows the same reason in full.
+            error_log('[NuCache] Redis off: ' . \NuRedisConnector::$lastReason);
         }
+    }
 
-        try {
-            $this->redis = new \Redis();
+    /** The key prefix this app uses (it includes the app name). */
+    public function prefix(): string
+    {
+        return $this->prefix;
+    }
 
-            if (($cfg['scheme'] ?? 'unix') === 'unix') {
-                $socketPath = $cfg['path'] ?? '/home/ictfjcom/.redis/redis.sock';
-                if (!file_exists($socketPath)) {
-                    // On A2 Hosting Turbo Max, touching ~/.redis.on triggers host Redis daemon startup
-                    $homeDir = getenv('HOME') ?: '/home/ictfjcom';
-                    @touch($homeDir . '/.redis.on');
-                    @touch('/home/ictfjcom/.redis.on');
-
-                    if (!file_exists($socketPath)) {
-                        return;
-                    }
-                }
-                $connected = $this->redis->connect(
-                    $socketPath,
-                    0,
-                    (float)($cfg['timeout'] ?? 2.5)
-                );
-            } else {
-                $connected = $this->redis->connect(
-                    $cfg['host'] ?? '127.0.0.1',
-                    (int)($cfg['port'] ?? 6379),
-                    (float)($cfg['timeout'] ?? 2.5)
-                );
-            }
-
-            if (!$connected) {
-                throw new \RuntimeException('Redis connect failed');
-            }
-
-            if (!empty($cfg['password'])) {
-                $this->redis->auth($cfg['password']);
-            }
-
-            $this->redis->select((int)($cfg['database'] ?? 0));
-            $this->prefix     = (string)($cfg['prefix'] ?? 'nuvis:');
-            $this->defaultTtl = (int)($cfg['default_ttl'] ?? 300);
-            $this->enabled    = true;
-
-        } catch (\Throwable $e) {
-            error_log('[NuCache] ' . $e->getMessage());
-            $this->redis   = null;
-            $this->enabled = false;
-        }
+    /** Plain-English reason Redis is on or off right now. */
+    public function reason(): string
+    {
+        return \NuRedisConnector::$lastReason;
     }
 
     public static function getInstance(): self
@@ -161,11 +133,7 @@ class NuCache
             return 0;
         }
         try {
-            $keys = $this->redis->keys($this->prefix . $pattern);
-            if (empty($keys)) {
-                return 0;
-            }
-            return (int)$this->redis->del(...$keys);
+            return $this->deleteMatching($this->prefix . $pattern);
         } catch (\Throwable $e) {
             return 0;
         }
@@ -182,20 +150,130 @@ class NuCache
         return $value;
     }
 
-    public function flush(): bool
+    /**
+     * Clear the cache. Sessions are kept unless $includeSessions is true, because clearing them
+     * signs every user out.
+     */
+    public function flush(bool $includeSessions = false): bool
     {
         if (!$this->isEnabled()) {
             return false;
         }
         try {
-            // Only flush keys with our prefix for safety
-            $keys = $this->redis->keys($this->prefix . '*');
-            if (!empty($keys)) {
-                $this->redis->del(...$keys);
-            }
+            $this->deleteMatching($this->prefix . '*', $includeSessions ? [] : [$this->prefix . 'sess:']);
             return true;
         } catch (\Throwable $e) {
             return false;
+        }
+    }
+
+    /**
+     * Delete keys matching a pattern with SCAN, which never blocks Redis the way KEYS does.
+     * @param string[] $keepPrefixes keys starting with any of these are left alone
+     */
+    private function deleteMatching(string $pattern, array $keepPrefixes = []): int
+    {
+        $deleted = 0;
+        $it = null;
+        do {
+            $batch = $this->redis->scan($it, $pattern, 200);
+            if (!is_array($batch)) {
+                break;
+            }
+            $batch = array_values(array_filter($batch, static function (string $k) use ($keepPrefixes): bool {
+                foreach ($keepPrefixes as $keep) {
+                    if (str_starts_with($k, $keep)) {
+                        return false;
+                    }
+                }
+                return true;
+            }));
+            if ($batch) {
+                $deleted += (int) $this->redis->unlink(...$batch);
+            }
+        } while ($it > 0);
+        return $deleted;
+    }
+
+    /** Keys under our prefix (for diagnostics), newest scan order, capped. */
+    public function listKeys(int $limit = 200): array
+    {
+        if (!$this->isEnabled()) {
+            return [];
+        }
+        $out = [];
+        $it = null;
+        try {
+            do {
+                $batch = $this->redis->scan($it, $this->prefix . '*', 200);
+                if (is_array($batch)) {
+                    foreach ($batch as $k) {
+                        $out[] = $k;
+                        if (count($out) >= $limit) {
+                            return $out;
+                        }
+                    }
+                }
+            } while ($it > 0);
+        } catch (\Throwable $e) {
+            error_log('[NuCache listKeys] ' . $e->getMessage());
+        }
+        return $out;
+    }
+
+    // ─── Per-clinic keys ───────────────────────────────────────────────────────
+    // One Redis serves every clinic, so anything cached for a clinic must carry its id.
+    // Use these instead of building keys by hand: a key without the clinic could be read by another.
+
+    public function tenantKey(string $key, ?string $tenantId = null): string
+    {
+        $tenantId ??= class_exists('\\ClinicFlow\\Shared\\TenantContext') ? \ClinicFlow\Shared\TenantContext::getTenantId() : '';
+        if ($tenantId === '' || $tenantId === null) {
+            throw new \LogicException('A clinic-specific cache key needs a clinic.');
+        }
+        return 't:' . $tenantId . ':' . $key;
+    }
+
+    public function getForTenant(string $key, mixed $default = null, ?string $tenantId = null): mixed
+    {
+        return $this->get($this->tenantKey($key, $tenantId), $default);
+    }
+
+    public function setForTenant(string $key, mixed $value, ?int $ttl = null, ?string $tenantId = null): bool
+    {
+        return $this->set($this->tenantKey($key, $tenantId), $value, $ttl);
+    }
+
+    public function forgetForTenant(string $key, ?string $tenantId = null): bool
+    {
+        return $this->delete($this->tenantKey($key, $tenantId));
+    }
+
+    /** Drop everything cached for one clinic (not its sessions). */
+    public function forgetTenant(?string $tenantId = null): int
+    {
+        return $this->deleteByPattern($this->tenantKey('*', $tenantId));
+    }
+
+    /**
+     * Fixed-window counter used for rate limiting. Returns the count including this call, or
+     * null when Redis is unavailable (callers then fall back to the database).
+     */
+    public function hit(string $bucket, int $seconds): ?int
+    {
+        if (!$this->isEnabled()) {
+            return null;
+        }
+        try {
+            $k = $this->key('rl:' . $bucket);
+            $n = (int) $this->redis->incr($k);
+            if ($n === 1) {
+                $this->redis->expire($k, $seconds);
+            }
+            return $n;
+        } catch (\Throwable $e) {
+            error_log('[NuCache hit] ' . $e->getMessage());
+            return null;
         }
     }
 

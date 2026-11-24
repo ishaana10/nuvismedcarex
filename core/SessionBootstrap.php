@@ -56,7 +56,10 @@ if (session_status() === PHP_SESSION_NONE) {
     $appConfig = getAppConfig();
     $nuConfig = $GLOBALS['nuConfig'] ?? $appConfig;
 
-    if (!empty($nuConfig['redis']['enabled']) && extension_loaded('redis')) {
+    // Redis sessions when a Redis is reachable (config 'enabled' may be true, false or 'auto');
+    // otherwise PHP's normal file sessions.
+    require_once NU_ROOT . '/core/RedisConnector.php';
+    if (\NuRedisConnector::mode($nuConfig['redis'] ?? []) !== 'off') {
         try {
             require_once NU_ROOT . '/core/Cache.php';
             require_once NU_ROOT . '/core/RedisSessionHandler.php';
@@ -65,7 +68,7 @@ if (session_status() === PHP_SESSION_NONE) {
             if ($cache->isEnabled() && $cache->client()) {
                 $handler = new \NuRedisSessionHandler(
                     $cache->client(),
-                    ($nuConfig['redis']['prefix'] ?? 'nuvis:') . 'sess:',
+                    $cache->prefix() . 'sess:',
                     (int)($nuConfig['sessionTimeout'] ?? 1800)
                 );
                 session_set_save_handler($handler, true);

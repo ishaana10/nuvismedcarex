@@ -37,9 +37,10 @@ function getAppConfig(): array {
             'db_user'   => getenv('DB_USER')   ?: 'root',
             'db_pass'   => getenv('DB_PASS')   ?: '',
             'redis'     => [
-                'enabled'     => getenv('REDIS_ENABLED') !== false ? filter_var(getenv('REDIS_ENABLED'), FILTER_VALIDATE_BOOLEAN) : (file_exists(getenv('REDIS_PATH') ?: '/home/ictfjcom/.redis/redis.sock') || file_exists((getenv('HOME') ?: '/home/ictfjcom') . '/.redis.on')),
+                // true / false / 'auto' (default: use Redis whenever one is found or can be started)
+                'enabled'     => getenv('REDIS_ENABLED') !== false ? filter_var(getenv('REDIS_ENABLED'), FILTER_VALIDATE_BOOLEAN) : 'auto',
                 'scheme'      => getenv('REDIS_SCHEME') ?: 'unix',
-                'path'        => getenv('REDIS_PATH')   ?: '/home/ictfjcom/.redis/redis.sock',
+                'path'        => getenv('REDIS_PATH')   ?: '',   // blank = find <home>/.redis/redis.sock by itself
                 'host'        => getenv('REDIS_HOST')   ?: '127.0.0.1',
                 'port'        => (int)(getenv('REDIS_PORT') ?: 6379),
                 'password'    => getenv('REDIS_PASS')   ?: null,
@@ -53,9 +54,9 @@ function getAppConfig(): array {
 
     if (!isset($config['redis'])) {
         $config['redis'] = [
-            'enabled'     => file_exists('/home/ictfjcom/.redis/redis.sock') || file_exists((getenv('HOME') ?: '/home/ictfjcom') . '/.redis.on'),
+            'enabled'     => 'auto',
             'scheme'      => 'unix',
-            'path'        => '/home/ictfjcom/.redis/redis.sock',
+            'path'        => '',
             'host'        => '127.0.0.1',
             'port'        => 6379,
             'password'    => null,
