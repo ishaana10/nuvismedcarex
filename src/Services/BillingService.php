@@ -58,7 +58,6 @@ class BillingService {
     public function createInvoice(array $data, array $items = [], ?string $tenantId = null): array {
         $tenantId = $tenantId ?? TenantContext::getTenantId();
         $id = Uuid::uuidv7();
-        $invNumber = 'INV-' . date('Y') . '-' . sprintf('%04d', rand(1, 9999));
 
         $totalMoney = Money::zero('FJD');
         foreach ($items as $item) {
@@ -78,6 +77,7 @@ class BillingService {
             "VALUES (:id, :tid, :inv_num, :pid, :pname, :pmrn, :sdate, :ddate, :amt, :status, :ins, :owed, :services, :inv_type, :txn_type, :tin, :loc, :cashier)"
         );
 
+        [$invNumber] = DocumentNumbers::issue($this->db, $tenantId, 'invoices', 'invoice_number', 'INV-' . date('Y') . '-', 4, function (string $invNumber) use ($stmt, $id, $tenantId, $data, $totalMoney, $insuranceCovered, $patientOwed) {
         $stmt->execute([
             'id' => $id,
             'tid' => $tenantId,
@@ -98,6 +98,7 @@ class BillingService {
             'loc' => $data['business_location'] ?? 'Suva Central Clinic',
             'cashier' => $_SESSION['user_name'] ?? 'Admin'
         ]);
+        });
 
         foreach ($items as $item) {
             $itemId = Uuid::uuidv7();

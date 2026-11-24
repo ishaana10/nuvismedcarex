@@ -311,7 +311,6 @@ class VMSService
         $origItems = $stmtItems->fetchAll(PDO::FETCH_ASSOC);
 
         $newInvoiceId = 'inv-' . uniqid();
-        $newInvNumber = 'INV-CAN-' . rand(10000, 99999);
 
         // Determine counter transaction type (Sale -> Refund, Refund -> Sale)
         $newTxType = ($orig['transaction_type'] === 'Refund') ? 'Sale' : 'Refund';
@@ -336,6 +335,7 @@ class VMSService
             )
         ");
 
+        [$newInvNumber] = \ClinicFlow\Services\DocumentNumbers::issue($this->pdo, (string) ($orig['tenant_id'] ?? $tenantId), 'invoices', 'invoice_number', 'INV-CAN-', 5, function (string $newInvNumber) use ($stmtIns, $cashierName, $newInvoiceId, $newTxType, $newType, $refNo, $refTime, $sellerTin, $tenantId, $orig) {
         $stmtIns->execute([
             $newInvoiceId,
             $orig['tenant_id'] ?? $tenantId,
@@ -362,6 +362,7 @@ class VMSService
             $refTime,
             $orig['payment_methods']
         ]);
+        });
 
         // Copy item lines
         $stmtItemIns = $this->pdo->prepare("

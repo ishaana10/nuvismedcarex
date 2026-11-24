@@ -21,7 +21,18 @@ include __DIR__ . '/includes/header.php';
     <form action="actions/patient_add.php" method="POST" class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs space-y-6">
         <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
 
-        <?php $pf = []; $pfNew = true; $pfIds = []; $pfKey = 'reg'; include __DIR__ . '/includes/patient_form_fields.php'; ?>
+        <?php
+        $pf = is_array($_SESSION['patient_old'] ?? null) ? $_SESSION['patient_old'] : [];
+        $dupSeen = $_SESSION['patient_duplicate'] ?? null;
+        unset($_SESSION['patient_old'], $_SESSION['patient_duplicate']);
+        $pfNew = true; $pfIds = []; $pfKey = 'reg'; include __DIR__ . '/includes/patient_form_fields.php'; ?>
+
+        <?php if (is_array($dupSeen)): ?>
+        <label class="flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900">
+            <input type="checkbox" name="confirm_duplicate" value="1" class="mt-0.5">
+            <span><strong><?= htmlspecialchars($dupSeen['name']) ?></strong> (<?= htmlspecialchars($dupSeen['mrn']) ?>) already has a chart with this date of birth. Tick to register this as a different person anyway, or <a class="underline font-semibold" href="patient_profile.php?id=<?= urlencode($dupSeen['id']) ?>">open the existing chart</a>.</span>
+        </label>
+        <?php endif; ?>
 
         <!-- Submit Actions -->
         <div class="flex items-center justify-end gap-3 pt-4 border-t border-outline-variant/20">

@@ -46,7 +46,6 @@ try {
     $pdo->beginTransaction();
 
     $invoiceId = 'inv-' . uniqid();
-    $invoiceNumber = 'INV-' . date('Y') . '-' . rand(10000, 99999);
 
     // Calculate itemized totals
     $totalAmount = 0.00;
@@ -165,6 +164,7 @@ try {
         )
     ");
 
+    [$invoiceNumber] = \ClinicFlow\Services\DocumentNumbers::issue($pdo, $tenantId, 'invoices', 'invoice_number', 'INV-' . date('Y') . '-', 4, function (string $invoiceNumber) use ($stmtInv, $invoiceId, $tenantId, $patientId, $patientName, $patientMrn, $dueDate, $totalAmount, $status, $patientOwed, $servicesJson, $invoiceType, $transactionType, $sellerTin, $businessLoc, $cashierName, $buyerTin, $buyerCostCenter, $posNum, $refNo, $refTime, $totalTax, $paymentMethods) {
     $stmtInv->execute([
         $invoiceId, $tenantId, $invoiceNumber, $patientId, $patientName, $patientMrn, date('Y-m-d'), $dueDate,
         $totalAmount, $status, $patientOwed, $servicesJson,
@@ -172,6 +172,7 @@ try {
         $buyerTin, $buyerCostCenter, $posNum, date('Y-m-d H:i:s'), $refNo, $refTime,
         $totalTax, json_encode($paymentMethods)
     ]);
+    });
 
     $stmtItem = $pdo->prepare("
         INSERT INTO invoice_items (id, tenant_id, invoice_id, name, gtin, unit_price, quantity, total_price, tax_label, tax_rate, tax_amount)

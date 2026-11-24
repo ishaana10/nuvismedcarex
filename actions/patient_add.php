@@ -47,12 +47,27 @@ if ($firstName === '' || $lastName === '' || $dob === '') {
     exit;
 }
 
+// Refuse impossible dates and unusable phone numbers, and keep what was typed so nothing is lost
+$problem = \ClinicFlow\Services\PatientIntake::firstProblem($_POST);
+if ($problem === null && empty($_POST['confirm_duplicate'])) {
+    $dup = \ClinicFlow\Services\PatientIntake::findDuplicate(getDB(), \ClinicFlow\Shared\TenantContext::getTenantId(), $firstName, $lastName, $dob);
+    if ($dup !== null) {
+        $_SESSION['patient_duplicate'] = $dup;
+        $problem = $dup['name'] . ' (' . $dup['mrn'] . ') is already registered with this date of birth. If this is a different person, tick "register anyway" and save again.';
+    }
+}
+if ($problem !== null) {
+    $_SESSION['patient_old'] = array_diff_key($_POST, ['csrf_token' => 1]);
+    setToast('Check the details', $problem, 'error');
+    header("Location: ../register_patient.php");
+    exit;
+}
+unset($_SESSION['patient_old'], $_SESSION['patient_duplicate']);
+
 // Calculate age
 $birthYear = (int)date('Y', strtotime($dob));
 $age = max(0, date_diff(date_create($dob), date_create('today'))->y);
 
-$mrnNum = rand(10000, 99999);
-$mrn = "#" . $mrnNum;
 $patientId = \ClinicFlow\Utils\Uuid::uuidv7();
 $initials = strtoupper(substr($firstName, 0, 1) . substr($lastName, 0, 1));
 $regDate = date('Y-m-d');
@@ -63,12 +78,15 @@ $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 
 $stmt = $pdo->prepare("INSERT INTO patients (id, tenant_id, mrn, first_name, last_name, dob, age, gender, phone, email, address, emergency_contact_name, emergency_contact_relationship, emergency_contact_phone, insurance_provider, insurance_policy_number, insurance_group_number, known_allergies, blood_group, chronic_conditions, clinical_notes, initials, registration_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
-$stmt->execute([
-    $patientId, $tenantId, $mrn, $firstName, $lastName, $dob, $age, $gender, $phone, $email, $address,
-    $emergencyName, $emergencyRel, $emergencyPhone,
-    $insuranceProvider, $insurancePolicy, $insuranceGroup,
-    $allergies, $bloodGroup, $chronic, $clinicalNotes, $initials, $regDate
-]);
+// Patient numbers run on from the clinic's highest, so two patients never share one
+[$mrn] = \ClinicFlow\Services\DocumentNumbers::issue($pdo, $tenantId, 'patients', 'mrn', '#', 5, function (string $mrn) use ($stmt, $patientId, $tenantId, $firstName, $lastName, $dob, $age, $gender, $phone, $email, $address, $emergencyName, $emergencyRel, $emergencyPhone, $insuranceProvider, $insurancePolicy, $insuranceGroup, $allergies, $bloodGroup, $chronic, $clinicalNotes, $initials, $regDate) {
+    $stmt->execute([
+        $patientId, $tenantId, $mrn, $firstName, $lastName, $dob, $age, $gender, $phone, $email, $address,
+        $emergencyName, $emergencyRel, $emergencyPhone,
+        $insuranceProvider, $insurancePolicy, $insuranceGroup,
+        $allergies, $bloodGroup, $chronic, $clinicalNotes, $initials, $regDate
+    ]);
+}, 10001);
 
 \ClinicFlow\Services\PatientIdentifiers::save($pdo, $tenantId, $patientId, \ClinicFlow\Services\PatientIdentifiers::fromPost($_POST));
 
