@@ -28,37 +28,19 @@ final class InsuranceReportService
     }
 
     /**
-     * Provider names worth offering in the filter: every insurer this clinic
-     * has claimed from, plus the ones recorded on patient records.
+     * Provider names offered in the report filter and layout settings: only the
+     * insurers this clinic has entered under Administration → Insurance.
+     * Names that merely appear on old patient records or claims are not offered.
      */
     public function providers(): array
     {
         $names = [];
-        // The clinic's configured insurers come first, so one that has not been
-        // claimed from yet can still be picked.
         try {
-            foreach ((new InsuranceProviders($this->db, $this->tenantId))->names() as $name) {
+            foreach ((new InsuranceProviders($this->db, $this->tenantId))->names(false) as $name) {
                 $names[mb_strtolower($name)] = $name;
             }
         } catch (\Throwable $e) {
             error_log('[InsuranceReport] configured providers: ' . $e->getMessage());
-        }
-        foreach ([
-            "SELECT DISTINCT provider_name FROM insurance_claims WHERE tenant_id = ? AND provider_name <> ''",
-            "SELECT DISTINCT insurance_provider FROM patients WHERE tenant_id = ? AND insurance_provider IS NOT NULL AND insurance_provider <> ''",
-        ] as $sql) {
-            try {
-                $st = $this->db->prepare($sql);
-                $st->execute([$this->tenantId]);
-                foreach ($st->fetchAll(PDO::FETCH_COLUMN) ?: [] as $name) {
-                    $clean = InsuranceReportSettings::cleanProviderName((string) $name);
-                    if ($clean !== '') {
-                        $names[mb_strtolower($clean)] = $clean;
-                    }
-                }
-            } catch (\Throwable $e) {
-                error_log('[InsuranceReport] providers: ' . $e->getMessage());
-            }
         }
         $names = array_values($names);
         usort($names, 'strnatcasecmp');
