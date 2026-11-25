@@ -209,34 +209,4 @@ final class InsuranceProviders
             return null;
         }
     }
-
-    /**
-     * Insurer names already recorded against patients or claims but missing
-     * from the clinic's list, so they can be adopted in one click.
-     */
-    public function unlisted(): array
-    {
-        $known = array_map('mb_strtolower', $this->names(false));
-        $found = [];
-        foreach ([
-            "SELECT DISTINCT provider_name AS n FROM insurance_claims WHERE tenant_id = ? AND provider_name <> ''",
-            "SELECT DISTINCT insurance_provider AS n FROM patients WHERE tenant_id = ? AND insurance_provider IS NOT NULL AND insurance_provider <> ''",
-        ] as $sql) {
-            try {
-                $st = $this->db->prepare($sql);
-                $st->execute([$this->tenantId]);
-                foreach ($st->fetchAll(PDO::FETCH_COLUMN) ?: [] as $name) {
-                    $clean = InsuranceReportSettings::cleanProviderName((string) $name);
-                    if ($clean !== '' && !in_array(mb_strtolower($clean), $known, true)) {
-                        $found[mb_strtolower($clean)] = $clean;
-                    }
-                }
-            } catch (\Throwable $e) {
-                error_log('[InsuranceProviders] unlisted: ' . $e->getMessage());
-            }
-        }
-        $found = array_values($found);
-        usort($found, 'strnatcasecmp');
-        return $found;
-    }
 }

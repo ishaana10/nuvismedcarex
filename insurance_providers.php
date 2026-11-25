@@ -13,7 +13,6 @@ include __DIR__ . '/includes/header.php';
 $tenantId = \ClinicFlow\Shared\TenantContext::getTenantId();
 $providerSvc = new InsuranceProviders($pdo, $tenantId);
 $providers = $providerSvc->all();
-$unlisted = $providerSvc->unlisted();
 $canEdit = nxCan('settings', 'edit');
 $csrf = htmlspecialchars(getCsrfToken());
 $dis = $canEdit ? '' : 'disabled';
@@ -66,29 +65,6 @@ $cur = nxCurrencySymbol();
     <p class="mb-4 text-[12px] text-slate-600 bg-slate-100 border border-slate-200 rounded-xl px-3 py-2">
         You can see this list but not change it. Ask an administrator for “Clinic settings: Edit”.
     </p>
-<?php endif; ?>
-
-<?php if ($unlisted && $canEdit): ?>
-<form action="actions/insurance_providers_save.php" method="POST" class="mb-6 bg-amber-50 border border-amber-200 rounded-2xl p-4">
-    <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
-    <input type="hidden" name="action" value="adopt">
-    <h3 class="text-[13px] font-semibold text-amber-900 flex items-center gap-1.5">
-        <span class="material-symbols-outlined text-[18px]">playlist_add</span>
-        Names already in use but not on the list
-    </h3>
-    <p class="text-[12px] text-amber-800 mt-0.5 mb-3">
-        These were typed into patient records or claims. Add the ones you use so they stop being retyped.
-    </p>
-    <div class="flex flex-wrap gap-2 mb-3">
-        <?php foreach ($unlisted as $name): ?>
-            <label class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-amber-300 bg-white text-[12px] font-medium cursor-pointer hover:border-amber-400">
-                <input type="checkbox" name="adopt[]" value="<?= htmlspecialchars($name) ?>" class="w-3.5 h-3.5 rounded border-amber-300" checked>
-                <span><?= htmlspecialchars($name) ?></span>
-            </label>
-        <?php endforeach; ?>
-    </div>
-    <button type="submit" class="btn-primary">Add the ticked providers</button>
-</form>
 <?php endif; ?>
 
 <form action="actions/insurance_providers_save.php" method="POST" id="providers-form">

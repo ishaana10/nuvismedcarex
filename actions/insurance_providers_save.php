@@ -28,25 +28,6 @@ $svc = new InsuranceProviders($pdo, $tenantId);
 $before = $svc->names(false);
 
 try {
-    if (($_POST['action'] ?? 'save') === 'adopt') {
-        $added = [];
-        foreach ((array) ($_POST['adopt'] ?? []) as $name) {
-            $clean = $svc->addIfMissing((string) $name);
-            if ($clean !== '') {
-                $added[] = $clean;
-            }
-        }
-        if ($added) {
-            audit($pdo, $tenantId, 'INSURANCE_PROVIDERS_SAVED', 'Adopted: ' . implode(', ', array_slice($added, 0, 20)));
-            $n = count($added);
-            setToast('Providers added', $n . ($n === 1 ? ' provider is' : ' providers are') . ' now on the list.');
-        } else {
-            setToast('Nothing added', 'Tick at least one name first.', 'info');
-        }
-        header("Location: {$back}");
-        exit;
-    }
-
     $result = $svc->saveAll((array) ($_POST['providers'] ?? []));
 } catch (\Throwable $e) {
     error_log('[insurance_providers_save] ' . $e->getMessage());
